@@ -169,10 +169,10 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
                     validators: koruma_attr.validators,
                     validate_each: koruma_attr.validate_each,
                 });
-            }
+            },
             Err(_) => {
                 return None;
-            }
+            },
         }
     }
 
@@ -362,7 +362,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 }
 
 /// Helper to generate the type for a validator
-/// 
+///
 /// This unwraps Option<T> and Vec<T> to get the effective type being validated.
 /// - For `each` validation on `Vec<T>`: uses T
 /// - For optional fields `Option<T>`: uses T (validation is skipped if None)
@@ -373,14 +373,14 @@ fn validator_type_for_field(
     validate_each: bool,
 ) -> TokenStream2 {
     let validator = &v.validator;
-    
+
     // Unwrap Vec<T> for each validation
     let after_vec = if validate_each {
         vec_inner_type(field_ty).unwrap_or(field_ty)
     } else {
         field_ty
     };
-    
+
     // Unwrap Option<T> for optional field validation
     let effective_ty = option_inner_type(after_vec).unwrap_or(after_vec);
 
@@ -392,17 +392,14 @@ fn validator_type_for_field(
 }
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)
-fn effective_validation_type<'a>(
-    field_ty: &'a syn::Type,
-    validate_each: bool,
-) -> &'a syn::Type {
+fn effective_validation_type<'a>(field_ty: &'a syn::Type, validate_each: bool) -> &'a syn::Type {
     // Unwrap Vec<T> for each validation
     let after_vec = if validate_each {
         vec_inner_type(field_ty).unwrap_or(field_ty)
     } else {
         field_ty
     };
-    
+
     // Unwrap Option<T> for optional field validation
     option_inner_type(after_vec).unwrap_or(after_vec)
 }
@@ -426,15 +423,15 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 return Err(syn::Error::new_spanned(
                     &input,
                     "Koruma only supports structs with named fields",
-                ))
-            }
+                ));
+            },
         },
         _ => {
             return Err(syn::Error::new_spanned(
                 &input,
                 "Koruma can only be derived for structs",
-            ))
-        }
+            ));
+        },
     };
 
     // Parse all fields and extract validation info
@@ -771,7 +768,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 // Regular field validation
                 let field_is_optional = is_option_type(field_ty);
                 let effective_ty = effective_validation_type(field_ty, false);
-                
+
                 let validator_checks: Vec<TokenStream2> = f.validators.iter().map(|v| {
                     let validator = &v.validator;
                     let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
@@ -883,489 +880,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use insta::assert_snapshot;
-
-    /// Helper to format TokenStream as pretty-printed Rust code
-    fn pretty_print(tokens: TokenStream2) -> String {
-        let file = syn::parse_file(&tokens.to_string()).unwrap();
-        prettyplease::unparse(&file)
-    }
-
-    #[test]
-    fn test_validator_expansion_simple() {
-        let input: ItemStruct = syn::parse_quote! {
-            #[derive(Clone, Debug)]
-            pub struct NumberRangeValidation {
-                min: i32,
-                max: i32,
-                #[koruma(value)]
-                pub actual: Option<i32>,
-            }
-        };
-
-        let expanded = expand_validator(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_validator_expansion_generic() {
-        let input: ItemStruct = syn::parse_quote! {
-            #[derive(Clone, Debug)]
-            pub struct GenericRangeValidation<T> {
-                pub min: T,
-                pub max: T,
-                #[koruma(value)]
-                pub actual: Option<T>,
-            }
-        };
-
-        let expanded = expand_validator(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_single_validator() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct Item {
-                #[koruma(NumberRangeValidation(min = 0, max = 100))]
-                pub age: i32,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_multiple_validators() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct MultiValidatorItem {
-                #[koruma(NumberRangeValidation(min = 0, max = 100), EvenNumberValidation)]
-                pub value: i32,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_generic_validator() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct GenericItem {
-                #[koruma(GenericRangeValidation<_>(min = 0.0, max = 100.0))]
-                pub score: f64,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_each() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct Order {
-                #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
-                pub scores: Vec<f64>,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_multiple_fields() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct Item {
-                #[koruma(NumberRangeValidation(min = 0, max = 100))]
-                pub age: i32,
-
-                #[koruma(StringLengthValidation(min = 1, max = 67))]
-                pub name: String,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    // ============================================================================
-    // Additional Snapshot Tests - Edge Cases
-    // ============================================================================
-
-    #[test]
-    fn test_validator_expansion_non_option_value() {
-        // Value field that is NOT wrapped in Option
-        let input: ItemStruct = syn::parse_quote! {
-            #[derive(Clone, Debug)]
-            pub struct DirectValueValidation {
-                min: i32,
-                #[koruma(value)]
-                pub actual: i32,
-            }
-        };
-
-        let expanded = expand_validator(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_validator_no_args() {
-        // Validator with no arguments (like EvenNumberValidation)
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct Item {
-                #[koruma(EvenNumberValidation)]
-                pub value: i32,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_each_multiple_validators() {
-        // each() with multiple validators
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct Order {
-                #[koruma(each(RangeValidation(min = 0, max = 100), EvenValidation))]
-                pub values: Vec<i32>,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_mixed_fields() {
-        // Mix of regular field, each field, and multiple validators
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct ComplexItem {
-                #[koruma(RangeValidation(min = 0, max = 100))]
-                pub age: i32,
-
-                #[koruma(each(LengthValidation(min = 1, max = 50)))]
-                pub tags: Vec<String>,
-
-                #[koruma(RangeValidation(min = 0, max = 10), EvenValidation)]
-                pub rating: i32,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_optional_field() {
-        // Optional field should generate if-let pattern and skip validation when None
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct UserProfile {
-                #[koruma(StringLengthValidation(min = 1, max = 50))]
-                pub username: String,
-
-                #[koruma(StringLengthValidation(min = 1, max = 200))]
-                pub bio: Option<String>,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    #[test]
-    fn test_koruma_expansion_optional_with_generic() {
-        // Optional field with generic validator
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct Item {
-                #[koruma(GenericRange<_>(min = 0, max = 100))]
-                pub score: Option<i32>,
-            }
-        };
-
-        let expanded = expand_koruma(input).unwrap();
-        assert_snapshot!(pretty_print(expanded));
-    }
-
-    // ============================================================================
-    // Unit Tests for Helper Functions
-    // ============================================================================
-
-    #[test]
-    fn test_option_inner_type_extracts_inner() {
-        let ty: syn::Type = syn::parse_quote!(Option<i32>);
-        let inner = option_inner_type(&ty);
-        assert!(inner.is_some());
-        let inner_str = quote!(#inner).to_string();
-        assert!(inner_str.contains("i32"), "Expected i32, got: {}", inner_str);
-    }
-
-    #[test]
-    fn test_option_inner_type_nested() {
-        let ty: syn::Type = syn::parse_quote!(Option<Vec<String>>);
-        let inner = option_inner_type(&ty);
-        assert!(inner.is_some());
-        let inner_str = quote!(#inner).to_string();
-        assert!(inner_str.contains("Vec"), "Expected Vec<String>, got: {}", inner_str);
-    }
-
-    #[test]
-    fn test_option_inner_type_returns_none_for_non_option() {
-        let ty: syn::Type = syn::parse_quote!(i32);
-        assert!(option_inner_type(&ty).is_none());
-
-        let ty: syn::Type = syn::parse_quote!(Vec<i32>);
-        assert!(option_inner_type(&ty).is_none());
-
-        let ty: syn::Type = syn::parse_quote!(String);
-        assert!(option_inner_type(&ty).is_none());
-    }
-
-    #[test]
-    fn test_vec_inner_type_extracts_inner() {
-        let ty: syn::Type = syn::parse_quote!(Vec<f64>);
-        let inner = vec_inner_type(&ty);
-        assert!(inner.is_some());
-        let inner_str = quote!(#inner).to_string();
-        assert!(inner_str.contains("f64"), "Expected f64, got: {}", inner_str);
-    }
-
-    #[test]
-    fn test_vec_inner_type_complex() {
-        let ty: syn::Type = syn::parse_quote!(Vec<Option<String>>);
-        let inner = vec_inner_type(&ty);
-        assert!(inner.is_some());
-        let inner_str = quote!(#inner).to_string();
-        assert!(inner_str.contains("Option"), "Expected Option<String>, got: {}", inner_str);
-    }
-
-    #[test]
-    fn test_vec_inner_type_returns_none_for_non_vec() {
-        let ty: syn::Type = syn::parse_quote!(i32);
-        assert!(vec_inner_type(&ty).is_none());
-
-        let ty: syn::Type = syn::parse_quote!(Option<i32>);
-        assert!(vec_inner_type(&ty).is_none());
-
-        let ty: syn::Type = syn::parse_quote!(HashMap<String, i32>);
-        assert!(vec_inner_type(&ty).is_none());
-    }
-
-    #[test]
-    fn test_find_value_field_finds_marked_field() {
-        let input: ItemStruct = syn::parse_quote! {
-            pub struct Test {
-                min: i32,
-                max: i32,
-                #[koruma(value)]
-                actual: Option<i32>,
-            }
-        };
-
-        let result = find_value_field(&input);
-        assert!(result.is_some());
-        let (name, _ty) = result.unwrap();
-        assert_eq!(name.to_string(), "actual");
-    }
-
-    #[test]
-    fn test_find_value_field_returns_none_when_missing() {
-        let input: ItemStruct = syn::parse_quote! {
-            pub struct Test {
-                min: i32,
-                max: i32,
-                actual: Option<i32>,
-            }
-        };
-
-        assert!(find_value_field(&input).is_none());
-    }
-
-    #[test]
-    fn test_parse_field_with_single_validator() {
-        let field: syn::Field = syn::parse_quote! {
-            #[koruma(RangeValidation(min = 0, max = 100))]
-            pub age: i32
-        };
-
-        let result = parse_field(&field);
-        assert!(result.is_some());
-        let info = result.unwrap();
-        assert_eq!(info.name.to_string(), "age");
-        assert_eq!(info.validators.len(), 1);
-        assert_eq!(info.validators[0].validator.to_string(), "RangeValidation");
-        assert!(!info.validators[0].infer_type);
-        assert_eq!(info.validators[0].args.len(), 2);
-    }
-
-    #[test]
-    fn test_parse_field_with_generic_validator() {
-        let field: syn::Field = syn::parse_quote! {
-            #[koruma(GenericRange<_>(min = 0.0, max = 1.0))]
-            pub score: f64
-        };
-
-        let result = parse_field(&field);
-        assert!(result.is_some());
-        let info = result.unwrap();
-        assert!(info.validators[0].infer_type);
-    }
-
-    #[test]
-    fn test_parse_field_with_each() {
-        let field: syn::Field = syn::parse_quote! {
-            #[koruma(each(RangeValidation(min = 0, max = 100)))]
-            pub scores: Vec<i32>
-        };
-
-        let result = parse_field(&field);
-        assert!(result.is_some());
-        let info = result.unwrap();
-        assert!(info.validate_each);
-        assert_eq!(info.validators.len(), 1);
-    }
-
-    #[test]
-    fn test_parse_field_with_skip_returns_none() {
-        let field: syn::Field = syn::parse_quote! {
-            #[koruma(skip)]
-            pub internal: u64
-        };
-
-        assert!(parse_field(&field).is_none());
-    }
-
-    #[test]
-    fn test_parse_field_without_koruma_returns_none() {
-        let field: syn::Field = syn::parse_quote! {
-            pub normal_field: String
-        };
-
-        assert!(parse_field(&field).is_none());
-    }
-
-    // ============================================================================
-    // Error Case Tests
-    // ============================================================================
-
-    #[test]
-    fn test_validator_error_missing_value_field() {
-        let input: ItemStruct = syn::parse_quote! {
-            pub struct BadValidator {
-                min: i32,
-                max: i32,
-                // Missing #[koruma(value)] field!
-            }
-        };
-
-        let result = expand_validator(input);
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("koruma(value)"));
-    }
-
-    #[test]
-    fn test_koruma_error_no_validated_fields() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct EmptyStruct {
-                // No #[koruma(...)] attributes
-                pub normal_field: i32,
-            }
-        };
-
-        let result = expand_koruma(input);
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("koruma(...)"));
-    }
-
-    #[test]
-    fn test_koruma_error_on_enum() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub enum NotAStruct {
-                VariantA,
-                VariantB,
-            }
-        };
-
-        let result = expand_koruma(input);
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("struct"));
-    }
-
-    #[test]
-    fn test_koruma_error_on_tuple_struct() {
-        let input: DeriveInput = syn::parse_quote! {
-            pub struct TupleStruct(i32, String);
-        };
-
-        let result = expand_koruma(input);
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.to_string().contains("named fields"));
-    }
-
-    // ============================================================================
-    // ValidatorAttr Parsing Tests
-    // ============================================================================
-
-    #[test]
-    fn test_validator_attr_parse_simple() {
-        let attr: ValidatorAttr = syn::parse_quote!(RangeValidation);
-        assert_eq!(attr.validator.to_string(), "RangeValidation");
-        assert!(!attr.infer_type);
-        assert!(attr.args.is_empty());
-    }
-
-    #[test]
-    fn test_validator_attr_parse_with_args() {
-        let attr: ValidatorAttr = syn::parse_quote!(RangeValidation(min = 0, max = 100));
-        assert_eq!(attr.validator.to_string(), "RangeValidation");
-        assert!(!attr.infer_type);
-        assert_eq!(attr.args.len(), 2);
-        assert_eq!(attr.args[0].0.to_string(), "min");
-        assert_eq!(attr.args[1].0.to_string(), "max");
-    }
-
-    #[test]
-    fn test_validator_attr_parse_generic() {
-        let attr: ValidatorAttr = syn::parse_quote!(GenericRange<_>(min = 0.0, max = 1.0));
-        assert_eq!(attr.validator.to_string(), "GenericRange");
-        assert!(attr.infer_type);
-        assert_eq!(attr.args.len(), 2);
-    }
-
-    #[test]
-    fn test_koruma_attr_parse_skip() {
-        let attr: KorumaAttr = syn::parse_quote!(skip);
-        assert!(attr.is_skip);
-        assert!(!attr.validate_each);
-        assert!(attr.validators.is_empty());
-    }
-
-    #[test]
-    fn test_koruma_attr_parse_each() {
-        let attr: KorumaAttr = syn::parse_quote!(each(RangeValidation(min = 0, max = 100)));
-        assert!(!attr.is_skip);
-        assert!(attr.validate_each);
-        assert_eq!(attr.validators.len(), 1);
-    }
-
-    #[test]
-    fn test_koruma_attr_parse_multiple_validators() {
-        let attr: KorumaAttr = syn::parse_quote!(ValidatorA(x = 1), ValidatorB, ValidatorC<_>(y = 2));
-        assert!(!attr.is_skip);
-        assert!(!attr.validate_each);
-        assert_eq!(attr.validators.len(), 3);
-        assert!(!attr.validators[0].infer_type);
-        assert!(!attr.validators[1].infer_type);
-        assert!(attr.validators[2].infer_type);
-    }
-}
-
+mod attr_parsing_tests;
+#[cfg(test)]
+mod error_tests;
+#[cfg(test)]
+mod helper_tests;
+#[cfg(test)]
+mod snapshot_tests;

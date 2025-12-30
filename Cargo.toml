@@ -17,6 +17,7 @@ bon = "3.8.1"
 derive-getters = "0.5.0"
 es-fluent = "0.4.2"
 heck = "0.5.0"
+insta = "1.45.1"
 koruma = { path = "crates/koruma", version = "0.1.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.1.0" }
 koruma-derive = { path = "crates/koruma-derive", version = "0.1.0" }
@@ -25,4 +26,3 @@ proc-macro-error2 = "2.0"
 proc-macro2 = "1.0.92"
 quote = "1.0.38"
 syn = "2.0.112"
-insta = "1.45.1"

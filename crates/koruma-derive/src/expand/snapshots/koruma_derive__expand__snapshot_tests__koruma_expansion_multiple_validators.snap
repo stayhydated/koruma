@@ -1,5 +1,6 @@
 ---
-source: crates/koruma-derive/src/expand.rs
+source: crates/koruma-derive/src/expand/snapshot_tests.rs
+assertion_line: 70
 expression: pretty_print(expanded)
 ---
 /// Enum of all possible validators for this field.

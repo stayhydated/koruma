@@ -1,15 +1,15 @@
 ---
-source: crates/koruma-derive/src/expand.rs
+source: crates/koruma-derive/src/expand/snapshot_tests.rs
+assertion_line: 128
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
 #[derive(Clone, Debug)]
-pub struct NumberRangeValidation {
+pub struct DirectValueValidation {
     min: i32,
-    max: i32,
-    pub actual: Option<i32>,
+    pub actual: i32,
 }
-impl<S: number_range_validation_builder::State> NumberRangeValidationBuilder<S>
+impl<S: direct_value_validation_builder::State> DirectValueValidationBuilder<S>
 where
     S::Actual: koruma::bon::IsUnset,
 {
@@ -17,7 +17,7 @@ where
     pub fn with_value(
         self,
         value: i32,
-    ) -> NumberRangeValidationBuilder<number_range_validation_builder::SetActual<S>> {
+    ) -> DirectValueValidationBuilder<direct_value_validation_builder::SetActual<S>> {
         self.actual(value)
     }
 }

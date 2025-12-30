@@ -1,5 +1,6 @@
 ---
-source: crates/koruma-derive/src/expand.rs
+source: crates/koruma-derive/src/expand/snapshot_tests.rs
+assertion_line: 112
 expression: pretty_print(expanded)
 ---
 /// Enum of all possible validators for this field.
@@ -30,6 +31,34 @@ impl ItemAgeError {
         !self.is_empty()
     }
 }
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+pub enum ItemNameValidator {
+    StringLengthValidation(StringLengthValidation),
+}
+#[derive(Clone, Debug)]
+pub struct ItemNameError {
+    string_length_validation: Option<StringLengthValidation>,
+}
+impl ItemNameError {
+    pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
+        self.string_length_validation.as_ref()
+    }
+    /// Returns all failed validators for this field.
+    pub fn all(&self) -> Vec<ItemNameValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.string_length_validation {
+            result.push(ItemNameValidator::StringLengthValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.string_length_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
 /// Auto-generated validation error struct for [`#struct_name`].
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
@@ -37,15 +66,19 @@ impl ItemAgeError {
 #[derive(Clone, Debug)]
 pub struct ItemValidationError {
     age: ItemAgeError,
+    name: ItemNameError,
 }
 impl ItemValidationError {
     pub fn age(&self) -> &ItemAgeError {
         &self.age
     }
+    pub fn name(&self) -> &ItemNameError {
+        &self.name
+    }
 }
 impl koruma::ValidationError for ItemValidationError {
     fn is_empty(&self) -> bool {
-        self.age.is_empty()
+        self.age.is_empty() && self.name.is_empty()
     }
 }
 impl Item {
@@ -59,6 +92,9 @@ impl Item {
             age: ItemAgeError {
                 number_range_validation: None,
             },
+            name: ItemNameError {
+                string_length_validation: None,
+            },
         };
         let mut has_error = false;
         let __value = &self.age;
@@ -69,6 +105,16 @@ impl Item {
             .build();
         if validator.validate(__value).is_err() {
             error.age.number_range_validation = Some(validator);
+            has_error = true;
+        }
+        let __value = &self.name;
+        let validator = StringLengthValidation::builder()
+            .min(1)
+            .max(67)
+            .with_value(__value.clone())
+            .build();
+        if validator.validate(__value).is_err() {
+            error.name.string_length_validation = Some(validator);
             has_error = true;
         }
         if has_error { Err(error) } else { Ok(()) }

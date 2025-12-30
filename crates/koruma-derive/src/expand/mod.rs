@@ -187,10 +187,10 @@ pub(crate) fn find_value_field(input: &ItemStruct) -> Option<(Ident, syn::Type)>
             for attr in &field.attrs {
                 if attr.path().is_ident("koruma") {
                     // Try to parse as just "value"
-                    if let Ok(ident) = attr.parse_args::<Ident>() {
-                        if ident == "value" {
-                            return Some((field.ident.clone().unwrap(), field.ty.clone()));
-                        }
+                    if let Ok(ident) = attr.parse_args::<Ident>()
+                        && ident == "value"
+                    {
+                        return Some((field.ident.clone().unwrap(), field.ty.clone()));
                     }
                 }
             }
@@ -273,11 +273,12 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     if let Fields::Named(ref mut fields) = input.fields {
         for field in &mut fields.named {
             field.attrs.retain(|attr| {
-                if attr.path().is_ident("koruma") {
-                    if let Ok(ident) = attr.parse_args::<Ident>() {
-                        return ident != "value";
-                    }
+                if attr.path().is_ident("koruma")
+                    && let Ok(ident) = attr.parse_args::<Ident>()
+                {
+                    return ident != "value";
                 }
+
                 true
             });
         }
@@ -392,7 +393,7 @@ fn validator_type_for_field(
 }
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)
-fn effective_validation_type<'a>(field_ty: &'a syn::Type, validate_each: bool) -> &'a syn::Type {
+fn effective_validation_type(field_ty: &syn::Type, validate_each: bool) -> &syn::Type {
     // Unwrap Vec<T> for each validation
     let after_vec = if validate_each {
         vec_inner_type(field_ty).unwrap_or(field_ty)
@@ -617,11 +618,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .iter()
         .map(|f| {
             let field_name = &f.name;
-            if f.validate_each {
-                quote! { self.#field_name.is_empty() }
-            } else {
-                quote! { self.#field_name.is_empty() }
-            }
+            quote! { self.#field_name.is_empty() }
         })
         .collect();
 

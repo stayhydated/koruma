@@ -8,8 +8,8 @@ use koruma::{Koruma, Validate};
 pub struct NumberRangeValidation {
     min: i32,
     max: i32,
-    /// The actual value that failed validation (optional, for error messages)
-    value: Option<i32>,
+    #[koruma(value)]
+    pub actual: Option<i32>,
 }
 
 impl Validate<i32> for NumberRangeValidation {
@@ -28,8 +28,8 @@ impl Validate<i32> for NumberRangeValidation {
 pub struct StringLengthValidation {
     min: usize,
     max: usize,
-    /// The actual value that failed validation (optional, for error messages)
-    value: Option<String>,
+    #[koruma(value)]
+    pub input: Option<String>,
 }
 
 impl Validate<String> for StringLengthValidation {
@@ -43,32 +43,23 @@ impl Validate<String> for StringLengthValidation {
     }
 }
 
-/// Example struct demonstrating validation with value capture.
+/// Example struct demonstrating validation.
 #[derive(Koruma)]
 pub struct Item {
-    /// Age field with value passed to error for better messages
-    #[koruma(NumberRangeValidation(min = 0, max = 100), value)]
+    #[koruma(NumberRangeValidation(min = 0, max = 100))]
     pub age: i32,
 
-    /// Name field with value passed to error
-    #[koruma(StringLengthValidation(min = 1, max = 50), value)]
+    #[koruma(StringLengthValidation(min = 1, max = 50))]
     pub name: String,
 
     // This field is not validated
     pub internal_id: u64,
 }
 
-/// Example struct without value capture (simpler usage).
-#[derive(Koruma)]
-pub struct SimpleItem {
-    #[koruma(NumberRangeValidation(min = 0, max = 100))]
-    pub age: i32,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use koruma_core::ValidationError;
+    use koruma::ValidationError;
 
     #[test]
     fn test_valid_item() {
@@ -96,7 +87,7 @@ mod tests {
 
         // The error contains the actual value that failed
         let age_err = err.age().unwrap();
-        assert_eq!(age_err.value, Some(150));
+        assert_eq!(age_err.actual, Some(150));
 
         // Can get the fluent string from the error
         let _fluent_msg = age_err.to_fluent_string();
@@ -116,7 +107,7 @@ mod tests {
 
         // The error contains the actual value that failed
         let name_err = err.name().unwrap();
-        assert_eq!(name_err.value, Some("".to_string()));
+        assert_eq!(name_err.input, Some("".to_string()));
     }
 
     #[test]
@@ -132,21 +123,10 @@ mod tests {
         assert!(err.name().is_some());
 
         // Both errors contain their respective values
-        assert_eq!(err.age().unwrap().value, Some(-5));
-        assert_eq!(err.name().unwrap().value, Some("".to_string()));
+        assert_eq!(err.age().unwrap().actual, Some(-5));
+        assert_eq!(err.name().unwrap().input, Some("".to_string()));
 
         // Both errors are collected, not just the first one
         assert!(!err.is_empty());
-    }
-
-    #[test]
-    fn test_simple_item_without_value() {
-        let item = SimpleItem { age: 150 };
-
-        let err = item.validate().unwrap_err();
-        let age_err = err.age().unwrap();
-
-        // Without `value` keyword, the value field is None
-        assert_eq!(age_err.value, None);
     }
 }

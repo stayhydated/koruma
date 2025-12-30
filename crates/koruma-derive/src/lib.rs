@@ -1,3 +1,4 @@
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use proc_macro::TokenStream;
 use proc_macro_error2::{abort, proc_macro_error};
 use proc_macro2::TokenStream as TokenStream2;
@@ -8,11 +9,10 @@ use syn::{
     parse_macro_input,
 };
 
-/// Represents a parsed `#[koruma(ValidatorName(arg = value, ...), value)]` attribute
+/// Represents a parsed `#[koruma(ValidatorName(arg = value, ...))]` attribute
 struct KorumaAttr {
     validator: Ident,
     args: Vec<(Ident, syn::Expr)>,
-    include_value: bool,
 }
 
 impl Parse for KorumaAttr {
@@ -24,7 +24,6 @@ impl Parse for KorumaAttr {
             return Ok(KorumaAttr {
                 validator,
                 args: Vec::new(),
-                include_value: false,
             });
         }
 
@@ -49,23 +48,7 @@ impl Parse for KorumaAttr {
             Vec::new()
         };
 
-        // Check for ", value" after the validator
-        let include_value = if input.peek(Token![,]) {
-            input.parse::<Token![,]>()?;
-            let ident: Ident = input.parse()?;
-            if ident != "value" {
-                return Err(syn::Error::new_spanned(ident, "expected 'value' keyword"));
-            }
-            true
-        } else {
-            false
-        };
-
-        Ok(KorumaAttr {
-            validator,
-            args,
-            include_value,
-        })
+        Ok(KorumaAttr { validator, args })
     }
 }
 
@@ -107,36 +90,138 @@ fn parse_field(field: &Field) -> Option<FieldInfo> {
     None
 }
 
+/// Find the field marked with #[koruma(value)] and return its name and type
+fn find_value_field(input: &ItemStruct) -> Option<(Ident, syn::Type)> {
+    if let Fields::Named(ref fields) = input.fields {
+        for field in &fields.named {
+            for attr in &field.attrs {
+                if attr.path().is_ident("koruma") {
+                    // Try to parse as just "value"
+                    if let Ok(ident) = attr.parse_args::<Ident>() {
+                        if ident == "value" {
+                            return Some((field.ident.clone().unwrap(), field.ty.clone()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Attribute macro for validator structs.
 ///
-/// This automatically adds `#[derive(bon::Builder)]` to the struct, making it
-/// easy to construct validators with named arguments.
+/// This automatically:
+/// - Adds `#[derive(bon::Builder)]` to the struct
+/// - Generates a `with_value` method on the builder that delegates to the field
+///   marked with `#[koruma(value)]`
 ///
 /// # Example
 ///
 /// ```ignore
-/// #[koruma_validator]
-/// #[derive(Debug, Clone, PartialEq, Eq, Hash, EsFluent)]
+/// #[koruma::validator]
+/// #[derive(Debug, Clone, EsFluent)]
 /// pub struct NumberRangeValidation {
 ///     min: i32,
 ///     max: i32,
-///     value: Option<i32>,
+///     #[koruma(value)]
+///     actual: Option<i32>,  // can use any name!
 /// }
 /// ```
+///
+/// This generates a `with_value` method that calls `.actual()` on the builder.
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn validator(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
+    // Ensure no arguments
+    if !attr.is_empty() {
+        let attr2 = proc_macro2::TokenStream::from(attr);
+        abort!(attr2, "koruma::validator does not accept arguments");
+    }
+
     let mut input = parse_macro_input!(item as ItemStruct);
+    let struct_name = &input.ident;
+    let builder_name = format_ident!("{}Builder", struct_name);
+
+    // Find the field marked with #[koruma(value)]
+    let (value_field_name, value_field_type) = match find_value_field(&input) {
+        Some(v) => v,
+        None => {
+            abort!(
+                input,
+                "koruma::validator requires a field marked with #[koruma(value)].\n\
+                 Example:\n\
+                 #[koruma(value)]\n\
+                 actual: Option<i32>"
+            );
+        },
+    };
+
+    // Extract the inner type from Option<T>
+    let inner_type = option_inner_type(&value_field_type).unwrap_or(&value_field_type);
 
     // Add #[derive(bon::Builder)] to the existing attributes
-    let builder_attr: syn::Attribute = syn::parse_quote!(#[derive(bon::Builder)]);
+    let builder_attr: syn::Attribute = syn::parse_quote!(#[derive(koruma::bon::Builder)]);
     input.attrs.insert(0, builder_attr);
+
+    // Remove #[koruma(value)] from the field so bon doesn't see it
+    if let Fields::Named(ref mut fields) = input.fields {
+        for field in &mut fields.named {
+            field.attrs.retain(|attr| {
+                if attr.path().is_ident("koruma") {
+                    if let Ok(ident) = attr.parse_args::<Ident>() {
+                        return ident != "value";
+                    }
+                }
+                true
+            });
+        }
+    }
+
+    // Generate the module name that bon creates (snake_case of struct name + _builder)
+    let module_name = format_ident!("{}_builder", struct_name.to_string().to_snake_case());
+
+    // Generate the associated type name (PascalCase of field name) and Set wrapper
+    let value_pascal = value_field_name.to_string().to_upper_camel_case();
+    let value_assoc_type = format_ident!("{}", value_pascal);
+    let set_value_type = format_ident!("Set{}", value_pascal);
 
     let expanded = quote! {
         #input
+
+        impl<S: #module_name::State> #builder_name<S>
+        where
+            S::#value_assoc_type: koruma::bon::IsUnset,
+        {
+            /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
+            pub fn with_value(self, value: #inner_type) -> #builder_name<#module_name::#set_value_type<S>> {
+                self.#value_field_name(value)
+            }
+        }
     };
 
     TokenStream::from(expanded)
+}
+
+/// Extract the inner type T from Option<T>
+fn option_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
+    let syn::Type::Path(type_path) = ty else {
+        return None;
+    };
+    let segment = type_path.path.segments.last()?;
+
+    if segment.ident != "Option" {
+        return None;
+    }
+
+    let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
+        return None;
+    };
+
+    match args.args.first()? {
+        syn::GenericArgument::Type(inner) => Some(inner),
+        _ => None,
+    }
 }
 
 /// Derive macro for generating validation error structs and validate methods.
@@ -146,28 +231,26 @@ pub fn validator(_attr: TokenStream, item: TokenStream) -> TokenStream {
 /// ```ignore
 /// #[derive(Koruma)]
 /// struct Item {
-///     #[koruma(NumberRangeValidation(min = 0, max = 100), value)]
+///     #[koruma(NumberRangeValidation(min = 0, max = 100))]
 ///     age: i32,
 ///
 ///     #[koruma(StringLengthValidation(min = 1, max = 50))]
 ///     name: String,
 ///
-///     #[koruma(skip)]
+///     // No #[koruma(...)] attribute means field is not validated
 ///     internal_id: u64,
 /// }
 /// ```
-///
-/// The `value` keyword after the validator will pass the field's value to the
-/// validator via `.value(self.field.clone())`, allowing Fluent messages to
-/// include the actual value that failed validation.
 ///
 /// This generates:
 /// - `ItemValidationError` struct with `Option<ValidatorType>` for each validated field
 /// - Getter methods returning `Option<&ValidatorType>` for each field
 /// - `validate(&self) -> Result<(), ItemValidationError>` method on `Item`
+///
+/// The macro always generates `.with_value(self.field.clone())` for validators.
 #[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]
-pub fn derive_koruma_validation(input: TokenStream) -> TokenStream {
+pub fn derive_koruma(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let struct_name = &input.ident;
     let error_struct_name = format_ident!("{}ValidationError", struct_name);
@@ -234,7 +317,7 @@ pub fn derive_koruma_validation(input: TokenStream) -> TokenStream {
         })
         .collect();
 
-    // Generate validation logic
+    // Generate validation logic - always use .with_value()
     let validation_checks: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
@@ -242,7 +325,6 @@ pub fn derive_koruma_validation(input: TokenStream) -> TokenStream {
             let koruma_attr = f.validator.as_ref().unwrap();
             let validator = &koruma_attr.validator;
             let args = &koruma_attr.args;
-            let include_value = koruma_attr.include_value;
 
             let builder_calls: Vec<TokenStream2> = args
                 .iter()
@@ -251,17 +333,10 @@ pub fn derive_koruma_validation(input: TokenStream) -> TokenStream {
                 })
                 .collect();
 
-            // Optionally add .value(self.field.clone()) if `value` keyword is present
-            let value_call = if include_value {
-                quote! { .value(self.#name.clone()) }
-            } else {
-                quote! {}
-            };
-
             quote! {
                 let validator = #validator::builder()
                     #(#builder_calls)*
-                    #value_call
+                    .with_value(self.#name.clone())
                     .build();
                 if validator.validate(&self.#name).is_err() {
                     error.#name = Some(validator);
@@ -286,7 +361,7 @@ pub fn derive_koruma_validation(input: TokenStream) -> TokenStream {
             #(#getter_methods)*
         }
 
-        impl koruma_core::ValidationError for #error_struct_name {
+        impl koruma::ValidationError for #error_struct_name {
             fn is_empty(&self) -> bool {
                 #(#is_empty_checks)&&*
             }

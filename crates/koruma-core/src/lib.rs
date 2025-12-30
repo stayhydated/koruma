@@ -20,3 +20,11 @@ pub trait ValidationError {
         !self.is_empty()
     }
 }
+
+/// Trait for validator builders that can receive the value being validated.
+///
+/// This is auto-implemented by `#[koruma::validator]` to delegate to the
+/// field marked with `#[koruma(value)]`.
+pub trait BuilderWithValue<T> {
+    fn with_value(self, value: T) -> Self;
+}

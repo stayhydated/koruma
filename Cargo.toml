@@ -1,0 +1,16 @@
+[workspace]
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = true
+readme = "README.md"
+repository = "https://github.com/stayhydated/koruma"
+rust-version = "1.88"
+version = "0.1.0"
+members = ["crates/koruma", "crates/koruma-derive"]
+
+[dependencies]
+es-fluent = "0.4.2"
+proc-macro-error2 = "2.0"
+proc-macro2 = "1.0.92"
+quote = "1.0.38"
+paste = "1.0.15"

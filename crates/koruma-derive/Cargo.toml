@@ -1,0 +1,17 @@
+[package]
+name = "koruma-derive"
+description = """
+Derive crate for koruma
+"""
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[lib]
+proc-macro = true
+
+[dependencies]

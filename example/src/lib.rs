@@ -63,6 +63,20 @@ impl Validate<String> for StringLengthValidation {
     }
 }
 
+/// A validation rule that checks if a number is even.
+#[koruma::validator]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub struct EvenNumberValidation {
+    #[koruma(value)]
+    pub actual: Option<i32>,
+}
+
+impl Validate<i32> for EvenNumberValidation {
+    fn validate(&self, value: &i32) -> Result<(), ()> {
+        if value % 2 != 0 { Err(()) } else { Ok(()) }
+    }
+}
+
 /// Example struct demonstrating validation.
 /// Example struct demonstrating validation with non-generic validators.
 #[derive(Koruma)]
@@ -86,6 +100,14 @@ pub struct GenericItem {
 
     #[koruma(GenericRangeValidation<_>(min = 0, max = 1000))]
     pub points: u32,
+}
+
+/// Example struct demonstrating multiple validators per field.
+#[derive(Koruma)]
+pub struct MultiValidatorItem {
+    // This field must be in range 0-100 AND be even
+    #[koruma(NumberRangeValidation(min = 0, max = 100), EvenNumberValidation)]
+    pub value: i32,
 }
 
 #[cfg(test)]
@@ -113,12 +135,12 @@ mod tests {
         };
 
         let err = item.validate().unwrap_err();
-        assert!(err.age().is_some());
-        assert!(err.name().is_none());
+        assert!(err.age().number_range_validation().is_some());
+        assert!(err.name().string_length_validation().is_none());
         assert!(err.has_errors());
 
         // The error contains the actual value that failed
-        let age_err = err.age().unwrap();
+        let age_err = err.age().number_range_validation().unwrap();
         assert_eq!(age_err.actual, Some(150));
 
         // Can get the fluent string from the error
@@ -134,16 +156,16 @@ mod tests {
         };
 
         let err = item.validate().unwrap_err();
-        assert!(err.age().is_none());
-        assert!(err.name().is_some());
+        assert!(err.age().number_range_validation().is_none());
+        assert!(err.name().string_length_validation().is_some());
 
         // The error contains the actual value that failed
-        let name_err = err.name().unwrap();
+        let name_err = err.name().string_length_validation().unwrap();
         assert_eq!(name_err.input, Some("".to_string()));
     }
 
     #[test]
-    fn test_multiple_errors() {
+    fn test_multiple_field_errors() {
         let item = Item {
             age: -5,              // Out of range
             name: "".to_string(), // Too short
@@ -151,12 +173,18 @@ mod tests {
         };
 
         let err = item.validate().unwrap_err();
-        assert!(err.age().is_some());
-        assert!(err.name().is_some());
+        assert!(err.age().number_range_validation().is_some());
+        assert!(err.name().string_length_validation().is_some());
 
         // Both errors contain their respective values
-        assert_eq!(err.age().unwrap().actual, Some(-5));
-        assert_eq!(err.name().unwrap().input, Some("".to_string()));
+        assert_eq!(
+            err.age().number_range_validation().unwrap().actual,
+            Some(-5)
+        );
+        assert_eq!(
+            err.name().string_length_validation().unwrap().input,
+            Some("".to_string())
+        );
 
         // Both errors are collected, not just the first one
         assert!(!err.is_empty());
@@ -206,11 +234,11 @@ mod tests {
         };
 
         let err = item.validate().unwrap_err();
-        assert!(err.score().is_some());
-        assert!(err.points().is_none());
+        assert!(err.score().generic_range_validation().is_some());
+        assert!(err.points().generic_range_validation().is_none());
 
         // The error contains the actual value
-        let score_err = err.score().unwrap();
+        let score_err = err.score().generic_range_validation().unwrap();
         assert_eq!(score_err.actual, Some(150.0));
     }
 
@@ -222,11 +250,81 @@ mod tests {
         };
 
         let err = item.validate().unwrap_err();
-        assert!(err.score().is_none());
-        assert!(err.points().is_some());
+        assert!(err.score().generic_range_validation().is_none());
+        assert!(err.points().generic_range_validation().is_some());
 
         // The error contains the actual value
-        let points_err = err.points().unwrap();
+        let points_err = err.points().generic_range_validation().unwrap();
         assert_eq!(points_err.actual, Some(2000));
+    }
+
+    // Tests for multiple validators per field
+    #[test]
+    fn test_multi_validator_valid() {
+        let item = MultiValidatorItem { value: 50 }; // In range AND even
+        assert!(item.validate().is_ok());
+    }
+
+    #[test]
+    fn test_multi_validator_out_of_range() {
+        let item = MultiValidatorItem { value: 150 }; // Out of range, but even
+        let err = item.validate().unwrap_err();
+
+        assert!(err.value().number_range_validation().is_some());
+        assert!(err.value().even_number_validation().is_none()); // 150 is even
+    }
+
+    #[test]
+    fn test_multi_validator_odd() {
+        let item = MultiValidatorItem { value: 51 }; // In range, but odd
+        let err = item.validate().unwrap_err();
+
+        assert!(err.value().number_range_validation().is_none()); // 51 is in range
+        assert!(err.value().even_number_validation().is_some());
+    }
+
+    #[test]
+    fn test_multi_validator_both_fail() {
+        let item = MultiValidatorItem { value: 151 }; // Out of range AND odd
+        let err = item.validate().unwrap_err();
+
+        // Both validators should fail
+        assert!(err.value().number_range_validation().is_some());
+        assert!(err.value().even_number_validation().is_some());
+
+        // Check the actual values
+        assert_eq!(
+            err.value().number_range_validation().unwrap().actual,
+            Some(151)
+        );
+        assert_eq!(
+            err.value().even_number_validation().unwrap().actual,
+            Some(151)
+        );
+    }
+
+    #[test]
+    fn test_all_validators() {
+        // Single validator field
+        let item = Item {
+            age: 150,
+            name: "Valid".to_string(),
+            internal_id: 0,
+        };
+        let err = item.validate().unwrap_err();
+        let age_errors = err.age().all();
+        assert_eq!(age_errors.len(), 1);
+
+        // Multiple validators - both fail
+        let item = MultiValidatorItem { value: 151 };
+        let err = item.validate().unwrap_err();
+        let value_errors = err.value().all();
+        assert_eq!(value_errors.len(), 2);
+
+        // Multiple validators - one fails
+        let item = MultiValidatorItem { value: 150 }; // even but out of range
+        let err = item.validate().unwrap_err();
+        let value_errors = err.value().all();
+        assert_eq!(value_errors.len(), 1);
     }
 }

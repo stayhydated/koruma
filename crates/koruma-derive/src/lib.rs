@@ -9,27 +9,18 @@ use syn::{
     parse_macro_input,
 };
 
-/// Represents a parsed `#[koruma(ValidatorName(arg = value, ...))]` or
-/// `#[koruma(ValidatorName<_>(arg = value, ...))]` attribute
-struct KorumaAttr {
+/// Represents a single parsed validator: `ValidatorName(arg = value, ...)` or
+/// `ValidatorName<_>(arg = value, ...)`
+struct ValidatorAttr {
     validator: Ident,
     /// Whether the validator uses `<_>` syntax for type inference from field type
     infer_type: bool,
     args: Vec<(Ident, syn::Expr)>,
 }
 
-impl Parse for KorumaAttr {
+impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let validator: Ident = input.parse()?;
-
-        // Check for skip early
-        if validator == "skip" {
-            return Ok(KorumaAttr {
-                validator,
-                infer_type: false,
-                args: Vec::new(),
-            });
-        }
 
         // Check for <_> type inference syntax
         let infer_type = if input.peek(Token![<]) {
@@ -62,10 +53,50 @@ impl Parse for KorumaAttr {
             Vec::new()
         };
 
-        Ok(KorumaAttr {
+        Ok(ValidatorAttr {
             validator,
             infer_type,
             args,
+        })
+    }
+}
+
+/// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
+/// separated by commas: `#[koruma(Validator1(a = 1), Validator2(b = 2))]`
+struct KorumaAttr {
+    validators: Vec<ValidatorAttr>,
+    is_skip: bool,
+}
+
+impl Parse for KorumaAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        // Check for skip
+        if input.peek(Ident) {
+            let fork = input.fork();
+            let ident: Ident = fork.parse()?;
+            if ident == "skip" && fork.is_empty() {
+                input.parse::<Ident>()?; // consume "skip"
+                return Ok(KorumaAttr {
+                    validators: Vec::new(),
+                    is_skip: true,
+                });
+            }
+        }
+
+        // Parse comma-separated validators
+        let mut validators = Vec::new();
+        while !input.is_empty() {
+            validators.push(input.parse::<ValidatorAttr>()?);
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(KorumaAttr {
+            validators,
+            is_skip: false,
         })
     }
 }
@@ -74,7 +105,7 @@ impl Parse for KorumaAttr {
 struct FieldInfo {
     name: Ident,
     ty: syn::Type,
-    validator: Option<KorumaAttr>,
+    validators: Vec<ValidatorAttr>,
 }
 
 fn parse_field(field: &Field) -> Option<FieldInfo> {
@@ -92,13 +123,13 @@ fn parse_field(field: &Field) -> Option<FieldInfo> {
         match parsed {
             Ok(koruma_attr) => {
                 // Check for skip
-                if koruma_attr.validator == "skip" {
+                if koruma_attr.is_skip {
                     return None;
                 }
                 return Some(FieldInfo {
                     name,
                     ty,
-                    validator: Some(koruma_attr),
+                    validators: koruma_attr.validators,
                 });
             },
             Err(e) => {
@@ -368,130 +399,272 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
         );
     }
 
-    // Generate error struct fields
-    // For generic validators (marked with <_>), we use the field type as the type parameter
+    // Helper to generate the type for a validator
+    fn validator_type(v: &ValidatorAttr, field_ty: &syn::Type) -> TokenStream2 {
+        let validator = &v.validator;
+        if v.infer_type {
+            quote! { #validator<#field_ty> }
+        } else {
+            quote! { #validator }
+        }
+    }
+
+    // Generate per-field error structs and collect info for main error struct
+    let field_error_structs: Vec<TokenStream2> = field_infos
+        .iter()
+        .map(|f| {
+            let field_name = &f.name;
+            let field_ty = &f.ty;
+            let field_error_struct_name = format_ident!(
+                "{}{}Error",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+
+            // Generate fields for each validator
+            let validator_fields: Vec<TokenStream2> = f
+                .validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        format_ident!("{}", v.validator.to_string().to_snake_case());
+                    let vtype = validator_type(v, field_ty);
+                    quote! { #validator_snake: Option<#vtype> }
+                })
+                .collect();
+
+            // Generate getter methods for each validator
+            let validator_getters: Vec<TokenStream2> = f
+                .validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        format_ident!("{}", v.validator.to_string().to_snake_case());
+                    let vtype = validator_type(v, field_ty);
+                    quote! {
+                        pub fn #validator_snake(&self) -> Option<&#vtype> {
+                            self.#validator_snake.as_ref()
+                        }
+                    }
+                })
+                .collect();
+
+            // Generate is_empty checks for this field's error struct
+            let is_empty_checks: Vec<TokenStream2> = f
+                .validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        format_ident!("{}", v.validator.to_string().to_snake_case());
+                    quote! { self.#validator_snake.is_none() }
+                })
+                .collect();
+
+            // Generate enum variants for the all() method
+            let enum_name = format_ident!(
+                "{}{}Validator",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+
+            let enum_variants: Vec<TokenStream2> = f
+                .validators
+                .iter()
+                .map(|v| {
+                    let variant_name =
+                        format_ident!("{}", v.validator.to_string().to_upper_camel_case());
+                    let vtype = validator_type(v, field_ty);
+                    quote! { #variant_name(#vtype) }
+                })
+                .collect();
+
+            // Generate the all() method body - collect all Some validators into the enum
+            let all_pushes: Vec<TokenStream2> = f
+                .validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        format_ident!("{}", v.validator.to_string().to_snake_case());
+                    let variant_name =
+                        format_ident!("{}", v.validator.to_string().to_upper_camel_case());
+                    quote! {
+                        if let Some(v) = &self.#validator_snake {
+                            result.push(#enum_name::#variant_name(v.clone()));
+                        }
+                    }
+                })
+                .collect();
+
+            quote! {
+                /// Enum of all possible validators for this field.
+                #[derive(Clone, Debug)]
+                pub enum #enum_name {
+                    #(#enum_variants),*
+                }
+
+                #[derive(Clone, Debug)]
+                pub struct #field_error_struct_name {
+                    #(#validator_fields),*
+                }
+
+                impl #field_error_struct_name {
+                    #(#validator_getters)*
+
+                    /// Returns all failed validators for this field.
+                    pub fn all(&self) -> Vec<#enum_name> {
+                        let mut result = Vec::new();
+                        #(#all_pushes)*
+                        result
+                    }
+
+                    pub fn is_empty(&self) -> bool {
+                        #(#is_empty_checks)&&*
+                    }
+
+                    pub fn has_errors(&self) -> bool {
+                        !self.is_empty()
+                    }
+                }
+            }
+        })
+        .collect();
+
+    // Generate main error struct fields (one per validated field)
     let error_fields: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
-            let name = &f.name;
-            let koruma_attr = f.validator.as_ref().unwrap();
-            let validator = &koruma_attr.validator;
-            let field_ty = &f.ty;
-
-            if koruma_attr.infer_type {
-                // Generic validator: ValidatorName<FieldType>
-                quote! {
-                    #name: Option<#validator<#field_ty>>
-                }
-            } else {
-                // Non-generic validator: ValidatorName
-                quote! {
-                    #name: Option<#validator>
-                }
-            }
+            let field_name = &f.name;
+            let field_error_struct_name = format_ident!(
+                "{}{}Error",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+            quote! { #field_name: #field_error_struct_name }
         })
         .collect();
 
-    // Generate getter methods for error struct
+    // Generate getter methods for main error struct
     let getter_methods: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
-            let name = &f.name;
-            let koruma_attr = f.validator.as_ref().unwrap();
-            let validator = &koruma_attr.validator;
-            let field_ty = &f.ty;
-
-            if koruma_attr.infer_type {
-                quote! {
-                    pub fn #name(&self) -> Option<&#validator<#field_ty>> {
-                        self.#name.as_ref()
-                    }
-                }
-            } else {
-                quote! {
-                    pub fn #name(&self) -> Option<&#validator> {
-                        self.#name.as_ref()
-                    }
+            let field_name = &f.name;
+            let field_error_struct_name = format_ident!(
+                "{}{}Error",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+            quote! {
+                pub fn #field_name(&self) -> &#field_error_struct_name {
+                    &self.#field_name
                 }
             }
         })
         .collect();
 
-    // Generate is_empty check (all fields are None)
+    // Generate is_empty check (all field error structs are empty)
     let is_empty_checks: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
-            let name = &f.name;
-            quote! { self.#name.is_none() }
+            let field_name = &f.name;
+            quote! { self.#field_name.is_empty() }
         })
         .collect();
 
-    // Generate default values for error struct initialization
+    // Generate default values for main error struct initialization
     let error_defaults: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
-            let name = &f.name;
-            quote! { #name: None }
+            let field_name = &f.name;
+            let field_error_struct_name = format_ident!(
+                "{}{}Error",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+
+            let validator_defaults: Vec<TokenStream2> = f
+                .validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        format_ident!("{}", v.validator.to_string().to_snake_case());
+                    quote! { #validator_snake: None }
+                })
+                .collect();
+
+            quote! {
+                #field_name: #field_error_struct_name {
+                    #(#validator_defaults),*
+                }
+            }
         })
         .collect();
 
     // Generate validation logic - always use .with_value()
     let validation_checks: Vec<TokenStream2> = field_infos
         .iter()
-        .map(|f| {
-            let name = &f.name;
+        .flat_map(|f| {
+            let field_name = &f.name;
             let field_ty = &f.ty;
-            let koruma_attr = f.validator.as_ref().unwrap();
-            let validator = &koruma_attr.validator;
-            let args = &koruma_attr.args;
 
-            let builder_calls: Vec<TokenStream2> = args
-                .iter()
-                .map(|(arg_name, arg_value)| {
-                    quote! { .#arg_name(#arg_value) }
-                })
-                .collect();
+            f.validators.iter().map(move |v| {
+                let validator = &v.validator;
+                let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
 
-            if koruma_attr.infer_type {
-                // Generic validator: ValidatorName::<FieldType>::builder()
-                // We use a helper function to ensure Validate<T> is implemented,
-                // giving a clearer error message if not
-                let assert_fn = format_ident!("__koruma_assert_validate_{}", name);
-                quote! {
-                    fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
-                        v.validate(t)
+                let builder_calls: Vec<TokenStream2> = v
+                    .args
+                    .iter()
+                    .map(|(arg_name, arg_value)| {
+                        quote! { .#arg_name(#arg_value) }
+                    })
+                    .collect();
+
+                if v.infer_type {
+                    // Generic validator: ValidatorName::<FieldType>::builder()
+                    // We use a helper function to ensure Validate<T> is implemented,
+                    // giving a clearer error message if not
+                    let assert_fn = format_ident!(
+                        "__koruma_assert_validate_{}_{}",
+                        field_name,
+                        validator_snake
+                    );
+                    quote! {
+                        fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
+                            v.validate(t)
+                        }
+                        let validator = #validator::<#field_ty>::builder()
+                            #(#builder_calls)*
+                            .with_value(self.#field_name.clone())
+                            .build();
+                        if #assert_fn(&validator, &self.#field_name).is_err() {
+                            error.#field_name.#validator_snake = Some(validator);
+                            has_error = true;
+                        }
                     }
-                    let validator = #validator::<#field_ty>::builder()
-                        #(#builder_calls)*
-                        .with_value(self.#name.clone())
-                        .build();
-                    if #assert_fn(&validator, &self.#name).is_err() {
-                        error.#name = Some(validator);
-                        has_error = true;
+                } else {
+                    // Non-generic validator: ValidatorName::builder()
+                    quote! {
+                        let validator = #validator::builder()
+                            #(#builder_calls)*
+                            .with_value(self.#field_name.clone())
+                            .build();
+                        if validator.validate(&self.#field_name).is_err() {
+                            error.#field_name.#validator_snake = Some(validator);
+                            has_error = true;
+                        }
                     }
                 }
-            } else {
-                // Non-generic validator: ValidatorName::builder()
-                quote! {
-                    let validator = #validator::builder()
-                        #(#builder_calls)*
-                        .with_value(self.#name.clone())
-                        .build();
-                    if validator.validate(&self.#name).is_err() {
-                        error.#name = Some(validator);
-                        has_error = true;
-                    }
-                }
-            }
+            })
         })
         .collect();
 
     let expanded = quote! {
+        // Per-field error structs
+        #(#field_error_structs)*
+
         /// Auto-generated validation error struct for [`#struct_name`].
         ///
-        /// Each field contains `Some(validator)` if validation failed for that field,
-        /// or `None` if validation passed. The validator struct can be used to
-        /// generate localized error messages via `ToFluentString`.
+        /// Each field contains a nested error struct with `Option<Validator>` for each
+        /// validator. Access errors via chained calls like `error.field().validator()`.
         #[derive(Clone, Debug)]
         pub struct #error_struct_name {
             #(#error_fields),*

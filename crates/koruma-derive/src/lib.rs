@@ -9,9 +9,12 @@ use syn::{
     parse_macro_input,
 };
 
-/// Represents a parsed `#[koruma(ValidatorName(arg = value, ...))]` attribute
+/// Represents a parsed `#[koruma(ValidatorName(arg = value, ...))]` or
+/// `#[koruma(ValidatorName<_>(arg = value, ...))]` attribute
 struct KorumaAttr {
     validator: Ident,
+    /// Whether the validator uses `<_>` syntax for type inference from field type
+    infer_type: bool,
     args: Vec<(Ident, syn::Expr)>,
 }
 
@@ -23,9 +26,20 @@ impl Parse for KorumaAttr {
         if validator == "skip" {
             return Ok(KorumaAttr {
                 validator,
+                infer_type: false,
                 args: Vec::new(),
             });
         }
+
+        // Check for <_> type inference syntax
+        let infer_type = if input.peek(Token![<]) {
+            input.parse::<Token![<]>()?;
+            input.parse::<Token![_]>()?;
+            input.parse::<Token![>]>()?;
+            true
+        } else {
+            false
+        };
 
         let args = if input.peek(syn::token::Paren) {
             let content;
@@ -48,18 +62,24 @@ impl Parse for KorumaAttr {
             Vec::new()
         };
 
-        Ok(KorumaAttr { validator, args })
+        Ok(KorumaAttr {
+            validator,
+            infer_type,
+            args,
+        })
     }
 }
 
 /// Field info extracted from the struct
 struct FieldInfo {
     name: Ident,
+    ty: syn::Type,
     validator: Option<KorumaAttr>,
 }
 
 fn parse_field(field: &Field) -> Option<FieldInfo> {
     let name = field.ident.clone()?;
+    let ty = field.ty.clone();
 
     for attr in &field.attrs {
         if !attr.path().is_ident("koruma") {
@@ -77,6 +97,7 @@ fn parse_field(field: &Field) -> Option<FieldInfo> {
                 }
                 return Some(FieldInfo {
                     name,
+                    ty,
                     validator: Some(koruma_attr),
                 });
             },
@@ -115,8 +136,10 @@ fn find_value_field(input: &ItemStruct) -> Option<(Ident, syn::Type)> {
 /// - Adds `#[derive(bon::Builder)]` to the struct
 /// - Generates a `with_value` method on the builder that delegates to the field
 ///   marked with `#[koruma(value)]`
+/// - For generic validators, generates an `impl_<validator_name>!` macro for easy
+///   implementation of the `Validate` trait for multiple types
 ///
-/// # Example
+/// # Example (non-generic)
 ///
 /// ```ignore
 /// #[koruma::validator]
@@ -125,11 +148,25 @@ fn find_value_field(input: &ItemStruct) -> Option<(Ident, syn::Type)> {
 ///     min: i32,
 ///     max: i32,
 ///     #[koruma(value)]
-///     actual: Option<i32>,  // can use any name!
+///     actual: Option<i32>,
 /// }
 /// ```
 ///
-/// This generates a `with_value` method that calls `.actual()` on the builder.
+/// # Example (generic)
+///
+/// ```ignore
+/// #[koruma::validator]
+/// #[derive(Clone, Debug, EsFluent)]
+/// pub struct NumberRangeValidation<T> {
+///     min: T,
+///     max: T,
+///     #[koruma(value)]
+///     actual: Option<T>,
+/// }
+///
+/// // Use the generated macro to implement Validate for multiple types:
+/// impl_number_range_validation!(i32, i64, u32, u64, f32, f64);
+/// ```
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -142,6 +179,9 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut input = parse_macro_input!(item as ItemStruct);
     let struct_name = &input.ident;
     let builder_name = format_ident!("{}Builder", struct_name);
+
+    // Check if the struct has generics
+    let has_generics = !input.generics.params.is_empty();
 
     // Find the field marked with #[koruma(value)]
     let (value_field_name, value_field_type) = match find_value_field(&input) {
@@ -186,18 +226,73 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
     let value_assoc_type = format_ident!("{}", value_pascal);
     let set_value_type = format_ident!("Set{}", value_pascal);
 
+    // Generate the impl macro for generic validators
+    let impl_macro = if has_generics {
+        let macro_name = format_ident!("impl_{}", struct_name.to_string().to_snake_case());
+        quote! {
+            /// Auto-generated macro for implementing `Validate` for multiple types.
+            ///
+            /// # Example
+            /// ```ignore
+            /// #macro_name!(i32, i64, u32, u64);
+            /// ```
+            #[macro_export]
+            macro_rules! #macro_name {
+                ($($t:ty),+ $(,)?) => {
+                    $(
+                        impl koruma::Validate<$t> for #struct_name<$t>
+                        where
+                            $t: PartialOrd + Clone,
+                        {
+                            fn validate(&self, value: &$t) -> Result<(), ()> {
+                                if *value < self.min || *value > self.max {
+                                    Err(())
+                                } else {
+                                    Ok(())
+                                }
+                            }
+                        }
+                    )+
+                };
+            }
+        }
+    } else {
+        quote! {}
+    };
+
+    let with_value_impl = if has_generics {
+        // For generic validators, the builder is Builder<T, S> (type param first, then state)
+        quote! {
+            impl<T, S: #module_name::State> #builder_name<T, S>
+            where
+                S::#value_assoc_type: koruma::bon::IsUnset,
+            {
+                /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
+                pub fn with_value(self, value: T) -> #builder_name<T, #module_name::#set_value_type<S>> {
+                    self.#value_field_name(value)
+                }
+            }
+        }
+    } else {
+        quote! {
+            impl<S: #module_name::State> #builder_name<S>
+            where
+                S::#value_assoc_type: koruma::bon::IsUnset,
+            {
+                /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
+                pub fn with_value(self, value: #inner_type) -> #builder_name<#module_name::#set_value_type<S>> {
+                    self.#value_field_name(value)
+                }
+            }
+        }
+    };
+
     let expanded = quote! {
         #input
 
-        impl<S: #module_name::State> #builder_name<S>
-        where
-            S::#value_assoc_type: koruma::bon::IsUnset,
-        {
-            /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
-            pub fn with_value(self, value: #inner_type) -> #builder_name<#module_name::#set_value_type<S>> {
-                self.#value_field_name(value)
-            }
-        }
+        #with_value_impl
+
+        #impl_macro
     };
 
     TokenStream::from(expanded)
@@ -274,13 +369,25 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
     }
 
     // Generate error struct fields
+    // For generic validators (marked with <_>), we use the field type as the type parameter
     let error_fields: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
             let name = &f.name;
-            let validator = &f.validator.as_ref().unwrap().validator;
-            quote! {
-                #name: Option<#validator>
+            let koruma_attr = f.validator.as_ref().unwrap();
+            let validator = &koruma_attr.validator;
+            let field_ty = &f.ty;
+
+            if koruma_attr.infer_type {
+                // Generic validator: ValidatorName<FieldType>
+                quote! {
+                    #name: Option<#validator<#field_ty>>
+                }
+            } else {
+                // Non-generic validator: ValidatorName
+                quote! {
+                    #name: Option<#validator>
+                }
             }
         })
         .collect();
@@ -290,10 +397,21 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
         .iter()
         .map(|f| {
             let name = &f.name;
-            let validator = &f.validator.as_ref().unwrap().validator;
-            quote! {
-                pub fn #name(&self) -> Option<&#validator> {
-                    self.#name.as_ref()
+            let koruma_attr = f.validator.as_ref().unwrap();
+            let validator = &koruma_attr.validator;
+            let field_ty = &f.ty;
+
+            if koruma_attr.infer_type {
+                quote! {
+                    pub fn #name(&self) -> Option<&#validator<#field_ty>> {
+                        self.#name.as_ref()
+                    }
+                }
+            } else {
+                quote! {
+                    pub fn #name(&self) -> Option<&#validator> {
+                        self.#name.as_ref()
+                    }
                 }
             }
         })
@@ -322,6 +440,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
         .iter()
         .map(|f| {
             let name = &f.name;
+            let field_ty = &f.ty;
             let koruma_attr = f.validator.as_ref().unwrap();
             let validator = &koruma_attr.validator;
             let args = &koruma_attr.args;
@@ -333,14 +452,29 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
                 })
                 .collect();
 
-            quote! {
-                let validator = #validator::builder()
-                    #(#builder_calls)*
-                    .with_value(self.#name.clone())
-                    .build();
-                if validator.validate(&self.#name).is_err() {
-                    error.#name = Some(validator);
-                    has_error = true;
+            if koruma_attr.infer_type {
+                // Generic validator: ValidatorName::<FieldType>::builder()
+                quote! {
+                    let validator = #validator::<#field_ty>::builder()
+                        #(#builder_calls)*
+                        .with_value(self.#name.clone())
+                        .build();
+                    if validator.validate(&self.#name).is_err() {
+                        error.#name = Some(validator);
+                        has_error = true;
+                    }
+                }
+            } else {
+                // Non-generic validator: ValidatorName::builder()
+                quote! {
+                    let validator = #validator::builder()
+                        #(#builder_calls)*
+                        .with_value(self.#name.clone())
+                        .build();
+                    if validator.validate(&self.#name).is_err() {
+                        error.#name = Some(validator);
+                        has_error = true;
+                    }
                 }
             }
         })

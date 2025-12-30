@@ -22,6 +22,26 @@ impl Validate<i32> for NumberRangeValidation {
     }
 }
 
+// ============================================================================
+// Generic Validator Example
+// ============================================================================
+
+/// A generic validation rule that checks if a number is within a specified range.
+/// Works with any type that implements `PartialOrd + Clone`.
+#[koruma::validator]
+#[derive(Clone, Debug)]
+pub struct GenericRangeValidation<T> {
+    pub min: T,
+    pub max: T,
+    #[koruma(value)]
+    pub actual: Option<T>,
+}
+
+// Use the auto-generated macro to implement Validate for multiple types at once!
+impl_generic_range_validation!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64
+);
+
 /// A validation rule that checks string length.
 #[koruma::validator]
 #[derive(Clone, Debug, Eq, EsFluent, Hash, PartialEq)]
@@ -44,16 +64,28 @@ impl Validate<String> for StringLengthValidation {
 }
 
 /// Example struct demonstrating validation.
+/// Example struct demonstrating validation with non-generic validators.
 #[derive(Koruma)]
 pub struct Item {
     #[koruma(NumberRangeValidation(min = 0, max = 100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation(min = 1, max = 50))]
+    #[koruma(StringLengthValidation(min = 1, max = 67))]
     pub name: String,
 
     // This field is not validated
     pub internal_id: u64,
+}
+
+/// Example struct demonstrating validation with generic validators.
+/// The type parameter is inferred from the field type using `<_>` syntax!
+#[derive(Koruma)]
+pub struct GenericItem {
+    #[koruma(GenericRangeValidation<_>(min = -10.0, max = 100.0))]
+    pub score: f64,
+
+    #[koruma(GenericRangeValidation<_>(min = 0, max = 1000))]
+    pub points: u32,
 }
 
 #[cfg(test)]
@@ -128,5 +160,73 @@ mod tests {
 
         // Both errors are collected, not just the first one
         assert!(!err.is_empty());
+    }
+
+    #[test]
+    fn test_generic_validator_i32() {
+        let validator = GenericRangeValidation::<i32>::builder()
+            .min(0)
+            .max(100)
+            .with_value(50)
+            .build();
+
+        assert!(validator.validate(&50).is_ok());
+        assert!(validator.validate(&150).is_err());
+        assert_eq!(validator.actual, Some(50));
+    }
+
+    #[test]
+    fn test_generic_validator_f64() {
+        let validator = GenericRangeValidation::<f64>::builder()
+            .min(0.0)
+            .max(1.0)
+            .with_value(0.5)
+            .build();
+
+        assert!(validator.validate(&0.5).is_ok());
+        assert!(validator.validate(&1.5).is_err());
+        assert_eq!(validator.actual, Some(0.5));
+    }
+
+    #[test]
+    fn test_generic_item_valid() {
+        let item = GenericItem {
+            score: 50.0,
+            points: 500,
+        };
+
+        assert!(item.validate().is_ok());
+    }
+
+    #[test]
+    fn test_generic_item_invalid_score() {
+        let item = GenericItem {
+            score: 150.0, // Out of range (max 100.0)
+            points: 500,
+        };
+
+        let err = item.validate().unwrap_err();
+        assert!(err.score().is_some());
+        assert!(err.points().is_none());
+
+        // The error contains the actual value
+        let score_err = err.score().unwrap();
+        assert_eq!(score_err.actual, Some(150.0));
+    }
+
+    #[test]
+    fn test_generic_item_invalid_points() {
+        let item = GenericItem {
+            score: 50.0,
+            points: 2000, // Out of range (max 1000)
+        };
+
+        let err = item.validate().unwrap_err();
+        assert!(err.score().is_none());
+        assert!(err.points().is_some());
+
+        // The error contains the actual value
+        let points_err = err.points().unwrap();
+        assert_eq!(points_err.actual, Some(2000));
     }
 }

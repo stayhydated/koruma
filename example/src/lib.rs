@@ -4,7 +4,7 @@ use koruma::{Koruma, Validate};
 
 /// A validation rule that checks if a number is within a specified range.
 #[koruma::validator]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, EsFluent)]
+#[derive(Clone, Debug, Eq, EsFluent, Hash, PartialEq)]
 pub struct NumberRangeValidation {
     min: i32,
     max: i32,
@@ -24,7 +24,7 @@ impl Validate<i32> for NumberRangeValidation {
 
 /// A validation rule that checks string length.
 #[koruma::validator]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, EsFluent)]
+#[derive(Clone, Debug, Eq, EsFluent, Hash, PartialEq)]
 pub struct StringLengthValidation {
     min: usize,
     max: usize,

@@ -120,7 +120,7 @@ fn find_value_field(input: &ItemStruct) -> Option<(Ident, syn::Type)> {
 ///
 /// ```ignore
 /// #[koruma::validator]
-/// #[derive(Debug, Clone, EsFluent)]
+/// #[derive(Clone, Debug, EsFluent)]
 /// pub struct NumberRangeValidation {
 ///     min: i32,
 ///     max: i32,
@@ -352,7 +352,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
         /// Each field contains `Some(validator)` if validation failed for that field,
         /// or `None` if validation passed. The validator struct can be used to
         /// generate localized error messages via `ToFluentString`.
-        #[derive(Debug, Clone)]
+        #[derive(Clone, Debug)]
         pub struct #error_struct_name {
             #(#error_fields),*
         }

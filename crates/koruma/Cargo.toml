@@ -12,6 +12,6 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+bon = { workspace = true }
 koruma-core.workspace = true
 koruma-derive.workspace = true
-bon = { workspace = true }

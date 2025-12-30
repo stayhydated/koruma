@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bon.workspace = true
+es-fluent.workspace = true
 koruma.workspace = true
 koruma-core.workspace = true
-es-fluent.workspace = true
-bon.workspace = true

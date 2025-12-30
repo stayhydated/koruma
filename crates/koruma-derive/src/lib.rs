@@ -454,12 +454,18 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 
             if koruma_attr.infer_type {
                 // Generic validator: ValidatorName::<FieldType>::builder()
+                // We use a helper function to ensure Validate<T> is implemented,
+                // giving a clearer error message if not
+                let assert_fn = format_ident!("__koruma_assert_validate_{}", name);
                 quote! {
+                    fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
+                        v.validate(t)
+                    }
                     let validator = #validator::<#field_ty>::builder()
                         #(#builder_calls)*
                         .with_value(self.#name.clone())
                         .build();
-                    if validator.validate(&self.#name).is_err() {
+                    if #assert_fn(&validator, &self.#name).is_err() {
                         error.#name = Some(validator);
                         has_error = true;
                     }

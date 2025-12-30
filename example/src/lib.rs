@@ -110,6 +110,14 @@ pub struct MultiValidatorItem {
     pub value: i32,
 }
 
+/// Example struct demonstrating collection validation with `each`.
+#[derive(Koruma)]
+pub struct Order {
+    // Each score in the list must be in range 0-100
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Vec<f64>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -326,5 +334,52 @@ mod tests {
         let err = item.validate().unwrap_err();
         let value_errors = err.value().all();
         assert_eq!(value_errors.len(), 1);
+    }
+
+    // Tests for collection validation with each()
+    #[test]
+    fn test_each_valid() {
+        let order = Order {
+            scores: vec![50.0, 75.0, 100.0],
+        };
+        assert!(order.validate().is_ok());
+    }
+
+    #[test]
+    fn test_each_single_invalid() {
+        let order = Order {
+            scores: vec![50.0, 150.0, 75.0], // 150 is out of range
+        };
+        let err = order.validate().unwrap_err();
+        let score_errors = err.scores();
+
+        assert_eq!(score_errors.len(), 1);
+        assert_eq!(score_errors[0].0, 1); // Index 1 failed
+
+        let element_err = &score_errors[0].1;
+        assert!(element_err.generic_range_validation().is_some());
+        assert_eq!(
+            element_err.generic_range_validation().unwrap().actual,
+            Some(150.0)
+        );
+    }
+
+    #[test]
+    fn test_each_multiple_invalid() {
+        let order = Order {
+            scores: vec![150.0, 50.0, -10.0], // Index 0 and 2 are invalid
+        };
+        let err = order.validate().unwrap_err();
+        let score_errors = err.scores();
+
+        assert_eq!(score_errors.len(), 2);
+        assert_eq!(score_errors[0].0, 0); // Index 0 failed
+        assert_eq!(score_errors[1].0, 2); // Index 2 failed
+    }
+
+    #[test]
+    fn test_each_empty_collection() {
+        let order = Order { scores: vec![] };
+        assert!(order.validate().is_ok());
     }
 }

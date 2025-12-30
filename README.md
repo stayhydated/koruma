@@ -149,6 +149,32 @@ pub struct Measurements {
 }
 ```
 
+### Collection Validation
+
+Use the `each(...)` syntax to validate each element in a `Vec`:
+
+```rust
+#[derive(Koruma)]
+pub struct Order {
+    // Each score must be in range 0-100
+    #[koruma(each(RangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Vec<f64>,
+}
+
+// Errors include the index of the failing element
+let order = Order {
+    scores: vec![50.0, 150.0, 75.0],  // 150 is out of range
+};
+let err = order.validate().unwrap_err();
+
+// Returns &[(usize, OrderScoresError)]
+for (index, element_error) in err.scores() {
+    if let Some(range_err) = element_error.generic_range_validation() {
+        println!("Score at index {} is invalid: {:?}", index, range_err.actual);
+    }
+}
+```
+
 ## Error Messages
 
 ### Basic String Messages

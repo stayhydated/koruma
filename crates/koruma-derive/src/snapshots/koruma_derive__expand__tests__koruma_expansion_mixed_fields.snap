@@ -1,0 +1,188 @@
+---
+source: crates/koruma-derive/src/expand.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+pub enum ComplexItemAgeValidator {
+    RangeValidation(RangeValidation),
+}
+#[derive(Clone, Debug)]
+pub struct ComplexItemAgeError {
+    range_validation: Option<RangeValidation>,
+}
+impl ComplexItemAgeError {
+    pub fn range_validation(&self) -> Option<&RangeValidation> {
+        self.range_validation.as_ref()
+    }
+    /// Returns all failed validators for this field.
+    pub fn all(&self) -> Vec<ComplexItemAgeValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.range_validation {
+            result.push(ComplexItemAgeValidator::RangeValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+pub enum ComplexItemTagsValidator {
+    LengthValidation(LengthValidation),
+}
+#[derive(Clone, Debug)]
+pub struct ComplexItemTagsError {
+    length_validation: Option<LengthValidation>,
+}
+impl ComplexItemTagsError {
+    pub fn length_validation(&self) -> Option<&LengthValidation> {
+        self.length_validation.as_ref()
+    }
+    /// Returns all failed validators for this field.
+    pub fn all(&self) -> Vec<ComplexItemTagsValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.length_validation {
+            result.push(ComplexItemTagsValidator::LengthValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.length_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+pub enum ComplexItemRatingValidator {
+    RangeValidation(RangeValidation),
+    EvenValidation(EvenValidation),
+}
+#[derive(Clone, Debug)]
+pub struct ComplexItemRatingError {
+    range_validation: Option<RangeValidation>,
+    even_validation: Option<EvenValidation>,
+}
+impl ComplexItemRatingError {
+    pub fn range_validation(&self) -> Option<&RangeValidation> {
+        self.range_validation.as_ref()
+    }
+    pub fn even_validation(&self) -> Option<&EvenValidation> {
+        self.even_validation.as_ref()
+    }
+    /// Returns all failed validators for this field.
+    pub fn all(&self) -> Vec<ComplexItemRatingValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.range_validation {
+            result.push(ComplexItemRatingValidator::RangeValidation(v.clone()));
+        }
+        if let Some(v) = &self.even_validation {
+            result.push(ComplexItemRatingValidator::EvenValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.range_validation.is_none() && self.even_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct ComplexItemValidationError {
+    age: ComplexItemAgeError,
+    tags: Vec<(usize, ComplexItemTagsError)>,
+    rating: ComplexItemRatingError,
+}
+impl ComplexItemValidationError {
+    pub fn age(&self) -> &ComplexItemAgeError {
+        &self.age
+    }
+    /// Returns all validation errors for this collection field, with their indices.
+    pub fn tags(&self) -> &[(usize, ComplexItemTagsError)] {
+        &self.tags
+    }
+    pub fn rating(&self) -> &ComplexItemRatingError {
+        &self.rating
+    }
+}
+impl koruma::ValidationError for ComplexItemValidationError {
+    fn is_empty(&self) -> bool {
+        self.age.is_empty() && self.tags.is_empty() && self.rating.is_empty()
+    }
+}
+impl ComplexItem {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), ComplexItemValidationError> {
+        let mut error = ComplexItemValidationError {
+            age: ComplexItemAgeError {
+                range_validation: None,
+            },
+            tags: Vec::new(),
+            rating: ComplexItemRatingError {
+                range_validation: None,
+                even_validation: None,
+            },
+        };
+        let mut has_error = false;
+        let __value = &self.age;
+        let validator = RangeValidation::builder()
+            .min(0)
+            .max(100)
+            .with_value(__value.clone())
+            .build();
+        if validator.validate(__value).is_err() {
+            error.age.range_validation = Some(validator);
+            has_error = true;
+        }
+        for (idx, __item_value) in self.tags.iter().enumerate() {
+            let mut element_error = ComplexItemTagsError {
+                length_validation: None,
+            };
+            let mut element_has_error = false;
+            let validator = LengthValidation::builder()
+                .min(1)
+                .max(50)
+                .with_value(__item_value.clone())
+                .build();
+            if validator.validate(__item_value).is_err() {
+                element_error.length_validation = Some(validator);
+                element_has_error = true;
+            }
+            if element_has_error {
+                error.tags.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        let __value = &self.rating;
+        let validator = RangeValidation::builder()
+            .min(0)
+            .max(10)
+            .with_value(__value.clone())
+            .build();
+        if validator.validate(__value).is_err() {
+            error.rating.range_validation = Some(validator);
+            has_error = true;
+        }
+        let validator = EvenValidation::builder().with_value(__value.clone()).build();
+        if validator.validate(__value).is_err() {
+            error.rating.even_validation = Some(validator);
+            has_error = true;
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}

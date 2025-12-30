@@ -11,6 +11,7 @@ A per-field validation library for Rust with struct-based errors.
 - Per-field validation with strongly-typed error structs
 - Multiple validators per field
 - Generic validator support with type inference
+- Optional field support (skips validation when `None`)
 
 ## Installation
 
@@ -29,7 +30,7 @@ koruma = { version = "0.1", features = ["fluent"] }
 Use `#[koruma::validator]` to define validation rules. Each validator must have a field marked with `#[koruma(value)]` to capture the validated value:
 
 ```rust
-use koruma::{Validate, validator};
+use koruma::{KorumaResult, Validate, validator};
 
 #[koruma::validator]
 #[derive(Clone, Debug)]
@@ -37,11 +38,11 @@ pub struct NumberRangeValidation {
     min: i32,
     max: i32,
     #[koruma(value)]
-    pub actual: Option<i32>,
+    pub actual: i32,  // The type matches what you're validating
 }
 
 impl Validate<i32> for NumberRangeValidation {
-    fn validate(&self, value: &i32) -> Result<(), ()> {
+    fn validate(&self, value: &i32) -> KorumaResult {
         if *value < self.min || *value > self.max {
             Err(())
         } else {
@@ -87,7 +88,7 @@ match user.validate() {
     Err(errors) => {
         // Access errors by field, then by validator
         if let Some(age_err) = errors.age().number_range_validation() {
-            println!("Age {} is out of range", age_err.actual.unwrap());
+            println!("Age {} is out of range", age_err.actual);  // Direct value!
         }
         if let Some(name_err) = errors.name().string_length_validation() {
             println!("Name is invalid: {:?}", name_err.input);
@@ -132,7 +133,7 @@ pub struct RangeValidation<T> {
     pub min: T,
     pub max: T,
     #[koruma(value)]
-    pub actual: Option<T>,
+    pub actual: T,  // Direct type, not Option<T>
 }
 
 // Use the auto-generated macro to implement Validate for multiple types
@@ -170,9 +171,49 @@ let err = order.validate().unwrap_err();
 // Returns &[(usize, OrderScoresError)]
 for (index, element_error) in err.scores() {
     if let Some(range_err) = element_error.generic_range_validation() {
-        println!("Score at index {} is invalid: {:?}", index, range_err.actual);
+        println!("Score at index {} is invalid: {}", index, range_err.actual);
     }
 }
+```
+
+### Optional Field Validation
+
+Fields of type `Option<T>` are automatically handled:
+- **`None`**: Validation is skipped entirely
+- **`Some(value)`**: The inner value is validated and captured directly
+
+```rust
+#[derive(Koruma)]
+pub struct UserProfile {
+    #[koruma(StringLengthValidation(min = 1, max = 50))]
+    pub username: String,  // Required field
+
+    #[koruma(StringLengthValidation(min = 1, max = 200))]
+    pub bio: Option<String>,  // Optional - skipped when None
+
+    #[koruma(NumberRangeValidation(min = 0, max = 150))]
+    pub age: Option<i32>,  // Optional - skipped when None
+}
+
+// None fields are skipped
+let profile = UserProfile {
+    username: "alice".to_string(),
+    bio: None,  // Not validated
+    age: None,  // Not validated
+};
+assert!(profile.validate().is_ok());
+
+// Some fields are validated
+let profile = UserProfile {
+    username: "bob".to_string(),
+    bio: Some("".to_string()),  // Invalid: too short
+    age: Some(200),  // Invalid: out of range
+};
+let err = profile.validate().unwrap_err();
+
+// Error captures the inner value directly (not Option)
+let bio_err = err.bio().string_length_validation().unwrap();
+assert_eq!(bio_err.input, "".to_string());  // Direct String, not Option<String>
 ```
 
 ## Error Messages
@@ -187,7 +228,7 @@ impl std::fmt::Display for NumberRangeValidation {
         write!(
             f,
             "Value {} must be between {} and {}",
-            self.actual.unwrap_or_default(),
+            self.actual,
             self.min,
             self.max
         )
@@ -221,7 +262,7 @@ pub struct NumberRangeValidation {
     min: i32,
     max: i32,
     #[koruma(value)]
-    pub actual: Option<i32>,
+    pub actual: i32,
 }
 ```
 

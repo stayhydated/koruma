@@ -1,0 +1,84 @@
+---
+source: crates/koruma-derive/src/expand.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+pub enum GenericItemScoreValidator {
+    GenericRangeValidation(GenericRangeValidation<f64>),
+}
+#[derive(Clone, Debug)]
+pub struct GenericItemScoreError {
+    generic_range_validation: Option<GenericRangeValidation<f64>>,
+}
+impl GenericItemScoreError {
+    pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<f64>> {
+        self.generic_range_validation.as_ref()
+    }
+    /// Returns all failed validators for this field.
+    pub fn all(&self) -> Vec<GenericItemScoreValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.generic_range_validation {
+            result.push(GenericItemScoreValidator::GenericRangeValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.generic_range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct GenericItemValidationError {
+    score: GenericItemScoreError,
+}
+impl GenericItemValidationError {
+    pub fn score(&self) -> &GenericItemScoreError {
+        &self.score
+    }
+}
+impl koruma::ValidationError for GenericItemValidationError {
+    fn is_empty(&self) -> bool {
+        self.score.is_empty()
+    }
+}
+impl GenericItem {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), GenericItemValidationError> {
+        let mut error = GenericItemValidationError {
+            score: GenericItemScoreError {
+                generic_range_validation: None,
+            },
+        };
+        let mut has_error = false;
+        let __value = &self.score;
+        fn __koruma_assert_validate_score_generic_range_validation<
+            V: koruma::Validate<T>,
+            T,
+        >(v: &V, t: &T) -> Result<(), ()> {
+            v.validate(t)
+        }
+        let validator = GenericRangeValidation::<f64>::builder()
+            .min(0.0)
+            .max(100.0)
+            .with_value(__value.clone())
+            .build();
+        if __koruma_assert_validate_score_generic_range_validation(&validator, __value)
+            .is_err()
+        {
+            error.score.generic_range_validation = Some(validator);
+            has_error = true;
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}

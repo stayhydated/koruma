@@ -1,0 +1,95 @@
+---
+source: crates/koruma-derive/src/expand.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+pub enum OrderScoresValidator {
+    GenericRangeValidation(GenericRangeValidation<f64>),
+}
+#[derive(Clone, Debug)]
+pub struct OrderScoresError {
+    generic_range_validation: Option<GenericRangeValidation<f64>>,
+}
+impl OrderScoresError {
+    pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<f64>> {
+        self.generic_range_validation.as_ref()
+    }
+    /// Returns all failed validators for this field.
+    pub fn all(&self) -> Vec<OrderScoresValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.generic_range_validation {
+            result.push(OrderScoresValidator::GenericRangeValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.generic_range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct OrderValidationError {
+    scores: Vec<(usize, OrderScoresError)>,
+}
+impl OrderValidationError {
+    /// Returns all validation errors for this collection field, with their indices.
+    pub fn scores(&self) -> &[(usize, OrderScoresError)] {
+        &self.scores
+    }
+}
+impl koruma::ValidationError for OrderValidationError {
+    fn is_empty(&self) -> bool {
+        self.scores.is_empty()
+    }
+}
+impl Order {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), OrderValidationError> {
+        let mut error = OrderValidationError {
+            scores: Vec::new(),
+        };
+        let mut has_error = false;
+        for (idx, __item_value) in self.scores.iter().enumerate() {
+            let mut element_error = OrderScoresError {
+                generic_range_validation: None,
+            };
+            let mut element_has_error = false;
+            fn __koruma_assert_validate_scores_generic_range_validation<
+                V: koruma::Validate<T>,
+                T,
+            >(v: &V, t: &T) -> Result<(), ()> {
+                v.validate(t)
+            }
+            let validator = GenericRangeValidation::<f64>::builder()
+                .min(0.0)
+                .max(100.0)
+                .with_value(__item_value.clone())
+                .build();
+            if __koruma_assert_validate_scores_generic_range_validation(
+                    &validator,
+                    __item_value,
+                )
+                .is_err()
+            {
+                element_error.generic_range_validation = Some(validator);
+                element_has_error = true;
+            }
+            if element_has_error {
+                error.scores.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}

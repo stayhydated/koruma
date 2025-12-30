@@ -1,10 +1,10 @@
 ---
 source: crates/koruma-derive/src/expand/snapshot_tests.rs
-assertion_line: 83
 expression: pretty_print(expanded)
 ---
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub enum GenericItemScoreValidator {
     GenericRangeValidation(GenericRangeValidation<f64>),
 }

@@ -1,7 +1,7 @@
 //! Unit tests for helper functions in the expand module.
 
 use super::*;
-use syn::{DeriveInput, ItemStruct};
+use syn::ItemStruct;
 
 #[test]
 fn test_option_inner_type_extracts_inner() {

@@ -534,6 +534,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             quote! {
                 /// Enum of all possible validators for this field.
                 #[derive(Clone, Debug)]
+                #[allow(dead_code)]
                 pub enum #enum_name {
                     #(#enum_variants),*
                 }

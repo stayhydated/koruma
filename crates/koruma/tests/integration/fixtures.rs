@@ -16,6 +16,7 @@ pub struct Item {
     pub name: String,
 
     // This field is not validated
+    #[allow(dead_code)]
     pub internal_id: u64,
 }
 

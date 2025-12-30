@@ -1,7 +1,7 @@
 [package]
-name = "koruma"
+name = "koruma-core"
 description = """
-The koruma crate
+Core traits and types for koruma validation
 """
 version.workspace = true
 rust-version.workspace = true
@@ -12,5 +12,3 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
-koruma-core.workspace = true
-koruma-derive.workspace = true

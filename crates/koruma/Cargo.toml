@@ -11,7 +11,11 @@ publish.workspace = true
 repository.workspace = true
 readme = "README.md"
 
+[features]
+default = ["derive"]
+derive = ["koruma-derive"]
+
 [dependencies]
 bon = { workspace = true }
-koruma-core.workspace = true
-koruma-derive.workspace = true
+koruma-core = { workspace = true }
+koruma-derive = { workspace = true, optional = true }

@@ -7,4 +7,6 @@ pub mod bon {
 }
 
 pub use koruma_core::{BuilderWithValue, Validate, ValidationError};
+
+#[cfg(feature = "derive")]
 pub use koruma_derive::{Koruma, validator};

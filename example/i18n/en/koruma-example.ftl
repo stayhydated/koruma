@@ -13,3 +13,7 @@ string_length_validation =
         [none] { "" }
        *[other] { ", but got \"{ $value }\"" }
     }
+
+## EvenNumberValidation
+
+even_number_validation = Even Number Validation { $actual }

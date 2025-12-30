@@ -65,7 +65,7 @@ impl Validate<String> for StringLengthValidation {
 
 /// A validation rule that checks if a number is even.
 #[koruma::validator]
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, EsFluent, Hash, PartialEq)]
 pub struct EvenNumberValidation {
     #[koruma(value)]
     pub actual: Option<i32>,

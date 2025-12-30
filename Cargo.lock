@@ -331,6 +331,14 @@ dependencies = [
 [[package]]
 name = "koruma"
 version = "0.1.0"
+
+[[package]]
+name = "koruma-derive"
+version = "0.1.0"
+
+[[package]]
+name = "koruma-example"
+version = "0.1.0"
 dependencies = [
  "es-fluent",
 ]

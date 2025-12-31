@@ -119,7 +119,6 @@ impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
     }
 }
 
-// Display implementation for fmt feature
 #[cfg(feature = "fmt")]
 impl<T: HasLen + Clone> std::fmt::Display for LenValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -289,8 +288,8 @@ mod tests {
 
         #[derive(Koruma)]
         struct Order {
-            // Vec<_> infers the inner type from the field: Vec<_> → Vec<String>
-            #[koruma(LenValidation<Vec<_>>(min = 1, max = 5))]
+            // <_> infers the full field type: Vec<String>
+            #[koruma(LenValidation<_>(min = 1, max = 5))]
             items: Vec<String>,
         }
 
@@ -331,7 +330,7 @@ mod tests {
 
         #[derive(Koruma)]
         struct UserProfile {
-            // For non-collection types, <_> infers the field type directly
+            // <_> infers the full field type: String
             #[koruma(LenValidation<_>(min = 1, max = 50))]
             username: String,
 
@@ -375,8 +374,8 @@ mod tests {
 
         #[derive(Koruma)]
         struct TaggedPost {
-            // Test _<_> syntax: infers both outer container and inner type
-            #[koruma(LenValidation<_<_>>(min = 1, max = 10))]
+            // <_> infers the full field type: HashSet<String>
+            #[koruma(LenValidation<_>(min = 1, max = 10))]
             tags: std::collections::HashSet<String>,
         }
 

@@ -11,9 +11,11 @@ use syn::{DeriveInput, Field, Fields, Ident, ItemStruct, Token, parse::Parse, pa
 /// `ValidatorName<_>(arg = value, ...)` or `ValidatorName<SomeType>(arg = value, ...)`
 pub(crate) struct ValidatorAttr {
     pub validator: Ident,
-    /// Whether the validator uses `<_>` syntax for type inference from field type
+    /// Whether the validator uses `<_>` syntax for type inference from field type.
+    /// When true, the full field type is used (unwrapping Option if present).
     pub infer_type: bool,
-    /// Explicit type parameter if specified (e.g., `<f64>`)
+    /// Explicit type parameter if specified (e.g., `<f64>`, `<Vec<_>>`)
+    /// If this contains `_`, it will be substituted with the inner type from the field.
     pub explicit_type: Option<syn::Type>,
     pub args: Vec<(Ident, syn::Expr)>,
 }
@@ -22,29 +24,20 @@ impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let validator: Ident = input.parse()?;
 
-        // Check for generic type parameter syntax: <_>, <_<_>>, or <SomeType>
+        // Check for generic type parameter syntax: <_> or <SomeType>
+        // <_> means "use the full field type" (unwrapping Option if present)
+        // <Vec<_>> means "substitute _ with the inner type from the field"
         let (infer_type, explicit_type) = if input.peek(Token![<]) {
             input.parse::<Token![<]>()?;
-            // Check if it's <_> or <_<_>> (type inference) or an explicit type
+            // Check if it's <_> (full type inference) or an explicit/partial type
             if input.peek(Token![_]) {
                 input.parse::<Token![_]>()?;
-                // Check for <_<_>> syntax (infer container with infer inner type)
-                if input.peek(Token![<]) {
-                    // Parse _<_> as a special synthetic type that we'll substitute later
-                    input.parse::<Token![<]>()?;
-                    input.parse::<Token![_]>()?;
-                    input.parse::<Token![>]>()?;
-                    input.parse::<Token![>]>()?;
-                    // Create a synthetic type that represents "infer the whole type"
-                    // We use Type::Infer to signal full field type inference
-                    (false, Some(syn::parse_quote!(_)))
-                } else {
-                    input.parse::<Token![>]>()?;
-                    (true, None)
-                }
+                input.parse::<Token![>]>()?;
+                // <_> means use the full field type
+                (true, None)
             } else {
                 // Parse explicit type parameter and store it
-                // This handles types like <f64>, <Vec<u8>>, etc.
+                // This handles types like <f64>, <Vec<u8>>, <Vec<_>>, etc.
                 let explicit_type: syn::Type = input.parse()?;
                 input.parse::<Token![>]>()?;
                 (false, Some(explicit_type))
@@ -512,12 +505,12 @@ fn contains_infer_type(ty: &syn::Type) -> bool {
 
 /// Helper to generate the type for a validator
 ///
-/// This unwraps Option<T> and Vec<T> to get the effective type being validated.
+/// Type inference behavior:
+/// - `<_>`: uses the full field type (unwrapping Option if present)
+/// - `<Vec<_>>`: substitutes `_` with the inner type from the field
+/// - `<SomeType>`: uses the explicit type directly
 /// - For `each` validation on `Vec<T>`: uses T
-/// - For generic field validators (`<_>`) on `Vec<T>`: uses T (enables `VecLenValidation<_>`)
-/// - For explicit types with `_` (e.g., `Vec<_>`): substitutes `_` with the inner type
 /// - For optional fields `Option<T>`: uses T (validation is skipped if None)
-/// - For regular fields: uses the field type directly
 fn validator_type_for_field(
     v: &ValidatorAttr,
     field_ty: &syn::Type,
@@ -528,12 +521,6 @@ fn validator_type_for_field(
     // If explicit type is provided, check if it contains `_` for substitution
     if let Some(ref explicit_ty) = v.explicit_type {
         if contains_infer_type(explicit_ty) {
-            // Check if it's just `_` (from <_<_>> syntax) - use full field type
-            if matches!(explicit_ty, syn::Type::Infer(_)) {
-                // <_<_>> means use the full field type (unwrapping Option if needed)
-                let effective_ty = option_inner_type(field_ty).unwrap_or(field_ty);
-                return quote! { #validator<#effective_ty> };
-            }
             // Substitute `_` with the inner type from the field
             // e.g., Vec<_> on field Vec<String> → Vec<String>
             // e.g., HashSet<_> on field HashSet<i32> → HashSet<i32>
@@ -544,10 +531,8 @@ fn validator_type_for_field(
         return quote! { #validator<#explicit_ty> };
     }
 
-    // Unwrap Vec<T> for:
-    // - each validation (element validators)
-    // - infer_type field validators (allows VecLenValidation<_> on Vec<f64> → VecLenValidation<f64>)
-    let after_vec = if validate_each || v.infer_type {
+    // For `each` validation, unwrap Vec<T> to get element type T
+    let after_vec = if validate_each {
         vec_inner_type(field_ty).unwrap_or(field_ty)
     } else {
         field_ty
@@ -557,6 +542,7 @@ fn validator_type_for_field(
     let effective_ty = option_inner_type(after_vec).unwrap_or(after_vec);
 
     if v.infer_type {
+        // <_> means use the full field type (after unwrapping Option)
         quote! { #validator<#effective_ty> }
     } else {
         quote! { #validator }
@@ -784,7 +770,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             };
 
             // Field for storing element errors (if we have element validators)
-            let element_errors_field = if has_element_validators {
+            let _element_errors_field = if has_element_validators {
                 let element_error_struct_name = format_ident!(
                     "{}{}ElementKorumaValidationError",
                     struct_name,
@@ -1049,13 +1035,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let field_validator_checks: Vec<TokenStream2> = f.field_validators.iter().map(|v| {
                 let validator = &v.validator;
                 let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
-                // Determine if we should unwrap Vec<T> to T:
-                // - For `<_>` (infer_type=true, explicit_type=None): unwrap to inner type (VecLenValidation<_> pattern)
-                // - For `<_<_>>` (infer_type=false, explicit_type=Some(_)): DON'T unwrap (LenValidation<_<_>> pattern)
-                // - For `<Vec<_>>` (infer_type=false, explicit_type=Some): DON'T unwrap (LenValidation<Vec<_>> pattern)
-                // - For explicit types: DON'T unwrap
-                let should_unwrap_vec = v.infer_type && v.explicit_type.is_none();
-                let effective_ty = effective_validation_type(field_ty, should_unwrap_vec);
+                // For field validators, we never unwrap Vec - only Option.
+                // <_> uses the full field type (Vec<T> stays Vec<T>)
+                let effective_ty = effective_validation_type(field_ty, false);
 
                 let builder_calls: Vec<TokenStream2> = v
                     .args

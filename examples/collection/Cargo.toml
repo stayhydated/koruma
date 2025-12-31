@@ -9,7 +9,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-koruma-collection = { workspace = true, features = [ "fluent"] }
+koruma-collection = { workspace = true, features = ["fmt", "fluent"] }
 bon = { workspace = true }
 es-fluent = { features = [ "derive", "generate" ], workspace = true }
 es-fluent-lang = { workspace = true }

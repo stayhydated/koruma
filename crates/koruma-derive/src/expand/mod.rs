@@ -293,6 +293,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let set_value_type = format_ident!("Set{}", value_pascal);
 
     // Generate the impl macro for generic validators
+    #[cfg(feature = "fn-macro-helper")]
     let impl_macro = if has_generics {
         let macro_name = format_ident!("impl_{}", struct_name.to_string().to_snake_case());
         quote! {
@@ -325,6 +326,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     } else {
         quote! {}
     };
+
+    #[cfg(not(feature = "fn-macro-helper"))]
+    let impl_macro = quote! {};
 
     let with_value_impl = if has_generics {
         // For generic validators, the builder is Builder<T, S> (type param first, then state)

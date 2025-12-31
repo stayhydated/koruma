@@ -12,8 +12,9 @@ repository.workspace = true
 readme = "README.md"
 
 [features]
-default = [ "derive" ]
+default = [ "derive", "fn-macro-helper" ]
 derive = [ "koruma-derive" ]
+fn-macro-helper = [ "koruma-derive/fn-macro-helper" ]
 
 [dependencies]
 bon = { workspace = true }

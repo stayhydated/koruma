@@ -28,7 +28,7 @@ koruma = { version = "0.1" }
 
 Use `#[koruma::validator]` to define validation rules. Each validator must have a field marked with `#[koruma(value)]` to capture the validated value:
 
-```rust
+```rs
 use koruma::{KorumaResult, Validate, validator};
 
 #[koruma::validator]
@@ -55,7 +55,7 @@ impl Validate<i32> for NumberRangeValidation {
 
 For validators that work with multiple types, use generics and the `<_>` syntax for type inference:
 
-```rust
+```rs
 #[koruma::validator]
 #[derive(Clone, Debug)]
 pub struct RangeValidation<T> {
@@ -83,12 +83,11 @@ pub struct Measurements {
 }
 ```
 
-
 ### Validating Structs
 
 Apply validators to struct fields using `#[derive(Koruma)]` and the `#[koruma(...)]` attribute:
 
-```rust
+```rs
 use koruma::Koruma;
 
 #[derive(Koruma)]
@@ -108,7 +107,7 @@ pub struct User {
 
 The generated error struct provides typed access to each field's validation errors:
 
-```rust
+```rs
 let user = User {
     age: 200,  // Invalid
     name: "".to_string(),  // Invalid
@@ -133,7 +132,7 @@ match user.validate() {
 
 Apply multiple validators to a single field by separating them with commas:
 
-```rust
+```rs
 #[derive(Koruma)]
 pub struct Item {
     // Must be in range 0-100 AND be even
@@ -158,7 +157,7 @@ let all_errors = err.value().all();  // Vec<ItemValueValidator>
 
 Use the `each(...)` syntax to validate each element in a `Vec`:
 
-```rust
+```rs
 #[derive(Koruma)]
 pub struct Order {
     // Each score must be in range 0-100
@@ -183,10 +182,11 @@ for (index, element_error) in err.scores() {
 ### Optional Field Validation
 
 Fields of type `Option<T>` are automatically handled:
+
 - **`None`**: Validation is skipped entirely
 - **`Some(value)`**: The inner value is validated and captured directly
 
-```rust
+```rs
 #[derive(Koruma)]
 pub struct UserProfile {
     #[koruma(StringLengthValidation(min = 1, max = 50))]
@@ -226,7 +226,7 @@ assert_eq!(bio_err.input, "".to_string());  // Direct String, not Option<String>
 
 For simple error messages, implement `Display` or a custom method on your validators:
 
-```rust
+```rs
 impl std::fmt::Display for NumberRangeValidation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -257,7 +257,7 @@ es-fluent = "0.4"
 
 Derive `EsFluent` on your validators:
 
-```rust
+```rs
 use es_fluent::EsFluent;
 
 #[koruma::validator]
@@ -279,7 +279,7 @@ number-range-validation = Value { $actual } must be between { $min } and { $max 
 
 Use `to_fluent_string()` to get localized messages:
 
-```rust
+```rs
 use es_fluent::ToFluentString;
 
 if let Some(err) = errors.age().number_range_validation() {
@@ -291,7 +291,7 @@ if let Some(err) = errors.age().number_range_validation() {
 
 When using the `all()` method to get all failed validators, you can implement `ToFluentString` on the generated enum:
 
-```rust
+```rs
 use es_fluent::ToFluentString;
 
 // The enum is auto-generated as {StructName}{FieldName}Validator

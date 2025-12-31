@@ -21,7 +21,6 @@ use koruma::{KorumaResult, Validate, validator};
 #[validator]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
-#[cfg(feature = "email")]
 pub struct EmailValidation<T: AsRef<str>> {
     /// The string being validated (stored for error context)
     #[koruma(value)]
@@ -29,7 +28,6 @@ pub struct EmailValidation<T: AsRef<str>> {
     pub actual: T,
 }
 
-#[cfg(feature = "email")]
 impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
     fn validate(&self, value: &T) -> KorumaResult {
         let s = value.as_ref();
@@ -83,7 +81,7 @@ impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
     }
 }
 
-#[cfg(all(feature = "fmt", feature = "email"))]
+#[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for EmailValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "not a valid email address")

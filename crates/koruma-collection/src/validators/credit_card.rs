@@ -21,7 +21,6 @@ use koruma::{KorumaResult, Validate, validator};
 #[validator]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
-#[cfg(feature = "credit-card")]
 pub struct CreditCardValidation<T: AsRef<str>> {
     /// The string being validated (stored for error context)
     #[koruma(value)]
@@ -29,7 +28,6 @@ pub struct CreditCardValidation<T: AsRef<str>> {
     pub actual: T,
 }
 
-#[cfg(feature = "credit-card")]
 impl<T: AsRef<str>> Validate<T> for CreditCardValidation<T> {
     fn validate(&self, value: &T) -> KorumaResult {
         let s = value.as_ref();
@@ -40,7 +38,7 @@ impl<T: AsRef<str>> Validate<T> for CreditCardValidation<T> {
     }
 }
 
-#[cfg(all(feature = "fmt", feature = "credit-card"))]
+#[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for CreditCardValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "not a valid credit card number")

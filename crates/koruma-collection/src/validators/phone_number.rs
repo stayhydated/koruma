@@ -21,7 +21,6 @@ use koruma::{KorumaResult, Validate, validator};
 #[validator]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
-#[cfg(feature = "phone-number")]
 pub struct PhoneNumberValidation<T: AsRef<str>> {
     /// The string being validated (stored for error context)
     #[koruma(value)]
@@ -29,7 +28,6 @@ pub struct PhoneNumberValidation<T: AsRef<str>> {
     pub actual: T,
 }
 
-#[cfg(feature = "phone-number")]
 impl<T: AsRef<str>> Validate<T> for PhoneNumberValidation<T> {
     fn validate(&self, value: &T) -> KorumaResult {
         use std::str::FromStr as _;
@@ -48,7 +46,7 @@ impl<T: AsRef<str>> Validate<T> for PhoneNumberValidation<T> {
     }
 }
 
-#[cfg(all(feature = "fmt", feature = "phone-number"))]
+#[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PhoneNumberValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "not a valid phone number")

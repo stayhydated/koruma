@@ -21,7 +21,6 @@ use koruma::{KorumaResult, Validate, validator};
 #[validator]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
-#[cfg(feature = "regex")]
 pub struct PatternValidation<T: AsRef<str>> {
     /// The regex pattern to match against
     pub pattern: String,
@@ -31,7 +30,6 @@ pub struct PatternValidation<T: AsRef<str>> {
     pub actual: T,
 }
 
-#[cfg(feature = "regex")]
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     fn validate(&self, value: &T) -> KorumaResult {
         let s = value.as_ref();
@@ -48,7 +46,7 @@ impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     }
 }
 
-#[cfg(all(feature = "fmt", feature = "regex"))]
+#[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PatternValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "value does not match pattern /{}/", self.pattern)

@@ -35,7 +35,7 @@ fluent = [
   "dep:rust-embed",
 ]
 fmt = [  ]
-full = [ "fmt", "credit-card", "phone-number", "email", "email-idna", "rust_decimal", "regex" ]
+full = [ "fmt", "url", "credit-card", "phone-number", "email", "email-idna", "rust_decimal", "regex" ]
 phone-number = [ "dep:phonenumber" ]
 regex = [ "dep:regex" ]
 rust_decimal = [ "dep:rust_decimal" ]

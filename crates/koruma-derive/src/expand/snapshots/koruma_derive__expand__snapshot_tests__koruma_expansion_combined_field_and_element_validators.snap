@@ -1,0 +1,164 @@
+---
+source: crates/koruma-derive/src/expand/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible element validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum OrderWithLenCheckScoresElementKorumaValidator {
+    RangeValidation(RangeValidation<i32>),
+}
+/// Per-element validation error struct.
+#[derive(Clone, Debug)]
+pub struct OrderWithLenCheckScoresElementKorumaValidationError {
+    range_validation: Option<RangeValidation<i32>>,
+}
+impl OrderWithLenCheckScoresElementKorumaValidationError {
+    pub fn range_validation(&self) -> Option<&RangeValidation<i32>> {
+        self.range_validation.as_ref()
+    }
+    /// Returns all failed element validators.
+    pub fn all(&self) -> Vec<OrderWithLenCheckScoresElementKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.range_validation {
+            result
+                .push(
+                    OrderWithLenCheckScoresElementKorumaValidator::RangeValidation(
+                        v.clone(),
+                    ),
+                );
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum OrderWithLenCheckScoresKorumaValidator {
+    VecLenValidation(VecLenValidation<Vec<i32>>),
+}
+#[derive(Clone, Debug)]
+pub struct OrderWithLenCheckScoresKorumaValidationError {
+    vec_len_validation: Option<VecLenValidation<Vec<i32>>>,
+    element_errors: Vec<(usize, OrderWithLenCheckScoresElementKorumaValidationError)>,
+}
+impl OrderWithLenCheckScoresKorumaValidationError {
+    pub fn vec_len_validation(&self) -> Option<&VecLenValidation<Vec<i32>>> {
+        self.vec_len_validation.as_ref()
+    }
+    /// Returns all element validation errors with their indices.
+    pub fn element_errors(
+        &self,
+    ) -> &[(usize, OrderWithLenCheckScoresElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    /// Returns all failed field-level validators.
+    pub fn all(&self) -> Vec<OrderWithLenCheckScoresKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.vec_len_validation {
+            result
+                .push(
+                    OrderWithLenCheckScoresKorumaValidator::VecLenValidation(v.clone()),
+                );
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.vec_len_validation.is_none() && self.element_errors.is_empty()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct OrderWithLenCheckKorumaValidationError {
+    scores: OrderWithLenCheckScoresKorumaValidationError,
+}
+impl OrderWithLenCheckKorumaValidationError {
+    pub fn scores(&self) -> &OrderWithLenCheckScoresKorumaValidationError {
+        &self.scores
+    }
+}
+impl koruma::ValidationError for OrderWithLenCheckKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.scores.is_empty()
+    }
+}
+impl OrderWithLenCheck {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), OrderWithLenCheckKorumaValidationError> {
+        let mut error = OrderWithLenCheckKorumaValidationError {
+            scores: OrderWithLenCheckScoresKorumaValidationError {
+                vec_len_validation: None,
+                element_errors: Vec::new(),
+            },
+        };
+        let mut has_error = false;
+        let __field_value = &self.scores;
+        fn __koruma_assert_validate_scores_vec_len_validation_field<
+            V: koruma::Validate<T>,
+            T,
+        >(v: &V, t: &T) -> Result<(), ()> {
+            v.validate(t)
+        }
+        let validator = VecLenValidation::<Vec<i32>>::builder()
+            .min(1)
+            .max(10)
+            .with_value(__field_value.clone())
+            .build();
+        if __koruma_assert_validate_scores_vec_len_validation_field(
+                &validator,
+                __field_value,
+            )
+            .is_err()
+        {
+            error.scores.vec_len_validation = Some(validator);
+            has_error = true;
+        }
+        for (idx, __item_value) in self.scores.iter().enumerate() {
+            let mut element_error = OrderWithLenCheckScoresElementKorumaValidationError {
+                range_validation: None,
+            };
+            let mut element_has_error = false;
+            fn __koruma_assert_validate_scores_range_validation_element<
+                V: koruma::Validate<T>,
+                T,
+            >(v: &V, t: &T) -> Result<(), ()> {
+                v.validate(t)
+            }
+            let validator = RangeValidation::<i32>::builder()
+                .min(0)
+                .max(100)
+                .with_value(__item_value.clone())
+                .build();
+            if __koruma_assert_validate_scores_range_validation_element(
+                    &validator,
+                    __item_value,
+                )
+                .is_err()
+            {
+                element_error.range_validation = Some(validator);
+                element_has_error = true;
+            }
+            if element_has_error {
+                error.scores.element_errors.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}

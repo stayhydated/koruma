@@ -16,7 +16,7 @@ impl UserProfileUsernameKorumaValidationError {
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
-    /// Returns all failed validators for this field.
+    /// Returns all failed field-level validators.
     pub fn all(&self) -> Vec<UserProfileUsernameKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.string_length_validation {
@@ -48,7 +48,7 @@ impl UserProfileBioKorumaValidationError {
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
-    /// Returns all failed validators for this field.
+    /// Returns all failed field-level validators.
     pub fn all(&self) -> Vec<UserProfileBioKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.string_length_validation {
@@ -102,23 +102,23 @@ impl UserProfile {
             },
         };
         let mut has_error = false;
-        let __value = &self.username;
+        let __field_value = &self.username;
         let validator = StringLengthValidation::builder()
             .min(1)
             .max(50)
-            .with_value(__value.clone())
+            .with_value(__field_value.clone())
             .build();
-        if validator.validate(__value).is_err() {
+        if validator.validate(__field_value).is_err() {
             error.username.string_length_validation = Some(validator);
             has_error = true;
         }
-        if let Some(ref __value) = self.bio {
+        if let Some(ref __field_value) = self.bio {
             let validator = StringLengthValidation::builder()
                 .min(1)
                 .max(200)
-                .with_value(__value.clone())
+                .with_value(__field_value.clone())
                 .build();
-            if validator.validate(__value).is_err() {
+            if validator.validate(__field_value).is_err() {
                 error.bio.string_length_validation = Some(validator);
                 has_error = true;
             }

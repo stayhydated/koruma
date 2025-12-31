@@ -120,10 +120,11 @@ fn test_parse_field_with_single_validator() {
     assert!(result.is_some());
     let info = result.unwrap();
     assert_eq!(info.name.to_string(), "age");
-    assert_eq!(info.validators.len(), 1);
-    assert_eq!(info.validators[0].validator.to_string(), "RangeValidation");
-    assert!(!info.validators[0].infer_type);
-    assert_eq!(info.validators[0].args.len(), 2);
+    assert_eq!(info.field_validators.len(), 1);
+    assert_eq!(info.field_validators[0].validator.to_string(), "RangeValidation");
+    assert!(!info.field_validators[0].infer_type);
+    assert_eq!(info.field_validators[0].args.len(), 2);
+    assert!(info.element_validators.is_empty());
 }
 
 #[test]
@@ -136,7 +137,7 @@ fn test_parse_field_with_generic_validator() {
     let result = parse_field(&field);
     assert!(result.is_some());
     let info = result.unwrap();
-    assert!(info.validators[0].infer_type);
+    assert!(info.field_validators[0].infer_type);
 }
 
 #[test]
@@ -149,8 +150,8 @@ fn test_parse_field_with_each() {
     let result = parse_field(&field);
     assert!(result.is_some());
     let info = result.unwrap();
-    assert!(info.validate_each);
-    assert_eq!(info.validators.len(), 1);
+    assert!(info.field_validators.is_empty());
+    assert_eq!(info.element_validators.len(), 1);
 }
 
 #[test]

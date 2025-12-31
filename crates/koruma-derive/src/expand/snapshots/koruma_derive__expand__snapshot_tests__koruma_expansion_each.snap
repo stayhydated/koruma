@@ -2,30 +2,50 @@
 source: crates/koruma-derive/src/expand/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-/// Enum of all possible validators for this field.
+/// Enum of all possible element validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum OrderScoresKorumaValidator {
+pub enum OrderScoresElementKorumaValidator {
     GenericRangeValidation(GenericRangeValidation<f64>),
 }
+/// Per-element validation error struct.
 #[derive(Clone, Debug)]
-pub struct OrderScoresKorumaValidationError {
+pub struct OrderScoresElementKorumaValidationError {
     generic_range_validation: Option<GenericRangeValidation<f64>>,
 }
-impl OrderScoresKorumaValidationError {
+impl OrderScoresElementKorumaValidationError {
     pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<f64>> {
         self.generic_range_validation.as_ref()
     }
-    /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<OrderScoresKorumaValidator> {
+    /// Returns all failed element validators.
+    pub fn all(&self) -> Vec<OrderScoresElementKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.generic_range_validation {
-            result.push(OrderScoresKorumaValidator::GenericRangeValidation(v.clone()));
+            result
+                .push(
+                    OrderScoresElementKorumaValidator::GenericRangeValidation(v.clone()),
+                );
         }
         result
     }
     pub fn is_empty(&self) -> bool {
         self.generic_range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[derive(Clone, Debug)]
+pub struct OrderScoresKorumaValidationError {
+    element_errors: Vec<(usize, OrderScoresElementKorumaValidationError)>,
+}
+impl OrderScoresKorumaValidationError {
+    /// Returns all element validation errors with their indices.
+    pub fn element_errors(&self) -> &[(usize, OrderScoresElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    pub fn is_empty(&self) -> bool {
+        self.element_errors.is_empty()
     }
     pub fn has_errors(&self) -> bool {
         !self.is_empty()
@@ -37,11 +57,10 @@ impl OrderScoresKorumaValidationError {
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
 pub struct OrderKorumaValidationError {
-    scores: Vec<(usize, OrderScoresKorumaValidationError)>,
+    scores: OrderScoresKorumaValidationError,
 }
 impl OrderKorumaValidationError {
-    /// Returns all validation errors for this collection field, with their indices.
-    pub fn scores(&self) -> &[(usize, OrderScoresKorumaValidationError)] {
+    pub fn scores(&self) -> &OrderScoresKorumaValidationError {
         &self.scores
     }
 }
@@ -58,15 +77,17 @@ impl Order {
     /// `error` contains the validation failures for each field.
     pub fn validate(&self) -> Result<(), OrderKorumaValidationError> {
         let mut error = OrderKorumaValidationError {
-            scores: Vec::new(),
+            scores: OrderScoresKorumaValidationError {
+                element_errors: Vec::new(),
+            },
         };
         let mut has_error = false;
         for (idx, __item_value) in self.scores.iter().enumerate() {
-            let mut element_error = OrderScoresKorumaValidationError {
+            let mut element_error = OrderScoresElementKorumaValidationError {
                 generic_range_validation: None,
             };
             let mut element_has_error = false;
-            fn __koruma_assert_validate_scores_generic_range_validation<
+            fn __koruma_assert_validate_scores_generic_range_validation_element<
                 V: koruma::Validate<T>,
                 T,
             >(v: &V, t: &T) -> Result<(), ()> {
@@ -77,7 +98,7 @@ impl Order {
                 .max(100.0)
                 .with_value(__item_value.clone())
                 .build();
-            if __koruma_assert_validate_scores_generic_range_validation(
+            if __koruma_assert_validate_scores_generic_range_validation_element(
                     &validator,
                     __item_value,
                 )
@@ -87,7 +108,7 @@ impl Order {
                 element_has_error = true;
             }
             if element_has_error {
-                error.scores.push((idx, element_error));
+                error.scores.element_errors.push((idx, element_error));
                 has_error = true;
             }
         }

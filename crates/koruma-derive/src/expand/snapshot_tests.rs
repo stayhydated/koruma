@@ -206,3 +206,31 @@ fn test_koruma_expansion_optional_with_generic() {
     let expanded = expand_koruma(input).unwrap();
     assert_snapshot!(pretty_print(expanded));
 }
+
+#[test]
+fn test_koruma_expansion_combined_field_and_element_validators() {
+    // Combined: field-level validator (for Vec) + element validators (for each element)
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OrderWithLenCheck {
+            #[koruma(VecLenValidation<_>(min = 1, max = 10), each(RangeValidation<_>(min = 0, max = 100)))]
+            pub scores: Vec<i32>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
+fn test_koruma_expansion_only_element_validators() {
+    // Only element validators (no field-level validators) - backwards compatible with existing each()
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct Scores {
+            #[koruma(each(RangeValidation<_>(min = 0, max = 100)))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}

@@ -21,7 +21,7 @@ impl MultiValidatorItemValueKorumaValidationError {
     pub fn even_number_validation(&self) -> Option<&EvenNumberValidation> {
         self.even_number_validation.as_ref()
     }
-    /// Returns all failed validators for this field.
+    /// Returns all failed field-level validators.
     pub fn all(&self) -> Vec<MultiValidatorItemValueKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.number_range_validation {
@@ -81,20 +81,20 @@ impl MultiValidatorItem {
             },
         };
         let mut has_error = false;
-        let __value = &self.value;
+        let __field_value = &self.value;
         let validator = NumberRangeValidation::builder()
             .min(0)
             .max(100)
-            .with_value(__value.clone())
+            .with_value(__field_value.clone())
             .build();
-        if validator.validate(__value).is_err() {
+        if validator.validate(__field_value).is_err() {
             error.value.number_range_validation = Some(validator);
             has_error = true;
         }
         let validator = EvenNumberValidation::builder()
-            .with_value(__value.clone())
+            .with_value(__field_value.clone())
             .build();
-        if validator.validate(__value).is_err() {
+        if validator.validate(__field_value).is_err() {
             error.value.even_number_validation = Some(validator);
             has_error = true;
         }

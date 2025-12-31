@@ -1,9 +1,8 @@
-//! Test fixture structs for integration tests.
-
 use koruma::{Koruma, Validate};
 
 use super::validators::{
     EvenNumberValidation, GenericRangeValidation, NumberRangeValidation, StringLengthValidation,
+    VecLenValidation,
 };
 
 /// Example struct demonstrating validation with non-generic validators.
@@ -61,4 +60,14 @@ pub struct UserProfile {
     // Optional field with range validation
     #[koruma(NumberRangeValidation(min = 0, max = 150))]
     pub age: Option<i32>,
+}
+
+/// Example struct demonstrating COMBINED collection-level AND per-element validation.
+/// The Vec length is validated, AND each element is also validated.
+#[derive(Koruma)]
+pub struct OrderWithLenCheck {
+    // Vec must have 1-5 elements, AND each score must be in range 0-100
+    // Note: VecLenValidation requires explicit type parameter - type inference uses the full field type
+    #[koruma(VecLenValidation<f64>(min = 1, max = 5), each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Vec<f64>,
 }

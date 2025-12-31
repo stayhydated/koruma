@@ -437,11 +437,73 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     })
 }
 
+/// Substitute infer placeholders (`_`) in a type with the actual inferred type.
+/// For example, `Vec<_>` with infer_ty=`String` becomes `Vec<String>`.
+fn substitute_infer_type(ty: &syn::Type, infer_ty: &syn::Type) -> syn::Type {
+    match ty {
+        syn::Type::Infer(_) => infer_ty.clone(),
+        syn::Type::Path(type_path) => {
+            let mut new_path = type_path.clone();
+            for segment in &mut new_path.path.segments {
+                if let syn::PathArguments::AngleBracketed(args) = &mut segment.arguments {
+                    for arg in &mut args.args {
+                        if let syn::GenericArgument::Type(inner_ty) = arg {
+                            *inner_ty = substitute_infer_type(inner_ty, infer_ty);
+                        }
+                    }
+                }
+            }
+            syn::Type::Path(new_path)
+        },
+        _ => ty.clone(),
+    }
+}
+
+/// Extract the first generic type argument from a type.
+/// For example, `Vec<String>` → `String`, `HashSet<i32>` → `i32`.
+fn first_generic_arg(ty: &syn::Type) -> Option<&syn::Type> {
+    if let syn::Type::Path(type_path) = ty {
+        if let Some(segment) = type_path.path.segments.last() {
+            if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                for arg in &args.args {
+                    if let syn::GenericArgument::Type(inner_ty) = arg {
+                        return Some(inner_ty);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Check if a type contains any infer placeholders (`_`).
+fn contains_infer_type(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::Infer(_) => true,
+        syn::Type::Path(type_path) => {
+            for segment in &type_path.path.segments {
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                    for arg in &args.args {
+                        if let syn::GenericArgument::Type(inner_ty) = arg {
+                            if contains_infer_type(inner_ty) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            false
+        },
+        _ => false,
+    }
+}
+
 /// Helper to generate the type for a validator
 ///
 /// This unwraps Option<T> and Vec<T> to get the effective type being validated.
 /// - For `each` validation on `Vec<T>`: uses T
 /// - For generic field validators (`<_>`) on `Vec<T>`: uses T (enables `VecLenValidation<_>`)
+/// - For explicit types with `_` (e.g., `Vec<_>`): substitutes `_` with the inner type
 /// - For optional fields `Option<T>`: uses T (validation is skipped if None)
 /// - For regular fields: uses the field type directly
 fn validator_type_for_field(
@@ -451,8 +513,16 @@ fn validator_type_for_field(
 ) -> TokenStream2 {
     let validator = &v.validator;
 
-    // If explicit type is provided, use it directly
+    // If explicit type is provided, check if it contains `_` for substitution
     if let Some(ref explicit_ty) = v.explicit_type {
+        if contains_infer_type(explicit_ty) {
+            // Substitute `_` with the inner type from the field
+            // e.g., Vec<_> on field Vec<String> → Vec<String>
+            // e.g., HashSet<_> on field HashSet<i32> → HashSet<i32>
+            let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
+            let substituted = substitute_infer_type(explicit_ty, inner_ty);
+            return quote! { #validator<#substituted> };
+        }
         return quote! { #validator<#explicit_ty> };
     }
 
@@ -961,9 +1031,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let field_validator_checks: Vec<TokenStream2> = f.field_validators.iter().map(|v| {
                 let validator = &v.validator;
                 let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
-                // For infer_type validators on Vec fields, unwrap to inner type
-                // This allows VecLenValidation<_> on Vec<f64> to work correctly
-                let effective_ty = effective_validation_type(field_ty, v.infer_type);
+                // Determine if we should unwrap Vec<T> to T:
+                // - For `<_>` (infer_type=true, explicit_type=None): unwrap to inner type (VecLenValidation<_> pattern)
+                // - For `<Vec<_>>` (infer_type=false, explicit_type=Some): DON'T unwrap (LenValidation<Vec<_>> pattern)
+                // - For explicit types: DON'T unwrap
+                let should_unwrap_vec = v.infer_type && v.explicit_type.is_none();
+                let effective_ty = effective_validation_type(field_ty, should_unwrap_vec);
 
                 let builder_calls: Vec<TokenStream2> = v
                     .args

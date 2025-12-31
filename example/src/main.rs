@@ -1,12 +1,11 @@
-use koruma_example::{Item, User};
+use es_fluent::ToFluentString as _;
+use koruma_example::{Item, Languages, User, i18n};
+use strum::IntoEnumIterator as _;
 
 pub fn main() {
-    println!("=== Koruma Validation Example ===\n");
+    i18n::init();
 
-    // -------------------------------------------------------------------------
-    // Example 1: Display-based error messages
-    // -------------------------------------------------------------------------
-    println!("--- Display-based Error Messages ---\n");
+    println!("Display-based Error Messages \n");
 
     let item = Item {
         age: 150,             // Invalid: out of range
@@ -36,42 +35,41 @@ pub fn main() {
 
     println!();
 
-    // -------------------------------------------------------------------------
-    // Example 2: EsFluent-based error messages (internationalization)
-    // -------------------------------------------------------------------------
-    println!("--- EsFluent-based Error Messages ---\n");
+    println!("EsFluent-based Error Messages \n");
 
     let user = User {
-        id: -5,                   // Invalid: not positive
-        username: "".to_string(), // Invalid: empty
+        id: -5,
+        username: "".to_string(),
     };
 
-    match user.validate() {
-        Ok(()) => println!("User is valid!"),
-        Err(errors) => {
-            use es_fluent::ToFluentString;
+    for lang in Languages::iter() {
+        i18n::change_locale(lang).expect("Failed to change locale");
 
-            println!("User validation failed:");
+        println!(
+            ">> Current Language: {:?} : {}",
+            lang,
+            lang.to_fluent_string()
+        );
 
-            if let Some(id_err) = errors.id().positive_number_validation() {
-                // Use EsFluent for internationalized message
-                println!("  - id: {}", id_err.to_fluent_string());
-                println!("    (actual value was: {})", id_err.actual);
-            }
+        match user.validate() {
+            Ok(()) => println!("User is valid!"),
+            Err(errors) => {
+                use es_fluent::ToFluentString;
 
-            if let Some(username_err) = errors.username().non_empty_string_validation() {
-                println!("  - username: {}", username_err.to_fluent_string());
-                println!("    (input was: {:?})", username_err.input);
-            }
-        },
+                if let Some(id_err) = errors.id().positive_number_validation() {
+                    // This now prints in the language selected above
+                    println!("  - id: {}", id_err.to_fluent_string());
+                }
+
+                if let Some(username_err) = errors.username().non_empty_string_validation() {
+                    println!("  - username: {}", username_err.to_fluent_string());
+                }
+            },
+        }
+        println!();
     }
 
-    println!();
-
-    // -------------------------------------------------------------------------
-    // Example 3: Valid data passes validation
-    // -------------------------------------------------------------------------
-    println!("--- Valid Data Example ---\n");
+    println!("Valid Data Example \n");
 
     let valid_item = Item {
         age: 25,

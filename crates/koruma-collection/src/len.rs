@@ -375,7 +375,8 @@ mod tests {
 
         #[derive(Koruma)]
         struct TaggedPost {
-            #[koruma(LenValidation<std::collections::HashSet<_>>(min = 1, max = 10))]
+            // Test _<_> syntax: infers both outer container and inner type
+            #[koruma(LenValidation<_<_>>(min = 1, max = 10))]
             tags: std::collections::HashSet<String>,
         }
 

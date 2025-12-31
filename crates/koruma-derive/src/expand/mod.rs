@@ -22,14 +22,26 @@ impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let validator: Ident = input.parse()?;
 
-        // Check for generic type parameter syntax: <_> or <SomeType>
+        // Check for generic type parameter syntax: <_>, <_<_>>, or <SomeType>
         let (infer_type, explicit_type) = if input.peek(Token![<]) {
             input.parse::<Token![<]>()?;
-            // Check if it's <_> (type inference) or an explicit type
+            // Check if it's <_> or <_<_>> (type inference) or an explicit type
             if input.peek(Token![_]) {
                 input.parse::<Token![_]>()?;
-                input.parse::<Token![>]>()?;
-                (true, None)
+                // Check for <_<_>> syntax (infer container with infer inner type)
+                if input.peek(Token![<]) {
+                    // Parse _<_> as a special synthetic type that we'll substitute later
+                    input.parse::<Token![<]>()?;
+                    input.parse::<Token![_]>()?;
+                    input.parse::<Token![>]>()?;
+                    input.parse::<Token![>]>()?;
+                    // Create a synthetic type that represents "infer the whole type"
+                    // We use Type::Infer to signal full field type inference
+                    (false, Some(syn::parse_quote!(_)))
+                } else {
+                    input.parse::<Token![>]>()?;
+                    (true, None)
+                }
             } else {
                 // Parse explicit type parameter and store it
                 // This handles types like <f64>, <Vec<u8>>, etc.
@@ -516,6 +528,12 @@ fn validator_type_for_field(
     // If explicit type is provided, check if it contains `_` for substitution
     if let Some(ref explicit_ty) = v.explicit_type {
         if contains_infer_type(explicit_ty) {
+            // Check if it's just `_` (from <_<_>> syntax) - use full field type
+            if matches!(explicit_ty, syn::Type::Infer(_)) {
+                // <_<_>> means use the full field type (unwrapping Option if needed)
+                let effective_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                return quote! { #validator<#effective_ty> };
+            }
             // Substitute `_` with the inner type from the field
             // e.g., Vec<_> on field Vec<String> → Vec<String>
             // e.g., HashSet<_> on field HashSet<i32> → HashSet<i32>
@@ -1033,6 +1051,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
                 // Determine if we should unwrap Vec<T> to T:
                 // - For `<_>` (infer_type=true, explicit_type=None): unwrap to inner type (VecLenValidation<_> pattern)
+                // - For `<_<_>>` (infer_type=false, explicit_type=Some(_)): DON'T unwrap (LenValidation<_<_>> pattern)
                 // - For `<Vec<_>>` (infer_type=false, explicit_type=Some): DON'T unwrap (LenValidation<Vec<_>> pattern)
                 // - For explicit types: DON'T unwrap
                 let should_unwrap_vec = v.infer_type && v.explicit_type.is_none();

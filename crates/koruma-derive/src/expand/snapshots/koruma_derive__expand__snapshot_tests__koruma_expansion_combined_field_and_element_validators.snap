@@ -41,15 +41,15 @@ impl OrderWithLenCheckScoresElementKorumaValidationError {
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum OrderWithLenCheckScoresKorumaValidator {
-    VecLenValidation(VecLenValidation<Vec<i32>>),
+    VecLenValidation(VecLenValidation<i32>),
 }
 #[derive(Clone, Debug)]
 pub struct OrderWithLenCheckScoresKorumaValidationError {
-    vec_len_validation: Option<VecLenValidation<Vec<i32>>>,
+    vec_len_validation: Option<VecLenValidation<i32>>,
     element_errors: Vec<(usize, OrderWithLenCheckScoresElementKorumaValidationError)>,
 }
 impl OrderWithLenCheckScoresKorumaValidationError {
-    pub fn vec_len_validation(&self) -> Option<&VecLenValidation<Vec<i32>>> {
+    pub fn vec_len_validation(&self) -> Option<&VecLenValidation<i32>> {
         self.vec_len_validation.as_ref()
     }
     /// Returns all element validation errors with their indices.
@@ -115,7 +115,7 @@ impl OrderWithLenCheck {
         >(v: &V, t: &T) -> Result<(), ()> {
             v.validate(t)
         }
-        let validator = VecLenValidation::<Vec<i32>>::builder()
+        let validator = VecLenValidation::<i32>::builder()
             .min(1)
             .max(10)
             .with_value(__field_value.clone())

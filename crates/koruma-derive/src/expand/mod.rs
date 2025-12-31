@@ -397,6 +397,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 ///
 /// This unwraps Option<T> and Vec<T> to get the effective type being validated.
 /// - For `each` validation on `Vec<T>`: uses T
+/// - For generic field validators (`<_>`) on `Vec<T>`: uses T (enables `VecLenValidation<_>`)
 /// - For optional fields `Option<T>`: uses T (validation is skipped if None)
 /// - For regular fields: uses the field type directly
 fn validator_type_for_field(
@@ -411,8 +412,10 @@ fn validator_type_for_field(
         return quote! { #validator<#explicit_ty> };
     }
 
-    // Unwrap Vec<T> for each validation
-    let after_vec = if validate_each {
+    // Unwrap Vec<T> for:
+    // - each validation (element validators)
+    // - infer_type field validators (allows VecLenValidation<_> on Vec<f64> → VecLenValidation<f64>)
+    let after_vec = if validate_each || v.infer_type {
         vec_inner_type(field_ty).unwrap_or(field_ty)
     } else {
         field_ty
@@ -914,7 +917,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let field_validator_checks: Vec<TokenStream2> = f.field_validators.iter().map(|v| {
                 let validator = &v.validator;
                 let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
-                let effective_ty = effective_validation_type(field_ty, false);
+                // For infer_type validators on Vec fields, unwrap to inner type
+                // This allows VecLenValidation<_> on Vec<f64> to work correctly
+                let effective_ty = effective_validation_type(field_ty, v.infer_type);
 
                 let builder_calls: Vec<TokenStream2> = v
                     .args

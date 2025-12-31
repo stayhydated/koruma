@@ -652,8 +652,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "koruma-collection-example"
+version = "0.1.0"
+dependencies = [
+ "bon",
+ "es-fluent",
+ "es-fluent-lang",
+ "es-fluent-manager-embedded",
+ "koruma",
+ "koruma-collection",
+ "rust-embed",
+ "strum",
+ "unic-langid",
+]
+
+[[package]]
 name = "koruma-core"
 version = "0.1.0"
+
+[[package]]
+name = "koruma-custom-example"
+version = "0.1.0"
+dependencies = [
+ "bon",
+ "es-fluent",
+ "es-fluent-lang",
+ "es-fluent-manager-embedded",
+ "koruma",
+ "rust-embed",
+ "strum",
+ "unic-langid",
+]
 
 [[package]]
 name = "koruma-derive"
@@ -666,20 +695,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "koruma-example"
-version = "0.1.0"
-dependencies = [
- "bon",
- "es-fluent",
- "es-fluent-lang",
- "es-fluent-manager-embedded",
- "koruma",
- "rust-embed",
- "strum",
- "unic-langid",
 ]
 
 [[package]]

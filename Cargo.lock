@@ -321,14 +321,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "es-fluent"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28ec8173291766b2de915c980f727e4a36a4ad9426231d9af32330f47e0d7e76"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "bon",
  "cargo_metadata",
@@ -347,8 +346,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-core"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e69d32d26e459eda551762a91ab4017e914293b758df1db74f1d409f614a011"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "bon",
  "darling",
@@ -369,8 +367,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4059cffb68bad9f8eebabb9c79c61479e6d580ab2d1ad1af5c5dc1f9fb7ab515"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "darling",
  "es-fluent-core",
@@ -386,8 +383,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-generate"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a46723ed7e368f2c128bdd54a985d22c94d7593767206fb257865fd6ac1ea2d8"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "clap",
  "es-fluent-core",
@@ -400,8 +396,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1673aa037df1eac49078a3f2ffa81ac039933286c9060e7a4a1577f7907a44f5"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -414,8 +409,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f76210c2442af68d6dd919c7c66060ab094e13e0921141b21595b9cbed052ffd"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -429,8 +423,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d5299a2aab6fc13a8cd8044cf6f18b6b5a08848aab344c59fa2d928a733f55a7"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "anyhow",
  "fluent-bundle",
@@ -444,8 +437,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c00a6aaa19388cae91f97f2023af06b3d4901cae1d2747ec823bc8ee8bc5ecf"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -457,8 +449,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0874095872a2abaec7cb537ad3c78a2e95a606889de4328e5fce4ec2ac8af14"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -470,8 +461,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83585b7f7ac5e17cfe78d06a669c1a9ac126f54fbbbcdec1562303bef31b1bec"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
 dependencies = [
  "serde",
  "thiserror",
@@ -849,7 +839,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1006,7 +996,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1192,7 +1182,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

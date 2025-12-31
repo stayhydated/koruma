@@ -15,9 +15,9 @@ version = "0.1.0"
 [workspace.dependencies]
 bon = "3.8.1"
 derive-getters = "0.5.0"
-es-fluent = "0.4.2"
-es-fluent-lang = "0.4.2"
-es-fluent-manager-embedded = "0.4.2"
+es-fluent = { git = "https://github.com/stayhydated/es-fluent.git", branch = "fluent-value" }
+es-fluent-lang = { git = "https://github.com/stayhydated/es-fluent.git", branch = "fluent-value" }
+es-fluent-manager-embedded = { git = "https://github.com/stayhydated/es-fluent.git", branch = "fluent-value" }
 heck = "0.5.0"
 insta = "1.45.1"
 koruma = { path = "crates/koruma", version = "0.1.0" }

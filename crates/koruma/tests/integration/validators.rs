@@ -36,6 +36,7 @@ pub struct GenericRangeValidation<T> {
 // Use the auto-generated macro to implement Validate for multiple types at once!
 impl_generic_range_validation!(
     i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64
+    => |this, value| *value >= this.min && *value <= this.max
 );
 
 /// A validation rule that checks string length.

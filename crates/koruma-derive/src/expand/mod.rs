@@ -300,21 +300,21 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             ///
             /// # Example
             /// ```ignore
-            /// #macro_name!(i32, i64, u32, u64);
+            /// #macro_name!(i32, i64, f32, f64 => |self, value| {
+            ///     *value >= self.min && *value <= self.max
+            /// });
             /// ```
             #[macro_export]
             macro_rules! #macro_name {
-                ($($t:ty),+ $(,)?) => {
+                ($($t:ty),+ $(,)? => $validate:expr) => {
                     $(
-                        impl koruma::Validate<$t> for #struct_name<$t>
-                        where
-                            $t: PartialOrd + Clone,
-                        {
-                            fn validate(&self, value: &$t) -> Result<(), ()> {
-                                if *value < self.min || *value > self.max {
-                                    Err(())
-                                } else {
+                        impl koruma::Validate<$t> for #struct_name<$t> {
+                            fn validate(&self, value: &$t) -> koruma::KorumaResult {
+                                let f: fn(&Self, &$t) -> bool = $validate;
+                                if f(self, value) {
                                     Ok(())
+                                } else {
+                                    Err(())
                                 }
                             }
                         }

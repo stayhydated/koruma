@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive/src/expand/snapshot_tests.rs
-assertion_line: 44
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
@@ -29,13 +28,15 @@ where
 ///
 /// # Example
 /// ```ignore
-/// #macro_name!(i32, i64, u32, u64);
+/// #macro_name!(i32, i64, f32, f64 => |self, value| {
+///     *value >= self.min && *value <= self.max
+/// });
 /// ```
 #[macro_export]
 macro_rules! impl_generic_range_validation {
-    ($($t:ty),+ $(,)?) => {
-        $(impl koruma::Validate < $t > for GenericRangeValidation < $t > where $t :
-        PartialOrd + Clone, { fn validate(& self, value : & $t) -> Result < (), () > { if
-        * value < self.min || * value > self.max { Err(()) } else { Ok(()) } } })+
+    ($($t:ty),+ $(,)? => $validate:expr) => {
+        $(impl koruma::Validate < $t > for GenericRangeValidation < $t > { fn validate(&
+        self, value : & $t) -> koruma::KorumaResult { let f : fn (& Self, & $t) -> bool =
+        $validate; if f(self, value) { Ok(()) } else { Err(()) } } })+
     };
 }

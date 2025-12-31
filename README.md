@@ -65,8 +65,12 @@ pub struct RangeValidation<T> {
     pub actual: T,  // Direct type, not Option<T>
 }
 
-// Use the auto-generated macro to implement Validate for multiple types
-impl_range_validation!(i32, i64, f32, f64);
+// Use the auto-generated macro to implement Validate for multiple types.
+// Provide the validation logic as a closure: |self, value| -> bool
+impl_range_validation!(
+    i32, i64, f32, f64
+    => |this, value| *value >= this.min && *value <= this.max
+);
 
 // Use <_> to infer the type from the field
 #[derive(Koruma)]

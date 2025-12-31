@@ -3,7 +3,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [fuck-off]
+    branches: [master]
 
 env:
   CARGO_TERM_COLOR: always

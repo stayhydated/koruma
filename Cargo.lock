@@ -453,13 +453,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "es-fluent"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "bon",
  "cargo_metadata",
@@ -478,7 +478,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-core"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "bon",
  "darling",
@@ -499,7 +499,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "darling",
  "es-fluent-core",
@@ -515,7 +515,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-generate"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "clap",
  "es-fluent-core",
@@ -528,7 +528,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -541,7 +541,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -555,7 +555,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "anyhow",
  "fluent-bundle",
@@ -569,7 +569,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -581,7 +581,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -593,7 +593,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#ae0181c4d1a9c9b6afb9de0bf6c7b45cec9ef7c0"
+source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
 dependencies = [
  "serde",
  "thiserror 2.0.17",
@@ -1416,7 +1416,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1641,7 +1641,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1953,7 +1953,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

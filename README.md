@@ -19,8 +19,7 @@ A per-field validation library for Rust with struct-based errors.
 [dependencies]
 koruma = "0.1"
 
-# Optional: for Fluent i18n support
-koruma = { version = "0.1", features = ["fluent"] }
+koruma = { version = "0.1" }
 ```
 
 ## Quick Start

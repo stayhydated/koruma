@@ -142,7 +142,7 @@ version = "3.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e9d642a7e3a318e37c2c9427b5a6a48aa1ad55dcd986f3034ab2239045a645"
 dependencies = [
- "darling",
+ "darling 0.21.3",
  "ident_case",
  "prettyplease",
  "proc-macro2",
@@ -355,8 +355,18 @@ version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9cdf337090841a411e2a7f3deb9187445851f91b309c0c0a29e05f74a00a48c0"
 dependencies = [
- "darling_core",
- "darling_macro",
+ "darling_core 0.21.3",
+ "darling_macro 0.21.3",
+]
+
+[[package]]
+name = "darling"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25ae13da2f202d56bd7f91c25fba009e7717a1e4a1cc98a76d844b65ae912e9d"
+dependencies = [
+ "darling_core 0.23.0",
+ "darling_macro 0.23.0",
 ]
 
 [[package]]
@@ -374,12 +384,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "darling_core"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9865a50f7c335f53564bb694ef660825eb8610e0a53d3e11bf1b0d3df31e03b0"
+dependencies = [
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "syn 2.0.112",
+]
+
+[[package]]
 name = "darling_macro"
 version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81"
 dependencies = [
- "darling_core",
+ "darling_core 0.21.3",
+ "quote",
+ "syn 2.0.112",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3984ec7bd6cfa798e62b4a642426a5be0e68f9401cfc2a01e3fa9ea2fcdb8d"
+dependencies = [
+ "darling_core 0.23.0",
  "quote",
  "syn 2.0.112",
 ]
@@ -458,8 +492,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "626a5bdcdf47432228e43c2ec456c282077e9d731a1b6ed2c65738aa80183c94"
 dependencies = [
  "bon",
  "cargo_metadata",
@@ -477,11 +512,12 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-core"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a08a0af2d1ef48a88867cd6c95c45f9b7edc802c69359e70ed21a13afd510d64"
 dependencies = [
  "bon",
- "darling",
+ "darling 0.23.0",
  "derive_more",
  "getset",
  "heck",
@@ -498,10 +534,11 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56733b5fb18503caac1d37d1fcadadc4b8ae9b0c18233317cdb3c7bcc8bb57ca"
 dependencies = [
- "darling",
+ "darling 0.23.0",
  "es-fluent-core",
  "getset",
  "heck",
@@ -514,8 +551,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-generate"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e027114898bc2530a862f3dcbf0bdee589e3853e2cc8829e4bebdd5ef4825c50"
 dependencies = [
  "clap",
  "es-fluent-core",
@@ -527,8 +565,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97c828c894faf6823a3e32547efe7534c68df2e4550858f2752113eb8295c86f"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -540,8 +579,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang-macro"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7acec58478152d5ba333ba68572c35c96c9326642fa1328bdc007895621f495"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -554,8 +594,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-core"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cb7a026e1768f6cc51fb3d2b5dc7fc6a5b3a2b2951ec967ac7ebf3ddbb7b418"
 dependencies = [
  "anyhow",
  "fluent-bundle",
@@ -568,8 +609,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-embedded"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d0c21f6686de5d1cba54d565fe5ba2ab19906d38a052be054757b5c670fc6b"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -580,8 +622,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-macros"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "165332afde77e630f819cf2851bae862946877741dc15b2e8a5624f01b6745cf"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -592,8 +635,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-toml"
-version = "0.4.2"
-source = "git+https://github.com/stayhydated/es-fluent.git?branch=fluent-value#2cd640aa41f5d230281679e018c84676bce586ba"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3013fdb4783e2cdcbb34562024bdc357b25190de13e59c6bc911be5a016f79f6"
 dependencies = [
  "serde",
  "thiserror 2.0.17",
@@ -942,11 +986,11 @@ version = "0.1.0"
 dependencies = [
  "bon",
  "es-fluent",
- "es-fluent-lang",
  "es-fluent-manager-embedded",
  "koruma",
  "koruma-collection",
  "rust-embed",
+ "shared-lib",
  "strum 0.27.2",
  "unic-langid",
 ]
@@ -961,10 +1005,10 @@ version = "0.1.0"
 dependencies = [
  "bon",
  "es-fluent",
- "es-fluent-lang",
  "es-fluent-manager-embedded",
  "koruma",
  "rust-embed",
+ "shared-lib",
  "strum 0.27.2",
  "unic-langid",
 ]
@@ -1517,6 +1561,18 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
+]
+
+[[package]]
+name = "shared-lib"
+version = "0.1.0"
+dependencies = [
+ "es-fluent",
+ "es-fluent-lang",
+ "es-fluent-manager-embedded",
+ "rust-embed",
+ "strum 0.27.2",
+ "unic-langid",
 ]
 
 [[package]]

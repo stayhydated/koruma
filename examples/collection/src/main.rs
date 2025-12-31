@@ -1,5 +1,6 @@
 use es_fluent::ToFluentString as _;
-use koruma_collection_example::{BlogPost, Languages, Order, UserProfile, i18n};
+use koruma_collection_example::{BlogPost, Order, UserProfile, i18n};
+use shared_lib::Languages;
 use strum::IntoEnumIterator as _;
 
 fn main() {

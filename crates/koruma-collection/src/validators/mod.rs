@@ -10,6 +10,7 @@ pub mod credit_card;
 #[cfg(feature = "email")]
 pub mod email;
 pub mod ip;
+pub mod len;
 pub mod matches;
 #[cfg(feature = "regex")]
 pub mod pattern;
@@ -21,5 +22,3 @@ pub mod required;
 pub mod suffix;
 #[cfg(feature = "url")]
 pub mod url;
-
-pub mod len;

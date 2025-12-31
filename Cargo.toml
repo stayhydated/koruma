@@ -7,6 +7,7 @@ members = [
   "crates/koruma-derive",
   "examples/collection",
   "examples/custom",
+  "examples/shared-lib",
 ]
 resolver = "3"
 
@@ -23,9 +24,9 @@ version = "0.1.0"
 bon = "3.8.1"
 card-validate = "2.3"
 derive-getters = "0.5.0"
-es-fluent = { branch = "fluent-value", git = "https://github.com/stayhydated/es-fluent.git" }
-es-fluent-lang = { branch = "fluent-value", git = "https://github.com/stayhydated/es-fluent.git" }
-es-fluent-manager-embedded = { branch = "fluent-value", git = "https://github.com/stayhydated/es-fluent.git" }
+es-fluent = "0.4.3"
+es-fluent-lang = "0.4.3"
+es-fluent-manager-embedded = "0.4.3"
 heck = "0.5.0"
 idna = "1"
 insta = "1.45.1"

@@ -12,3 +12,6 @@ repository.workspace = true
 readme.workspace = true
 
 [dependencies]
+
+[package.metadata.docs.rs]
+all-features = true

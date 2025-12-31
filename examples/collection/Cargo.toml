@@ -1,20 +1,18 @@
 [package]
 name = "koruma-collection-example"
-edition.workspace = true
-license.workspace = true
-publish.workspace = true
-readme.workspace = true
-repository.workspace = true
-rust-version.workspace = true
 version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license = "Unlicense"
+publish = false
 
 [dependencies]
 bon = { workspace = true }
 es-fluent = { features = [ "derive", "generate" ], workspace = true }
-es-fluent-lang = { workspace = true }
 es-fluent-manager-embedded = { workspace = true }
 koruma = { workspace = true }
-koruma-collection = { features = [ "fmt", "fluent" ], workspace = true }
+koruma-collection = { features = [ "full", "fluent" ], workspace = true }
 rust-embed = { workspace = true }
+shared-lib = { path = "../shared-lib" }
 strum = { features = [ "derive" ], workspace = true }
 unic-langid = { workspace = true }

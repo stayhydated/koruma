@@ -467,14 +467,13 @@ fn substitute_infer_type(ty: &syn::Type, infer_ty: &syn::Type) -> syn::Type {
 /// Extract the first generic type argument from a type.
 /// For example, `Vec<String>` → `String`, `HashSet<i32>` → `i32`.
 fn first_generic_arg(ty: &syn::Type) -> Option<&syn::Type> {
-    if let syn::Type::Path(type_path) = ty {
-        if let Some(segment) = type_path.path.segments.last() {
-            if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
-                for arg in &args.args {
-                    if let syn::GenericArgument::Type(inner_ty) = arg {
-                        return Some(inner_ty);
-                    }
-                }
+    if let syn::Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+        && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+    {
+        for arg in &args.args {
+            if let syn::GenericArgument::Type(inner_ty) = arg {
+                return Some(inner_ty);
             }
         }
     }
@@ -489,10 +488,10 @@ fn contains_infer_type(ty: &syn::Type) -> bool {
             for segment in &type_path.path.segments {
                 if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
                     for arg in &args.args {
-                        if let syn::GenericArgument::Type(inner_ty) = arg {
-                            if contains_infer_type(inner_ty) {
-                                return true;
-                            }
+                        if let syn::GenericArgument::Type(inner_ty) = arg
+                            && contains_infer_type(inner_ty)
+                        {
+                            return true;
                         }
                     }
                 }

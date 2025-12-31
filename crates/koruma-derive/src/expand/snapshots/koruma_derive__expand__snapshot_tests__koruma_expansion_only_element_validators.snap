@@ -1,0 +1,116 @@
+---
+source: crates/koruma-derive/src/expand/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible element validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum ScoresValuesElementKorumaValidator {
+    RangeValidation(RangeValidation<i32>),
+}
+/// Per-element validation error struct.
+#[derive(Clone, Debug)]
+pub struct ScoresValuesElementKorumaValidationError {
+    range_validation: Option<RangeValidation<i32>>,
+}
+impl ScoresValuesElementKorumaValidationError {
+    pub fn range_validation(&self) -> Option<&RangeValidation<i32>> {
+        self.range_validation.as_ref()
+    }
+    /// Returns all failed element validators.
+    pub fn all(&self) -> Vec<ScoresValuesElementKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.range_validation {
+            result.push(ScoresValuesElementKorumaValidator::RangeValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[derive(Clone, Debug)]
+pub struct ScoresValuesKorumaValidationError {
+    element_errors: Vec<(usize, ScoresValuesElementKorumaValidationError)>,
+}
+impl ScoresValuesKorumaValidationError {
+    /// Returns all element validation errors with their indices.
+    pub fn element_errors(
+        &self,
+    ) -> &[(usize, ScoresValuesElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    pub fn is_empty(&self) -> bool {
+        self.element_errors.is_empty()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct ScoresKorumaValidationError {
+    values: ScoresValuesKorumaValidationError,
+}
+impl ScoresKorumaValidationError {
+    pub fn values(&self) -> &ScoresValuesKorumaValidationError {
+        &self.values
+    }
+}
+impl koruma::ValidationError for ScoresKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+}
+impl Scores {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), ScoresKorumaValidationError> {
+        let mut error = ScoresKorumaValidationError {
+            values: ScoresValuesKorumaValidationError {
+                element_errors: Vec::new(),
+            },
+        };
+        let mut has_error = false;
+        for (idx, __item_value) in self.values.iter().enumerate() {
+            let mut element_error = ScoresValuesElementKorumaValidationError {
+                range_validation: None,
+            };
+            let mut element_has_error = false;
+            fn __koruma_assert_validate_values_range_validation_element<
+                V: koruma::Validate<T>,
+                T,
+            >(v: &V, t: &T) -> Result<(), ()> {
+                v.validate(t)
+            }
+            let validator = RangeValidation::<i32>::builder()
+                .min(0)
+                .max(100)
+                .with_value(__item_value.clone())
+                .build();
+            if __koruma_assert_validate_values_range_validation_element(
+                    &validator,
+                    __item_value,
+                )
+                .is_err()
+            {
+                element_error.range_validation = Some(validator);
+                element_has_error = true;
+            }
+            if element_has_error {
+                error.values.element_errors.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}

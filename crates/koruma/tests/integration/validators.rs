@@ -73,3 +73,37 @@ impl Validate<i32> for EvenNumberValidation {
         if value % 2 != 0 { Err(()) } else { Ok(()) }
     }
 }
+
+/// A validation rule that checks if a Vec has length within a specified range.
+/// This demonstrates collection-level validation (as opposed to per-element validation).
+///
+/// Note: Since the Koruma macro passes the full field value to `with_value`, the `actual`
+/// field stores the complete Vec. The `actual_len()` method provides convenient access
+/// to the length for error messages.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct VecLenValidation<T> {
+    pub min: usize,
+    pub max: usize,
+    /// The Vec being validated
+    #[koruma(value)]
+    pub actual: Vec<T>,
+}
+
+impl<T> Validate<Vec<T>> for VecLenValidation<T> {
+    fn validate(&self, value: &Vec<T>) -> KorumaResult {
+        let len = value.len();
+        if len < self.min || len > self.max {
+            Err(())
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl<T> VecLenValidation<T> {
+    /// Get the actual length of the Vec for error reporting.
+    pub fn actual_len(&self) -> usize {
+        self.actual.len()
+    }
+}

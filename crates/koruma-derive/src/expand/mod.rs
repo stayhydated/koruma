@@ -8,11 +8,15 @@ use quote::{format_ident, quote};
 use syn::{DeriveInput, Field, Fields, Ident, ItemStruct, Token, parse::Parse, parse::ParseStream};
 
 /// Represents a single parsed validator: `ValidatorName(arg = value, ...)` or
-/// `ValidatorName<_>(arg = value, ...)`
+/// `ValidatorName<_>(arg = value, ...)` or `ValidatorName<SomeType>(arg = value, ...)`
 pub(crate) struct ValidatorAttr {
     pub validator: Ident,
-    /// Whether the validator uses `<_>` syntax for type inference from field type
+    /// Whether the validator uses `<_>` syntax for type inference from field type.
+    /// When true, the full field type is used (unwrapping Option if present).
     pub infer_type: bool,
+    /// Explicit type parameter if specified (e.g., `<f64>`, `<Vec<_>>`)
+    /// If this contains `_`, it will be substituted with the inner type from the field.
+    pub explicit_type: Option<syn::Type>,
     pub args: Vec<(Ident, syn::Expr)>,
 }
 
@@ -20,14 +24,26 @@ impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let validator: Ident = input.parse()?;
 
-        // Check for <_> type inference syntax
-        let infer_type = if input.peek(Token![<]) {
+        // Check for generic type parameter syntax: <_> or <SomeType>
+        // <_> means "use the full field type" (unwrapping Option if present)
+        // <Vec<_>> means "substitute _ with the inner type from the field"
+        let (infer_type, explicit_type) = if input.peek(Token![<]) {
             input.parse::<Token![<]>()?;
-            input.parse::<Token![_]>()?;
-            input.parse::<Token![>]>()?;
-            true
+            // Check if it's <_> (full type inference) or an explicit/partial type
+            if input.peek(Token![_]) {
+                input.parse::<Token![_]>()?;
+                input.parse::<Token![>]>()?;
+                // <_> means use the full field type
+                (true, None)
+            } else {
+                // Parse explicit type parameter and store it
+                // This handles types like <f64>, <Vec<u8>>, <Vec<_>>, etc.
+                let explicit_type: syn::Type = input.parse()?;
+                input.parse::<Token![>]>()?;
+                (false, Some(explicit_type))
+            }
         } else {
-            false
+            (false, None)
         };
 
         let args = if input.peek(syn::token::Paren) {
@@ -54,6 +70,7 @@ impl Parse for ValidatorAttr {
         Ok(ValidatorAttr {
             validator,
             infer_type,
+            explicit_type,
             args,
         })
     }
@@ -62,12 +79,13 @@ impl Parse for ValidatorAttr {
 /// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
 /// separated by commas: `#[koruma(Validator1(a = 1), Validator2(b = 2))]`
 /// Can also include `each` modifier for collection validation:
-/// `#[koruma(each(Validator1(a = 1)))]`
+/// `#[koruma(VecValidator(min = 0), each(ElementValidator(max = 100)))]`
 pub(crate) struct KorumaAttr {
-    pub validators: Vec<ValidatorAttr>,
+    /// Validators applied to the field/collection itself
+    pub field_validators: Vec<ValidatorAttr>,
+    /// Validators applied to each element in a collection (from `each(...)`)
+    pub element_validators: Vec<ValidatorAttr>,
     pub is_skip: bool,
-    /// Whether to validate each element in a collection
-    pub validate_each: bool,
 }
 
 impl Parse for KorumaAttr {
@@ -79,59 +97,58 @@ impl Parse for KorumaAttr {
             if ident == "skip" && fork.is_empty() {
                 input.parse::<Ident>()?; // consume "skip"
                 return Ok(KorumaAttr {
-                    validators: Vec::new(),
+                    field_validators: Vec::new(),
+                    element_validators: Vec::new(),
                     is_skip: true,
-                    validate_each: false,
                 });
             }
         }
 
-        // Check for each(...) syntax
-        let validate_each = if input.peek(Ident) {
-            let fork = input.fork();
-            let ident: Ident = fork.parse()?;
-            if ident == "each" && fork.peek(syn::token::Paren) {
-                input.parse::<Ident>()?; // consume "each"
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        };
+        let mut field_validators = Vec::new();
+        let mut element_validators = Vec::new();
 
-        // If validate_each, the validators are inside parentheses
-        let validators = if validate_each {
-            let content;
-            syn::parenthesized!(content in input);
-            let mut validators = Vec::new();
-            while !content.is_empty() {
-                validators.push(content.parse::<ValidatorAttr>()?);
-                if content.peek(Token![,]) {
-                    content.parse::<Token![,]>()?;
-                } else {
-                    break;
+        // Parse comma-separated items (validators or each(...))
+        while !input.is_empty() {
+            // Check if this is an `each(...)` block
+            if input.peek(Ident) {
+                let fork = input.fork();
+                let ident: Ident = fork.parse()?;
+                if ident == "each" && fork.peek(syn::token::Paren) {
+                    input.parse::<Ident>()?; // consume "each"
+                    let content;
+                    syn::parenthesized!(content in input);
+
+                    // Parse validators inside each(...)
+                    while !content.is_empty() {
+                        element_validators.push(content.parse::<ValidatorAttr>()?);
+                        if content.peek(Token![,]) {
+                            content.parse::<Token![,]>()?;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Continue parsing after each(...)
+                    if input.peek(Token![,]) {
+                        input.parse::<Token![,]>()?;
+                    }
+                    continue;
                 }
             }
-            validators
-        } else {
-            // Parse comma-separated validators
-            let mut validators = Vec::new();
-            while !input.is_empty() {
-                validators.push(input.parse::<ValidatorAttr>()?);
-                if input.peek(Token![,]) {
-                    input.parse::<Token![,]>()?;
-                } else {
-                    break;
-                }
+
+            // Regular validator
+            field_validators.push(input.parse::<ValidatorAttr>()?);
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            } else {
+                break;
             }
-            validators
-        };
+        }
 
         Ok(KorumaAttr {
-            validators,
+            field_validators,
+            element_validators,
             is_skip: false,
-            validate_each,
         })
     }
 }
@@ -140,9 +157,17 @@ impl Parse for KorumaAttr {
 pub(crate) struct FieldInfo {
     pub name: Ident,
     pub ty: syn::Type,
-    pub validators: Vec<ValidatorAttr>,
-    /// Whether to validate each element in a collection
-    pub validate_each: bool,
+    /// Validators for the field/collection itself
+    pub field_validators: Vec<ValidatorAttr>,
+    /// Validators for each element in a collection
+    pub element_validators: Vec<ValidatorAttr>,
+}
+
+impl FieldInfo {
+    /// Returns true if this field has element validators (uses `each(...)`)
+    pub fn has_element_validators(&self) -> bool {
+        !self.element_validators.is_empty()
+    }
 }
 
 pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
@@ -163,11 +188,17 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
                 if koruma_attr.is_skip {
                     return None;
                 }
+                // Must have at least one validator
+                if koruma_attr.field_validators.is_empty()
+                    && koruma_attr.element_validators.is_empty()
+                {
+                    return None;
+                }
                 return Some(FieldInfo {
                     name,
                     ty,
-                    validators: koruma_attr.validators,
-                    validate_each: koruma_attr.validate_each,
+                    field_validators: koruma_attr.field_validators,
+                    element_validators: koruma_attr.element_validators,
                 });
             },
             Err(_) => {
@@ -332,13 +363,58 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     let with_value_impl = if has_generics {
         // For generic validators, the builder is Builder<T, S> (type param first, then state)
+        // Use the actual field type (inner_type) for the value parameter
+        //
+        // We need to propagate the bounds from the original struct's generics.
+        // The builder has form: StructBuilder<T, S> where T has the original bounds and S is builder state.
+
+        // Extract just the type parameter names (without bounds) for use in type position
+        let type_param_names: Vec<_> = input
+            .generics
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                syn::GenericParam::Type(t) => Some(&t.ident),
+                _ => None,
+            })
+            .collect();
+
+        // Extract bounds from the generic params to put in where clause
+        let type_param_bounds: Vec<_> = input
+            .generics
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                syn::GenericParam::Type(t) if !t.bounds.is_empty() => {
+                    let ident = &t.ident;
+                    let bounds = &t.bounds;
+                    Some(quote! { #ident: #bounds })
+                },
+                _ => None,
+            })
+            .collect();
+
+        let where_clause = &input.generics.where_clause;
+
+        // Build where predicates: type param bounds + original where clause + S::Value: IsUnset
+        let where_predicates = {
+            let mut predicates = type_param_bounds;
+            if let Some(wc) = where_clause {
+                for pred in &wc.predicates {
+                    predicates.push(quote! { #pred });
+                }
+            }
+            predicates.push(quote! { S::#value_assoc_type: koruma::bon::IsUnset });
+            predicates
+        };
+
         quote! {
-            impl<T, S: #module_name::State> #builder_name<T, S>
+            impl<#(#type_param_names,)* S: #module_name::State> #builder_name<#(#type_param_names,)* S>
             where
-                S::#value_assoc_type: koruma::bon::IsUnset,
+                #(#where_predicates),*
             {
                 /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
-                pub fn with_value(self, value: T) -> #builder_name<T, #module_name::#set_value_type<S>> {
+                pub fn with_value(self, value: #inner_type) -> #builder_name<#(#type_param_names,)* #module_name::#set_value_type<S>> {
                     self.#value_field_name(value)
                 }
             }
@@ -366,12 +442,74 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     })
 }
 
+/// Substitute infer placeholders (`_`) in a type with the actual inferred type.
+/// For example, `Vec<_>` with infer_ty=`String` becomes `Vec<String>`.
+fn substitute_infer_type(ty: &syn::Type, infer_ty: &syn::Type) -> syn::Type {
+    match ty {
+        syn::Type::Infer(_) => infer_ty.clone(),
+        syn::Type::Path(type_path) => {
+            let mut new_path = type_path.clone();
+            for segment in &mut new_path.path.segments {
+                if let syn::PathArguments::AngleBracketed(args) = &mut segment.arguments {
+                    for arg in &mut args.args {
+                        if let syn::GenericArgument::Type(inner_ty) = arg {
+                            *inner_ty = substitute_infer_type(inner_ty, infer_ty);
+                        }
+                    }
+                }
+            }
+            syn::Type::Path(new_path)
+        },
+        _ => ty.clone(),
+    }
+}
+
+/// Extract the first generic type argument from a type.
+/// For example, `Vec<String>` → `String`, `HashSet<i32>` → `i32`.
+fn first_generic_arg(ty: &syn::Type) -> Option<&syn::Type> {
+    if let syn::Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+        && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+    {
+        for arg in &args.args {
+            if let syn::GenericArgument::Type(inner_ty) = arg {
+                return Some(inner_ty);
+            }
+        }
+    }
+    None
+}
+
+/// Check if a type contains any infer placeholders (`_`).
+fn contains_infer_type(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::Infer(_) => true,
+        syn::Type::Path(type_path) => {
+            for segment in &type_path.path.segments {
+                if let syn::PathArguments::AngleBracketed(args) = &segment.arguments {
+                    for arg in &args.args {
+                        if let syn::GenericArgument::Type(inner_ty) = arg
+                            && contains_infer_type(inner_ty)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            false
+        },
+        _ => false,
+    }
+}
+
 /// Helper to generate the type for a validator
 ///
-/// This unwraps Option<T> and Vec<T> to get the effective type being validated.
+/// Type inference behavior:
+/// - `<_>`: uses the full field type (unwrapping Option if present)
+/// - `<Vec<_>>`: substitutes `_` with the inner type from the field
+/// - `<SomeType>`: uses the explicit type directly
 /// - For `each` validation on `Vec<T>`: uses T
 /// - For optional fields `Option<T>`: uses T (validation is skipped if None)
-/// - For regular fields: uses the field type directly
 fn validator_type_for_field(
     v: &ValidatorAttr,
     field_ty: &syn::Type,
@@ -379,7 +517,20 @@ fn validator_type_for_field(
 ) -> TokenStream2 {
     let validator = &v.validator;
 
-    // Unwrap Vec<T> for each validation
+    // If explicit type is provided, check if it contains `_` for substitution
+    if let Some(ref explicit_ty) = v.explicit_type {
+        if contains_infer_type(explicit_ty) {
+            // Substitute `_` with the inner type from the field
+            // e.g., Vec<_> on field Vec<String> → Vec<String>
+            // e.g., HashSet<_> on field HashSet<i32> → HashSet<i32>
+            let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
+            let substituted = substitute_infer_type(explicit_ty, inner_ty);
+            return quote! { #validator<#substituted> };
+        }
+        return quote! { #validator<#explicit_ty> };
+    }
+
+    // For `each` validation, unwrap Vec<T> to get element type T
     let after_vec = if validate_each {
         vec_inner_type(field_ty).unwrap_or(field_ty)
     } else {
@@ -390,6 +541,7 @@ fn validator_type_for_field(
     let effective_ty = option_inner_type(after_vec).unwrap_or(after_vec);
 
     if v.infer_type {
+        // <_> means use the full field type (after unwrapping Option)
         quote! { #validator<#effective_ty> }
     } else {
         quote! { #validator }
@@ -455,33 +607,33 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .map(|f| {
             let field_name = &f.name;
             let field_ty = &f.ty;
-            let validate_each = f.validate_each;
+            let has_element_validators = f.has_element_validators();
             let field_error_struct_name = format_ident!(
                 "{}{}KorumaValidationError",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
 
-            // Generate fields for each validator
-            let validator_fields: Vec<TokenStream2> = f
-                .validators
+            // Generate fields for field-level validators
+            let field_validator_fields: Vec<TokenStream2> = f
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
                         format_ident!("{}", v.validator.to_string().to_snake_case());
-                    let vtype = validator_type_for_field(v, field_ty, validate_each);
+                    let vtype = validator_type_for_field(v, field_ty, false);
                     quote! { #validator_snake: Option<#vtype> }
                 })
                 .collect();
 
-            // Generate getter methods for each validator
-            let validator_getters: Vec<TokenStream2> = f
-                .validators
+            // Generate getter methods for field-level validators
+            let field_validator_getters: Vec<TokenStream2> = f
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
                         format_ident!("{}", v.validator.to_string().to_snake_case());
-                    let vtype = validator_type_for_field(v, field_ty, validate_each);
+                    let vtype = validator_type_for_field(v, field_ty, false);
                     quote! {
                         pub fn #validator_snake(&self) -> Option<&#vtype> {
                             self.#validator_snake.as_ref()
@@ -490,9 +642,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 })
                 .collect();
 
-            // Generate is_empty checks for this field's error struct
-            let is_empty_checks: Vec<TokenStream2> = f
-                .validators
+            // Generate is_empty checks for field-level validators
+            let field_is_empty_checks: Vec<TokenStream2> = f
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
@@ -501,7 +653,158 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 })
                 .collect();
 
-            // Generate enum variants for the all() method
+            // Generate element error struct if we have element validators
+            let element_error_struct = if has_element_validators {
+                let element_error_struct_name = format_ident!(
+                    "{}{}ElementKorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+
+                let element_validator_fields: Vec<TokenStream2> = f
+                    .element_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.validator.to_string().to_snake_case());
+                        let vtype = validator_type_for_field(v, field_ty, true);
+                        quote! { #validator_snake: Option<#vtype> }
+                    })
+                    .collect();
+
+                let element_validator_getters: Vec<TokenStream2> = f
+                    .element_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.validator.to_string().to_snake_case());
+                        let vtype = validator_type_for_field(v, field_ty, true);
+                        quote! {
+                            pub fn #validator_snake(&self) -> Option<&#vtype> {
+                                self.#validator_snake.as_ref()
+                            }
+                        }
+                    })
+                    .collect();
+
+                let element_is_empty_checks: Vec<TokenStream2> = f
+                    .element_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.validator.to_string().to_snake_case());
+                        quote! { self.#validator_snake.is_none() }
+                    })
+                    .collect();
+
+                // Generate enum variants for the element all() method
+                let element_enum_name = format_ident!(
+                    "{}{}ElementKorumaValidator",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+
+                let element_enum_variants: Vec<TokenStream2> = f
+                    .element_validators
+                    .iter()
+                    .map(|v| {
+                        let variant_name =
+                            format_ident!("{}", v.validator.to_string().to_upper_camel_case());
+                        let vtype = validator_type_for_field(v, field_ty, true);
+                        quote! { #variant_name(#vtype) }
+                    })
+                    .collect();
+
+                let element_all_pushes: Vec<TokenStream2> = f
+                    .element_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.validator.to_string().to_snake_case());
+                        let variant_name =
+                            format_ident!("{}", v.validator.to_string().to_upper_camel_case());
+                        quote! {
+                            if let Some(v) = &self.#validator_snake {
+                                result.push(#element_enum_name::#variant_name(v.clone()));
+                            }
+                        }
+                    })
+                    .collect();
+
+                quote! {
+                    /// Enum of all possible element validators for this field.
+                    #[derive(Clone, Debug)]
+                    #[allow(dead_code)]
+                    pub enum #element_enum_name {
+                        #(#element_enum_variants),*
+                    }
+
+                    /// Per-element validation error struct.
+                    #[derive(Clone, Debug)]
+                    pub struct #element_error_struct_name {
+                        #(#element_validator_fields),*
+                    }
+
+                    impl #element_error_struct_name {
+                        #(#element_validator_getters)*
+
+                        /// Returns all failed element validators.
+                        pub fn all(&self) -> Vec<#element_enum_name> {
+                            let mut result = Vec::new();
+                            #(#element_all_pushes)*
+                            result
+                        }
+
+                        pub fn is_empty(&self) -> bool {
+                            #(#element_is_empty_checks)&&*
+                        }
+
+                        pub fn has_errors(&self) -> bool {
+                            !self.is_empty()
+                        }
+                    }
+                }
+            } else {
+                quote! {}
+            };
+
+            // Field for storing element errors (if we have element validators)
+            let _element_errors_field = if has_element_validators {
+                let element_error_struct_name = format_ident!(
+                    "{}{}ElementKorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                quote! { element_errors: Vec<(usize, #element_error_struct_name)> }
+            } else {
+                quote! {}
+            };
+
+            // Getter for element errors
+            let element_errors_getter = if has_element_validators {
+                let element_error_struct_name = format_ident!(
+                    "{}{}ElementKorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                quote! {
+                    /// Returns all element validation errors with their indices.
+                    pub fn element_errors(&self) -> &[(usize, #element_error_struct_name)] {
+                        &self.element_errors
+                    }
+                }
+            } else {
+                quote! {}
+            };
+
+            // is_empty check for element errors
+            let element_is_empty_check = if has_element_validators {
+                quote! { && self.element_errors.is_empty() }
+            } else {
+                quote! {}
+            };
+
+            // Generate enum variants for the field all() method
             let enum_name = format_ident!(
                 "{}{}KorumaValidator",
                 struct_name,
@@ -509,19 +812,19 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             );
 
             let enum_variants: Vec<TokenStream2> = f
-                .validators
+                .field_validators
                 .iter()
                 .map(|v| {
                     let variant_name =
                         format_ident!("{}", v.validator.to_string().to_upper_camel_case());
-                    let vtype = validator_type_for_field(v, field_ty, validate_each);
+                    let vtype = validator_type_for_field(v, field_ty, false);
                     quote! { #variant_name(#vtype) }
                 })
                 .collect();
 
-            // Generate the all() method body - collect all Some validators into the enum
+            // Generate the all() method body
             let all_pushes: Vec<TokenStream2> = f
-                .validators
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
@@ -536,31 +839,88 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 })
                 .collect();
 
-            quote! {
-                /// Enum of all possible validators for this field.
-                #[derive(Clone, Debug)]
-                #[allow(dead_code)]
-                pub enum #enum_name {
-                    #(#enum_variants),*
+            // Handle case where there are no field validators (only element validators)
+            let enum_and_all = if f.field_validators.is_empty() {
+                quote! {}
+            } else {
+                quote! {
+                    /// Enum of all possible validators for this field.
+                    #[derive(Clone, Debug)]
+                    #[allow(dead_code)]
+                    pub enum #enum_name {
+                        #(#enum_variants),*
+                    }
                 }
+            };
 
-                #[derive(Clone, Debug)]
-                pub struct #field_error_struct_name {
-                    #(#validator_fields),*
-                }
-
-                impl #field_error_struct_name {
-                    #(#validator_getters)*
-
-                    /// Returns all failed validators for this field.
+            let all_method = if f.field_validators.is_empty() {
+                quote! {}
+            } else {
+                quote! {
+                    /// Returns all failed field-level validators.
                     pub fn all(&self) -> Vec<#enum_name> {
                         let mut result = Vec::new();
                         #(#all_pushes)*
                         result
                     }
+                }
+            };
+
+            let is_empty_body = if f.field_validators.is_empty() {
+                // Only element validators
+                quote! { self.element_errors.is_empty() }
+            } else {
+                quote! { #(#field_is_empty_checks)&&* #element_is_empty_check }
+            };
+
+            // Generate struct fields - need proper comma handling
+            let struct_fields = if !f.field_validators.is_empty() && f.has_element_validators() {
+                // Both field validators and element errors
+                let element_error_struct_name = format_ident!(
+                    "{}{}ElementKorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                quote! {
+                    #(#field_validator_fields,)*
+                    element_errors: Vec<(usize, #element_error_struct_name)>
+                }
+            } else if f.has_element_validators() {
+                // Only element errors
+                let element_error_struct_name = format_ident!(
+                    "{}{}ElementKorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                quote! {
+                    element_errors: Vec<(usize, #element_error_struct_name)>
+                }
+            } else {
+                // Only field validators
+                quote! {
+                    #(#field_validator_fields),*
+                }
+            };
+
+            quote! {
+                #element_error_struct
+
+                #enum_and_all
+
+                #[derive(Clone, Debug)]
+                pub struct #field_error_struct_name {
+                    #struct_fields
+                }
+
+                impl #field_error_struct_name {
+                    #(#field_validator_getters)*
+
+                    #element_errors_getter
+
+                    #all_method
 
                     pub fn is_empty(&self) -> bool {
-                        #(#is_empty_checks)&&*
+                        #is_empty_body
                     }
 
                     pub fn has_errors(&self) -> bool {
@@ -572,6 +932,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .collect();
 
     // Generate main error struct fields (one per validated field)
+    // Now all fields just have their field error struct (element errors are nested inside)
     let error_fields: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
@@ -581,12 +942,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
-            if f.validate_each {
-                // For validate_each, store a Vec of (index, error) tuples
-                quote! { #field_name: Vec<(usize, #field_error_struct_name)> }
-            } else {
-                quote! { #field_name: #field_error_struct_name }
-            }
+            quote! { #field_name: #field_error_struct_name }
         })
         .collect();
 
@@ -600,18 +956,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
-            if f.validate_each {
-                quote! {
-                    /// Returns all validation errors for this collection field, with their indices.
-                    pub fn #field_name(&self) -> &[(usize, #field_error_struct_name)] {
-                        &self.#field_name
-                    }
-                }
-            } else {
-                quote! {
-                    pub fn #field_name(&self) -> &#field_error_struct_name {
-                        &self.#field_name
-                    }
+            quote! {
+                pub fn #field_name(&self) -> &#field_error_struct_name {
+                    &self.#field_name
                 }
             }
         })
@@ -637,50 +984,114 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 field_name.to_string().to_upper_camel_case()
             );
 
-            if f.validate_each {
-                // For validate_each, start with an empty Vec
-                quote! { #field_name: Vec::new() }
-            } else {
-                let validator_defaults: Vec<TokenStream2> = f
-                    .validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake =
-                            format_ident!("{}", v.validator.to_string().to_snake_case());
-                        quote! { #validator_snake: None }
-                    })
-                    .collect();
+            // Generate defaults for field-level validators
+            let field_validator_defaults: Vec<TokenStream2> = f
+                .field_validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        format_ident!("{}", v.validator.to_string().to_snake_case());
+                    quote! { #validator_snake: None }
+                })
+                .collect();
 
+            // Handle different combinations of field/element validators
+            if f.has_element_validators() && f.field_validators.is_empty() {
+                // Only element validators
                 quote! {
                     #field_name: #field_error_struct_name {
-                        #(#validator_defaults),*
+                        element_errors: Vec::new()
+                    }
+                }
+            } else if f.has_element_validators() {
+                // Both field and element validators
+                quote! {
+                    #field_name: #field_error_struct_name {
+                        #(#field_validator_defaults),*,
+                        element_errors: Vec::new()
+                    }
+                }
+            } else {
+                // Only field validators
+                quote! {
+                    #field_name: #field_error_struct_name {
+                        #(#field_validator_defaults),*
                     }
                 }
             }
         })
         .collect();
 
-    // Generate validation logic - always use .with_value()
+    // Generate validation logic - supports both field validators and element validators
     let validation_checks: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
             let field_name = &f.name;
             let field_ty = &f.ty;
-            let validate_each = f.validate_each;
+            let has_element_validators = f.has_element_validators();
 
-            let field_error_struct_name = format_ident!(
-                "{}{}KorumaValidationError",
-                struct_name,
-                field_name.to_string().to_upper_camel_case()
-            );
+            // Generate field-level validation checks
+            let field_validator_checks: Vec<TokenStream2> = f.field_validators.iter().map(|v| {
+                let validator = &v.validator;
+                let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
+                // For field validators, we never unwrap Vec - only Option.
+                // <_> uses the full field type (Vec<T> stays Vec<T>)
+                let effective_ty = effective_validation_type(field_ty, false);
 
-            if validate_each {
-                // For validate_each, iterate over the collection
+                let builder_calls: Vec<TokenStream2> = v
+                    .args
+                    .iter()
+                    .map(|(arg_name, arg_value)| {
+                        quote! { .#arg_name(#arg_value) }
+                    })
+                    .collect();
+
+                if v.infer_type {
+                    let assert_fn = format_ident!(
+                        "__koruma_assert_validate_{}_{}_field",
+                        field_name,
+                        validator_snake
+                    );
+                    quote! {
+                        fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
+                            v.validate(t)
+                        }
+                        let validator = #validator::<#effective_ty>::builder()
+                            #(#builder_calls)*
+                            .with_value(__field_value.clone())
+                            .build();
+                        if #assert_fn(&validator, __field_value).is_err() {
+                            error.#field_name.#validator_snake = Some(validator);
+                            has_error = true;
+                        }
+                    }
+                } else {
+                    quote! {
+                        let validator = #validator::builder()
+                            #(#builder_calls)*
+                            .with_value(__field_value.clone())
+                            .build();
+                        if validator.validate(__field_value).is_err() {
+                            error.#field_name.#validator_snake = Some(validator);
+                            has_error = true;
+                        }
+                    }
+                }
+            }).collect();
+
+            // Generate element-level validation checks if we have element validators
+            let element_validation = if has_element_validators {
+                let element_error_struct_name = format_ident!(
+                    "{}{}ElementKorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+
                 let element_ty = vec_inner_type(field_ty).unwrap_or(field_ty);
                 let element_is_optional = is_option_type(element_ty);
                 let effective_element_ty = effective_validation_type(field_ty, true);
 
-                let validator_checks: Vec<TokenStream2> = f.validators.iter().map(|v| {
+                let element_validator_checks: Vec<TokenStream2> = f.element_validators.iter().map(|v| {
                     let validator = &v.validator;
                     let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
 
@@ -694,7 +1105,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                     if v.infer_type {
                         let assert_fn = format_ident!(
-                            "__koruma_assert_validate_{}_{}",
+                            "__koruma_assert_validate_{}_{}_element",
                             field_name,
                             validator_snake
                         );
@@ -725,8 +1136,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     }
                 }).collect();
 
-                let validator_defaults: Vec<TokenStream2> = f
-                    .validators
+                let element_validator_defaults: Vec<TokenStream2> = f
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =
@@ -735,16 +1146,16 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     })
                     .collect();
 
-                let inner_validation = quote! {
-                    let mut element_error = #field_error_struct_name {
-                        #(#validator_defaults),*
+                let inner_element_validation = quote! {
+                    let mut element_error = #element_error_struct_name {
+                        #(#element_validator_defaults),*
                     };
                     let mut element_has_error = false;
 
-                    #(#validator_checks)*
+                    #(#element_validator_checks)*
 
                     if element_has_error {
-                        error.#field_name.push((idx, element_error));
+                        error.#field_name.element_errors.push((idx, element_error));
                         has_error = true;
                     }
                 };
@@ -754,7 +1165,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     quote! {
                         for (idx, item) in self.#field_name.iter().enumerate() {
                             if let Some(ref __item_value) = item {
-                                #inner_validation
+                                #inner_element_validation
                             }
                         }
                     }
@@ -762,74 +1173,37 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     // For Vec<T>, validate each item directly
                     quote! {
                         for (idx, __item_value) in self.#field_name.iter().enumerate() {
-                            #inner_validation
+                            #inner_element_validation
                         }
                     }
                 }
             } else {
-                // Regular field validation
-                let field_is_optional = is_option_type(field_ty);
-                let effective_ty = effective_validation_type(field_ty, false);
+                quote! {}
+            };
 
-                let validator_checks: Vec<TokenStream2> = f.validators.iter().map(|v| {
-                    let validator = &v.validator;
-                    let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
+            // Combine field validation and element validation
+            let field_is_optional = is_option_type(field_ty);
 
-                    let builder_calls: Vec<TokenStream2> = v
-                        .args
-                        .iter()
-                        .map(|(arg_name, arg_value)| {
-                            quote! { .#arg_name(#arg_value) }
-                        })
-                        .collect();
-
-                    if v.infer_type {
-                        let assert_fn = format_ident!(
-                            "__koruma_assert_validate_{}_{}",
-                            field_name,
-                            validator_snake
-                        );
-                        quote! {
-                            fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
-                                v.validate(t)
-                            }
-                            let validator = #validator::<#effective_ty>::builder()
-                                #(#builder_calls)*
-                                .with_value(__value.clone())
-                                .build();
-                            if #assert_fn(&validator, __value).is_err() {
-                                error.#field_name.#validator_snake = Some(validator);
-                                has_error = true;
-                            }
-                        }
-                    } else {
-                        quote! {
-                            let validator = #validator::builder()
-                                #(#builder_calls)*
-                                .with_value(__value.clone())
-                                .build();
-                            if validator.validate(__value).is_err() {
-                                error.#field_name.#validator_snake = Some(validator);
-                                has_error = true;
-                            }
-                        }
+            // For fields with element validators, the field value is the Vec itself
+            // For regular fields, it's just the field value
+            if !f.field_validators.is_empty() && field_is_optional {
+                // Optional field with field validators
+                quote! {
+                    if let Some(ref __field_value) = self.#field_name {
+                        #(#field_validator_checks)*
                     }
-                }).collect();
-
-                if field_is_optional {
-                    // For Option<T> fields, skip validation if None
-                    quote! {
-                        if let Some(ref __value) = self.#field_name {
-                            #(#validator_checks)*
-                        }
-                    }
-                } else {
-                    // For regular fields, validate directly
-                    quote! {
-                        let __value = &self.#field_name;
-                        #(#validator_checks)*
-                    }
+                    #element_validation
                 }
+            } else if !f.field_validators.is_empty() {
+                // Non-optional field with field validators
+                quote! {
+                    let __field_value = &self.#field_name;
+                    #(#field_validator_checks)*
+                    #element_validation
+                }
+            } else {
+                // No field validators, only element validators
+                element_validation
             }
         })
         .collect();

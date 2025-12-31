@@ -2,38 +2,55 @@
 source: crates/koruma-derive/src/expand/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-/// Enum of all possible validators for this field.
+/// Enum of all possible element validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum OrderValuesKorumaValidator {
+pub enum OrderValuesElementKorumaValidator {
     RangeValidation(RangeValidation),
     EvenValidation(EvenValidation),
 }
+/// Per-element validation error struct.
 #[derive(Clone, Debug)]
-pub struct OrderValuesKorumaValidationError {
+pub struct OrderValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
 }
-impl OrderValuesKorumaValidationError {
+impl OrderValuesElementKorumaValidationError {
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
     pub fn even_validation(&self) -> Option<&EvenValidation> {
         self.even_validation.as_ref()
     }
-    /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<OrderValuesKorumaValidator> {
+    /// Returns all failed element validators.
+    pub fn all(&self) -> Vec<OrderValuesElementKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
-            result.push(OrderValuesKorumaValidator::RangeValidation(v.clone()));
+            result.push(OrderValuesElementKorumaValidator::RangeValidation(v.clone()));
         }
         if let Some(v) = &self.even_validation {
-            result.push(OrderValuesKorumaValidator::EvenValidation(v.clone()));
+            result.push(OrderValuesElementKorumaValidator::EvenValidation(v.clone()));
         }
         result
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none() && self.even_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[derive(Clone, Debug)]
+pub struct OrderValuesKorumaValidationError {
+    element_errors: Vec<(usize, OrderValuesElementKorumaValidationError)>,
+}
+impl OrderValuesKorumaValidationError {
+    /// Returns all element validation errors with their indices.
+    pub fn element_errors(&self) -> &[(usize, OrderValuesElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    pub fn is_empty(&self) -> bool {
+        self.element_errors.is_empty()
     }
     pub fn has_errors(&self) -> bool {
         !self.is_empty()
@@ -45,11 +62,10 @@ impl OrderValuesKorumaValidationError {
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
 pub struct OrderKorumaValidationError {
-    values: Vec<(usize, OrderValuesKorumaValidationError)>,
+    values: OrderValuesKorumaValidationError,
 }
 impl OrderKorumaValidationError {
-    /// Returns all validation errors for this collection field, with their indices.
-    pub fn values(&self) -> &[(usize, OrderValuesKorumaValidationError)] {
+    pub fn values(&self) -> &OrderValuesKorumaValidationError {
         &self.values
     }
 }
@@ -66,11 +82,13 @@ impl Order {
     /// `error` contains the validation failures for each field.
     pub fn validate(&self) -> Result<(), OrderKorumaValidationError> {
         let mut error = OrderKorumaValidationError {
-            values: Vec::new(),
+            values: OrderValuesKorumaValidationError {
+                element_errors: Vec::new(),
+            },
         };
         let mut has_error = false;
         for (idx, __item_value) in self.values.iter().enumerate() {
-            let mut element_error = OrderValuesKorumaValidationError {
+            let mut element_error = OrderValuesElementKorumaValidationError {
                 range_validation: None,
                 even_validation: None,
             };
@@ -92,7 +110,7 @@ impl Order {
                 element_has_error = true;
             }
             if element_has_error {
-                error.values.push((idx, element_error));
+                error.values.element_errors.push((idx, element_error));
                 has_error = true;
             }
         }

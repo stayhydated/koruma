@@ -12,7 +12,7 @@ repository.workspace = true
 readme.workspace = true
 
 [features]
-fn-macro-helper = []
+fn-macro-helper = [  ]
 
 [lib]
 proc-macro = true

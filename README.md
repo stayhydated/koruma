@@ -51,6 +51,35 @@ impl Validate<i32> for NumberRangeValidation {
 }
 ```
 
+### Generic Validators
+
+For validators that work with multiple types, use generics and the `<_>` syntax for type inference:
+
+```rust
+#[koruma::validator]
+#[derive(Clone, Debug)]
+pub struct RangeValidation<T> {
+    pub min: T,
+    pub max: T,
+    #[koruma(value)]
+    pub actual: T,  // Direct type, not Option<T>
+}
+
+// Use the auto-generated macro to implement Validate for multiple types
+impl_range_validation!(i32, i64, f32, f64);
+
+// Use <_> to infer the type from the field
+#[derive(Koruma)]
+pub struct Measurements {
+    #[koruma(RangeValidation<_>(min = 0.0, max = 100.0))]
+    pub temperature: f64,
+
+    #[koruma(RangeValidation<_>(min = 0, max = 1000))]
+    pub pressure: i32,
+}
+```
+
+
 ### Validating Structs
 
 Apply validators to struct fields using `#[derive(Koruma)]` and the `#[koruma(...)]` attribute:
@@ -119,34 +148,6 @@ if let Some(even_err) = err.value().even_number_validation() {
 
 // Or get all failed validators at once
 let all_errors = err.value().all();  // Vec<ItemValueValidator>
-```
-
-### Generic Validators
-
-For validators that work with multiple types, use generics and the `<_>` syntax for type inference:
-
-```rust
-#[koruma::validator]
-#[derive(Clone, Debug)]
-pub struct RangeValidation<T> {
-    pub min: T,
-    pub max: T,
-    #[koruma(value)]
-    pub actual: T,  // Direct type, not Option<T>
-}
-
-// Use the auto-generated macro to implement Validate for multiple types
-impl_range_validation!(i32, i64, f32, f64);
-
-// Use <_> to infer the type from the field
-#[derive(Koruma)]
-pub struct Measurements {
-    #[koruma(RangeValidation<_>(min = 0.0, max = 100.0))]
-    pub temperature: f64,
-
-    #[koruma(RangeValidation<_>(min = 0, max = 1000))]
-    pub pressure: i32,
-}
 ```
 
 ### Collection Validation

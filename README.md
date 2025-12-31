@@ -288,7 +288,7 @@ if let Some(err) = errors.age().number_range_validation() {
 When using the `all()` method to get all failed validators, you can implement `ToFluentString` on the generated enum:
 
 ```rust
-use koruma::es_fluent::ToFluentString;
+use es_fluent::ToFluentString;
 
 // The enum is auto-generated as {StructName}{FieldName}Validator
 impl ToFluentString for ItemValueValidator {

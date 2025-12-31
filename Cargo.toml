@@ -22,6 +22,7 @@ koruma = { path = "crates/koruma", version = "0.1.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.1.0" }
 koruma-derive = { path = "crates/koruma-derive", version = "0.1.0" }
 paste = "1.0.15"
+prettyplease = "0.2.37"
 proc-macro-error2 = "2.0"
 proc-macro2 = "1.0.92"
 quote = "1.0.38"

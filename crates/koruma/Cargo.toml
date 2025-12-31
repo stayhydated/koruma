@@ -11,13 +11,16 @@ publish.workspace = true
 repository.workspace = true
 readme = "README.md"
 
-[features]
-default = [ "derive", "fn-macro-helper" ]
-derive = [ "dep:koruma-derive" ]
-fn-macro-helper = [ "koruma-derive/fn-macro-helper" ]
-fluent = []
-
 [dependencies]
 bon = { workspace = true }
 koruma-core = { workspace = true }
 koruma-derive = { optional = true, workspace = true }
+
+[features]
+default = [ "derive", "fn-macro-helper" ]
+derive = [ "dep:koruma-derive" ]
+fluent = [  ]
+fn-macro-helper = [ "koruma-derive/fn-macro-helper" ]
+
+[package.metadata.docs.rs]
+all-features = true

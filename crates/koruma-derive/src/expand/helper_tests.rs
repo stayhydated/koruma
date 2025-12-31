@@ -121,7 +121,10 @@ fn test_parse_field_with_single_validator() {
     let info = result.unwrap();
     assert_eq!(info.name.to_string(), "age");
     assert_eq!(info.field_validators.len(), 1);
-    assert_eq!(info.field_validators[0].validator.to_string(), "RangeValidation");
+    assert_eq!(
+        info.field_validators[0].validator.to_string(),
+        "RangeValidation"
+    );
     assert!(!info.field_validators[0].infer_type);
     assert_eq!(info.field_validators[0].args.len(), 2);
     assert!(info.element_validators.is_empty());

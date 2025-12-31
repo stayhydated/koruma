@@ -67,6 +67,8 @@ pub struct UserProfile {
 #[derive(Koruma)]
 pub struct OrderWithLenCheck {
     // Vec must have 1-5 elements, AND each score must be in range 0-100
-    #[koruma(VecLenValidation<_>(min = 1, max = 5), each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    // Note: VecLenValidation<T> expects T to be the inner type (f64), not Vec<f64>.
+    // Use explicit type when the validator's generic param differs from the field type.
+    #[koruma(VecLenValidation<f64>(min = 1, max = 5), each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
     pub scores: Vec<f64>,
 }

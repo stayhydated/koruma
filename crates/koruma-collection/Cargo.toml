@@ -9,13 +9,46 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-koruma = { workspace = true }
-es-fluent = { features = [ "derive", "generate" ], workspace = true, optional = true }
-es-fluent-manager-embedded = { workspace = true, optional = true }
-unic-langid = { workspace = true, optional = true }
 bon = { workspace = true }
+card-validate = { optional = true, workspace = true }
+es-fluent = { features = [ "derive", "generate" ], optional = true, workspace = true }
+es-fluent-manager-embedded = { optional = true, workspace = true }
+idna = { optional = true, workspace = true }
+koruma = { workspace = true }
+phonenumber = { optional = true, workspace = true }
+regex = { optional = true, workspace = true }
+rust-embed = { optional = true, workspace = true }
+rust_decimal = { optional = true, workspace = true }
+unic-langid = { optional = true, workspace = true }
+url = { optional = true, workspace = true }
 
 [features]
-default = ["fmt"]
-fmt = []
-fluent = ["koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:unic-langid"]
+credit-card = [ "dep:card-validate" ]
+default = [ "fmt" ]
+email = [ "dep:regex" ]
+email-idna = [ "dep:idna" ]
+fluent = [
+  "koruma/fluent",
+  "dep:es-fluent",
+  "dep:es-fluent-manager-embedded",
+  "dep:unic-langid",
+  "dep:rust-embed",
+]
+fmt = [  ]
+full = [
+  "fmt",
+  "url",
+  "credit-card",
+  "phone-number",
+  "email",
+  "email-idna",
+  "rust_decimal",
+  "regex",
+]
+phone-number = [ "dep:phonenumber" ]
+regex = [ "dep:regex" ]
+rust_decimal = [ "dep:rust_decimal" ]
+url = [ "dep:url" ]
+
+[package.metadata.docs.rs]
+all-features = true

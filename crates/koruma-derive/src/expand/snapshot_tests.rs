@@ -210,9 +210,11 @@ fn test_koruma_expansion_optional_with_generic() {
 #[test]
 fn test_koruma_expansion_combined_field_and_element_validators() {
     // Combined: field-level validator (for Vec) + element validators (for each element)
+    // Note: VecLenValidation<T> expects T to be the inner type, so we use explicit <i32>
+    // instead of <_> (which would give Vec<i32>).
     let input: DeriveInput = syn::parse_quote! {
         pub struct OrderWithLenCheck {
-            #[koruma(VecLenValidation<_>(min = 1, max = 10), each(RangeValidation<_>(min = 0, max = 100)))]
+            #[koruma(VecLenValidation<i32>(min = 1, max = 10), each(RangeValidation<_>(min = 0, max = 100)))]
             pub scores: Vec<i32>,
         }
     };

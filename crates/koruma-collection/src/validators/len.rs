@@ -95,27 +95,17 @@ impl<T, const N: usize> HasLen for [T; N] {
 ///
 /// Works with any type that implements `HasLen + Clone`.
 #[validator]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
-pub struct LenValidation<T> {
+pub struct LenValidation<T: HasLen> {
     /// Minimum allowed length (inclusive)
     pub min: usize,
     /// Maximum allowed length (inclusive)
     pub max: usize,
     /// The collection being validated (stored for error context)
     #[koruma(value)]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.len())))]
     pub actual: T,
-}
-
-// Manual Clone impl to avoid bound on struct definition
-impl<T: Clone> Clone for LenValidation<T> {
-    fn clone(&self) -> Self {
-        Self {
-            min: self.min,
-            max: self.max,
-            actual: self.actual.clone(),
-        }
-    }
 }
 
 impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
@@ -129,14 +119,6 @@ impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
     }
 }
 
-impl<T: HasLen + Clone> LenValidation<T> {
-    /// Get the actual length of the collection for error reporting.
-    pub fn actual_len(&self) -> usize {
-        self.actual.len()
-    }
-}
-
-// Display implementation for fmt feature
 #[cfg(feature = "fmt")]
 impl<T: HasLen + Clone> std::fmt::Display for LenValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

@@ -27,3 +27,6 @@ syn = { features = [ "full", "extra-traits" ], workspace = true }
 [dev-dependencies]
 insta = { workspace = true }
 prettyplease = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true

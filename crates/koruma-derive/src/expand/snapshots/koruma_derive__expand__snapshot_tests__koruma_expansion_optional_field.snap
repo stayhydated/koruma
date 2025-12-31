@@ -5,22 +5,25 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum UserProfileUsernameValidator {
+pub enum UserProfileUsernameKorumaValidator {
     StringLengthValidation(StringLengthValidation),
 }
 #[derive(Clone, Debug)]
-pub struct UserProfileUsernameError {
+pub struct UserProfileUsernameKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
-impl UserProfileUsernameError {
+impl UserProfileUsernameKorumaValidationError {
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<UserProfileUsernameValidator> {
+    pub fn all(&self) -> Vec<UserProfileUsernameKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.string_length_validation {
-            result.push(UserProfileUsernameValidator::StringLengthValidation(v.clone()));
+            result
+                .push(
+                    UserProfileUsernameKorumaValidator::StringLengthValidation(v.clone()),
+                );
         }
         result
     }
@@ -34,22 +37,23 @@ impl UserProfileUsernameError {
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum UserProfileBioValidator {
+pub enum UserProfileBioKorumaValidator {
     StringLengthValidation(StringLengthValidation),
 }
 #[derive(Clone, Debug)]
-pub struct UserProfileBioError {
+pub struct UserProfileBioKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
-impl UserProfileBioError {
+impl UserProfileBioKorumaValidationError {
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<UserProfileBioValidator> {
+    pub fn all(&self) -> Vec<UserProfileBioKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.string_length_validation {
-            result.push(UserProfileBioValidator::StringLengthValidation(v.clone()));
+            result
+                .push(UserProfileBioKorumaValidator::StringLengthValidation(v.clone()));
         }
         result
     }
@@ -65,19 +69,19 @@ impl UserProfileBioError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct UserProfileValidationError {
-    username: UserProfileUsernameError,
-    bio: UserProfileBioError,
+pub struct UserProfileKorumaValidationError {
+    username: UserProfileUsernameKorumaValidationError,
+    bio: UserProfileBioKorumaValidationError,
 }
-impl UserProfileValidationError {
-    pub fn username(&self) -> &UserProfileUsernameError {
+impl UserProfileKorumaValidationError {
+    pub fn username(&self) -> &UserProfileUsernameKorumaValidationError {
         &self.username
     }
-    pub fn bio(&self) -> &UserProfileBioError {
+    pub fn bio(&self) -> &UserProfileBioKorumaValidationError {
         &self.bio
     }
 }
-impl koruma::ValidationError for UserProfileValidationError {
+impl koruma::ValidationError for UserProfileKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.username.is_empty() && self.bio.is_empty()
     }
@@ -88,12 +92,12 @@ impl UserProfile {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), UserProfileValidationError> {
-        let mut error = UserProfileValidationError {
-            username: UserProfileUsernameError {
+    pub fn validate(&self) -> Result<(), UserProfileKorumaValidationError> {
+        let mut error = UserProfileKorumaValidationError {
+            username: UserProfileUsernameKorumaValidationError {
                 string_length_validation: None,
             },
-            bio: UserProfileBioError {
+            bio: UserProfileBioKorumaValidationError {
                 string_length_validation: None,
             },
         };

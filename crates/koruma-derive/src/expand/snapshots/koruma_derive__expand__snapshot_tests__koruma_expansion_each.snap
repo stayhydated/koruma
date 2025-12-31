@@ -5,22 +5,22 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum OrderScoresValidator {
+pub enum OrderScoresKorumaValidator {
     GenericRangeValidation(GenericRangeValidation<f64>),
 }
 #[derive(Clone, Debug)]
-pub struct OrderScoresError {
+pub struct OrderScoresKorumaValidationError {
     generic_range_validation: Option<GenericRangeValidation<f64>>,
 }
-impl OrderScoresError {
+impl OrderScoresKorumaValidationError {
     pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<f64>> {
         self.generic_range_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<OrderScoresValidator> {
+    pub fn all(&self) -> Vec<OrderScoresKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.generic_range_validation {
-            result.push(OrderScoresValidator::GenericRangeValidation(v.clone()));
+            result.push(OrderScoresKorumaValidator::GenericRangeValidation(v.clone()));
         }
         result
     }
@@ -36,16 +36,16 @@ impl OrderScoresError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct OrderValidationError {
-    scores: Vec<(usize, OrderScoresError)>,
+pub struct OrderKorumaValidationError {
+    scores: Vec<(usize, OrderScoresKorumaValidationError)>,
 }
-impl OrderValidationError {
+impl OrderKorumaValidationError {
     /// Returns all validation errors for this collection field, with their indices.
-    pub fn scores(&self) -> &[(usize, OrderScoresError)] {
+    pub fn scores(&self) -> &[(usize, OrderScoresKorumaValidationError)] {
         &self.scores
     }
 }
-impl koruma::ValidationError for OrderValidationError {
+impl koruma::ValidationError for OrderKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.scores.is_empty()
     }
@@ -56,13 +56,13 @@ impl Order {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), OrderValidationError> {
-        let mut error = OrderValidationError {
+    pub fn validate(&self) -> Result<(), OrderKorumaValidationError> {
+        let mut error = OrderKorumaValidationError {
             scores: Vec::new(),
         };
         let mut has_error = false;
         for (idx, __item_value) in self.scores.iter().enumerate() {
-            let mut element_error = OrderScoresError {
+            let mut element_error = OrderScoresKorumaValidationError {
                 generic_range_validation: None,
             };
             let mut element_has_error = false;

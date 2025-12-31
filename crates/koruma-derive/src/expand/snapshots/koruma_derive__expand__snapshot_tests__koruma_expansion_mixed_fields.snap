@@ -5,22 +5,22 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemAgeValidator {
+pub enum ComplexItemAgeKorumaValidator {
     RangeValidation(RangeValidation),
 }
 #[derive(Clone, Debug)]
-pub struct ComplexItemAgeError {
+pub struct ComplexItemAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
-impl ComplexItemAgeError {
+impl ComplexItemAgeKorumaValidationError {
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ComplexItemAgeValidator> {
+    pub fn all(&self) -> Vec<ComplexItemAgeKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
-            result.push(ComplexItemAgeValidator::RangeValidation(v.clone()));
+            result.push(ComplexItemAgeKorumaValidator::RangeValidation(v.clone()));
         }
         result
     }
@@ -34,22 +34,22 @@ impl ComplexItemAgeError {
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemTagsValidator {
+pub enum ComplexItemTagsKorumaValidator {
     LengthValidation(LengthValidation),
 }
 #[derive(Clone, Debug)]
-pub struct ComplexItemTagsError {
+pub struct ComplexItemTagsKorumaValidationError {
     length_validation: Option<LengthValidation>,
 }
-impl ComplexItemTagsError {
+impl ComplexItemTagsKorumaValidationError {
     pub fn length_validation(&self) -> Option<&LengthValidation> {
         self.length_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ComplexItemTagsValidator> {
+    pub fn all(&self) -> Vec<ComplexItemTagsKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.length_validation {
-            result.push(ComplexItemTagsValidator::LengthValidation(v.clone()));
+            result.push(ComplexItemTagsKorumaValidator::LengthValidation(v.clone()));
         }
         result
     }
@@ -63,16 +63,16 @@ impl ComplexItemTagsError {
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemRatingValidator {
+pub enum ComplexItemRatingKorumaValidator {
     RangeValidation(RangeValidation),
     EvenValidation(EvenValidation),
 }
 #[derive(Clone, Debug)]
-pub struct ComplexItemRatingError {
+pub struct ComplexItemRatingKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
 }
-impl ComplexItemRatingError {
+impl ComplexItemRatingKorumaValidationError {
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
@@ -80,13 +80,13 @@ impl ComplexItemRatingError {
         self.even_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ComplexItemRatingValidator> {
+    pub fn all(&self) -> Vec<ComplexItemRatingKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
-            result.push(ComplexItemRatingValidator::RangeValidation(v.clone()));
+            result.push(ComplexItemRatingKorumaValidator::RangeValidation(v.clone()));
         }
         if let Some(v) = &self.even_validation {
-            result.push(ComplexItemRatingValidator::EvenValidation(v.clone()));
+            result.push(ComplexItemRatingKorumaValidator::EvenValidation(v.clone()));
         }
         result
     }
@@ -102,24 +102,24 @@ impl ComplexItemRatingError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct ComplexItemValidationError {
-    age: ComplexItemAgeError,
-    tags: Vec<(usize, ComplexItemTagsError)>,
-    rating: ComplexItemRatingError,
+pub struct ComplexItemKorumaValidationError {
+    age: ComplexItemAgeKorumaValidationError,
+    tags: Vec<(usize, ComplexItemTagsKorumaValidationError)>,
+    rating: ComplexItemRatingKorumaValidationError,
 }
-impl ComplexItemValidationError {
-    pub fn age(&self) -> &ComplexItemAgeError {
+impl ComplexItemKorumaValidationError {
+    pub fn age(&self) -> &ComplexItemAgeKorumaValidationError {
         &self.age
     }
     /// Returns all validation errors for this collection field, with their indices.
-    pub fn tags(&self) -> &[(usize, ComplexItemTagsError)] {
+    pub fn tags(&self) -> &[(usize, ComplexItemTagsKorumaValidationError)] {
         &self.tags
     }
-    pub fn rating(&self) -> &ComplexItemRatingError {
+    pub fn rating(&self) -> &ComplexItemRatingKorumaValidationError {
         &self.rating
     }
 }
-impl koruma::ValidationError for ComplexItemValidationError {
+impl koruma::ValidationError for ComplexItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty() && self.tags.is_empty() && self.rating.is_empty()
     }
@@ -130,13 +130,13 @@ impl ComplexItem {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), ComplexItemValidationError> {
-        let mut error = ComplexItemValidationError {
-            age: ComplexItemAgeError {
+    pub fn validate(&self) -> Result<(), ComplexItemKorumaValidationError> {
+        let mut error = ComplexItemKorumaValidationError {
+            age: ComplexItemAgeKorumaValidationError {
                 range_validation: None,
             },
             tags: Vec::new(),
-            rating: ComplexItemRatingError {
+            rating: ComplexItemRatingKorumaValidationError {
                 range_validation: None,
                 even_validation: None,
             },
@@ -153,7 +153,7 @@ impl ComplexItem {
             has_error = true;
         }
         for (idx, __item_value) in self.tags.iter().enumerate() {
-            let mut element_error = ComplexItemTagsError {
+            let mut element_error = ComplexItemTagsKorumaValidationError {
                 length_validation: None,
             };
             let mut element_has_error = false;

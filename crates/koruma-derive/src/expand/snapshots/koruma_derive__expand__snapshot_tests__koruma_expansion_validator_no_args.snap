@@ -5,22 +5,22 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ItemValueValidator {
+pub enum ItemValueKorumaValidator {
     EvenNumberValidation(EvenNumberValidation),
 }
 #[derive(Clone, Debug)]
-pub struct ItemValueError {
+pub struct ItemValueKorumaValidationError {
     even_number_validation: Option<EvenNumberValidation>,
 }
-impl ItemValueError {
+impl ItemValueKorumaValidationError {
     pub fn even_number_validation(&self) -> Option<&EvenNumberValidation> {
         self.even_number_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ItemValueValidator> {
+    pub fn all(&self) -> Vec<ItemValueKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.even_number_validation {
-            result.push(ItemValueValidator::EvenNumberValidation(v.clone()));
+            result.push(ItemValueKorumaValidator::EvenNumberValidation(v.clone()));
         }
         result
     }
@@ -36,15 +36,15 @@ impl ItemValueError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct ItemValidationError {
-    value: ItemValueError,
+pub struct ItemKorumaValidationError {
+    value: ItemValueKorumaValidationError,
 }
-impl ItemValidationError {
-    pub fn value(&self) -> &ItemValueError {
+impl ItemKorumaValidationError {
+    pub fn value(&self) -> &ItemValueKorumaValidationError {
         &self.value
     }
 }
-impl koruma::ValidationError for ItemValidationError {
+impl koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
@@ -55,9 +55,9 @@ impl Item {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), ItemValidationError> {
-        let mut error = ItemValidationError {
-            value: ItemValueError {
+    pub fn validate(&self) -> Result<(), ItemKorumaValidationError> {
+        let mut error = ItemKorumaValidationError {
+            value: ItemValueKorumaValidationError {
                 even_number_validation: None,
             },
         };

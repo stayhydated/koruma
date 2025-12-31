@@ -5,16 +5,16 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum MultiValidatorItemValueValidator {
+pub enum MultiValidatorItemValueKorumaValidator {
     NumberRangeValidation(NumberRangeValidation),
     EvenNumberValidation(EvenNumberValidation),
 }
 #[derive(Clone, Debug)]
-pub struct MultiValidatorItemValueError {
+pub struct MultiValidatorItemValueKorumaValidationError {
     number_range_validation: Option<NumberRangeValidation>,
     even_number_validation: Option<EvenNumberValidation>,
 }
-impl MultiValidatorItemValueError {
+impl MultiValidatorItemValueKorumaValidationError {
     pub fn number_range_validation(&self) -> Option<&NumberRangeValidation> {
         self.number_range_validation.as_ref()
     }
@@ -22,17 +22,23 @@ impl MultiValidatorItemValueError {
         self.even_number_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<MultiValidatorItemValueValidator> {
+    pub fn all(&self) -> Vec<MultiValidatorItemValueKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.number_range_validation {
             result
                 .push(
-                    MultiValidatorItemValueValidator::NumberRangeValidation(v.clone()),
+                    MultiValidatorItemValueKorumaValidator::NumberRangeValidation(
+                        v.clone(),
+                    ),
                 );
         }
         if let Some(v) = &self.even_number_validation {
             result
-                .push(MultiValidatorItemValueValidator::EvenNumberValidation(v.clone()));
+                .push(
+                    MultiValidatorItemValueKorumaValidator::EvenNumberValidation(
+                        v.clone(),
+                    ),
+                );
         }
         result
     }
@@ -48,15 +54,15 @@ impl MultiValidatorItemValueError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct MultiValidatorItemValidationError {
-    value: MultiValidatorItemValueError,
+pub struct MultiValidatorItemKorumaValidationError {
+    value: MultiValidatorItemValueKorumaValidationError,
 }
-impl MultiValidatorItemValidationError {
-    pub fn value(&self) -> &MultiValidatorItemValueError {
+impl MultiValidatorItemKorumaValidationError {
+    pub fn value(&self) -> &MultiValidatorItemValueKorumaValidationError {
         &self.value
     }
 }
-impl koruma::ValidationError for MultiValidatorItemValidationError {
+impl koruma::ValidationError for MultiValidatorItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
@@ -67,9 +73,9 @@ impl MultiValidatorItem {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), MultiValidatorItemValidationError> {
-        let mut error = MultiValidatorItemValidationError {
-            value: MultiValidatorItemValueError {
+    pub fn validate(&self) -> Result<(), MultiValidatorItemKorumaValidationError> {
+        let mut error = MultiValidatorItemKorumaValidationError {
+            value: MultiValidatorItemValueKorumaValidationError {
                 number_range_validation: None,
                 even_number_validation: None,
             },

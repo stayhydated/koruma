@@ -5,22 +5,22 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ItemScoreValidator {
+pub enum ItemScoreKorumaValidator {
     GenericRange(GenericRange<i32>),
 }
 #[derive(Clone, Debug)]
-pub struct ItemScoreError {
+pub struct ItemScoreKorumaValidationError {
     generic_range: Option<GenericRange<i32>>,
 }
-impl ItemScoreError {
+impl ItemScoreKorumaValidationError {
     pub fn generic_range(&self) -> Option<&GenericRange<i32>> {
         self.generic_range.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ItemScoreValidator> {
+    pub fn all(&self) -> Vec<ItemScoreKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.generic_range {
-            result.push(ItemScoreValidator::GenericRange(v.clone()));
+            result.push(ItemScoreKorumaValidator::GenericRange(v.clone()));
         }
         result
     }
@@ -36,15 +36,15 @@ impl ItemScoreError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct ItemValidationError {
-    score: ItemScoreError,
+pub struct ItemKorumaValidationError {
+    score: ItemScoreKorumaValidationError,
 }
-impl ItemValidationError {
-    pub fn score(&self) -> &ItemScoreError {
+impl ItemKorumaValidationError {
+    pub fn score(&self) -> &ItemScoreKorumaValidationError {
         &self.score
     }
 }
-impl koruma::ValidationError for ItemValidationError {
+impl koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.score.is_empty()
     }
@@ -55,9 +55,9 @@ impl Item {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), ItemValidationError> {
-        let mut error = ItemValidationError {
-            score: ItemScoreError {
+    pub fn validate(&self) -> Result<(), ItemKorumaValidationError> {
+        let mut error = ItemKorumaValidationError {
+            score: ItemScoreKorumaValidationError {
                 generic_range: None,
             },
         };

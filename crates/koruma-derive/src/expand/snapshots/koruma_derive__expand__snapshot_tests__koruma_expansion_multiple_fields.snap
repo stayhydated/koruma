@@ -5,22 +5,22 @@ expression: pretty_print(expanded)
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ItemAgeValidator {
+pub enum ItemAgeKorumaValidator {
     NumberRangeValidation(NumberRangeValidation),
 }
 #[derive(Clone, Debug)]
-pub struct ItemAgeError {
+pub struct ItemAgeKorumaValidationError {
     number_range_validation: Option<NumberRangeValidation>,
 }
-impl ItemAgeError {
+impl ItemAgeKorumaValidationError {
     pub fn number_range_validation(&self) -> Option<&NumberRangeValidation> {
         self.number_range_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ItemAgeValidator> {
+    pub fn all(&self) -> Vec<ItemAgeKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.number_range_validation {
-            result.push(ItemAgeValidator::NumberRangeValidation(v.clone()));
+            result.push(ItemAgeKorumaValidator::NumberRangeValidation(v.clone()));
         }
         result
     }
@@ -34,22 +34,22 @@ impl ItemAgeError {
 /// Enum of all possible validators for this field.
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum ItemNameValidator {
+pub enum ItemNameKorumaValidator {
     StringLengthValidation(StringLengthValidation),
 }
 #[derive(Clone, Debug)]
-pub struct ItemNameError {
+pub struct ItemNameKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
-impl ItemNameError {
+impl ItemNameKorumaValidationError {
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
     /// Returns all failed validators for this field.
-    pub fn all(&self) -> Vec<ItemNameValidator> {
+    pub fn all(&self) -> Vec<ItemNameKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.string_length_validation {
-            result.push(ItemNameValidator::StringLengthValidation(v.clone()));
+            result.push(ItemNameKorumaValidator::StringLengthValidation(v.clone()));
         }
         result
     }
@@ -65,19 +65,19 @@ impl ItemNameError {
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
 #[derive(Clone, Debug)]
-pub struct ItemValidationError {
-    age: ItemAgeError,
-    name: ItemNameError,
+pub struct ItemKorumaValidationError {
+    age: ItemAgeKorumaValidationError,
+    name: ItemNameKorumaValidationError,
 }
-impl ItemValidationError {
-    pub fn age(&self) -> &ItemAgeError {
+impl ItemKorumaValidationError {
+    pub fn age(&self) -> &ItemAgeKorumaValidationError {
         &self.age
     }
-    pub fn name(&self) -> &ItemNameError {
+    pub fn name(&self) -> &ItemNameKorumaValidationError {
         &self.name
     }
 }
-impl koruma::ValidationError for ItemValidationError {
+impl koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty() && self.name.is_empty()
     }
@@ -88,12 +88,12 @@ impl Item {
     ///
     /// Returns `Ok(())` if all validations pass, or `Err(error)` where
     /// `error` contains the validation failures for each field.
-    pub fn validate(&self) -> Result<(), ItemValidationError> {
-        let mut error = ItemValidationError {
-            age: ItemAgeError {
+    pub fn validate(&self) -> Result<(), ItemKorumaValidationError> {
+        let mut error = ItemKorumaValidationError {
+            age: ItemAgeKorumaValidationError {
                 number_range_validation: None,
             },
-            name: ItemNameError {
+            name: ItemNameKorumaValidationError {
                 string_length_validation: None,
             },
         };

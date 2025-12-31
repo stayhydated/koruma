@@ -415,7 +415,7 @@ fn is_option_type(ty: &syn::Type) -> bool {
 /// Takes a parsed DeriveInput and returns the expanded TokenStream.
 pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
-    let error_struct_name = format_ident!("{}ValidationError", struct_name);
+    let error_struct_name = format_ident!("{}KorumaValidationError", struct_name);
 
     let fields = match &input.data {
         syn::Data::Struct(data) => match &data.fields {
@@ -453,7 +453,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let field_ty = &f.ty;
             let validate_each = f.validate_each;
             let field_error_struct_name = format_ident!(
-                "{}{}Error",
+                "{}{}KorumaValidationError",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
@@ -499,7 +499,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate enum variants for the all() method
             let enum_name = format_ident!(
-                "{}{}Validator",
+                "{}{}KorumaValidator",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
@@ -573,7 +573,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .map(|f| {
             let field_name = &f.name;
             let field_error_struct_name = format_ident!(
-                "{}{}Error",
+                "{}{}KorumaValidationError",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
@@ -592,7 +592,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .map(|f| {
             let field_name = &f.name;
             let field_error_struct_name = format_ident!(
-                "{}{}Error",
+                "{}{}KorumaValidationError",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
@@ -628,7 +628,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .map(|f| {
             let field_name = &f.name;
             let field_error_struct_name = format_ident!(
-                "{}{}Error",
+                "{}{}KorumaValidationError",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );
@@ -665,7 +665,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let validate_each = f.validate_each;
 
             let field_error_struct_name = format_ident!(
-                "{}{}Error",
+                "{}{}KorumaValidationError",
                 struct_name,
                 field_name.to_string().to_upper_camel_case()
             );

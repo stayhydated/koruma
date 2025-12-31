@@ -9,12 +9,12 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-koruma-collection = { workspace = true, features = ["fmt", "fluent"] }
 bon = { workspace = true }
 es-fluent = { features = [ "derive", "generate" ], workspace = true }
 es-fluent-lang = { workspace = true }
 es-fluent-manager-embedded = { workspace = true }
 koruma = { workspace = true }
+koruma-collection = { features = [ "fmt", "fluent" ], workspace = true }
 rust-embed = { workspace = true }
 strum = { features = [ "derive" ], workspace = true }
 unic-langid = { workspace = true }

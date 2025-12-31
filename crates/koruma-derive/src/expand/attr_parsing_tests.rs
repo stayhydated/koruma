@@ -61,16 +61,25 @@ fn test_koruma_attr_parse_combined_field_and_each() {
     let attr: KorumaAttr = syn::parse_quote!(LenValidator(min = 1, max = 10), each(RangeValidation<_>(min = 0, max = 100)));
     assert!(!attr.is_skip);
     assert_eq!(attr.field_validators.len(), 1);
-    assert_eq!(attr.field_validators[0].validator.to_string(), "LenValidator");
+    assert_eq!(
+        attr.field_validators[0].validator.to_string(),
+        "LenValidator"
+    );
     assert_eq!(attr.element_validators.len(), 1);
-    assert_eq!(attr.element_validators[0].validator.to_string(), "RangeValidation");
+    assert_eq!(
+        attr.element_validators[0].validator.to_string(),
+        "RangeValidation"
+    );
     assert!(attr.element_validators[0].infer_type);
 }
 
 #[test]
 fn test_koruma_attr_parse_each_then_field() {
     // each() can come before field validators too
-    let attr: KorumaAttr = syn::parse_quote!(each(RangeValidation(min = 0, max = 100)), LenValidator(min = 1));
+    let attr: KorumaAttr = syn::parse_quote!(
+        each(RangeValidation(min = 0, max = 100)),
+        LenValidator(min = 1)
+    );
     assert!(!attr.is_skip);
     assert_eq!(attr.field_validators.len(), 1);
     assert_eq!(attr.element_validators.len(), 1);

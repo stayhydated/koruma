@@ -2,7 +2,9 @@
 
 use koruma::{Validate, ValidationError};
 
-use super::fixtures::{GenericItem, Item, MultiValidatorItem, Order, OrderWithLenCheck, UserProfile};
+use super::fixtures::{
+    GenericItem, Item, MultiValidatorItem, Order, OrderWithLenCheck, UserProfile,
+};
 use super::validators::GenericRangeValidation;
 
 #[test]

@@ -14,8 +14,8 @@ readme = "README.md"
 [features]
 default = [ "derive", "fn-macro-helper" ]
 derive = [ "dep:koruma-derive" ]
+fluent = [  ]
 fn-macro-helper = [ "koruma-derive/fn-macro-helper" ]
-fluent = []
 
 [dependencies]
 bon = { workspace = true }

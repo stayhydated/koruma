@@ -31,11 +31,7 @@ pub struct AsciiValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for AsciiValidation<T> {
     fn validate(&self, value: &T) -> KorumaResult {
         let s = value.as_ref();
-        if s.is_ascii() {
-            Ok(())
-        } else {
-            Err(())
-        }
+        if s.is_ascii() { Ok(()) } else { Err(()) }
     }
 }
 

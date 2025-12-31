@@ -650,6 +650,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "koruma-collection"
+version = "0.1.0"
+dependencies = [
+ "bon",
+ "es-fluent",
+ "es-fluent-manager-embedded",
+ "koruma",
+ "unic-langid",
+]
+
+[[package]]
 name = "koruma-core"
 version = "0.1.0"
 

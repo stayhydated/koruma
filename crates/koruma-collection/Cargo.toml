@@ -1,0 +1,21 @@
+[package]
+name = "koruma-collection"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+koruma = { workspace = true }
+es-fluent = { features = [ "derive", "generate" ], workspace = true, optional = true }
+es-fluent-manager-embedded = { workspace = true, optional = true }
+unic-langid = { workspace = true, optional = true }
+bon = { workspace = true }
+
+[features]
+default = ["fmt"]
+fmt = []
+fluent = ["koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:unic-langid"]

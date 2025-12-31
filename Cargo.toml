@@ -1,6 +1,6 @@
 [workspace]
 default-members = [ "example" ]
-members = [ "crates/koruma", "crates/koruma-core", "crates/koruma-derive", "example" ]
+members = [ "crates/koruma", "crates/koruma-collection", "crates/koruma-core", "crates/koruma-derive", "example" ]
 resolver = "3"
 
 [workspace.package]

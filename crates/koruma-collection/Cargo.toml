@@ -14,8 +14,9 @@ es-fluent = { features = [ "derive", "generate" ], workspace = true, optional = 
 es-fluent-manager-embedded = { workspace = true, optional = true }
 unic-langid = { workspace = true, optional = true }
 bon = { workspace = true }
+rust-embed = { workspace = true, optional = true }
 
 [features]
-default = ["fmt"]
+default = ["fmt", "fluent"]
 fmt = []
-fluent = ["koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:unic-langid"]
+fluent = ["koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:unic-langid", "dep:rust-embed"]

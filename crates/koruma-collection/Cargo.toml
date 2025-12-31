@@ -23,7 +23,8 @@ rust_decimal = { workspace = true, optional = true }
 url = { workspace = true, optional = true }
 
 [features]
-default = ["fmt", "fluent"]
+default = ["full", "fluent"]
+full = ["fmt", "credit-card", "phone-number", "email", "email-idna", "rust_decimal", "regex"]
 fmt = []
 fluent = ["koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:unic-langid", "dep:rust-embed"]
 url = ["dep:url"]
@@ -32,3 +33,4 @@ phone-number = ["dep:phonenumber"]
 email = ["dep:regex"]
 email-idna = ["dep:idna"]
 rust_decimal = ["dep:rust_decimal"]
+regex = ["dep:regex"]

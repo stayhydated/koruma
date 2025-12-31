@@ -15,8 +15,20 @@ es-fluent-manager-embedded = { workspace = true, optional = true }
 unic-langid = { workspace = true, optional = true }
 bon = { workspace = true }
 rust-embed = { workspace = true, optional = true }
+card-validate = { workspace = true, optional = true }
+idna = { workspace = true, optional = true }
+phonenumber = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
+rust_decimal = { workspace = true, optional = true }
+url = { workspace = true, optional = true }
 
 [features]
 default = ["fmt", "fluent"]
 fmt = []
 fluent = ["koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:unic-langid", "dep:rust-embed"]
+url = ["dep:url"]
+credit-card = ["dep:card-validate"]
+phone-number = ["dep:phonenumber"]
+email = ["dep:regex"]
+email-idna = ["dep:idna"]
+rust_decimal = ["dep:rust_decimal"]

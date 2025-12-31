@@ -95,7 +95,7 @@ impl<T, const N: usize> HasLen for [T; N] {
 ///
 /// Works with any type that implements `HasLen + Clone`.
 #[validator]
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct LenValidation<T: HasLen> {
     /// Minimum allowed length (inclusive)

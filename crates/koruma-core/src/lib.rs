@@ -10,6 +10,7 @@ pub type KorumaResult = Result<(), ()>;
 /// or `Err(())` if validation fails. The error details are
 /// captured in the validation struct itself (via `ToFluentString`).
 pub trait Validate<T> {
+    #[allow(clippy::result_unit_err)]
     fn validate(&self, value: &T) -> KorumaResult;
 }
 

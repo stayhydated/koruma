@@ -8,9 +8,9 @@ publish = false
 
 [dependencies]
 bon = { workspace = true }
-es-fluent = { features = [ "derive", "generate" ], workspace = true }
+es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
-koruma = { workspace = true }
+koruma = { features = [ "fluent" ], workspace = true }
 koruma-collection = { features = [ "full", "fluent" ], workspace = true }
 rust-embed = { workspace = true }
 shared-lib = { path = "../shared-lib" }

@@ -1,5 +1,8 @@
 [package]
 name = "koruma-collection"
+description = """
+A collection of common validators using koruma.
+"""
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
@@ -11,7 +14,7 @@ version.workspace = true
 [dependencies]
 bon = { workspace = true }
 card-validate = { optional = true, workspace = true }
-es-fluent = { features = [ "derive", "generate" ], optional = true, workspace = true }
+es-fluent = { features = [ "derive" ], optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
 idna = { optional = true, workspace = true }
 koruma = { workspace = true }

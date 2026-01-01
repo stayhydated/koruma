@@ -62,7 +62,7 @@ pub struct RangeValidation<T> {
     pub min: T,
     pub max: T,
     #[koruma(value)]
-    pub actual: T,  // Direct type, not Option<T>
+    pub actual: T,
 }
 
 // Use the auto-generated macro to implement Validate for multiple types.
@@ -119,7 +119,7 @@ match user.validate() {
     Err(errors) => {
         // Access errors by field, then by validator
         if let Some(age_err) = errors.age().number_range_validation() {
-            println!("Age {} is out of range", age_err.actual);  // Direct value!
+            println!("Age {} is out of range", age_err.actual);
         }
         if let Some(name_err) = errors.name().string_length_validation() {
             println!("Name is invalid: {:?}", name_err.input);
@@ -184,7 +184,7 @@ for (index, element_error) in err.scores() {
 Fields of type `Option<T>` are automatically handled:
 
 - **`None`**: Validation is skipped entirely
-- **`Some(value)`**: The inner value is validated and captured directly
+- **`Some(value)`**: The inner value is validated
 
 ```rs
 #[derive(Koruma)]
@@ -215,9 +215,9 @@ let profile = UserProfile {
 };
 let err = profile.validate().unwrap_err();
 
-// Error captures the inner value directly (not Option)
+// Error captures the inner value
 let bio_err = err.bio().string_length_validation().unwrap();
-assert_eq!(bio_err.input, "".to_string());  // Direct String, not Option<String>
+assert_eq!(bio_err.input, "".to_string());
 ```
 
 ## Error Messages
@@ -289,19 +289,18 @@ if let Some(err) = errors.age().number_range_validation() {
 
 ### Fluent with `all()` Method
 
-When using the `all()` method to get all failed validators, you can implement `ToFluentString` on the generated enum:
+When using the `all()` method to get all failed validators, you can derive `KorumaFluentEnum` on the generated enum to implement `ToFluentString`:
 
 ```rs
 use es_fluent::ToFluentString;
+use koruma::KorumaFluentEnum;
 
-// The enum is auto-generated as {StructName}{FieldName}Validator
-impl ToFluentString for ItemValueValidator {
-    fn to_fluent_string(&self) -> String {
-        match self {
-            Self::NumberRangeValidation(v) => v.to_fluent_string(),
-            Self::EvenNumberValidation(v) => v.to_fluent_string(),
-        }
-    }
+// Derive KorumaFluentEnum on the generated validator enum
+// This requires all inner validators to implement ToFluentString
+#[derive(KorumaFluentEnum)]
+pub enum ItemValueKorumaValidator {
+    NumberRangeValidation(NumberRangeValidation),
+    EvenNumberValidation(EvenNumberValidation),
 }
 
 // Now you can iterate over all errors
@@ -309,3 +308,5 @@ for validator in errors.value().all() {
     println!("{}", validator.to_fluent_string());
 }
 ```
+
+Note: `KorumaFluentEnum` requires the `fluent` feature to be enabled and all variant types must implement `ToFluentString`.

@@ -4,7 +4,9 @@ use proc_macro::TokenStream;
 use proc_macro_error2::{abort, proc_macro_error};
 use syn::{DeriveInput, ItemStruct, parse_macro_input};
 
-use expand::{expand_koruma, expand_validator};
+#[cfg(feature = "fluent")]
+use expand::expand_koruma_all_fluent;
+use expand::{expand_koruma, expand_koruma_all_display, expand_validator};
 
 /// Attribute macro for validator structs.
 ///
@@ -90,6 +92,75 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     match expand_koruma(input) {
+        Ok(tokens) => TokenStream::from(tokens),
+        Err(e) => TokenStream::from(e.to_compile_error()),
+    }
+}
+
+/// Derive macro for implementing `Display` on the `all()` validator enums.
+///
+/// Place this alongside `#[derive(Koruma)]` to generate `Display` implementations
+/// for the `{Struct}{Field}KorumaValidator` enums returned by the `all()` method.
+/// Each variant delegates to its inner validator's `Display` implementation.
+///
+/// # Example
+///
+/// ```ignore
+/// use koruma::{Koruma, KorumaAllDisplay};
+///
+/// #[derive(Koruma, KorumaAllDisplay)]
+/// pub struct Product {
+///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     pub sku: String,
+/// }
+///
+/// // Now you can use Display on all() results:
+/// // for err in errors.sku().all() {
+/// //     println!("{}", err);  // Uses Display
+/// // }
+/// ```
+#[proc_macro_error]
+#[proc_macro_derive(KorumaAllDisplay, attributes(koruma))]
+pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    match expand_koruma_all_display(input) {
+        Ok(tokens) => TokenStream::from(tokens),
+        Err(e) => TokenStream::from(e.to_compile_error()),
+    }
+}
+
+/// Derive macro for implementing `ToFluentString` on the `all()` validator enums.
+///
+/// Place this alongside `#[derive(Koruma)]` to generate `ToFluentString` implementations
+/// for the `{Struct}{Field}KorumaValidator` enums returned by the `all()` method.
+/// Each variant delegates to its inner validator's `ToFluentString` implementation.
+///
+/// Requires the `fluent` feature to be enabled.
+///
+/// # Example
+///
+/// ```ignore
+/// use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
+///
+/// #[derive(Koruma, KorumaAllDisplay, KorumaAllFluent)]
+/// pub struct Product {
+///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     pub sku: String,
+/// }
+///
+/// // Now you can use ToFluentString on all() results:
+/// // for err in errors.sku().all() {
+/// //     println!("{}", err.to_fluent_string());  // Uses i18n
+/// // }
+/// ```
+#[cfg(feature = "fluent")]
+#[proc_macro_error]
+#[proc_macro_derive(KorumaAllFluent, attributes(koruma))]
+pub fn derive_koruma_all_fluent(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    match expand_koruma_all_fluent(input) {
         Ok(tokens) => TokenStream::from(tokens),
         Err(e) => TokenStream::from(e.to_compile_error()),
     }

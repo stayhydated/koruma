@@ -13,6 +13,7 @@ readme.workspace = true
 
 [features]
 fn-macro-helper = [  ]
+fluent = [  ]
 
 [lib]
 proc-macro = true

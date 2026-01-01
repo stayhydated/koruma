@@ -1,0 +1,48 @@
+//! Positive number validation for koruma.
+//!
+//! This module provides:
+//! - `PositiveValidation` validator to check if a numeric value is strictly positive (> 0)
+//!
+//! # Example
+//! ```ignore
+//! use koruma::Koruma;
+//! use koruma_collection::validators::positive::PositiveValidation;
+//!
+//! #[derive(Koruma)]
+//! struct Order {
+//!     #[koruma(PositiveValidation<_>)]
+//!     quantity: i32,
+//! }
+//! ```
+
+use koruma::{KorumaResult, Validate, validator};
+
+use super::Numeric;
+
+/// Validates that a numeric value is strictly positive (> 0).
+#[validator]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+pub struct PositiveValidation<T: Numeric> {
+    /// The value being validated (stored for error context)
+    #[koruma(value)]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
+    pub actual: T,
+}
+
+impl<T: Numeric> Validate<T> for PositiveValidation<T> {
+    fn validate(&self, value: &T) -> KorumaResult {
+        if *value > T::default() {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[cfg(feature = "fmt")]
+impl<T: Numeric> std::fmt::Display for PositiveValidation<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "value {} must be positive (> 0)", self.actual)
+    }
+}

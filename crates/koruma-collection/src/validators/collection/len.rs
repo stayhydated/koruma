@@ -1,13 +1,12 @@
 //! Length validation for collections.
 //!
 //! This module provides:
-//! - `HasLen` trait for types that have a measurable length
 //! - `LenValidation` validator with min/max bounds
 //!
 //! # Example
 //! ```ignore
 //! use koruma::Koruma;
-//! use koruma_collection::len::{HasLen, LenValidation};
+//! use koruma_collection::validators::collection::len::LenValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Order {
@@ -18,78 +17,7 @@
 
 use koruma::{KorumaResult, Validate, validator};
 
-/// Trait for types that have a measurable length.
-///
-/// Implemented for common std collections. Users can implement
-/// this for custom collection types.
-pub trait HasLen {
-    fn len(&self) -> usize;
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-}
-
-// Implementations for std collections
-impl<T> HasLen for Vec<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<T> HasLen for std::collections::VecDeque<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<K, V> HasLen for std::collections::HashMap<K, V> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<K, V> HasLen for std::collections::BTreeMap<K, V> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<T> HasLen for std::collections::HashSet<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<T> HasLen for std::collections::BTreeSet<T> {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl HasLen for String {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl HasLen for str {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<T> HasLen for [T] {
-    fn len(&self) -> usize {
-        self.len()
-    }
-}
-
-impl<T, const N: usize> HasLen for [T; N] {
-    fn len(&self) -> usize {
-        N
-    }
-}
+use super::HasLen;
 
 /// Validates that a collection's length is within the specified bounds.
 ///

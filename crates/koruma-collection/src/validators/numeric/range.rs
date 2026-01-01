@@ -23,14 +23,14 @@ use koruma::{KorumaResult, Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
     /// Minimum allowed value (inclusive)
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub min: T,
     /// Maximum allowed value (inclusive)
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub max: T,
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub actual: T,
 }
 

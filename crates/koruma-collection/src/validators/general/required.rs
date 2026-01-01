@@ -24,7 +24,7 @@ use koruma::{KorumaResult, Validate, validator};
 pub struct RequiredValidation<T> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[fluent(skip)]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub actual: Option<T>,
 }
 

@@ -1,9 +1,7 @@
 pub mod i18n;
 
 use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
-use koruma_collection::len::LenValidation;
-use koruma_collection::prefix::PrefixValidation;
-use koruma_collection::range::RangeValidation;
+use koruma_collection::{LenValidation, PrefixValidation, RangeValidation};
 
 /// Example: Validating a shopping order with item count constraints.
 #[derive(Koruma)]

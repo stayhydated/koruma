@@ -24,11 +24,11 @@ use koruma::{KorumaResult, Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct MatchesValidation<T: std::fmt::Display + Clone> {
     /// The value to match against
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub other: T,
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub actual: T,
 }
 

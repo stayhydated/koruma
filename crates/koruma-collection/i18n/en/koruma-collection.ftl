@@ -63,3 +63,38 @@ non_positive_validation = Non Positive Validation { $actual }
 ## PositiveValidation
 
 positive_validation = Positive Validation { $actual }
+
+## Case
+
+case-Camel = Camel
+case-Kebab = Kebab
+case-Pascal = Pascal
+case-ShoutyKebab = Shouty Kebab
+case-ShoutySnake = Shouty Snake
+case-Snake = Snake
+case-Title = Title
+case-Train = Train
+
+## CaseValidation
+
+case_validation = Case Validation { $actual } { $case }
+
+## CreditCardValidation
+
+credit_card_validation = Credit Card Validation { $actual }
+
+## EmailValidation
+
+email_validation = Email Validation { $actual }
+
+## PatternValidation
+
+pattern_validation = Pattern Validation { $pattern } { $actual }
+
+## PhoneNumberValidation
+
+phone_number_validation = Phone Number Validation { $actual }
+
+## UrlValidation
+
+url_validation = Url Validation { $actual }

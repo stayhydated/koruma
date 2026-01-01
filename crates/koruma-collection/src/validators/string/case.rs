@@ -26,7 +26,7 @@ use heck::{
 use koruma::{KorumaResult, Validate, validator};
 
 /// Represents different string case formats.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub enum Case {
     /// snake_case

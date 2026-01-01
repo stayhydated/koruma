@@ -28,20 +28,7 @@ smallvec = { optional = true, workspace = true }
 heck = { optional = true, workspace = true }
 
 [features]
-credit-card = [ "dep:card-validate" ]
 default = [ "fmt" ]
-email = [ "dep:regex" ]
-email-idna = [ "dep:idna" ]
-smallvec = [ "dep:smallvec" ]
-fluent = [
-  "koruma/fluent",
-  "dep:es-fluent",
-  "dep:es-fluent-manager-embedded",
-  "dep:unic-langid",
-  "dep:rust-embed",
-]
-fmt = [  ]
-heck = [ "dep:heck" ]
 full = [
   "heck",
   "fmt",
@@ -52,8 +39,22 @@ full = [
   "email-idna",
   "rust_decimal",
   "regex",
-  "smallvec"
+  "smallvec",
 ]
+full-fluent = [ "full", "fluent" ]
+fluent = [
+  "koruma/fluent",
+  "dep:es-fluent",
+  "dep:es-fluent-manager-embedded",
+  "dep:unic-langid",
+  "dep:rust-embed",
+]
+credit-card = [ "dep:card-validate" ]
+email = [ "dep:regex" ]
+email-idna = [ "dep:idna" ]
+smallvec = [ "dep:smallvec" ]
+fmt = [  ]
+heck = [ "dep:heck" ]
 phone-number = [ "dep:phonenumber" ]
 regex = [ "dep:regex" ]
 rust_decimal = [ "dep:rust_decimal" ]

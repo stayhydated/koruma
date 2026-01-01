@@ -46,55 +46,55 @@ suffix_validation = The value '{ $actual }' must end with '{ $suffix }'.
 
 ## NegativeValidation
 
-negative_validation = Negative Validation { $actual }
+negative_validation = The value '{ $actual }' must be negative.
 
 ## NonEmptyValidation
 
-non_empty_validation = Non Empty Validation { $actual }
+non_empty_validation = The value must not be empty.
 
 ## NonNegativeValidation
 
-non_negative_validation = Non Negative Validation { $actual }
+non_negative_validation = The value '{ $actual }' must be zero or a positive number.
 
 ## NonPositiveValidation
 
-non_positive_validation = Non Positive Validation { $actual }
+non_positive_validation = The value '{ $actual }' must be zero or a negative number.
 
 ## PositiveValidation
 
-positive_validation = Positive Validation { $actual }
+positive_validation = The value '{ $actual }' must be positive.
 
 ## Case
 
-case-Camel = Camel
-case-Kebab = Kebab
-case-Pascal = Pascal
-case-ShoutyKebab = Shouty Kebab
-case-ShoutySnake = Shouty Snake
-case-Snake = Snake
-case-Title = Title
-case-Train = Train
+case-Camel = camelCase (lower camel case)
+case-Kebab = kebab-case
+case-Pascal = PascalCase (upper camel case)
+case-ShoutyKebab = SCREAMING-KEBAB-CASE
+case-ShoutySnake = SCREAMING_SNAKE_CASE
+case-Snake = snake_case
+case-Title = Title Case
+case-Train = Train-Case
 
 ## CaseValidation
 
-case_validation = Case Validation { $actual } { $case }
+case_validation = The value '{ $actual }' must be in { $case } case.
 
 ## CreditCardValidation
 
-credit_card_validation = Credit Card Validation { $actual }
+credit_card_validation = The value '{ $actual }' is not a valid credit card number.
 
 ## EmailValidation
 
-email_validation = Email Validation { $actual }
+email_validation = The value '{ $actual }' is not a valid email address.
 
 ## PatternValidation
 
-pattern_validation = Pattern Validation { $pattern } { $actual }
+pattern_validation = The value '{ $actual }' does not match the required pattern '{ $pattern }'.
 
 ## PhoneNumberValidation
 
-phone_number_validation = Phone Number Validation { $actual }
+phone_number_validation = The value '{ $actual }' is not a valid phone number.
 
 ## UrlValidation
 
-url_validation = Url Validation { $actual }
+url_validation = The value '{ $actual }' is not a valid URL.

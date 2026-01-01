@@ -824,6 +824,7 @@ dependencies = [
  "regex",
  "rust-embed",
  "rust_decimal",
+ "smallvec",
  "unic-langid",
  "url",
 ]

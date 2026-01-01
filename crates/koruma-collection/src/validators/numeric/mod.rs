@@ -15,8 +15,14 @@ pub trait Numeric: PartialOrd + Default + Copy + Display {}
 
 impl<T: PartialOrd + Default + Copy + Display> Numeric for T {}
 
-pub mod negative;
-pub mod non_negative;
-pub mod non_positive;
-pub mod positive;
-pub mod range;
+mod negative;
+mod non_negative;
+mod non_positive;
+mod positive;
+mod range;
+
+pub use negative::NegativeValidation;
+pub use non_negative::NonNegativeValidation;
+pub use non_positive::NonPositiveValidation;
+pub use positive::PositiveValidation;
+pub use range::RangeValidation;

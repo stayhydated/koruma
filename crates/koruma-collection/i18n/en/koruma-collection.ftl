@@ -43,3 +43,23 @@ required_validation = This field is required and must not be empty.
 ## SuffixValidation
 
 suffix_validation = The value '{ $actual }' must end with '{ $suffix }'.
+
+## NegativeValidation
+
+negative_validation = Negative Validation { $actual }
+
+## NonEmptyValidation
+
+non_empty_validation = Non Empty Validation { $actual }
+
+## NonNegativeValidation
+
+non_negative_validation = Non Negative Validation { $actual }
+
+## NonPositiveValidation
+
+non_positive_validation = Non Positive Validation { $actual }
+
+## PositiveValidation
+
+positive_validation = Positive Validation { $actual }

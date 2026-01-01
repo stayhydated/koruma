@@ -75,5 +75,15 @@ impl<T, const N: usize> HasLen for [T; N] {
     }
 }
 
-pub mod len;
-pub mod non_empty;
+#[cfg(feature = "smallvec")]
+impl<T, const N: usize> HasLen for smallvec::SmallVec<[T; N]> {
+    fn len(&self) -> usize {
+        N
+    }
+}
+
+mod len;
+mod non_empty;
+
+pub use len::LenValidation;
+pub use non_empty::NonEmptyValidation;

@@ -10,11 +10,20 @@ pub trait StringLike: AsRef<str> {}
 
 impl<T: AsRef<str>> StringLike for T {}
 
-pub mod alphanumeric;
-pub mod ascii;
-pub mod contains;
-pub mod matches;
+mod alphanumeric;
+mod ascii;
+mod contains;
+mod matches;
 #[cfg(feature = "regex")]
-pub mod pattern;
-pub mod prefix;
-pub mod suffix;
+mod pattern;
+mod prefix;
+mod suffix;
+
+pub use alphanumeric::AlphanumericValidation;
+pub use ascii::AsciiValidation;
+pub use contains::ContainsValidation;
+pub use matches::MatchesValidation;
+#[cfg(feature = "regex")]
+pub use pattern::PatternValidation;
+pub use prefix::PrefixValidation;
+pub use suffix::SuffixValidation;

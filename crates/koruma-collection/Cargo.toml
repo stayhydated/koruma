@@ -25,6 +25,7 @@ rust_decimal = { optional = true, workspace = true }
 unic-langid = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
+heck = { optional = true, workspace = true }
 
 [features]
 credit-card = [ "dep:card-validate" ]
@@ -40,7 +41,9 @@ fluent = [
   "dep:rust-embed",
 ]
 fmt = [  ]
+heck = [ "dep:heck" ]
 full = [
+  "heck",
   "fmt",
   "url",
   "credit-card",

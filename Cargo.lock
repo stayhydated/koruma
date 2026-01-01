@@ -818,6 +818,7 @@ dependencies = [
  "card-validate",
  "es-fluent",
  "es-fluent-manager-embedded",
+ "heck",
  "idna",
  "koruma",
  "phonenumber",

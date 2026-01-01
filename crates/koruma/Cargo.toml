@@ -20,7 +20,7 @@ es-fluent = { optional = true, workspace = true }
 [features]
 default = [ "derive", "fn-macro-helper" ]
 derive = [ "dep:koruma-derive" ]
-fluent = [ "dep:es-fluent" ]
+fluent = [ "dep:es-fluent", "koruma-derive?/fluent" ]
 fn-macro-helper = [ "koruma-derive/fn-macro-helper" ]
 
 [package.metadata.docs.rs]

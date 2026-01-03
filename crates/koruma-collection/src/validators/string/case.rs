@@ -11,10 +11,10 @@
 //!
 //! #[derive(Koruma)]
 //! struct Config {
-//!     #[koruma(CaseValidation<_, Case::Snake>)]
+//!     #[koruma(CaseValidation<_>(case = Case::Snake))]
 //!     env_var_name: String,
 //!
-//!     #[koruma(CaseValidation<_, Case::Kebab>)]
+//!     #[koruma(CaseValidation<_>(case = Case::Kebab))]
 //!     css_class: String,
 //! }
 //! ```

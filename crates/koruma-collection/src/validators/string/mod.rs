@@ -12,8 +12,6 @@ impl<T: AsRef<str>> StringLike for T {}
 
 mod alphanumeric;
 mod ascii;
-#[cfg(feature = "heck")]
-mod case;
 mod contains;
 mod matches;
 #[cfg(feature = "regex")]
@@ -23,11 +21,11 @@ mod suffix;
 
 pub use alphanumeric::AlphanumericValidation;
 pub use ascii::AsciiValidation;
-#[cfg(feature = "heck")]
-pub use case::{Case, CaseValidation};
 pub use contains::ContainsValidation;
 pub use matches::MatchesValidation;
 #[cfg(feature = "regex")]
 pub use pattern::PatternValidation;
 pub use prefix::PrefixValidation;
 pub use suffix::SuffixValidation;
+
+pub mod en;

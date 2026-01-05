@@ -3,9 +3,6 @@
 //! This module contains validators for collection-based validation scenarios.
 
 /// Trait for types that have a measurable length.
-///
-/// Implemented for common std collections. Users can implement
-/// this for custom collection types.
 pub trait HasLen {
     fn len(&self) -> usize;
 

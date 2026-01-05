@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string matches a regular expression pattern.
 #[validator]
@@ -31,17 +31,17 @@ pub struct PatternValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         match regex::Regex::new(&self.pattern) {
             Ok(re) => {
                 if re.is_match(s) {
-                    Ok(())
+                    true
                 } else {
-                    Err(())
+                    false
                 }
             },
-            Err(_) => Err(()), // Invalid regex pattern
+            Err(_) => false, // Invalid regex pattern
         }
     }
 }

@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string is a valid phone number.
 #[validator]
@@ -29,19 +29,19 @@ pub struct PhoneNumberValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for PhoneNumberValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         use std::str::FromStr as _;
 
         let s = value.as_ref();
         match phonenumber::PhoneNumber::from_str(s) {
             Ok(number) => {
                 if number.is_valid() {
-                    Ok(())
+                    true
                 } else {
-                    Err(())
+                    false
                 }
             },
-            Err(_) => Err(()),
+            Err(_) => false,
         }
     }
 }

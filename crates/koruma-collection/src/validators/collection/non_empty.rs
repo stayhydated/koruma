@@ -17,7 +17,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 use super::HasLen;
 
@@ -35,8 +35,8 @@ pub struct NonEmptyValidation<T: HasLen> {
 }
 
 impl<T: HasLen + Clone> Validate<T> for NonEmptyValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
-        if value.is_empty() { Err(()) } else { Ok(()) }
+    fn validate(&self, value: &T) -> bool {
+        if value.is_empty() { false } else { true }
     }
 }
 

@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 use super::Numeric;
 
@@ -31,12 +31,8 @@ pub struct NegativeValidation<T: Numeric> {
 }
 
 impl<T: Numeric> Validate<T> for NegativeValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
-        if *value < T::default() {
-            Ok(())
-        } else {
-            Err(())
-        }
+    fn validate(&self, value: &T) -> bool {
+        *value < T::default()
     }
 }
 

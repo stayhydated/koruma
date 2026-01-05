@@ -36,7 +36,7 @@ where
 macro_rules! impl_generic_range_validation {
     ($($t:ty),+ $(,)? => $validate:expr) => {
         $(impl koruma::Validate < $t > for GenericRangeValidation < $t > { fn validate(&
-        self, value : & $t) -> koruma::KorumaResult { let f : fn (& Self, & $t) -> bool =
-        $validate; if f(self, value) { Ok(()) } else { Err(()) } } })+
+        self, value : & $t) -> bool { let f : fn (& Self, & $t) -> bool = $validate;
+        f(self, value) } })+
     };
 }

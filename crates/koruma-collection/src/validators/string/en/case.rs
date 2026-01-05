@@ -23,7 +23,7 @@ use heck::{
     ToKebabCase, ToLowerCamelCase, ToShoutyKebabCase, ToShoutySnakeCase, ToSnakeCase, ToTitleCase,
     ToTrainCase, ToUpperCamelCase,
 };
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Represents different string case formats.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -94,12 +94,12 @@ pub struct CaseValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for CaseValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         if s == self.case.convert(s) {
-            Ok(())
+            true
         } else {
-            Err(())
+            false
         }
     }
 }

@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 use super::HasLen;
 
@@ -37,12 +37,12 @@ pub struct LenValidation<T: HasLen> {
 }
 
 impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let len = value.len();
         if len < self.min || len > self.max {
-            Err(())
+            false
         } else {
-            Ok(())
+            true
         }
     }
 }

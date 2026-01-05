@@ -89,7 +89,7 @@ impl Scores {
             fn __koruma_assert_validate_values_range_validation_element<
                 V: koruma::Validate<T>,
                 T,
-            >(v: &V, t: &T) -> Result<(), ()> {
+            >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
             let validator = RangeValidation::<i32>::builder()
@@ -97,12 +97,10 @@ impl Scores {
                 .max(100)
                 .with_value(__item_value.clone())
                 .build();
-            if __koruma_assert_validate_values_range_validation_element(
-                    &validator,
-                    __item_value,
-                )
-                .is_err()
-            {
+            if !__koruma_assert_validate_values_range_validation_element(
+                &validator,
+                __item_value,
+            ) {
                 element_error.range_validation = Some(validator);
                 element_has_error = true;
             }

@@ -84,8 +84,8 @@ fn test_generic_validator_i32() {
         .with_value(50)
         .build();
 
-    assert!(validator.validate(&50).is_ok());
-    assert!(validator.validate(&150).is_err());
+    assert!(validator.validate(&50));
+    assert!(!validator.validate(&150));
     assert_eq!(validator.actual, 50);
 }
 
@@ -97,8 +97,8 @@ fn test_generic_validator_f64() {
         .with_value(0.5)
         .build();
 
-    assert!(validator.validate(&0.5).is_ok());
-    assert!(validator.validate(&1.5).is_err());
+    assert!(validator.validate(&0.5));
+    assert!(!validator.validate(&1.5));
     assert_eq!(validator.actual, 0.5);
 }
 

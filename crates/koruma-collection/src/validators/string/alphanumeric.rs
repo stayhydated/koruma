@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string contains only alphanumeric characters.
 #[validator]
@@ -29,12 +29,12 @@ pub struct AlphanumericValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for AlphanumericValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         if s.chars().all(|c| c.is_alphanumeric()) {
-            Ok(())
+            true
         } else {
-            Err(())
+            false
         }
     }
 }

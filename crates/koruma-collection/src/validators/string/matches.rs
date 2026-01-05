@@ -16,7 +16,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a value matches another value.
 #[validator]
@@ -33,12 +33,8 @@ pub struct MatchesValidation<T: std::fmt::Display + Clone> {
 }
 
 impl<T: PartialEq + std::fmt::Display + Clone> Validate<T> for MatchesValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
-        if value == &self.other {
-            Ok(())
-        } else {
-            Err(())
-        }
+    fn validate(&self, value: &T) -> bool {
+        value == &self.other
     }
 }
 

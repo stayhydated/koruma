@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string starts with a specified prefix.
 #[validator]
@@ -31,12 +31,12 @@ pub struct PrefixValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for PrefixValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         if s.starts_with(&self.prefix) {
-            Ok(())
+            true
         } else {
-            Err(())
+            false
         }
     }
 }

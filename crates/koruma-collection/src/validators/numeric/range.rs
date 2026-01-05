@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a numeric value is within specified bounds.
 #[validator]
@@ -43,7 +43,7 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
 }
 
 impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let lower_ok = if self.exclusive_min {
             *value > self.min
         } else {
@@ -56,11 +56,7 @@ impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T
             *value <= self.max
         };
 
-        if lower_ok && upper_ok {
-            Ok(())
-        } else {
-            Err(())
-        }
+        lower_ok && upper_ok
     }
 }
 

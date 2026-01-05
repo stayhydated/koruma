@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// The type of IP address to validate
 #[derive(Clone, Debug)]
@@ -50,28 +50,28 @@ pub struct IpValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for IpValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         match self.kind {
             IpKind::Any => {
                 if s.parse::<std::net::IpAddr>().is_ok() {
-                    Ok(())
+                    true
                 } else {
-                    Err(())
+                    false
                 }
             },
             IpKind::V4 => {
                 if s.parse::<std::net::Ipv4Addr>().is_ok() {
-                    Ok(())
+                    true
                 } else {
-                    Err(())
+                    false
                 }
             },
             IpKind::V6 => {
                 if s.parse::<std::net::Ipv6Addr>().is_ok() {
-                    Ok(())
+                    true
                 } else {
-                    Err(())
+                    false
                 }
             },
         }

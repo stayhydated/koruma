@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a value is present (not None for Option types).
 #[validator]
@@ -29,8 +29,8 @@ pub struct RequiredValidation<T> {
 }
 
 impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
-    fn validate(&self, value: &Option<T>) -> KorumaResult {
-        if value.is_some() { Ok(()) } else { Err(()) }
+    fn validate(&self, value: &Option<T>) -> bool {
+        value.is_some()
     }
 }
 

@@ -90,7 +90,7 @@ impl Order {
             fn __koruma_assert_validate_scores_generic_range_validation_element<
                 V: koruma::Validate<T>,
                 T,
-            >(v: &V, t: &T) -> Result<(), ()> {
+            >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
             let validator = GenericRangeValidation::<f64>::builder()
@@ -98,12 +98,10 @@ impl Order {
                 .max(100.0)
                 .with_value(__item_value.clone())
                 .build();
-            if __koruma_assert_validate_scores_generic_range_validation_element(
-                    &validator,
-                    __item_value,
-                )
-                .is_err()
-            {
+            if !__koruma_assert_validate_scores_generic_range_validation_element(
+                &validator,
+                __item_value,
+            ) {
                 element_error.generic_range_validation = Some(validator);
                 element_has_error = true;
             }

@@ -25,9 +25,17 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
     /// Minimum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub min: T,
+    /// Whether the minimum value is exclusive
+    #[cfg_attr(feature = "fluent", fluent(skip))]
+    #[builder(default = false)]
+    pub exclusive_min: bool,
     /// Maximum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub max: T,
+    /// Whether the maximum value is exclusive
+    #[cfg_attr(feature = "fluent", fluent(skip))]
+    #[builder(default = false)]
+    pub exclusive_max: bool,
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
@@ -36,7 +44,19 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
 
 impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T> {
     fn validate(&self, value: &T) -> KorumaResult {
-        if *value >= self.min && *value <= self.max {
+        let lower_ok = if self.exclusive_min {
+            *value > self.min
+        } else {
+            *value >= self.min
+        };
+
+        let upper_ok = if self.exclusive_max {
+            *value < self.max
+        } else {
+            *value <= self.max
+        };
+
+        if lower_ok && upper_ok {
             Ok(())
         } else {
             Err(())

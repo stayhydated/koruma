@@ -9,8 +9,6 @@ use std::fmt::Display;
 /// This trait is automatically implemented for all types that satisfy the bounds:
 /// `PartialOrd + Default + Copy + Display`.
 ///
-/// This is a stable Rust pattern for trait aliases, providing a convenient
-/// bound for numeric validators.
 pub trait Numeric: PartialOrd + Default + Copy + Display {}
 
 impl<T: PartialOrd + Default + Copy + Display> Numeric for T {}

@@ -25,6 +25,8 @@ struct App {
     selected: usize,
     /// Current validator instance (created from input)
     current_validator: Option<Box<dyn DynValidator>>,
+    /// Current language for fluent output
+    current_language: Languages,
     /// Whether the app should exit
     should_exit: bool,
 }
@@ -37,6 +39,7 @@ impl App {
             validators,
             selected: 0,
             current_validator: None,
+            current_language: Languages::default(),
             should_exit: false,
         }
     }
@@ -70,6 +73,11 @@ impl App {
         }
     }
 
+    fn next_language(&mut self) {
+        self.current_language = self.current_language.next();
+        super::i18n::change_locale(self.current_language).unwrap();
+    }
+
     fn handle_key_event(&mut self, key: event::KeyEvent) {
         if key.kind != KeyEventKind::Press {
             return;
@@ -79,8 +87,7 @@ impl App {
             KeyCode::Esc => self.should_exit = true,
             KeyCode::Up => self.prev_validator(),
             KeyCode::Down => self.next_validator(),
-            KeyCode::Left => self.prev_validator(),
-            KeyCode::Right => self.next_validator(),
+            KeyCode::Tab => self.next_language(),
             KeyCode::Char(c) => {
                 self.input.handle(InputRequest::InsertChar(c));
                 self.validate_input();
@@ -295,8 +302,10 @@ impl App {
 
     fn render_help(&self, frame: &mut Frame, area: Rect) {
         let help_text = Line::from(vec![
-            Span::styled("←/→ or ↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" change validator  "),
+            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
+            Span::raw(" validator  "),
+            Span::styled("Tab", Style::default().fg(Color::Cyan)),
+            Span::raw(" cycle language  "),
             Span::styled("Esc", Style::default().fg(Color::Cyan)),
             Span::raw(" quit"),
         ]);
@@ -309,7 +318,7 @@ impl App {
 /// Run the TUI application.
 pub fn run() -> io::Result<()> {
     super::i18n::init();
-    super::i18n::change_locale(Languages::ZhCn).unwrap();
+    let _ = super::i18n::change_locale(Languages::default());
     let mut terminal = ratatui::init();
     let result = App::new().run(&mut terminal);
     ratatui::restore();

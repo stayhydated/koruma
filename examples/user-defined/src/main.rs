@@ -1,6 +1,6 @@
 use es_fluent::ToFluentString as _;
-use koruma_custom_example::{Account, AccountSettings, Address, Customer, Item, User, i18n};
 use koruma_shared_lib::Languages;
+use koruma_user_defined_example::{Account, AccountSettings, Address, Customer, Item, User, i18n};
 use strum::IntoEnumIterator as _;
 
 pub fn main() {

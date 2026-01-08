@@ -75,7 +75,7 @@ pub struct OrderWithLenCheck {
 
 /// Example struct demonstrating nested validation.
 /// Address is a nested struct that also derives Koruma.
-#[derive(Koruma, Clone)]
+#[derive(Clone, Koruma)]
 pub struct Address {
     #[koruma(StringLengthValidation(min = 1, max = 100))]
     pub street: String,
@@ -110,7 +110,7 @@ pub struct CustomerWithOptionalAddress {
 }
 
 /// Example struct with deeply nested validation (nested within nested).
-#[derive(Koruma, Clone)]
+#[derive(Clone, Koruma)]
 pub struct Company {
     #[koruma(StringLengthValidation(min = 1, max = 200))]
     pub company_name: String,

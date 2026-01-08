@@ -1098,20 +1098,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "koruma-custom-example"
-version = "0.1.0"
-dependencies = [
- "bon",
- "es-fluent",
- "es-fluent-manager-embedded",
- "koruma",
- "koruma-shared-lib",
- "rust-embed",
- "strum 0.27.2",
- "unic-langid",
-]
-
-[[package]]
 name = "koruma-derive"
 version = "0.1.0"
 dependencies = [
@@ -1132,6 +1118,20 @@ dependencies = [
  "es-fluent",
  "es-fluent-lang",
  "es-fluent-manager-embedded",
+ "rust-embed",
+ "strum 0.27.2",
+ "unic-langid",
+]
+
+[[package]]
+name = "koruma-user-defined-example"
+version = "0.1.0"
+dependencies = [
+ "bon",
+ "es-fluent",
+ "es-fluent-manager-embedded",
+ "koruma",
+ "koruma-shared-lib",
  "rust-embed",
  "strum 0.27.2",
  "unic-langid",

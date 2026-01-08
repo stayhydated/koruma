@@ -6,7 +6,7 @@ members = [
   "crates/koruma-core",
   "crates/koruma-derive",
   "examples/collection",
-  "examples/custom",
+  "examples/user-defined",
   "examples/shared-lib",
 ]
 resolver = "3"

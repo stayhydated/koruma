@@ -37,7 +37,7 @@ pub struct User {
 
 /// A nested struct representing a physical address.
 /// Uses Display-based validators.
-#[derive(Koruma, Clone)]
+#[derive(Clone, Koruma)]
 pub struct Address {
     #[koruma(StringLengthValidation(min = 1, max = 100))]
     pub street: String,
@@ -70,7 +70,7 @@ pub struct Customer {
 
 /// A nested struct representing account settings.
 /// Uses EsFluent-based validators for i18n support.
-#[derive(Koruma, Clone)]
+#[derive(Clone, Koruma)]
 pub struct AccountSettings {
     #[koruma(PositiveNumberValidation<_>)]
     pub max_login_attempts: i32,

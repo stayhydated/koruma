@@ -30,8 +30,8 @@ koruma = { version = "*", features = ["derive"] }
 
 ## Examples
 
-- [koruma-collection](examples/collection)
-- [custom](examples/custom)
+- [koruma-collection](../../examples/collection)
+- [user-defined](../../examples/user-defined)
 
 ## Quick Start
 

@@ -35,3 +35,21 @@ impl Validate<String> for NonEmptyStringValidation {
         !value.is_empty()
     }
 }
+
+/// A validation rule that checks if a number is positive.
+/// Uses `EsFluent` for internationalized error messages.
+#[validator]
+#[derive(Clone, Debug, EsFluent)]
+pub struct PositiveNumberValidation<T: Clone + Copy + std::fmt::Display + PartialOrd + Default> {
+    #[koruma(value)]
+    #[fluent(value(|x: &T| x.to_string()))]
+    pub actual: T,
+}
+
+impl<T: Copy + std::fmt::Display + PartialOrd + Default> Validate<T>
+    for PositiveNumberValidation<T>
+{
+    fn validate(&self, value: &T) -> bool {
+        *value > T::default()
+    }
+}

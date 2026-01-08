@@ -60,3 +60,25 @@ impl fmt::Display for StringLengthValidation {
         )
     }
 }
+
+/// A validation rule that checks if a string matches an expected value.
+/// Uses `Display` for simple string error messages.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct ZipCodeValidation {
+    #[koruma(value)]
+    pub input: String,
+}
+
+impl Validate<String> for ZipCodeValidation {
+    fn validate(&self, value: &String) -> bool {
+        // Simple validation: 5 digits
+        value.len() == 5 && value.chars().all(|c| c.is_ascii_digit())
+    }
+}
+
+impl fmt::Display for ZipCodeValidation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Zip code '{}' must be exactly 5 digits", self.input)
+    }
+}

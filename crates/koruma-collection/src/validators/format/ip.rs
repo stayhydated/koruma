@@ -53,15 +53,9 @@ impl<T: AsRef<str>> Validate<T> for IpValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         match self.kind {
-            IpKind::Any => {
-                s.parse::<std::net::IpAddr>().is_ok()
-            },
-            IpKind::V4 => {
-                s.parse::<std::net::Ipv4Addr>().is_ok()
-            },
-            IpKind::V6 => {
-                s.parse::<std::net::Ipv6Addr>().is_ok()
-            },
+            IpKind::Any => s.parse::<std::net::IpAddr>().is_ok(),
+            IpKind::V4 => s.parse::<std::net::Ipv4Addr>().is_ok(),
+            IpKind::V6 => s.parse::<std::net::Ipv6Addr>().is_ok(),
         }
     }
 }

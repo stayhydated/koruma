@@ -1,5 +1,5 @@
 [workspace]
-default-members = [ "examples/custom", "examples/collection" ]
+default-members = [ "examples/collection" ]
 members = [
   "crates/koruma",
   "crates/koruma-collection",
@@ -23,6 +23,7 @@ version = "0.1.0"
 [workspace.dependencies]
 bon = "3.8.1"
 card-validate = "2.4"
+crossterm = "0.29"
 derive-getters = "0.5.0"
 es-fluent = "0.5.2"
 es-fluent-lang = "0.5.2"
@@ -30,6 +31,7 @@ es-fluent-manager-embedded = "0.5.2"
 heck = "0.5.0"
 idna = "1"
 insta = "1.46.0"
+inventory = "0.3.21"
 koruma = { path = "crates/koruma", version = "0.1.0" }
 koruma-collection = { path = "crates/koruma-collection", version = "0.1.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.1.0" }
@@ -40,11 +42,13 @@ prettyplease = "0.2"
 proc-macro-error2 = "2"
 proc-macro2 = "1"
 quote = "1"
+ratatui = "0.30"
 regex = "1"
 rust-embed = "8.9.0"
 rust_decimal = "1"
 smallvec = "1.15.1"
 strum = "0.27.2"
 syn = "2"
+tui-input = "0.12"
 unic-langid = "0.9.6"
 url = "2"

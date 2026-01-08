@@ -23,6 +23,17 @@ use super::HasLen;
 ///
 /// Works with any type that implements `HasLen + Clone`.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Length",
+    description = "Validates string length is between 1 and 10",
+    create = |input: &str| {
+        LenValidation::builder()
+            .min(1)
+            .max(10)
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct LenValidation<T: HasLen> {

@@ -10,8 +10,8 @@ publish = false
 bon = { workspace = true }
 es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
-koruma = { workspace = true }
+koruma = { features = [ "derive" ], workspace = true }
+koruma-shared-lib = { path = "../shared-lib" }
 rust-embed = { workspace = true }
-shared-lib = { path = "../shared-lib" }
 strum = { features = [ "derive" ], workspace = true }
 unic-langid = { workspace = true }

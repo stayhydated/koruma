@@ -3,13 +3,13 @@ name = "koruma-collection"
 description = """
 A collection of common validators using koruma.
 """
+version.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-readme.workspace = true
 repository.workspace = true
-rust-version.workspace = true
-version.workspace = true
+readme = "README.md"
 
 [dependencies]
 bon = { workspace = true }
@@ -17,6 +17,7 @@ card-validate = { optional = true, workspace = true }
 es-fluent = { features = [ "derive" ], optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
 idna = { optional = true, workspace = true }
+inventory = { optional = true, workspace = true }
 koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
@@ -49,6 +50,7 @@ fluent = [
   "dep:unic-langid",
   "dep:rust-embed",
 ]
+showcase = [ "full", "koruma/showcase" ]
 credit-card = [ "dep:card-validate" ]
 email = [ "dep:regex" ]
 email-idna = [ "dep:idna" ]
@@ -61,4 +63,19 @@ rust_decimal = [ "dep:rust_decimal" ]
 url = [ "dep:url" ]
 
 [package.metadata.docs.rs]
-all-features = true
+features = [
+  "default",
+  "full",
+  "full-fluent",
+  "fluent",
+  "credit-card",
+  "email",
+  "email-idna",
+  "smallvec",
+  "fmt",
+  "heck",
+  "phone-number",
+  "regex",
+  "rust_decimal",
+  "url",
+]

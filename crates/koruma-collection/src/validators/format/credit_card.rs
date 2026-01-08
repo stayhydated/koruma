@@ -19,6 +19,15 @@ use koruma::{Validate, validator};
 
 /// Validates that a string is a valid credit card number.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Credit Card",
+    description = "Validates that the input is a valid credit card number",
+    create = |input: &str| {
+        CreditCardValidation::builder()
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct CreditCardValidation<T: AsRef<str>> {

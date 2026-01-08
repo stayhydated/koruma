@@ -19,6 +19,16 @@ use koruma::{Validate, validator};
 
 /// Validates that a string starts with a specified prefix.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Prefix 'hello'",
+    description = "Validates that the input starts with 'hello'",
+    create = |input: &str| {
+        PrefixValidation::builder()
+            .prefix("hello".to_string())
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct PrefixValidation<T: AsRef<str>> {

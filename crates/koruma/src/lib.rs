@@ -18,3 +18,10 @@ pub use koruma_derive::KorumaAllFluent;
 
 #[cfg(feature = "fluent")]
 pub use es_fluent;
+
+#[cfg(feature = "showcase")]
+pub use koruma_core::showcase;
+
+#[cfg(feature = "showcase")]
+#[doc(hidden)]
+pub use inventory;

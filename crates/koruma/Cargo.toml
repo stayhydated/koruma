@@ -13,6 +13,7 @@ readme = "README.md"
 
 [dependencies]
 bon = { workspace = true }
+inventory = { optional = true, workspace = true }
 koruma-core = { workspace = true }
 koruma-derive = { optional = true, workspace = true }
 es-fluent = { optional = true, workspace = true }
@@ -21,6 +22,7 @@ es-fluent = { optional = true, workspace = true }
 default = [ "derive" ]
 derive = [ "dep:koruma-derive" ]
 fluent = [ "dep:es-fluent", "koruma-derive?/fluent" ]
+showcase = [ "dep:inventory", "koruma-core/showcase", "koruma-derive?/showcase" ]
 
 [package.metadata.docs.rs]
-all-features = true
+features = [ "derive", "fluent" ]

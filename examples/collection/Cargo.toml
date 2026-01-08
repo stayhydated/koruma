@@ -7,12 +7,14 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
-bon = { workspace = true }
+crossterm = { workspace = true }
 es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
-koruma = { features = [ "fluent" ], workspace = true }
-koruma-collection = { features = [ "full", "fluent" ], workspace = true }
+koruma = { features = [ "showcase", "derive" ], workspace = true }
+koruma-collection = { features = [ "showcase", "fluent", "fmt" ], workspace = true }
+koruma-shared-lib = { path = "../shared-lib" }
+ratatui = { workspace = true }
 rust-embed = { workspace = true }
-shared-lib = { path = "../shared-lib" }
 strum = { features = [ "derive" ], workspace = true }
+tui-input = { workspace = true }
 unic-langid = { workspace = true }

@@ -2,6 +2,6 @@
 
 non_empty_string_validation = Expected a non-empty string, received "{ $input }"
 
-## PositiveNumberValidation
+## IsEvenNumberValidation
 
-positive_number_validation = Expected a positive number, received "{ $actual }"
+is_even_number_validation = Expected an even number, received "{ $actual }"

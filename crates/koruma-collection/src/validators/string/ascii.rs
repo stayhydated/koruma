@@ -19,6 +19,15 @@ use koruma::{Validate, validator};
 
 /// Validates that a string contains only ASCII characters.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "ASCII",
+    description = "Validates that the input contains only ASCII characters",
+    create = |input: &str| {
+        AsciiValidation::builder()
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct AsciiValidation<T: AsRef<str>> {

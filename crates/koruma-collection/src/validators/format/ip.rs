@@ -38,6 +38,16 @@ impl std::fmt::Display for IpKind {
 
 /// Validates that a string is a valid IP address.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "IP Address",
+    description = "Validates that the input is a valid IP address (v4 or v6)",
+    create = |input: &str| {
+        IpValidation::builder()
+            .kind(IpKind::Any)
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct IpValidation<T: AsRef<str>> {

@@ -1,6 +1,6 @@
 use es_fluent::ToFluentString as _;
 use koruma_custom_example::{Item, User, i18n};
-use shared_lib::Languages;
+use koruma_shared_lib::Languages;
 use strum::IntoEnumIterator as _;
 
 pub fn main() {
@@ -39,8 +39,8 @@ pub fn main() {
     println!("EsFluent-based Error Messages \n");
 
     let user = User {
-        id: -5,
-        username: "".to_string(),
+        id: 1,                    // Invalid: not even
+        username: "".to_string(), // Invalid: empty
     };
 
     for lang in Languages::iter() {
@@ -57,7 +57,7 @@ pub fn main() {
             Err(errors) => {
                 use es_fluent::ToFluentString;
 
-                if let Some(id_err) = errors.id().positive_number_validation() {
+                if let Some(id_err) = errors.id().is_even_number_validation() {
                     // This now prints in the language selected above
                     println!("  - id: {}", id_err.to_fluent_string());
                 }
@@ -87,7 +87,7 @@ pub fn main() {
     }
 
     let valid_user = User {
-        id: 1,
+        id: 2,
         username: "alice".to_string(),
     };
 

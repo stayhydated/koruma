@@ -19,6 +19,16 @@ use koruma::{Validate, validator};
 
 /// Validates that a string contains a specified substring.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Contains 'test'",
+    description = "Validates that the input contains the substring 'test'",
+    create = |input: &str| {
+        ContainsValidation::builder()
+            .substring("test".to_string())
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct ContainsValidation<T: AsRef<str>> {

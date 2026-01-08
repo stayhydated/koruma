@@ -13,14 +13,24 @@ A per-field validation library for Rust with struct-based errors.
 - Generic validator support with type inference
 - Optional field support (skips validation when `None`)
 
+## koruma-collection
+
+[![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
+[![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
+
+provides a collection of common validators, with partial i18n support (`en`, `fr`).
+
 ## Installation
 
 ```toml
 [dependencies]
-koruma = "*"
-
-koruma = { version = "*" }
+koruma = { version = "*", features = ["derive"] }
 ```
+
+## Examples
+
+- [koruma-collection](examples/collection)
+- [custom](examples/custom)
 
 ## Quick Start
 
@@ -67,16 +77,6 @@ impl<T: PartialOrd + Clone> Validate<T> for RangeValidation<T> {
         *value >= self.min && *value <= self.max
     }
 }
-
-// Use <_> to infer the type from the field
-#[derive(Koruma)]
-pub struct Measurements {
-    #[koruma(RangeValidation<_>(min = 0.0, max = 100.0))]
-    pub temperature: f64,
-
-    #[koruma(RangeValidation<_>(min = 0, max = 1000))]
-    pub pressure: i32,
-}
 ```
 
 ### Validating Structs
@@ -96,6 +96,16 @@ pub struct User {
 
     // Fields without #[koruma(...)] are not validated
     pub internal_id: u64,
+}
+
+// Use <_> to infer the type from the field
+#[derive(Koruma)]
+pub struct Measurements {
+    #[koruma(RangeValidation<_>(min = 0.0, max = 100.0))]
+    pub temperature: f64,
+
+    #[koruma(RangeValidation<_>(min = 0, max = 1000))]
+    pub pressure: i32,
 }
 ```
 

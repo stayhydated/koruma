@@ -19,6 +19,15 @@ use koruma::{Validate, validator};
 
 /// Validates that a string is a valid URL.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "URL",
+    description = "Validates that the input is a valid URL",
+    create = |input: &str| {
+        UrlValidation::builder()
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct UrlValidation<T: AsRef<str>> {

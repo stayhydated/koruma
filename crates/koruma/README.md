@@ -29,7 +29,7 @@ koruma = { version = "0.1" }
 Use `#[koruma::validator]` to define validation rules. Each validator must have a field marked with `#[koruma(value)]` to capture the validated value:
 
 ```rs
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 #[koruma::validator]
 #[derive(Clone, Debug)]
@@ -41,19 +41,15 @@ pub struct NumberRangeValidation {
 }
 
 impl Validate<i32> for NumberRangeValidation {
-    fn validate(&self, value: &i32) -> KorumaResult {
-        if *value < self.min || *value > self.max {
-            Err(())
-        } else {
-            Ok(())
-        }
+    fn validate(&self, value: &i32) -> bool {
+        *value >= self.min && *value <= self.max
     }
 }
 ```
 
 ### Generic Validators
 
-For validators that work with multiple types, use generics and the `<_>` syntax for type inference:
+For validators that work with multiple types, use generics with a blanket impl:
 
 ```rs
 #[koruma::validator]
@@ -65,12 +61,12 @@ pub struct RangeValidation<T> {
     pub actual: T,
 }
 
-// Use the auto-generated macro to implement Validate for multiple types.
-// Provide the validation logic as a closure: |self, value| -> bool
-impl_range_validation!(
-    i32, i64, f32, f64
-    => |this, value| *value >= this.min && *value <= this.max
-);
+// Use a blanket impl with trait bounds
+impl<T: PartialOrd + Clone> Validate<T> for RangeValidation<T> {
+    fn validate(&self, value: &T) -> bool {
+        *value >= self.min && *value <= self.max
+    }
+}
 
 // Use <_> to infer the type from the field
 #[derive(Koruma)]

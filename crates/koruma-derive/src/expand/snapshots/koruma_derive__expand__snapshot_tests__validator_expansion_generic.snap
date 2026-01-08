@@ -24,19 +24,3 @@ where
         self.actual(value)
     }
 }
-/// Auto-generated macro for implementing `Validate` for multiple types.
-///
-/// # Example
-/// ```ignore
-/// #macro_name!(i32, i64, f32, f64 => |self, value| {
-///     *value >= self.min && *value <= self.max
-/// });
-/// ```
-#[macro_export]
-macro_rules! impl_generic_range_validation {
-    ($($t:ty),+ $(,)? => $validate:expr) => {
-        $(impl koruma::Validate < $t > for GenericRangeValidation < $t > { fn validate(&
-        self, value : & $t) -> bool { let f : fn (& Self, & $t) -> bool = $validate;
-        f(self, value) } })+
-    };
-}

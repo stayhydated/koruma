@@ -12,7 +12,6 @@ repository.workspace = true
 readme.workspace = true
 
 [features]
-fn-macro-helper = [  ]
 fluent = [  ]
 
 [lib]

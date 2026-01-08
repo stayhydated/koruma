@@ -323,40 +323,6 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let value_assoc_type = format_ident!("{}", value_pascal);
     let set_value_type = format_ident!("Set{}", value_pascal);
 
-    // Generate the impl macro for generic validators
-    #[cfg(feature = "fn-macro-helper")]
-    let impl_macro = if has_generics {
-        let macro_name = format_ident!("impl_{}", struct_name.to_string().to_snake_case());
-        quote! {
-            /// Auto-generated macro for implementing `Validate` for multiple types.
-            ///
-            /// # Example
-            /// ```ignore
-            /// #macro_name!(i32, i64, f32, f64 => |self, value| {
-            ///     *value >= self.min && *value <= self.max
-            /// });
-            /// ```
-            #[macro_export]
-            macro_rules! #macro_name {
-                ($($t:ty),+ $(,)? => $validate:expr) => {
-                    $(
-                        impl koruma::Validate<$t> for #struct_name<$t> {
-                            fn validate(&self, value: &$t) -> bool {
-                                let f: fn(&Self, &$t) -> bool = $validate;
-                                f(self, value)
-                            }
-                        }
-                    )+
-                };
-            }
-        }
-    } else {
-        quote! {}
-    };
-
-    #[cfg(not(feature = "fn-macro-helper"))]
-    let impl_macro = quote! {};
-
     let with_value_impl = if has_generics {
         // For generic validators, the builder is Builder<T, S> (type param first, then state)
         // Use the actual field type (inner_type) for the value parameter
@@ -433,8 +399,6 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         #input
 
         #with_value_impl
-
-        #impl_macro
     })
 }
 

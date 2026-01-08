@@ -3,13 +3,13 @@ name = "koruma-collection"
 description = """
 A collection of common validators using koruma.
 """
+version.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
-readme.workspace = true
 repository.workspace = true
-rust-version.workspace = true
-version.workspace = true
+readme = "README.md"
 
 [dependencies]
 bon = { workspace = true }

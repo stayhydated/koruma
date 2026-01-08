@@ -13,12 +13,24 @@ A per-field validation library for Rust with struct-based errors.
 - Generic validator support with type inference
 - Optional field support (skips validation when `None`)
 
+## koruma-collection
+
+[![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
+[![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
+
+provides a collection of common validators, with partial i18n support (`en`, `fr`).
+
 ## Installation
 
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive"] }
 ```
+
+## Examples
+
+- [koruma-collection](examples/collection)
+- [custom](examples/custom)
 
 ## Quick Start
 

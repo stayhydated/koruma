@@ -106,6 +106,12 @@ impl App {
             KeyCode::End => {
                 self.input.handle(InputRequest::GoToEnd);
             },
+            KeyCode::Left => {
+                self.input.handle(InputRequest::GoToPrevChar);
+            },
+            KeyCode::Right => {
+                self.input.handle(InputRequest::GoToNextChar);
+            },
             _ => {},
         }
     }

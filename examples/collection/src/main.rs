@@ -1,3 +1,3 @@
 fn main() -> std::io::Result<()> {
-    koruma_collection::tui::run()
+    koruma_collection_example::tui::run()
 }

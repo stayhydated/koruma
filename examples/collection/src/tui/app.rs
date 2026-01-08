@@ -1,5 +1,3 @@
-//! TUI application for interactive validator testing.
-
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
@@ -13,7 +11,7 @@ use ratatui::{
 };
 use tui_input::{Input, InputRequest};
 
-use crate::tui::i18n::Languages;
+use shared_lib::Languages;
 
 /// Application state for the TUI.
 struct App {
@@ -250,10 +248,7 @@ impl App {
     fn render_display_output(&self, frame: &mut Frame, area: Rect) {
         let (style, border_color, message) = match &self.current_validator {
             Some(v) => {
-                #[cfg(feature = "fmt")]
                 let msg = v.display_string();
-                #[cfg(not(feature = "fmt"))]
-                let msg = "(fmt feature required)".to_string();
                 if v.is_valid() {
                     (Style::default().fg(Color::Green), Color::Green, msg)
                 } else {
@@ -285,10 +280,7 @@ impl App {
     fn render_fluent_output(&self, frame: &mut Frame, area: Rect) {
         let (style, border_color, message) = match &self.current_validator {
             Some(v) => {
-                #[cfg(feature = "fluent")]
                 let msg = v.fluent_string();
-                #[cfg(not(feature = "fluent"))]
-                let msg = "(fluent feature required)".to_string();
                 if v.is_valid() {
                     (Style::default().fg(Color::Green), Color::Green, msg)
                 } else {

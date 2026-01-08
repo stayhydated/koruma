@@ -14,24 +14,19 @@ version.workspace = true
 [dependencies]
 bon = { workspace = true }
 card-validate = { optional = true, workspace = true }
-crossterm = { optional = true, workspace = true }
 es-fluent = { features = [ "derive" ], optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
 idna = { optional = true, workspace = true }
 inventory = { optional = true, workspace = true }
 koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
-ratatui = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
 rust-embed = { optional = true, workspace = true }
 rust_decimal = { optional = true, workspace = true }
-tui-input = { optional = true, workspace = true }
 unic-langid = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
 heck = { optional = true, workspace = true }
-es-fluent-lang = { optional = true, workspace = true }
-strum = { optional = true, workspace = true, features = ["derive"] }
 
 [features]
 default = [ "fmt" ]
@@ -55,18 +50,7 @@ fluent = [
   "dep:unic-langid",
   "dep:rust-embed",
 ]
-showcase = [
-  "full",
-  "koruma/showcase",
-  "es-fluent-lang",
-  "strum",
-]
-tui = [
-  "showcase",
-  "dep:crossterm",
-  "dep:ratatui",
-  "dep:tui-input",
-]
+showcase = [ "full", "koruma/showcase" ]
 credit-card = [ "dep:card-validate" ]
 email = [ "dep:regex" ]
 email-idna = [ "dep:idna" ]

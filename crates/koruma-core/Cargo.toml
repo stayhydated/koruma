@@ -12,11 +12,11 @@ repository.workspace = true
 readme.workspace = true
 
 [features]
-default = []
-showcase = ["dep:inventory"]
+default = [  ]
+showcase = [ "dep:inventory" ]
 
 [dependencies]
-inventory = { workspace = true, optional = true }
+inventory = { optional = true, workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true

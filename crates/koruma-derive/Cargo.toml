@@ -12,8 +12,8 @@ repository.workspace = true
 readme.workspace = true
 
 [features]
-fluent = []
-showcase = ["dep:inventory"]
+fluent = [  ]
+showcase = [ "dep:inventory" ]
 
 [dependencies.inventory]
 workspace = true

@@ -1058,22 +1058,17 @@ version = "0.1.0"
 dependencies = [
  "bon",
  "card-validate",
- "crossterm",
  "es-fluent",
- "es-fluent-lang",
  "es-fluent-manager-embedded",
  "heck",
  "idna",
  "inventory",
  "koruma",
  "phonenumber",
- "ratatui",
  "regex",
  "rust-embed",
  "rust_decimal",
  "smallvec",
- "strum 0.27.2",
- "tui-input",
  "unic-langid",
  "url",
 ]
@@ -1082,7 +1077,17 @@ dependencies = [
 name = "koruma-collection-example"
 version = "0.1.0"
 dependencies = [
+ "crossterm",
+ "es-fluent",
+ "es-fluent-manager-embedded",
+ "koruma",
  "koruma-collection",
+ "ratatui",
+ "rust-embed",
+ "shared-lib",
+ "strum 0.27.2",
+ "tui-input",
+ "unic-langid",
 ]
 
 [[package]]

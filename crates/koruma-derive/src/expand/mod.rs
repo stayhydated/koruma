@@ -340,10 +340,10 @@ impl Parse for ShowcaseAttr {
 #[cfg(feature = "showcase")]
 fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
     for attr in &input.attrs {
-        if attr.path().is_ident("showcase") {
-            if let Ok(parsed) = attr.parse_args::<ShowcaseAttr>() {
-                return Some(parsed);
-            }
+        if attr.path().is_ident("showcase")
+            && let Ok(parsed) = attr.parse_args::<ShowcaseAttr>()
+        {
+            return Some(parsed);
         }
     }
     None

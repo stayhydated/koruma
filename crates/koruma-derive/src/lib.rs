@@ -14,8 +14,6 @@ use expand::{expand_koruma, expand_koruma_all_display, expand_validator};
 /// - Adds `#[derive(bon::Builder)]` to the struct
 /// - Generates a `with_value` method on the builder that delegates to the field
 ///   marked with `#[koruma(value)]`
-/// - For generic validators, generates an `impl_<validator_name>!` macro for easy
-///   implementation of the `Validate` trait for multiple types
 ///
 /// # Example (non-generic)
 ///
@@ -26,24 +24,35 @@ use expand::{expand_koruma, expand_koruma_all_display, expand_validator};
 ///     min: i32,
 ///     max: i32,
 ///     #[koruma(value)]
-///     actual: Option<i32>,
+///     actual: i32,
+/// }
+///
+/// impl Validate<i32> for NumberRangeValidation {
+///     fn validate(&self, value: &i32) -> bool {
+///         *value >= self.min && *value <= self.max
+///     }
 /// }
 /// ```
 ///
 /// # Example (generic)
 ///
+/// For generic validators, use a blanket impl with trait bounds:
+///
 /// ```ignore
 /// #[koruma::validator]
 /// #[derive(Clone, Debug, EsFluent)]
-/// pub struct NumberRangeValidation<T> {
+/// pub struct RangeValidation<T> {
 ///     min: T,
 ///     max: T,
 ///     #[koruma(value)]
-///     actual: Option<T>,
+///     actual: T,
 /// }
 ///
-/// // Use the generated macro to implement Validate for multiple types:
-/// impl_number_range_validation!(i32, i64, u32, u64, f32, f64);
+/// impl<T: PartialOrd + Clone> Validate<T> for RangeValidation<T> {
+///     fn validate(&self, value: &T) -> bool {
+///         *value >= self.min && *value <= self.max
+///     }
+/// }
 /// ```
 #[proc_macro_error]
 #[proc_macro_attribute]

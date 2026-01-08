@@ -87,14 +87,14 @@ impl MultiValidatorItem {
             .max(100)
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.value.number_range_validation = Some(validator);
             has_error = true;
         }
         let validator = EvenNumberValidation::builder()
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.value.even_number_validation = Some(validator);
             has_error = true;
         }

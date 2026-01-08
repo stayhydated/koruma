@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string is a valid credit card number.
 #[validator]
@@ -29,12 +29,9 @@ pub struct CreditCardValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for CreditCardValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        match card_validate::Validate::from(s) {
-            Ok(_) => Ok(()),
-            Err(_) => Err(()),
-        }
+        card_validate::Validate::from(s).is_ok()
     }
 }
 

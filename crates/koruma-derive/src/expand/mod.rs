@@ -341,13 +341,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                 ($($t:ty),+ $(,)? => $validate:expr) => {
                     $(
                         impl koruma::Validate<$t> for #struct_name<$t> {
-                            fn validate(&self, value: &$t) -> koruma::KorumaResult {
+                            fn validate(&self, value: &$t) -> bool {
                                 let f: fn(&Self, &$t) -> bool = $validate;
-                                if f(self, value) {
-                                    Ok(())
-                                } else {
-                                    Err(())
-                                }
+                                f(self, value)
                             }
                         }
                     )+
@@ -1031,53 +1027,58 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let has_element_validators = f.has_element_validators();
 
             // Generate field-level validation checks
-            let field_validator_checks: Vec<TokenStream2> = f.field_validators.iter().map(|v| {
-                let validator = &v.validator;
-                let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
-                // For field validators, we never unwrap Vec - only Option.
-                // <_> uses the full field type (Vec<T> stays Vec<T>)
-                let effective_ty = effective_validation_type(field_ty, false);
+            let field_validator_checks: Vec<TokenStream2> = f
+                .field_validators
+                .iter()
+                .map(|v| {
+                    let validator = &v.validator;
+                    let validator_snake =
+                        format_ident!("{}", validator.to_string().to_snake_case());
+                    // For field validators, we never unwrap Vec - only Option.
+                    // <_> uses the full field type (Vec<T> stays Vec<T>)
+                    let effective_ty = effective_validation_type(field_ty, false);
 
-                let builder_calls: Vec<TokenStream2> = v
-                    .args
-                    .iter()
-                    .map(|(arg_name, arg_value)| {
-                        quote! { .#arg_name(#arg_value) }
-                    })
-                    .collect();
+                    let builder_calls: Vec<TokenStream2> = v
+                        .args
+                        .iter()
+                        .map(|(arg_name, arg_value)| {
+                            quote! { .#arg_name(#arg_value) }
+                        })
+                        .collect();
 
-                if v.infer_type {
-                    let assert_fn = format_ident!(
-                        "__koruma_assert_validate_{}_{}_field",
-                        field_name,
-                        validator_snake
-                    );
-                    quote! {
-                        fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
-                            v.validate(t)
+                    if v.infer_type {
+                        let assert_fn = format_ident!(
+                            "__koruma_assert_validate_{}_{}_field",
+                            field_name,
+                            validator_snake
+                        );
+                        quote! {
+                            fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
+                                v.validate(t)
+                            }
+                            let validator = #validator::<#effective_ty>::builder()
+                                #(#builder_calls)*
+                                .with_value(__field_value.clone())
+                                .build();
+                            if !#assert_fn(&validator, __field_value) {
+                                error.#field_name.#validator_snake = Some(validator);
+                                has_error = true;
+                            }
                         }
-                        let validator = #validator::<#effective_ty>::builder()
-                            #(#builder_calls)*
-                            .with_value(__field_value.clone())
-                            .build();
-                        if #assert_fn(&validator, __field_value).is_err() {
-                            error.#field_name.#validator_snake = Some(validator);
-                            has_error = true;
+                    } else {
+                        quote! {
+                            let validator = #validator::builder()
+                                #(#builder_calls)*
+                                .with_value(__field_value.clone())
+                                .build();
+                            if !validator.validate(__field_value) {
+                                error.#field_name.#validator_snake = Some(validator);
+                                has_error = true;
+                            }
                         }
                     }
-                } else {
-                    quote! {
-                        let validator = #validator::builder()
-                            #(#builder_calls)*
-                            .with_value(__field_value.clone())
-                            .build();
-                        if validator.validate(__field_value).is_err() {
-                            error.#field_name.#validator_snake = Some(validator);
-                            has_error = true;
-                        }
-                    }
-                }
-            }).collect();
+                })
+                .collect();
 
             // Generate element-level validation checks if we have element validators
             let element_validation = if has_element_validators {
@@ -1091,50 +1092,55 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let element_is_optional = is_option_type(element_ty);
                 let effective_element_ty = effective_validation_type(field_ty, true);
 
-                let element_validator_checks: Vec<TokenStream2> = f.element_validators.iter().map(|v| {
-                    let validator = &v.validator;
-                    let validator_snake = format_ident!("{}", validator.to_string().to_snake_case());
+                let element_validator_checks: Vec<TokenStream2> = f
+                    .element_validators
+                    .iter()
+                    .map(|v| {
+                        let validator = &v.validator;
+                        let validator_snake =
+                            format_ident!("{}", validator.to_string().to_snake_case());
 
-                    let builder_calls: Vec<TokenStream2> = v
-                        .args
-                        .iter()
-                        .map(|(arg_name, arg_value)| {
-                            quote! { .#arg_name(#arg_value) }
-                        })
-                        .collect();
+                        let builder_calls: Vec<TokenStream2> = v
+                            .args
+                            .iter()
+                            .map(|(arg_name, arg_value)| {
+                                quote! { .#arg_name(#arg_value) }
+                            })
+                            .collect();
 
-                    if v.infer_type {
-                        let assert_fn = format_ident!(
-                            "__koruma_assert_validate_{}_{}_element",
-                            field_name,
-                            validator_snake
-                        );
-                        quote! {
-                            fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> Result<(), ()> {
-                                v.validate(t)
+                        if v.infer_type {
+                            let assert_fn = format_ident!(
+                                "__koruma_assert_validate_{}_{}_element",
+                                field_name,
+                                validator_snake
+                            );
+                            quote! {
+                                fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
+                                    v.validate(t)
+                                }
+                                let validator = #validator::<#effective_element_ty>::builder()
+                                    #(#builder_calls)*
+                                    .with_value(__item_value.clone())
+                                    .build();
+                                if !#assert_fn(&validator, __item_value) {
+                                    element_error.#validator_snake = Some(validator);
+                                    element_has_error = true;
+                                }
                             }
-                            let validator = #validator::<#effective_element_ty>::builder()
-                                #(#builder_calls)*
-                                .with_value(__item_value.clone())
-                                .build();
-                            if #assert_fn(&validator, __item_value).is_err() {
-                                element_error.#validator_snake = Some(validator);
-                                element_has_error = true;
+                        } else {
+                            quote! {
+                                let validator = #validator::builder()
+                                    #(#builder_calls)*
+                                    .with_value(__item_value.clone())
+                                    .build();
+                                if !validator.validate(__item_value) {
+                                    element_error.#validator_snake = Some(validator);
+                                    element_has_error = true;
+                                }
                             }
                         }
-                    } else {
-                        quote! {
-                            let validator = #validator::builder()
-                                #(#builder_calls)*
-                                .with_value(__item_value.clone())
-                                .build();
-                            if validator.validate(__item_value).is_err() {
-                                element_error.#validator_snake = Some(validator);
-                                element_has_error = true;
-                            }
-                        }
-                    }
-                }).collect();
+                    })
+                    .collect();
 
                 let element_validator_defaults: Vec<TokenStream2> = f
                     .element_validators

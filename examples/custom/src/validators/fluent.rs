@@ -1,5 +1,5 @@
 use es_fluent::EsFluent;
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// A validation rule that checks if a number is positive.
 /// Uses `EsFluent` for internationalized error messages.
@@ -11,8 +11,8 @@ pub struct PositiveNumberValidation {
 }
 
 impl Validate<i32> for PositiveNumberValidation {
-    fn validate(&self, value: &i32) -> KorumaResult {
-        if *value <= 0 { Err(()) } else { Ok(()) }
+    fn validate(&self, value: &i32) -> bool {
+        *value <= 0
     }
 }
 
@@ -26,7 +26,7 @@ pub struct NonEmptyStringValidation {
 }
 
 impl Validate<String> for NonEmptyStringValidation {
-    fn validate(&self, value: &String) -> KorumaResult {
-        if value.is_empty() { Err(()) } else { Ok(()) }
+    fn validate(&self, value: &String) -> bool {
+        value.is_empty()
     }
 }

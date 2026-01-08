@@ -66,7 +66,7 @@ impl Item {
         let validator = EvenNumberValidation::builder()
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.value.even_number_validation = Some(validator);
             has_error = true;
         }

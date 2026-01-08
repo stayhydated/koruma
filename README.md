@@ -29,7 +29,7 @@ koruma = { version = "0.1" }
 Use `#[koruma::validator]` to define validation rules. Each validator must have a field marked with `#[koruma(value)]` to capture the validated value:
 
 ```rs
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 #[koruma::validator]
 #[derive(Clone, Debug)]
@@ -41,12 +41,8 @@ pub struct NumberRangeValidation {
 }
 
 impl Validate<i32> for NumberRangeValidation {
-    fn validate(&self, value: &i32) -> KorumaResult {
-        if *value < self.min || *value > self.max {
-            Err(())
-        } else {
-            Ok(())
-        }
+    fn validate(&self, value: &i32) -> bool {
+        *value >= self.min && *value <= self.max
     }
 }
 ```

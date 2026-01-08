@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string contains a specified substring.
 #[validator]
@@ -31,13 +31,9 @@ pub struct ContainsValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for ContainsValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s.contains(&self.substring) {
-            Ok(())
-        } else {
-            Err(())
-        }
+        s.contains(&self.substring)
     }
 }
 

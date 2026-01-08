@@ -108,7 +108,7 @@ impl UserProfile {
             .max(50)
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.username.string_length_validation = Some(validator);
             has_error = true;
         }
@@ -118,7 +118,7 @@ impl UserProfile {
                 .max(200)
                 .with_value(__field_value.clone())
                 .build();
-            if validator.validate(__field_value).is_err() {
+            if !validator.validate(__field_value) {
                 error.bio.string_length_validation = Some(validator);
                 has_error = true;
             }

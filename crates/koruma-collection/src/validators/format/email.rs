@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string is a valid email address.
 #[validator]
@@ -29,38 +29,38 @@ pub struct EmailValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         // Basic email validation - check for @ symbol and proper format
         if s.is_empty() {
-            return Err(());
+            return false;
         }
 
         let parts: Vec<&str> = s.split('@').collect();
         if parts.len() != 2 {
-            return Err(());
+            return false;
         }
 
         let (user, domain) = (parts[0], parts[1]);
 
         if user.is_empty() || domain.is_empty() {
-            return Err(());
+            return false;
         }
 
         // Check user length
         if user.len() > 64 {
-            return Err(());
+            return false;
         }
 
         // Check domain length
         if domain.len() > 255 {
-            return Err(());
+            return false;
         }
 
         // Validate user part - alphanumeric and some special characters
         let user_regex = regex::Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+\z").unwrap();
         if !user_regex.is_match(user) {
-            return Err(());
+            return false;
         }
 
         // Validate domain part
@@ -68,16 +68,16 @@ impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
         if !domain_regex.is_match(domain) {
             // Check if it's an IP address in brackets
             if !domain.starts_with('[') || !domain.ends_with(']') {
-                return Err(());
+                return false;
             }
 
             let ip_part = &domain[1..domain.len() - 1];
             if ip_part.parse::<std::net::IpAddr>().is_err() {
-                return Err(());
+                return false;
             }
         }
 
-        Ok(())
+        true
     }
 }
 

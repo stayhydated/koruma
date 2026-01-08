@@ -1,6 +1,6 @@
 use std::fmt;
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// A validation rule that checks if a number is within a specified range.
 /// Uses `Display` for simple string error messages.
@@ -14,12 +14,8 @@ pub struct NumberRangeValidation {
 }
 
 impl Validate<i32> for NumberRangeValidation {
-    fn validate(&self, value: &i32) -> KorumaResult {
-        if *value < self.min || *value > self.max {
-            Err(())
-        } else {
-            Ok(())
-        }
+    fn validate(&self, value: &i32) -> bool {
+        *value < self.min || *value > self.max
     }
 }
 
@@ -45,13 +41,9 @@ pub struct StringLengthValidation {
 }
 
 impl Validate<String> for StringLengthValidation {
-    fn validate(&self, value: &String) -> KorumaResult {
+    fn validate(&self, value: &String) -> bool {
         let len = value.len();
-        if len < self.min || len > self.max {
-            Err(())
-        } else {
-            Ok(())
-        }
+        len < self.min || len > self.max
     }
 }
 

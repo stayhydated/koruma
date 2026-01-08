@@ -66,7 +66,7 @@ impl Item {
             fn __koruma_assert_validate_score_generic_range_field<
                 V: koruma::Validate<T>,
                 T,
-            >(v: &V, t: &T) -> Result<(), ()> {
+            >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
             let validator = GenericRange::<i32>::builder()
@@ -74,12 +74,10 @@ impl Item {
                 .max(100)
                 .with_value(__field_value.clone())
                 .build();
-            if __koruma_assert_validate_score_generic_range_field(
-                    &validator,
-                    __field_value,
-                )
-                .is_err()
-            {
+            if !__koruma_assert_validate_score_generic_range_field(
+                &validator,
+                __field_value,
+            ) {
                 error.score.generic_range = Some(validator);
                 has_error = true;
             }

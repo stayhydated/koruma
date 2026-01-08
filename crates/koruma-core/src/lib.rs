@@ -1,17 +1,10 @@
-/// Result type for validation operations.
-///
-/// - `Ok(())` indicates validation passed
-/// - `Err(())` indicates validation failed (details are in the validator struct)
-pub type KorumaResult = Result<(), ()>;
-
 /// Trait for types that can validate a value of type `T`.
 ///
-/// Implementors should return `Ok(())` if validation passes,
-/// or `Err(())` if validation fails. The error details are
-/// captured in the validation struct itself (via `ToFluentString`).
+/// Implementors should return `true` if validation passes,
+/// or `false` if validation fails. The error details are
+/// captured in the validation struct itself.
 pub trait Validate<T> {
-    #[allow(clippy::result_unit_err)]
-    fn validate(&self, value: &T) -> KorumaResult;
+    fn validate(&self, value: &T) -> bool;
 }
 
 /// Trait for validation error structs that have no errors.

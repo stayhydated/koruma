@@ -16,7 +16,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a value matches another value.
 #[validator]
@@ -24,21 +24,17 @@ use koruma::{KorumaResult, Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct MatchesValidation<T: std::fmt::Display + Clone> {
     /// The value to match against
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub other: T,
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub actual: T,
 }
 
 impl<T: PartialEq + std::fmt::Display + Clone> Validate<T> for MatchesValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
-        if value == &self.other {
-            Ok(())
-        } else {
-            Err(())
-        }
+    fn validate(&self, value: &T) -> bool {
+        value == &self.other
     }
 }
 

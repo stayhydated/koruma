@@ -24,21 +24,13 @@ rust-embed = { optional = true, workspace = true }
 rust_decimal = { optional = true, workspace = true }
 unic-langid = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
+smallvec = { optional = true, workspace = true }
+heck = { optional = true, workspace = true }
 
 [features]
-credit-card = [ "dep:card-validate" ]
 default = [ "fmt" ]
-email = [ "dep:regex" ]
-email-idna = [ "dep:idna" ]
-fluent = [
-  "koruma/fluent",
-  "dep:es-fluent",
-  "dep:es-fluent-manager-embedded",
-  "dep:unic-langid",
-  "dep:rust-embed",
-]
-fmt = [  ]
 full = [
+  "heck",
   "fmt",
   "url",
   "credit-card",
@@ -47,7 +39,22 @@ full = [
   "email-idna",
   "rust_decimal",
   "regex",
+  "smallvec",
 ]
+full-fluent = [ "full", "fluent" ]
+fluent = [
+  "koruma/fluent",
+  "dep:es-fluent",
+  "dep:es-fluent-manager-embedded",
+  "dep:unic-langid",
+  "dep:rust-embed",
+]
+credit-card = [ "dep:card-validate" ]
+email = [ "dep:regex" ]
+email-idna = [ "dep:idna" ]
+smallvec = [ "dep:smallvec" ]
+fmt = [  ]
+heck = [ "dep:heck" ]
 phone-number = [ "dep:phonenumber" ]
 regex = [ "dep:regex" ]
 rust_decimal = [ "dep:rust_decimal" ]

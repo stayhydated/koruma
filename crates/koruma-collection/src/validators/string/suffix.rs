@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a string ends with a specified suffix.
 #[validator]
@@ -31,13 +31,9 @@ pub struct SuffixValidation<T: AsRef<str>> {
 }
 
 impl<T: AsRef<str>> Validate<T> for SuffixValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
+    fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s.ends_with(&self.suffix) {
-            Ok(())
-        } else {
-            Err(())
-        }
+        s.ends_with(&self.suffix)
     }
 }
 

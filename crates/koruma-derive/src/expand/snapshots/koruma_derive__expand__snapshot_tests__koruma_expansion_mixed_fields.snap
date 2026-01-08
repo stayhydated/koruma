@@ -171,7 +171,7 @@ impl ComplexItem {
             .max(100)
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.age.range_validation = Some(validator);
             has_error = true;
         }
@@ -185,7 +185,7 @@ impl ComplexItem {
                 .max(50)
                 .with_value(__item_value.clone())
                 .build();
-            if validator.validate(__item_value).is_err() {
+            if !validator.validate(__item_value) {
                 element_error.length_validation = Some(validator);
                 element_has_error = true;
             }
@@ -200,14 +200,14 @@ impl ComplexItem {
             .max(10)
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.rating.range_validation = Some(validator);
             has_error = true;
         }
         let validator = EvenValidation::builder()
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.rating.even_validation = Some(validator);
             has_error = true;
         }

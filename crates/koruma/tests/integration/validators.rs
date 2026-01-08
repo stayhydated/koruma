@@ -1,6 +1,6 @@
 //! Validator implementations for integration tests.
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// A validation rule that checks if a number is within a specified range.
 #[validator]
@@ -13,11 +13,11 @@ pub struct NumberRangeValidation {
 }
 
 impl Validate<i32> for NumberRangeValidation {
-    fn validate(&self, value: &i32) -> KorumaResult {
+    fn validate(&self, value: &i32) -> bool {
         if *value < self.min || *value > self.max {
-            Err(())
+            false
         } else {
-            Ok(())
+            true
         }
     }
 }
@@ -50,12 +50,12 @@ pub struct StringLengthValidation {
 }
 
 impl Validate<String> for StringLengthValidation {
-    fn validate(&self, value: &String) -> KorumaResult {
+    fn validate(&self, value: &String) -> bool {
         let len = value.len();
         if len < self.min || len > self.max {
-            Err(())
+            false
         } else {
-            Ok(())
+            true
         }
     }
 }
@@ -69,8 +69,8 @@ pub struct EvenNumberValidation {
 }
 
 impl Validate<i32> for EvenNumberValidation {
-    fn validate(&self, value: &i32) -> KorumaResult {
-        if value % 2 != 0 { Err(()) } else { Ok(()) }
+    fn validate(&self, value: &i32) -> bool {
+        if value % 2 != 0 { false } else { true }
     }
 }
 
@@ -91,12 +91,12 @@ pub struct VecLenValidation<T> {
 }
 
 impl<T> Validate<Vec<T>> for VecLenValidation<T> {
-    fn validate(&self, value: &Vec<T>) -> KorumaResult {
+    fn validate(&self, value: &Vec<T>) -> bool {
         let len = value.len();
         if len < self.min || len > self.max {
-            Err(())
+            false
         } else {
-            Ok(())
+            true
         }
     }
 }

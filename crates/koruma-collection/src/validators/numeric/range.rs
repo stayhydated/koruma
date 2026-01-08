@@ -15,7 +15,7 @@
 //! }
 //! ```
 
-use koruma::{KorumaResult, Validate, validator};
+use koruma::{Validate, validator};
 
 /// Validates that a numeric value is within specified bounds.
 #[validator]
@@ -23,24 +23,40 @@ use koruma::{KorumaResult, Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
     /// Minimum allowed value (inclusive)
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub min: T,
+    /// Whether the minimum value is exclusive
+    #[cfg_attr(feature = "fluent", fluent(skip))]
+    #[builder(default = false)]
+    pub exclusive_min: bool,
     /// Maximum allowed value (inclusive)
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub max: T,
+    /// Whether the maximum value is exclusive
+    #[cfg_attr(feature = "fluent", fluent(skip))]
+    #[builder(default = false)]
+    pub exclusive_max: bool,
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub actual: T,
 }
 
 impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T> {
-    fn validate(&self, value: &T) -> KorumaResult {
-        if *value >= self.min && *value <= self.max {
-            Ok(())
+    fn validate(&self, value: &T) -> bool {
+        let lower_ok = if self.exclusive_min {
+            *value > self.min
         } else {
-            Err(())
-        }
+            *value >= self.min
+        };
+
+        let upper_ok = if self.exclusive_max {
+            *value < self.max
+        } else {
+            *value <= self.max
+        };
+
+        lower_ok && upper_ok
     }
 }
 

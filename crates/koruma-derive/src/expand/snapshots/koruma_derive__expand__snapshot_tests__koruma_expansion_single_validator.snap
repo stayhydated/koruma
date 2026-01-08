@@ -68,7 +68,7 @@ impl Item {
             .max(100)
             .with_value(__field_value.clone())
             .build();
-        if validator.validate(__field_value).is_err() {
+        if !validator.validate(__field_value) {
             error.age.number_range_validation = Some(validator);
             has_error = true;
         }

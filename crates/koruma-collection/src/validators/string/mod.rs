@@ -1,0 +1,28 @@
+//! String validation validators.
+//!
+//! This module contains validators for string-based validation scenarios.
+
+/// Trait alias for types that can be treated as string references.
+pub trait StringLike: AsRef<str> {}
+
+impl<T: AsRef<str>> StringLike for T {}
+
+mod alphanumeric;
+mod ascii;
+mod contains;
+mod matches;
+#[cfg(feature = "regex")]
+mod pattern;
+mod prefix;
+mod suffix;
+
+pub use alphanumeric::AlphanumericValidation;
+pub use ascii::AsciiValidation;
+pub use contains::ContainsValidation;
+pub use matches::MatchesValidation;
+#[cfg(feature = "regex")]
+pub use pattern::PatternValidation;
+pub use prefix::PrefixValidation;
+pub use suffix::SuffixValidation;
+
+pub mod en;

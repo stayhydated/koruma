@@ -31,10 +31,7 @@ pub struct CreditCardValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for CreditCardValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        match card_validate::Validate::from(s) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        card_validate::Validate::from(s).is_ok()
     }
 }
 

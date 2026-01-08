@@ -33,11 +33,7 @@ pub struct PrefixValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for PrefixValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s.starts_with(&self.prefix) {
-            true
-        } else {
-            false
-        }
+        s.starts_with(&self.prefix)
     }
 }
 

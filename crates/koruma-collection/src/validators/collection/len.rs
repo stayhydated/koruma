@@ -39,11 +39,7 @@ pub struct LenValidation<T: HasLen> {
 impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let len = value.len();
-        if len < self.min || len > self.max {
-            false
-        } else {
-            true
-        }
+        !(len < self.min || len > self.max)
     }
 }
 

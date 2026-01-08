@@ -34,13 +34,7 @@ impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
         match regex::Regex::new(&self.pattern) {
-            Ok(re) => {
-                if re.is_match(s) {
-                    true
-                } else {
-                    false
-                }
-            },
+            Ok(re) => re.is_match(s),
             Err(_) => false, // Invalid regex pattern
         }
     }

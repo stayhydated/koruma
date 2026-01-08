@@ -34,13 +34,7 @@ impl<T: AsRef<str>> Validate<T> for PhoneNumberValidation<T> {
 
         let s = value.as_ref();
         match phonenumber::PhoneNumber::from_str(s) {
-            Ok(number) => {
-                if number.is_valid() {
-                    true
-                } else {
-                    false
-                }
-            },
+            Ok(number) => number.is_valid(),
             Err(_) => false,
         }
     }

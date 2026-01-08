@@ -33,11 +33,7 @@ pub struct SuffixValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for SuffixValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s.ends_with(&self.suffix) {
-            true
-        } else {
-            false
-        }
+        s.ends_with(&self.suffix)
     }
 }
 

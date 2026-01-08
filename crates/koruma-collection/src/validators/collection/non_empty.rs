@@ -36,7 +36,7 @@ pub struct NonEmptyValidation<T: HasLen> {
 
 impl<T: HasLen + Clone> Validate<T> for NonEmptyValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        if value.is_empty() { false } else { true }
+        !value.is_empty()
     }
 }
 

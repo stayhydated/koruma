@@ -31,10 +31,7 @@ pub struct UrlValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for UrlValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        match url::Url::parse(s) {
-            Ok(_) => true,
-            Err(_) => false,
-        }
+        url::Url::parse(s).is_ok()
     }
 }
 

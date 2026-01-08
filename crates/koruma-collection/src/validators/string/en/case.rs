@@ -96,11 +96,7 @@ pub struct CaseValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for CaseValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s == self.case.convert(s) {
-            true
-        } else {
-            false
-        }
+        s == self.case.convert(s)
     }
 }
 

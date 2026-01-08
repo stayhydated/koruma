@@ -12,7 +12,7 @@ pub struct PositiveNumberValidation {
 
 impl Validate<i32> for PositiveNumberValidation {
     fn validate(&self, value: &i32) -> bool {
-        if *value <= 0 { false } else { true }
+        *value <= 0
     }
 }
 
@@ -27,6 +27,6 @@ pub struct NonEmptyStringValidation {
 
 impl Validate<String> for NonEmptyStringValidation {
     fn validate(&self, value: &String) -> bool {
-        if value.is_empty() { false } else { true }
+        value.is_empty()
     }
 }

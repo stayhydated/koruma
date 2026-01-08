@@ -33,11 +33,7 @@ pub struct ContainsValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for ContainsValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s.contains(&self.substring) {
-            true
-        } else {
-            false
-        }
+        s.contains(&self.substring)
     }
 }
 

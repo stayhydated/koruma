@@ -15,11 +15,7 @@ pub struct NumberRangeValidation {
 
 impl Validate<i32> for NumberRangeValidation {
     fn validate(&self, value: &i32) -> bool {
-        if *value < self.min || *value > self.max {
-            false
-        } else {
-            true
-        }
+        *value < self.min || *value > self.max
     }
 }
 
@@ -47,11 +43,7 @@ pub struct StringLengthValidation {
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
         let len = value.len();
-        if len < self.min || len > self.max {
-            false
-        } else {
-            true
-        }
+        len < self.min || len > self.max
     }
 }
 

@@ -31,11 +31,7 @@ pub struct AlphanumericValidation<T: AsRef<str>> {
 impl<T: AsRef<str>> Validate<T> for AlphanumericValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let s = value.as_ref();
-        if s.chars().all(|c| c.is_alphanumeric()) {
-            true
-        } else {
-            false
-        }
+        s.chars().all(|c| c.is_alphanumeric())
     }
 }
 

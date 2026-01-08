@@ -4,6 +4,7 @@
 //! Enable with the `tui` feature flag.
 
 mod app;
+mod i18n;
 
 pub use app::run;
 

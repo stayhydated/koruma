@@ -13,6 +13,8 @@ use ratatui::{
 };
 use tui_input::{Input, InputRequest};
 
+use crate::tui::i18n::Languages;
+
 /// Application state for the TUI.
 struct App {
     /// Current input text
@@ -82,22 +84,22 @@ impl App {
             KeyCode::Char(c) => {
                 self.input.handle(InputRequest::InsertChar(c));
                 self.validate_input();
-            }
+            },
             KeyCode::Backspace => {
                 self.input.handle(InputRequest::DeletePrevChar);
                 self.validate_input();
-            }
+            },
             KeyCode::Delete => {
                 self.input.handle(InputRequest::DeleteNextChar);
                 self.validate_input();
-            }
+            },
             KeyCode::Home => {
                 self.input.handle(InputRequest::GoToStart);
-            }
+            },
             KeyCode::End => {
                 self.input.handle(InputRequest::GoToEnd);
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
@@ -125,13 +127,9 @@ impl App {
             Constraint::Length(1), // Spacer
             Constraint::Length(3), // Input box
             Constraint::Length(1), // Spacer
-            Constraint::Length(3), // Result/validity
-            Constraint::Length(1), // Spacer
             Constraint::Length(3), // Display output (to_string)
-            #[cfg(feature = "fluent")]
             Constraint::Length(1), // Spacer
-            #[cfg(feature = "fluent")]
-            Constraint::Length(3), // Fluent output
+            Constraint::Length(3), // Fluent output (to_fluent_string)
             Constraint::Length(1), // Spacer
             Constraint::Length(2), // Help text
             Constraint::Min(0),    // Bottom padding
@@ -147,27 +145,14 @@ impl App {
 
         let validator_area = horizontal.split(vertical[1])[1];
         let input_area = horizontal.split(vertical[3])[1];
-        let result_area = horizontal.split(vertical[5])[1];
-        let display_area = horizontal.split(vertical[7])[1];
-        
-        #[cfg(feature = "fluent")]
-        let fluent_area = horizontal.split(vertical[9])[1];
-        
-        #[cfg(feature = "fluent")]
-        let help_idx = 11;
-        #[cfg(not(feature = "fluent"))]
-        let help_idx = 9;
-        
-        let help_area = horizontal.split(vertical[help_idx])[1];
+        let display_area = horizontal.split(vertical[5])[1];
+        let fluent_area = horizontal.split(vertical[7])[1];
+        let help_area = horizontal.split(vertical[9])[1];
 
         self.render_validator_selector(frame, validator_area);
         self.render_input(frame, input_area);
-        self.render_result(frame, result_area);
         self.render_display_output(frame, display_area);
-        
-        #[cfg(feature = "fluent")]
         self.render_fluent_output(frame, fluent_area);
-        
         self.render_help(frame, help_area);
     }
 
@@ -209,73 +194,48 @@ impl App {
     }
 
     fn render_input(&self, frame: &mut Frame, area: Rect) {
-        let input_style = Style::default().fg(Color::Yellow);
+        // Determine validity emoji and style
+        let (emoji, border_color) = match &self.current_validator {
+            Some(v) if v.is_valid() => ("✅ ", Color::Green),
+            Some(_) => ("❌ ", Color::Red),
+            None => ("   ", Color::Yellow),
+        };
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Yellow))
+            .border_style(Style::default().fg(border_color))
             .title(" Input ")
             .title_alignment(Alignment::Center);
 
         let input_value = self.input.value();
-        let paragraph = Paragraph::new(input_value).style(input_style).block(block);
+        let text = Line::from(vec![
+            Span::raw(emoji),
+            Span::styled(input_value, Style::default().fg(Color::Yellow)),
+        ]);
+        let paragraph = Paragraph::new(text).block(block);
 
         frame.render_widget(paragraph, area);
 
-        // Position cursor
-        let cursor_x = area.x + 1 + self.input.visual_cursor() as u16;
+        // Position cursor (offset by emoji width: 3 chars for emoji + space)
+        let emoji_width = 3u16; // emoji takes ~2 chars + space
+        let cursor_x = area.x + 1 + emoji_width + self.input.visual_cursor() as u16;
         let cursor_y = area.y + 1;
         frame.set_cursor_position((cursor_x.min(area.x + area.width - 2), cursor_y));
     }
 
-    fn render_result(&self, frame: &mut Frame, area: Rect) {
-        let (style, border_color, message) = match &self.current_validator {
-            Some(v) if v.is_valid() => (
-                Style::default().fg(Color::Green),
-                Color::Green,
-                "✓ Valid".to_string(),
-            ),
-            Some(_) => (
-                Style::default().fg(Color::Red),
-                Color::Red,
-                "✗ Invalid".to_string(),
-            ),
-            None => (
-                Style::default().fg(Color::Gray),
-                Color::Gray,
-                "Type something to validate...".to_string(),
-            ),
-        };
-
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(border_color))
-            .title(" Result ")
-            .title_alignment(Alignment::Center);
-
-        let paragraph = Paragraph::new(message)
-            .style(style)
-            .block(block)
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true });
-
-        frame.render_widget(paragraph, area);
-    }
-
     fn render_display_output(&self, frame: &mut Frame, area: Rect) {
         let (style, border_color, message) = match &self.current_validator {
-            Some(v) if !v.is_valid() => {
+            Some(v) => {
                 #[cfg(feature = "fmt")]
                 let msg = v.display_string();
                 #[cfg(not(feature = "fmt"))]
                 let msg = "(fmt feature required)".to_string();
-                (Style::default().fg(Color::Magenta), Color::Magenta, msg)
-            }
-            Some(_) => (
-                Style::default().fg(Color::DarkGray),
-                Color::DarkGray,
-                "—".to_string(),
-            ),
+                if v.is_valid() {
+                    (Style::default().fg(Color::Green), Color::Green, msg)
+                } else {
+                    (Style::default().fg(Color::Magenta), Color::Magenta, msg)
+                }
+            },
             None => (
                 Style::default().fg(Color::DarkGray),
                 Color::DarkGray,
@@ -286,7 +246,7 @@ impl App {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border_color))
-            .title(" Display (to_string) ")
+            .title(" Display (to_string()) ")
             .title_alignment(Alignment::Center);
 
         let paragraph = Paragraph::new(message)
@@ -298,18 +258,19 @@ impl App {
         frame.render_widget(paragraph, area);
     }
 
-    #[cfg(feature = "fluent")]
     fn render_fluent_output(&self, frame: &mut Frame, area: Rect) {
         let (style, border_color, message) = match &self.current_validator {
-            Some(v) if !v.is_valid() => {
+            Some(v) => {
+                #[cfg(feature = "fluent")]
                 let msg = v.fluent_string();
-                (Style::default().fg(Color::LightBlue), Color::LightBlue, msg)
-            }
-            Some(_) => (
-                Style::default().fg(Color::DarkGray),
-                Color::DarkGray,
-                "—".to_string(),
-            ),
+                #[cfg(not(feature = "fluent"))]
+                let msg = "(fluent feature required)".to_string();
+                if v.is_valid() {
+                    (Style::default().fg(Color::Green), Color::Green, msg)
+                } else {
+                    (Style::default().fg(Color::LightBlue), Color::LightBlue, msg)
+                }
+            },
             None => (
                 Style::default().fg(Color::DarkGray),
                 Color::DarkGray,
@@ -320,7 +281,7 @@ impl App {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border_color))
-            .title(" Fluent (to_fluent_string) ")
+            .title(" Fluent (to_fluent_string()) ")
             .title_alignment(Alignment::Center);
 
         let paragraph = Paragraph::new(message)
@@ -347,6 +308,8 @@ impl App {
 
 /// Run the TUI application.
 pub fn run() -> io::Result<()> {
+    super::i18n::init();
+    super::i18n::change_locale(Languages::ZhCn).unwrap();
     let mut terminal = ratatui::init();
     let result = App::new().run(&mut terminal);
     ratatui::restore();

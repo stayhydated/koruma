@@ -7,4 +7,4 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
-koruma-collection = { features = [ "tui" ], workspace = true }
+koruma-collection = { features = [ "tui", "fluent" ], workspace = true }

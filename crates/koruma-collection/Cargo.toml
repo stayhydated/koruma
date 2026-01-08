@@ -30,6 +30,8 @@ unic-langid = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
 heck = { optional = true, workspace = true }
+es-fluent-lang = { optional = true, workspace = true }
+strum = { optional = true, workspace = true, features = ["derive"] }
 
 [features]
 default = [ "fmt" ]
@@ -56,6 +58,8 @@ fluent = [
 showcase = [
   "full",
   "koruma/showcase",
+  "es-fluent-lang",
+  "strum",
 ]
 tui = [
   "showcase",

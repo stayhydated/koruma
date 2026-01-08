@@ -3,7 +3,7 @@
 use std::io;
 
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use koruma::showcase::{DynValidator, ValidatorShowcase, validators};
+use koruma::showcase::{DynValidator, InputType, ValidatorShowcase, validators};
 use ratatui::{
     DefaultTerminal, Frame,
     layout::{Alignment, Constraint, Layout, Rect},
@@ -89,8 +89,19 @@ impl App {
             KeyCode::Down => self.next_validator(),
             KeyCode::Tab => self.next_language(),
             KeyCode::Char(c) => {
-                self.input.handle(InputRequest::InsertChar(c));
-                self.validate_input();
+                let allow = if let Some(showcase) = self.current_showcase() {
+                    match showcase.input_type {
+                        InputType::Numeric => c.is_ascii_digit() || c == '-',
+                        InputType::Text => true,
+                    }
+                } else {
+                    true
+                };
+
+                if allow {
+                    self.input.handle(InputRequest::InsertChar(c));
+                    self.validate_input();
+                }
             },
             KeyCode::Backspace => {
                 self.input.handle(InputRequest::DeletePrevChar);
@@ -309,7 +320,7 @@ impl App {
     fn render_help(&self, frame: &mut Frame, area: Rect) {
         let help_text = Line::from(vec![
             Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" validator  "),
+            Span::raw(" cycle validator  "),
             Span::styled("Tab", Style::default().fg(Color::Cyan)),
             Span::raw(" cycle language  "),
             Span::styled("Esc", Style::default().fg(Color::Cyan)),

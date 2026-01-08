@@ -22,11 +22,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Range [0, 100]",
     description = "Validates that the input is a number between 0 and 100",
+    input_type = Numeric,
     create = |input: &str| {
-        let num = input.parse::<i64>().unwrap_or(-1);
+        let num = input.parse::<f64>().unwrap_or(0.0);
         RangeValidation::builder()
-            .min(0_i64)
-            .max(100_i64)
+            .min(0_f64)
+            .max(100_f64)
             .with_value(num)
             .build()
     }

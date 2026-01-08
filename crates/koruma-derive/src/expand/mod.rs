@@ -274,11 +274,13 @@ pub(crate) fn vec_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
 
 /// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`
 /// The `create` closure takes a `&str` and returns the validator instance.
+/// Optional `input_type` can be "text" (default) or "numeric".
 #[cfg(feature = "showcase")]
 struct ShowcaseAttr {
     name: syn::LitStr,
     description: syn::LitStr,
     create: syn::ExprClosure,
+    input_type: Option<syn::Ident>,
 }
 
 #[cfg(feature = "showcase")]
@@ -287,6 +289,7 @@ impl Parse for ShowcaseAttr {
         let mut name: Option<syn::LitStr> = None;
         let mut description: Option<syn::LitStr> = None;
         let mut create: Option<syn::ExprClosure> = None;
+        let mut input_type: Option<syn::Ident> = None;
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
@@ -301,6 +304,9 @@ impl Parse for ShowcaseAttr {
                 },
                 "create" => {
                     create = Some(input.parse()?);
+                },
+                "input_type" => {
+                    input_type = Some(input.parse()?);
                 },
                 other => {
                     return Err(syn::Error::new(
@@ -325,6 +331,7 @@ impl Parse for ShowcaseAttr {
             create: create.ok_or_else(|| {
                 syn::Error::new(input.span(), "showcase requires `create` attribute")
             })?,
+            input_type,
         })
     }
 }
@@ -478,6 +485,11 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         let name = &showcase.name;
         let description = &showcase.description;
         let create_closure = &showcase.create;
+        let input_type_tokens = if let Some(ref it) = showcase.input_type {
+            quote! { ::koruma::showcase::InputType::#it }
+        } else {
+            quote! { ::koruma::showcase::InputType::Text }
+        };
 
         // Extract generics from the struct
         let (impl_generics, type_generics, _where_clause) = input.generics.split_for_impl();
@@ -538,6 +550,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                 ::koruma::showcase::ValidatorShowcase {
                     name: #name,
                     description: #description,
+                    input_type: #input_type_tokens,
                     create_validator: |input: &str| -> Box<dyn ::koruma::showcase::DynValidator> {
                         Box::new((#create_closure)(input))
                     },

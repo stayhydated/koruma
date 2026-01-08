@@ -24,8 +24,9 @@ use super::Numeric;
 #[cfg_attr(feature = "showcase", showcase(
     name = "Non-Negative Number",
     description = "Validates that the input is a non-negative number (>= 0)",
+    input_type = Numeric,
     create = |input: &str| {
-        let num = input.parse::<i64>().unwrap_or(0);
+        let num = input.parse::<f64>().unwrap_or(0.0);
         NonNegativeValidation::builder()
             .with_value(num)
             .build()

@@ -57,6 +57,16 @@ pub mod showcase {
         fn fluent_string(&self) -> String;
     }
 
+    /// The type of input expected by the validator.
+    #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+    pub enum InputType {
+        /// Any text input (default)
+        #[default]
+        Text,
+        /// Numeric input only (integers)
+        Numeric,
+    }
+
     /// Information about a validator for showcase/TUI purposes.
     ///
     /// This struct is registered via `inventory` when a validator uses
@@ -66,6 +76,8 @@ pub mod showcase {
         pub name: &'static str,
         /// Description of what the validator checks
         pub description: &'static str,
+        /// The type of input expected by the validator
+        pub input_type: InputType,
         /// Factory function that creates a validator from string input.
         /// Returns a boxed DynValidator that the TUI can use.
         pub create_validator: fn(&str) -> Box<dyn DynValidator>,

@@ -21,6 +21,16 @@ use super::Numeric;
 
 /// Validates that a numeric value is strictly positive (> 0).
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Positive Number",
+    description = "Validates that the input is a positive number (> 0)",
+    create = |input: &str| {
+        let num = input.parse::<i64>().unwrap_or(0);
+        PositiveValidation::builder()
+            .with_value(num)
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct PositiveValidation<T: Numeric> {

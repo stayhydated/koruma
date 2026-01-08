@@ -19,6 +19,15 @@ use koruma::{Validate, validator};
 
 /// Validates that a string is a valid phone number.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Phone Number",
+    description = "Validates that the input is a valid phone number",
+    create = |input: &str| {
+        PhoneNumberValidation::builder()
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct PhoneNumberValidation<T: AsRef<str>> {

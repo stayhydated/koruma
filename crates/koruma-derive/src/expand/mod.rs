@@ -272,6 +272,76 @@ pub(crate) fn vec_inner_type(ty: &syn::Type) -> Option<&syn::Type> {
     }
 }
 
+/// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`
+/// The `create` closure takes a `&str` and returns the validator instance.
+#[cfg(feature = "showcase")]
+struct ShowcaseAttr {
+    name: syn::LitStr,
+    description: syn::LitStr,
+    create: syn::ExprClosure,
+}
+
+#[cfg(feature = "showcase")]
+impl Parse for ShowcaseAttr {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut name: Option<syn::LitStr> = None;
+        let mut description: Option<syn::LitStr> = None;
+        let mut create: Option<syn::ExprClosure> = None;
+
+        while !input.is_empty() {
+            let ident: Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match ident.to_string().as_str() {
+                "name" => {
+                    name = Some(input.parse()?);
+                },
+                "description" => {
+                    description = Some(input.parse()?);
+                },
+                "create" => {
+                    create = Some(input.parse()?);
+                },
+                other => {
+                    return Err(syn::Error::new(
+                        ident.span(),
+                        format!("unknown showcase attribute: {}", other),
+                    ));
+                },
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(ShowcaseAttr {
+            name: name.ok_or_else(|| {
+                syn::Error::new(input.span(), "showcase requires `name` attribute")
+            })?,
+            description: description.ok_or_else(|| {
+                syn::Error::new(input.span(), "showcase requires `description` attribute")
+            })?,
+            create: create.ok_or_else(|| {
+                syn::Error::new(input.span(), "showcase requires `create` attribute")
+            })?,
+        })
+    }
+}
+
+/// Find and parse showcase attribute from struct
+#[cfg(feature = "showcase")]
+fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
+    for attr in &input.attrs {
+        if attr.path().is_ident("showcase") {
+            if let Ok(parsed) = attr.parse_args::<ShowcaseAttr>() {
+                return Some(parsed);
+            }
+        }
+    }
+    None
+}
+
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
 /// Takes a parsed struct and returns the expanded TokenStream.
@@ -281,6 +351,10 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     // Check if the struct has generics
     let has_generics = !input.generics.params.is_empty();
+
+    // Parse showcase attribute if present (only when feature enabled)
+    #[cfg(feature = "showcase")]
+    let showcase_attr = find_showcase_attr(&input);
 
     // Find the field marked with #[koruma(value)]
     let (value_field_name, value_field_type) = find_value_field(&input).ok_or_else(|| {
@@ -299,6 +373,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     // Add #[derive(bon::Builder)] to the existing attributes
     let builder_attr: syn::Attribute = syn::parse_quote!(#[derive(koruma::bon::Builder)]);
     input.attrs.insert(0, builder_attr);
+
+    // Remove #[koruma(value)] and #[showcase(...)] from attributes
+    input.attrs.retain(|attr| !attr.path().is_ident("showcase"));
 
     // Remove #[koruma(value)] from the field so bon doesn't see it
     if let Fields::Named(ref mut fields) = input.fields {
@@ -395,10 +472,91 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         }
     };
 
+    // Generate showcase registration if the attribute is present
+    #[cfg(feature = "showcase")]
+    let showcase_registration = if let Some(showcase) = showcase_attr {
+        let name = &showcase.name;
+        let description = &showcase.description;
+        let create_closure = &showcase.create;
+
+        // Extract generics from the struct
+        let (impl_generics, type_generics, _where_clause) = input.generics.split_for_impl();
+
+        // Extract bounds from the generic params for the where clause
+        let mut where_predicates = Vec::new();
+        for param in input.generics.params.iter() {
+            if let syn::GenericParam::Type(t) = param {
+                let ident = &t.ident;
+                // Add all existing bounds plus Send + Sync + Clone + 'static
+                // If no existing bounds, don't include the leading `+`
+                if t.bounds.is_empty() {
+                    where_predicates.push(quote! { #ident: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'static });
+                } else {
+                    let bounds = &t.bounds;
+                    where_predicates.push(quote! { #ident: #bounds + ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'static });
+                }
+            }
+        }
+        // Add Self: Display bound
+        where_predicates.push(quote! { Self: ::std::fmt::Display });
+
+        let combined_where = if where_predicates.is_empty() {
+            quote! {}
+        } else {
+            quote! { where #(#where_predicates),* }
+        };
+
+        quote! {
+            // DynValidator is implemented by validators that have Validate + Display impls
+            #[cfg(feature = "showcase")]
+            impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics
+            #combined_where
+            {
+                fn is_valid(&self) -> bool {
+                    ::koruma::Validate::validate(self, &self.#value_field_name)
+                }
+
+                fn display_string(&self) -> String {
+                    #[cfg(feature = "fmt")]
+                    { ::std::string::ToString::to_string(self) }
+                    #[cfg(not(feature = "fmt"))]
+                    { "(fmt feature required)".to_string() }
+                }
+
+                fn fluent_string(&self) -> String {
+                    #[cfg(feature = "fluent")]
+                    {
+                        use ::es_fluent::ToFluentString as _;
+                        self.to_fluent_string()
+                    }
+                    #[cfg(not(feature = "fluent"))]
+                    { "(fluent feature required)".to_string() }
+                }
+            }
+
+            ::koruma::inventory::submit! {
+                ::koruma::showcase::ValidatorShowcase {
+                    name: #name,
+                    description: #description,
+                    create_validator: |input: &str| -> Box<dyn ::koruma::showcase::DynValidator> {
+                        Box::new((#create_closure)(input))
+                    },
+                }
+            }
+        }
+    } else {
+        quote! {}
+    };
+
+    #[cfg(not(feature = "showcase"))]
+    let showcase_registration = quote! {};
+
     Ok(quote! {
         #input
 
         #with_value_impl
+
+        #showcase_registration
     })
 }
 

@@ -81,6 +81,16 @@ impl Case {
 
 /// Validates that a string matches a specific case format.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Case Format",
+    description = "Validates that the input is in snake_case format",
+    create = |input: &str| {
+        CaseValidation::builder()
+            .with_value(input.to_string())
+            .case(Case::Snake)
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct CaseValidation<T: AsRef<str>> {

@@ -12,7 +12,12 @@ repository.workspace = true
 readme.workspace = true
 
 [features]
-fluent = [  ]
+fluent = []
+showcase = ["dep:inventory"]
+
+[dependencies.inventory]
+workspace = true
+optional = true
 
 [lib]
 proc-macro = true

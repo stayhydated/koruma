@@ -22,6 +22,9 @@ version = "0.1.0"
 
 [workspace.dependencies]
 bon = "3.8.1"
+crossterm = "0.29"
+ratatui = "0.30"
+tui-input = "0.12"
 card-validate = "2.4"
 derive-getters = "0.5.0"
 es-fluent = "0.5.2"
@@ -30,6 +33,7 @@ es-fluent-manager-embedded = "0.5.2"
 heck = "0.5.0"
 idna = "1"
 insta = "1.46.0"
+inventory = "0.3.21"
 koruma = { path = "crates/koruma", version = "0.1.0" }
 koruma-collection = { path = "crates/koruma-collection", version = "0.1.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.1.0" }

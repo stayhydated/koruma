@@ -19,6 +19,15 @@ use koruma::{Validate, validator};
 
 /// Validates that a string is a valid email address.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Email",
+    description = "Validates that the input is a valid email address",
+    create = |input: &str| {
+        EmailValidation::builder()
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct EmailValidation<T: AsRef<str>> {

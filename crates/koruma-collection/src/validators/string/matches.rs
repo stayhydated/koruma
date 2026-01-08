@@ -20,9 +20,19 @@ use koruma::{Validate, validator};
 
 /// Validates that a value matches another value.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Matches Value",
+    description = "Validates that the input matches 'expected'",
+    create = |input: &str| {
+        MatchesValidation::builder()
+            .with_value(input.to_string())
+            .other("expected".to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
-pub struct MatchesValidation<T: std::fmt::Display + Clone> {
+pub struct MatchesValidation<T: PartialEq + std::fmt::Display + Clone> {
     /// The value to match against
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub other: T,

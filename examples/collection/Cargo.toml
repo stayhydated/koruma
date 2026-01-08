@@ -7,12 +7,4 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
-bon = { workspace = true }
-es-fluent = { features = [ "derive" ], workspace = true }
-es-fluent-manager-embedded = { workspace = true }
-koruma = { features = [ "fluent" ], workspace = true }
-koruma-collection = { features = [ "full", "fluent" ], workspace = true }
-rust-embed = { workspace = true }
-shared-lib = { path = "../shared-lib" }
-strum = { features = [ "derive" ], workspace = true }
-unic-langid = { workspace = true }
+koruma-collection = { features = [ "tui" ], workspace = true }

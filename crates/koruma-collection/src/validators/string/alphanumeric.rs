@@ -19,6 +19,15 @@ use koruma::{Validate, validator};
 
 /// Validates that a string contains only alphanumeric characters.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Alphanumeric",
+    description = "Validates that the input contains only alphanumeric characters",
+    create = |input: &str| {
+        AlphanumericValidation::builder()
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct AlphanumericValidation<T: AsRef<str>> {

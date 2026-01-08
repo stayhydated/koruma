@@ -19,6 +19,16 @@ use koruma::{Validate, validator};
 
 /// Validates that a string matches a regular expression pattern.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Regex Pattern",
+    description = "Validates that the input matches a regex pattern (uses ^[a-zA-Z0-9_]+$)",
+    create = |input: &str| {
+        PatternValidation::builder()
+            .with_value(input.to_string())
+            .pattern(r"^[a-zA-Z0-9_]+$".to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct PatternValidation<T: AsRef<str>> {

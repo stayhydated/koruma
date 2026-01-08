@@ -19,6 +19,16 @@ use koruma::{Validate, validator};
 
 /// Validates that a string ends with a specified suffix.
 #[validator]
+#[cfg_attr(feature = "showcase", showcase(
+    name = "Suffix '.rs'",
+    description = "Validates that the input ends with '.rs'",
+    create = |input: &str| {
+        SuffixValidation::builder()
+            .suffix(".rs".to_string())
+            .with_value(input.to_string())
+            .build()
+    }
+))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct SuffixValidation<T: AsRef<str>> {

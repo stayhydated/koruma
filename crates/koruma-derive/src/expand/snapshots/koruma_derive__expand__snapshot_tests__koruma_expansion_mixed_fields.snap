@@ -214,3 +214,9 @@ impl ComplexItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
+impl koruma::ValidateExt for ComplexItem {
+    type Error = ComplexItemKorumaValidationError;
+    fn validate(&self) -> Result<(), ComplexItemKorumaValidationError> {
+        ComplexItem::validate(self)
+    }
+}

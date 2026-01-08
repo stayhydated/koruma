@@ -29,6 +29,20 @@ pub trait BuilderWithValue<T> {
     fn with_value(self, value: T) -> Self;
 }
 
+/// Trait for structs that derive `Koruma` and have a `validate()` method.
+///
+/// This trait provides an associated type for the validation error struct,
+/// which is used by nested validation to properly type the error fields.
+///
+/// This is auto-implemented by the `#[derive(Koruma)]` macro.
+pub trait ValidateExt {
+    /// The validation error type for this struct.
+    type Error: ValidationError;
+
+    /// Validates the struct and returns the error struct if validation fails.
+    fn validate(&self) -> Result<(), Self::Error>;
+}
+
 /// Showcase module for TUI validator discovery.
 ///
 /// When the `showcase` feature is enabled, validators decorated with

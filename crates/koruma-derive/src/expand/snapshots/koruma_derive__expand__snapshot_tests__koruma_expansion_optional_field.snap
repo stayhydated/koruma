@@ -126,3 +126,9 @@ impl UserProfile {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
+impl koruma::ValidateExt for UserProfile {
+    type Error = UserProfileKorumaValidationError;
+    fn validate(&self) -> Result<(), UserProfileKorumaValidationError> {
+        UserProfile::validate(self)
+    }
+}

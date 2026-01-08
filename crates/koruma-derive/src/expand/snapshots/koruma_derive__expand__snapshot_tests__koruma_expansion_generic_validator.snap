@@ -87,3 +87,9 @@ impl GenericItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
+impl koruma::ValidateExt for GenericItem {
+    type Error = GenericItemKorumaValidationError;
+    fn validate(&self) -> Result<(), GenericItemKorumaValidationError> {
+        GenericItem::validate(self)
+    }
+}

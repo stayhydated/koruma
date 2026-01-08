@@ -73,3 +73,9 @@ impl Item {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
+impl koruma::ValidateExt for Item {
+    type Error = ItemKorumaValidationError;
+    fn validate(&self) -> Result<(), ItemKorumaValidationError> {
+        Item::validate(self)
+    }
+}

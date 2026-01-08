@@ -30,7 +30,7 @@ use super::HasLen;
 pub struct NonEmptyValidation<T: HasLen> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.len())))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub actual: T,
 }
 

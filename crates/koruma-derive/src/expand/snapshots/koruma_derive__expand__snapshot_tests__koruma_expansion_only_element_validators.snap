@@ -112,3 +112,9 @@ impl Scores {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
+impl koruma::ValidateExt for Scores {
+    type Error = ScoresKorumaValidationError;
+    fn validate(&self) -> Result<(), ScoresKorumaValidationError> {
+        Scores::validate(self)
+    }
+}

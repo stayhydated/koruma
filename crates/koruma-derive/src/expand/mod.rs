@@ -80,12 +80,15 @@ impl Parse for ValidatorAttr {
 /// separated by commas: `#[koruma(Validator1(a = 1), Validator2(b = 2))]`
 /// Can also include `each` modifier for collection validation:
 /// `#[koruma(VecValidator(min = 0), each(ElementValidator(max = 100)))]`
+/// Can also include `nested` to validate nested structs that also derive Koruma.
 pub(crate) struct KorumaAttr {
     /// Validators applied to the field/collection itself
     pub field_validators: Vec<ValidatorAttr>,
     /// Validators applied to each element in a collection (from `each(...)`)
     pub element_validators: Vec<ValidatorAttr>,
     pub is_skip: bool,
+    /// Whether this field is a nested Koruma struct
+    pub is_nested: bool,
 }
 
 impl Parse for KorumaAttr {
@@ -100,6 +103,17 @@ impl Parse for KorumaAttr {
                     field_validators: Vec::new(),
                     element_validators: Vec::new(),
                     is_skip: true,
+                    is_nested: false,
+                });
+            }
+            // Check for nested
+            if ident == "nested" && fork.is_empty() {
+                input.parse::<Ident>()?; // consume "nested"
+                return Ok(KorumaAttr {
+                    field_validators: Vec::new(),
+                    element_validators: Vec::new(),
+                    is_skip: false,
+                    is_nested: true,
                 });
             }
         }
@@ -149,6 +163,7 @@ impl Parse for KorumaAttr {
             field_validators,
             element_validators,
             is_skip: false,
+            is_nested: false,
         })
     }
 }
@@ -161,12 +176,19 @@ pub(crate) struct FieldInfo {
     pub field_validators: Vec<ValidatorAttr>,
     /// Validators for each element in a collection
     pub element_validators: Vec<ValidatorAttr>,
+    /// Whether this field is a nested Koruma struct
+    pub is_nested: bool,
 }
 
 impl FieldInfo {
     /// Returns true if this field has element validators (uses `each(...)`)
     pub fn has_element_validators(&self) -> bool {
         !self.element_validators.is_empty()
+    }
+
+    /// Returns true if this field is a nested Koruma struct
+    pub fn is_nested(&self) -> bool {
+        self.is_nested
     }
 }
 
@@ -188,6 +210,16 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
                 if koruma_attr.is_skip {
                     return None;
                 }
+                // Check for nested
+                if koruma_attr.is_nested {
+                    return Some(FieldInfo {
+                        name,
+                        ty,
+                        field_validators: Vec::new(),
+                        element_validators: Vec::new(),
+                        is_nested: true,
+                    });
+                }
                 // Must have at least one validator
                 if koruma_attr.field_validators.is_empty()
                     && koruma_attr.element_validators.is_empty()
@@ -199,6 +231,7 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
                     ty,
                     field_validators: koruma_attr.field_validators,
                     element_validators: koruma_attr.element_validators,
+                    is_nested: false,
                 });
             },
             Err(_) => {
@@ -733,8 +766,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     }
 
     // Generate per-field error structs and collect info for main error struct
+    // For nested fields, we don't generate a per-field error struct - we use the nested type's error directly
     let field_error_structs: Vec<TokenStream2> = field_infos
         .iter()
+        .filter(|f| !f.is_nested()) // Skip nested fields - they use their own error structs
         .map(|f| {
             let field_name = &f.name;
             let field_ty = &f.ty;
@@ -1064,16 +1099,26 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
     // Generate main error struct fields (one per validated field)
     // Now all fields just have their field error struct (element errors are nested inside)
+    // For nested fields, we use Option<NestedTypeKorumaValidationError> directly
     let error_fields: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
             let field_name = &f.name;
-            let field_error_struct_name = format_ident!(
-                "{}{}KorumaValidationError",
-                struct_name,
-                field_name.to_string().to_upper_camel_case()
-            );
-            quote! { #field_name: #field_error_struct_name }
+            if f.is_nested() {
+                // For nested fields, use Option<NestedTypeKorumaValidationError>
+                // We need to derive the error type name from the field type
+                let field_ty = &f.ty;
+                // Handle Option<T> by extracting T
+                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                quote! { #field_name: Option<<#inner_ty as koruma::ValidateExt>::Error> }
+            } else {
+                let field_error_struct_name = format_ident!(
+                    "{}{}KorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                quote! { #field_name: #field_error_struct_name }
+            }
         })
         .collect();
 
@@ -1082,14 +1127,25 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .iter()
         .map(|f| {
             let field_name = &f.name;
-            let field_error_struct_name = format_ident!(
-                "{}{}KorumaValidationError",
-                struct_name,
-                field_name.to_string().to_upper_camel_case()
-            );
-            quote! {
-                pub fn #field_name(&self) -> &#field_error_struct_name {
-                    &self.#field_name
+            if f.is_nested() {
+                // For nested fields, return Option<&NestedTypeKorumaValidationError>
+                let field_ty = &f.ty;
+                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                quote! {
+                    pub fn #field_name(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
+                        self.#field_name.as_ref()
+                    }
+                }
+            } else {
+                let field_error_struct_name = format_ident!(
+                    "{}{}KorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                quote! {
+                    pub fn #field_name(&self) -> &#field_error_struct_name {
+                        &self.#field_name
+                    }
                 }
             }
         })
@@ -1100,7 +1156,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .iter()
         .map(|f| {
             let field_name = &f.name;
-            quote! { self.#field_name.is_empty() }
+            if f.is_nested() {
+                // For nested fields, check if Option is None
+                quote! { self.#field_name.is_none() }
+            } else {
+                quote! { self.#field_name.is_empty() }
+            }
         })
         .collect();
 
@@ -1109,6 +1170,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .iter()
         .map(|f| {
             let field_name = &f.name;
+
+            // For nested fields, default to None
+            if f.is_nested() {
+                return quote! { #field_name: None };
+            }
+
             let field_error_struct_name = format_ident!(
                 "{}{}KorumaValidationError",
                 struct_name,
@@ -1153,12 +1220,37 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         })
         .collect();
 
-    // Generate validation logic - supports both field validators and element validators
+    // Generate validation logic - supports both field validators, element validators, and nested structs
     let validation_checks: Vec<TokenStream2> = field_infos
         .iter()
         .map(|f| {
             let field_name = &f.name;
             let field_ty = &f.ty;
+
+            // Handle nested fields - call validate() on the nested struct
+            if f.is_nested() {
+                let field_is_optional = is_option_type(field_ty);
+                if field_is_optional {
+                    // For Option<NestedType>, only validate if Some
+                    return quote! {
+                        if let Some(ref __nested_value) = self.#field_name {
+                            if let Err(nested_err) = __nested_value.validate() {
+                                error.#field_name = Some(nested_err);
+                                has_error = true;
+                            }
+                        }
+                    };
+                } else {
+                    // For non-optional nested field, always validate
+                    return quote! {
+                        if let Err(nested_err) = self.#field_name.validate() {
+                            error.#field_name = Some(nested_err);
+                            has_error = true;
+                        }
+                    };
+                }
+            }
+
             let has_element_validators = f.has_element_validators();
 
             // Generate field-level validation checks
@@ -1391,6 +1483,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 } else {
                     Ok(())
                 }
+            }
+        }
+
+        impl koruma::ValidateExt for #struct_name {
+            type Error = #error_struct_name;
+
+            fn validate(&self) -> Result<(), #error_struct_name> {
+                #struct_name::validate(self)
             }
         }
     })

@@ -12,6 +12,7 @@ A per-field validation library for Rust with struct-based errors.
 - Multiple validators per field
 - Generic validator support with type inference
 - Optional field support (skips validation when `None`)
+- Nested struct validation with `#[koruma(nested)]`
 
 ## koruma-collection
 
@@ -30,7 +31,7 @@ koruma = { version = "*", features = ["derive"] }
 ## Examples
 
 - [koruma-collection](examples/collection)
-- [custom](examples/custom)
+- [user-defined](examples/user-defined)
 
 ## Quick Start
 
@@ -224,6 +225,109 @@ let err = profile.validate().unwrap_err();
 // Error captures the inner value
 let bio_err = err.bio().string_length_validation().unwrap();
 assert_eq!(bio_err.input, "".to_string());
+```
+
+### Nested Struct Validation
+
+For fields that are themselves structs deriving `Koruma`, use `#[koruma(nested)]` to automatically validate them:
+
+```rs
+#[derive(Koruma)]
+pub struct Address {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub street: String,
+
+    #[koruma(StringLengthValidation(min = 1, max = 50))]
+    pub city: String,
+
+    #[koruma(StringLengthValidation(min = 2, max = 10))]
+    pub zip_code: String,
+}
+
+#[derive(Koruma)]
+pub struct Customer {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub name: String,
+
+    // Nested struct - will call Address::validate() automatically
+    #[koruma(nested)]
+    pub address: Address,
+}
+
+// Validation cascades through nested structs
+let customer = Customer {
+    name: "Alice".to_string(),
+    address: Address {
+        street: "".to_string(),  // Invalid: empty
+        city: "Springfield".to_string(),
+        zip_code: "12345".to_string(),
+    },
+};
+
+match customer.validate() {
+    Ok(()) => println!("Valid!"),
+    Err(errors) => {
+        // Access nested errors through the field getter
+        if let Some(address_err) = errors.address() {
+            if let Some(street_err) = address_err.street().string_length_validation() {
+                println!("Street is invalid: {:?}", street_err.input);
+            }
+        }
+    }
+}
+```
+
+Nested validation also works with optional fields:
+
+```rs
+#[derive(Koruma)]
+pub struct CustomerWithOptionalAddress {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub name: String,
+
+    // Optional nested struct - skipped when None, validated when Some
+    #[koruma(nested)]
+    pub shipping_address: Option<Address>,
+}
+
+// None is skipped
+let customer = CustomerWithOptionalAddress {
+    name: "Bob".to_string(),
+    shipping_address: None,  // Not validated
+};
+assert!(customer.validate().is_ok());
+```
+
+Nesting can be arbitrarily deep - nested structs can themselves contain nested structs:
+
+```rs
+#[derive(Koruma)]
+pub struct Company {
+    #[koruma(StringLengthValidation(min = 1, max = 200))]
+    pub company_name: String,
+
+    #[koruma(nested)]
+    pub headquarters: Address,
+}
+
+#[derive(Koruma)]
+pub struct Employee {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub employee_name: String,
+
+    #[koruma(nested)]
+    pub employer: Company,  // Company contains nested Address
+}
+
+// Access deeply nested errors
+let err = employee.validate().unwrap_err();
+if let Some(company_err) = err.employer() {
+    if let Some(address_err) = company_err.headquarters() {
+        if let Some(city_err) = address_err.city().string_length_validation() {
+            println!("Company HQ city is invalid");
+        }
+    }
+}
 ```
 
 ## Error Messages

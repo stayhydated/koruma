@@ -72,3 +72,59 @@ pub struct OrderWithLenCheck {
     #[koruma(VecLenValidation<f64>(min = 1, max = 5), each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
     pub scores: Vec<f64>,
 }
+
+/// Example struct demonstrating nested validation.
+/// Address is a nested struct that also derives Koruma.
+#[derive(Clone, Koruma)]
+pub struct Address {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub street: String,
+
+    #[koruma(StringLengthValidation(min = 1, max = 50))]
+    pub city: String,
+
+    #[koruma(StringLengthValidation(min = 2, max = 10))]
+    pub zip_code: String,
+}
+
+/// Example struct with a nested Koruma struct.
+#[derive(Koruma)]
+pub struct Customer {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub name: String,
+
+    // Nested struct - will call Address::validate() automatically
+    #[koruma(nested)]
+    pub address: Address,
+}
+
+/// Example struct with an optional nested Koruma struct.
+#[derive(Koruma)]
+pub struct CustomerWithOptionalAddress {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub name: String,
+
+    // Optional nested struct - skipped when None, validated when Some
+    #[koruma(nested)]
+    pub shipping_address: Option<Address>,
+}
+
+/// Example struct with deeply nested validation (nested within nested).
+#[derive(Clone, Koruma)]
+pub struct Company {
+    #[koruma(StringLengthValidation(min = 1, max = 200))]
+    pub company_name: String,
+
+    #[koruma(nested)]
+    pub headquarters: Address,
+}
+
+/// Example struct with multiple levels of nesting.
+#[derive(Koruma)]
+pub struct Employee {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub employee_name: String,
+
+    #[koruma(nested)]
+    pub employer: Company,
+}

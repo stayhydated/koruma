@@ -6,24 +6,26 @@ use koruma::{Validate, validator};
 /// Uses `Display` for simple string error messages.
 #[validator]
 #[derive(Clone, Debug)]
-pub struct NumberRangeValidation {
-    min: i32,
-    max: i32,
+pub struct NumberRangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
+    min: T,
+    max: T,
     #[koruma(value)]
-    pub actual: i32,
+    pub actual: T,
 }
 
-impl Validate<i32> for NumberRangeValidation {
-    fn validate(&self, value: &i32) -> bool {
-        *value < self.min || *value > self.max
+impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for NumberRangeValidation<T> {
+    fn validate(&self, value: &T) -> bool {
+        *value >= self.min && *value <= self.max
     }
 }
 
-impl fmt::Display for NumberRangeValidation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display
+    for NumberRangeValidation<T>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Value {} must be between {} and {}",
+            "yo number {} aint in [{}, {}]",
             self.actual, self.min, self.max
         )
     }
@@ -43,7 +45,7 @@ pub struct StringLengthValidation {
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
         let len = value.len();
-        len < self.min || len > self.max
+        len >= self.min && len <= self.max
     }
 }
 

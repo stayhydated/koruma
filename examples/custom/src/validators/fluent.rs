@@ -5,14 +5,19 @@ use koruma::{Validate, validator};
 /// Uses `EsFluent` for internationalized error messages.
 #[validator]
 #[derive(Clone, Debug, EsFluent)]
-pub struct PositiveNumberValidation {
+pub struct IsEvenNumberValidation<
+    T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
+> {
     #[koruma(value)]
-    pub actual: i32,
+    #[fluent(value(|x: &T| x.to_string()))]
+    pub actual: T,
 }
 
-impl Validate<i32> for PositiveNumberValidation {
-    fn validate(&self, value: &i32) -> bool {
-        *value <= 0
+impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq> Validate<T>
+    for IsEvenNumberValidation<T>
+{
+    fn validate(&self, value: &T) -> bool {
+        *value % T::from(2u8) == T::from(0u8)
     }
 }
 
@@ -27,6 +32,6 @@ pub struct NonEmptyStringValidation {
 
 impl Validate<String> for NonEmptyStringValidation {
     fn validate(&self, value: &String) -> bool {
-        value.is_empty()
+        !value.is_empty()
     }
 }

@@ -63,4 +63,19 @@ rust_decimal = [ "dep:rust_decimal" ]
 url = [ "dep:url" ]
 
 [package.metadata.docs.rs]
-all-features = true
+features = [
+  "default",
+  "full",
+  "full-fluent",
+  "fluent",
+  "credit-card",
+  "email",
+  "email-idna",
+  "smallvec",
+  "fmt",
+  "heck",
+  "phone-number",
+  "regex",
+  "rust_decimal",
+  "url",
+]

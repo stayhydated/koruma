@@ -1082,9 +1082,9 @@ dependencies = [
  "es-fluent-manager-embedded",
  "koruma",
  "koruma-collection",
+ "koruma-shared-lib",
  "ratatui",
  "rust-embed",
- "shared-lib",
  "strum 0.27.2",
  "tui-input",
  "unic-langid",
@@ -1105,8 +1105,8 @@ dependencies = [
  "es-fluent",
  "es-fluent-manager-embedded",
  "koruma",
+ "koruma-shared-lib",
  "rust-embed",
- "shared-lib",
  "strum 0.27.2",
  "unic-langid",
 ]
@@ -1123,6 +1123,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",
+]
+
+[[package]]
+name = "koruma-shared-lib"
+version = "0.1.0"
+dependencies = [
+ "es-fluent",
+ "es-fluent-lang",
+ "es-fluent-manager-embedded",
+ "rust-embed",
+ "strum 0.27.2",
+ "unic-langid",
 ]
 
 [[package]]
@@ -2016,18 +2028,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures",
  "digest",
-]
-
-[[package]]
-name = "shared-lib"
-version = "0.1.0"
-dependencies = [
- "es-fluent",
- "es-fluent-lang",
- "es-fluent-manager-embedded",
- "rust-embed",
- "strum 0.27.2",
- "unic-langid",
 ]
 
 [[package]]

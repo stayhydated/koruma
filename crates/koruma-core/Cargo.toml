@@ -19,4 +19,4 @@ showcase = [ "dep:inventory" ]
 inventory = { optional = true, workspace = true }
 
 [package.metadata.docs.rs]
-all-features = true
+all-features = false

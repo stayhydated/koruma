@@ -19,10 +19,10 @@ koruma-derive = { optional = true, workspace = true }
 es-fluent = { optional = true, workspace = true }
 
 [features]
-default = [ "derive" ]
+default = [  ]
 derive = [ "dep:koruma-derive" ]
 fluent = [ "dep:es-fluent", "koruma-derive?/fluent" ]
 showcase = [ "dep:inventory", "koruma-core/showcase", "koruma-derive?/showcase" ]
 
 [package.metadata.docs.rs]
-all-features = true
+features = [ "derive", "fluent" ]

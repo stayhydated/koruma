@@ -11,7 +11,7 @@ use ratatui::{
 };
 use tui_input::{Input, InputRequest};
 
-use shared_lib::Languages;
+use koruma_shared_lib::Languages;
 
 /// Application state for the TUI.
 struct App {

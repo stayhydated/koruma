@@ -17,12 +17,9 @@ pub(crate) struct ValidatorAttr {
     /// Whether the validator uses `::<_>` syntax for type inference from field type.
     /// When true, the field type is used (unwrapping Option if present).
     pub infer_type: bool,
-    /// Whether the validator uses `::<?>` syntax for full type inference.
-    /// When true, the full field type is used WITHOUT unwrapping Option.
-    /// This is useful for validators like RequiredValidation that need Option<T>.
-    pub infer_full_type: bool,
     /// Explicit type parameter if specified (e.g., `::<f64>`, `::<Vec<_>>`)
     /// If this contains `_`, it will be substituted with the inner type from the field.
+    /// Use `::<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<syn::Type>,
     pub args: Vec<(Ident, syn::Expr)>,
 }
@@ -31,11 +28,11 @@ impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let validator: Ident = input.parse()?;
 
-        // Check for turbofish generic syntax: ::<_>, ::<?>, or ::<SomeType>
+        // Check for turbofish generic syntax: ::<_> or ::<SomeType>
         // ::<_> means "use the field type" (unwrapping Option if present)
-        // ::<?> means "use the full field type" (WITHOUT unwrapping Option)
+        // ::<Option<_>> means "use the full Option type" (without unwrapping)
         // ::<Vec<_>> means "substitute _ with the inner type from the field"
-        let (infer_type, infer_full_type, explicit_type) = if input.peek(Token![::]) {
+        let (infer_type, explicit_type) = if input.peek(Token![::]) {
             // Look ahead to check if < follows ::
             let fork = input.fork();
             let has_turbofish = fork.parse::<Token![::]>().is_ok() && fork.peek(Token![<]);
@@ -44,26 +41,20 @@ impl Parse for ValidatorAttr {
                 input.parse::<Token![::]>()?;
                 input.parse::<Token![<]>()?;
 
-                // Check for ::<?> syntax (full type inference)
-                if input.peek(Token![?]) {
-                    input.parse::<Token![?]>()?;
-                    input.parse::<Token![>]>()?;
-                    (false, true, None)
-                }
                 // Check for ::<_> syntax (type inference with Option unwrapping)
-                else if input.peek(Token![_]) {
+                if input.peek(Token![_]) {
                     input.parse::<Token![_]>()?;
                     input.parse::<Token![>]>()?;
-                    (true, false, None)
+                    (true, None)
                 }
                 // Explicit type: ::<SomeType>
                 else {
                     let ty: syn::Type = input.parse()?;
                     input.parse::<Token![>]>()?;
-                    (false, false, Some(ty))
+                    (false, Some(ty))
                 }
             } else {
-                (false, false, None)
+                (false, None)
             }
         } else if input.peek(Token![<]) {
             // User used old syntax without ::, give helpful error
@@ -72,7 +63,7 @@ impl Parse for ValidatorAttr {
                 "use turbofish syntax for type parameters: `Validator::<_>` not `Validator<_>`",
             ));
         } else {
-            (false, false, None)
+            (false, None)
         };
 
         let args = if input.peek(syn::token::Paren) {
@@ -99,7 +90,6 @@ impl Parse for ValidatorAttr {
         Ok(ValidatorAttr {
             validator,
             infer_type,
-            infer_full_type,
             explicit_type,
             args,
         })
@@ -708,6 +698,56 @@ fn contains_infer_type(ty: &syn::Type) -> bool {
     }
 }
 
+/// Check if a type is `Option<_>` (Option wrapping an infer placeholder).
+/// This is used when a validator explicitly wants the full Option type, like RequiredValidation.
+fn is_option_infer_type(ty: &syn::Type) -> bool {
+    if let syn::Type::Path(type_path) = ty
+        && let Some(segment) = type_path.path.segments.last()
+        && segment.ident == "Option"
+        && let syn::PathArguments::AngleBracketed(args) = &segment.arguments
+    {
+        for arg in &args.args {
+            if let syn::GenericArgument::Type(inner_ty) = arg {
+                return matches!(inner_ty, syn::Type::Infer(_));
+            }
+        }
+    }
+    false
+}
+
+/// Check if a validator wants the full field type (not unwrapped from Option).
+/// This is true for `<Option<_>>` syntax.
+fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
+    v.explicit_type
+        .as_ref()
+        .map_or(false, is_option_infer_type)
+}
+
+/// Check if an expression is a simple identifier (bare field name like `password`).
+/// If so, return the identifier. This is used to detect field references in validator args.
+fn expr_as_simple_ident(expr: &syn::Expr) -> Option<&Ident> {
+    if let syn::Expr::Path(expr_path) = expr
+        && expr_path.qself.is_none()
+        && expr_path.path.segments.len() == 1
+        && expr_path.path.segments[0].arguments.is_empty()
+    {
+        Some(&expr_path.path.segments[0].ident)
+    } else {
+        None
+    }
+}
+
+/// Transform a validator arg value for use in generated code.
+/// If the expression is a simple identifier (field name), transform it to `self.field.clone()`.
+/// Otherwise, use the expression as-is.
+fn transform_arg_value(arg_value: &syn::Expr) -> TokenStream2 {
+    if let Some(field_ident) = expr_as_simple_ident(arg_value) {
+        quote! { self.#field_ident.clone() }
+    } else {
+        quote! { #arg_value }
+    }
+}
+
 /// Helper to generate the type for a validator
 ///
 /// Type inference behavior:
@@ -746,16 +786,7 @@ fn validator_type_for_field(
     // Unwrap Option<T> for optional field validation
     let effective_ty = option_inner_type(after_vec).unwrap_or(after_vec);
 
-    if v.infer_full_type {
-        // <?> means use the full field type WITHOUT unwrapping Option
-        // This is useful for validators like RequiredValidation that need Option<T>
-        let full_ty = if validate_each {
-            vec_inner_type(field_ty).unwrap_or(field_ty)
-        } else {
-            field_ty
-        };
-        quote! { #validator<#full_ty> }
-    } else if v.infer_type {
+    if v.infer_type {
         // <_> means use the field type (after unwrapping Option)
         quote! { #validator<#effective_ty> }
     } else {
@@ -1311,32 +1342,55 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             let has_element_validators = f.has_element_validators();
 
-            // Generate field-level validation checks
-            let field_validator_checks: Vec<TokenStream2> = f
+            // Split field validators into those that want the full type vs those that want
+            // the unwrapped type (for Option fields)
+            let (full_type_validators, unwrapped_validators): (Vec<_>, Vec<_>) = f
                 .field_validators
                 .iter()
-                .map(|v| {
+                .partition(|v| validator_wants_full_type(v));
+
+            // Helper to generate validator check code
+            // `needs_ref`: whether to add & when passing to validate()
+            //   - true for full_type validators (value_expr is owned)
+            //   - false for unwrapped validators (value_expr is already a reference)
+            let generate_validator_check =
+                |v: &ValidatorAttr, value_expr: TokenStream2, needs_ref: bool| -> TokenStream2 {
                     let validator = &v.validator;
                     let validator_snake =
                         format_ident!("{}", validator.to_string().to_snake_case());
-                    // For field validators, we never unwrap Vec - only Option.
-                    // <_> uses the full field type (Vec<T> stays Vec<T>)
                     let effective_ty = effective_validation_type(field_ty, false);
 
                     let builder_calls: Vec<TokenStream2> = v
                         .args
                         .iter()
                         .map(|(arg_name, arg_value)| {
-                            quote! { .#arg_name(#arg_value) }
+                            let transformed = transform_arg_value(arg_value);
+                            quote! { .#arg_name(#transformed) }
                         })
                         .collect();
 
-                    if v.infer_type || v.infer_full_type {
-                        // For <?>, use the full field type (don't unwrap Option)
-                        let validator_ty = if v.infer_full_type {
-                            field_ty
+                    // The reference expression for validate()
+                    let ref_expr = if needs_ref {
+                        quote! { &#value_expr }
+                    } else {
+                        quote! { #value_expr }
+                    };
+
+                    // Determine the validator type
+                    let uses_infer = v.infer_type || v.explicit_type.as_ref().map_or(false, contains_infer_type);
+                    
+                    if uses_infer {
+                        let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
+                            if contains_infer_type(explicit_ty) {
+                                // For Option<_>, first_generic_arg gets the inner type
+                                let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
+                                let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                                quote! { #substituted }
+                            } else {
+                                quote! { #explicit_ty }
+                            }
                         } else {
-                            effective_ty
+                            quote! { #effective_ty }
                         };
                         let assert_fn = format_ident!(
                             "__koruma_assert_validate_{}_{}_field",
@@ -1349,9 +1403,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             }
                             let validator = #validator::<#validator_ty>::builder()
                                 #(#builder_calls)*
-                                .with_value(__field_value.clone())
+                                .with_value(#value_expr.clone())
                                 .build();
-                            if !#assert_fn(&validator, __field_value) {
+                            if !#assert_fn(&validator, #ref_expr) {
                                 error.#field_name.#validator_snake = Some(validator);
                                 has_error = true;
                             }
@@ -1360,15 +1414,28 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         quote! {
                             let validator = #validator::builder()
                                 #(#builder_calls)*
-                                .with_value(__field_value.clone())
+                                .with_value(#value_expr.clone())
                                 .build();
-                            if !validator.validate(__field_value) {
+                            if !validator.validate(#ref_expr) {
                                 error.#field_name.#validator_snake = Some(validator);
                                 has_error = true;
                             }
                         }
                     }
-                })
+                };
+
+            // Generate checks for full-type validators (use field directly, no reference)
+            // Note: we pass the field expression without &, the closure adds .clone() for with_value
+            // and &... for validate()
+            let full_type_checks: Vec<TokenStream2> = full_type_validators
+                .iter()
+                .map(|v| generate_validator_check(v, quote! { self.#field_name }, true))
+                .collect();
+
+            // Generate checks for unwrapped validators (use __field_value which is already a ref)
+            let unwrapped_checks: Vec<TokenStream2> = unwrapped_validators
+                .iter()
+                .map(|v| generate_validator_check(v, quote! { __field_value }, false))
                 .collect();
 
             // Generate element-level validation checks if we have element validators
@@ -1395,16 +1462,22 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             .args
                             .iter()
                             .map(|(arg_name, arg_value)| {
-                                quote! { .#arg_name(#arg_value) }
+                                let transformed = transform_arg_value(arg_value);
+                                quote! { .#arg_name(#transformed) }
                             })
                             .collect();
 
-                        if v.infer_type || v.infer_full_type {
-                            // For <?>, use element_ty (don't unwrap Option from element)
-                            let validator_ty = if v.infer_full_type {
-                                element_ty
+                        if v.infer_type || v.explicit_type.as_ref().map_or(false, contains_infer_type) {
+                            let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
+                                if contains_infer_type(explicit_ty) {
+                                    let inner_ty = first_generic_arg(element_ty).unwrap_or(element_ty);
+                                    let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                                    quote! { #substituted }
+                                } else {
+                                    quote! { #explicit_ty }
+                                }
                             } else {
-                                effective_element_ty
+                                quote! { #effective_element_ty }
                             };
                             let assert_fn = format_ident!(
                                 "__koruma_assert_validate_{}_{}_element",
@@ -1486,22 +1559,47 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Combine field validation and element validation
             let field_is_optional = is_option_type(field_ty);
+            let has_full_type_validators = !full_type_validators.is_empty();
+            let has_unwrapped_validators = !unwrapped_validators.is_empty();
 
-            // For fields with element validators, the field value is the Vec itself
-            // For regular fields, it's just the field value
-            if !f.field_validators.is_empty() && field_is_optional {
-                // Optional field with field validators
+            // Full-type validators run on the field directly (no Option unwrapping)
+            // Unwrapped validators run on the inner value (inside if let Some for Option fields)
+            if has_full_type_validators && has_unwrapped_validators && field_is_optional {
+                // Both full-type and unwrapped validators, optional field
                 quote! {
+                    #(#full_type_checks)*
                     if let Some(ref __field_value) = self.#field_name {
-                        #(#field_validator_checks)*
+                        #(#unwrapped_checks)*
                     }
                     #element_validation
                 }
-            } else if !f.field_validators.is_empty() {
-                // Non-optional field with field validators
+            } else if has_full_type_validators && has_unwrapped_validators {
+                // Both types, non-optional field
+                quote! {
+                    #(#full_type_checks)*
+                    let __field_value = &self.#field_name;
+                    #(#unwrapped_checks)*
+                    #element_validation
+                }
+            } else if has_full_type_validators {
+                // Only full-type validators
+                quote! {
+                    #(#full_type_checks)*
+                    #element_validation
+                }
+            } else if has_unwrapped_validators && field_is_optional {
+                // Only unwrapped validators, optional field
+                quote! {
+                    if let Some(ref __field_value) = self.#field_name {
+                        #(#unwrapped_checks)*
+                    }
+                    #element_validation
+                }
+            } else if has_unwrapped_validators {
+                // Only unwrapped validators, non-optional field
                 quote! {
                     let __field_value = &self.#field_name;
-                    #(#field_validator_checks)*
+                    #(#unwrapped_checks)*
                     #element_validation
                 }
             } else {

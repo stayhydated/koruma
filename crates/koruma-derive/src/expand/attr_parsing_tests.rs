@@ -130,29 +130,19 @@ fn test_validator_attr_parse_deeply_nested_generic() {
     let attr: ValidatorAttr = syn::parse_quote!(DeepValidator::<Option<Vec<_>>>);
     assert_eq!(attr.validator.to_string(), "DeepValidator");
     assert!(!attr.infer_type);
-    assert!(!attr.infer_full_type);
     assert!(attr.explicit_type.is_some());
 }
 
 #[test]
-fn test_validator_attr_parse_full_type_inference() {
-    // ::<?> syntax for full type inference (no Option unwrapping)
-    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<?> );
+fn test_validator_attr_parse_option_infer_type() {
+    // ::<Option<_>> syntax for full Option type (no unwrapping)
+    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
     assert_eq!(attr.validator.to_string(), "RequiredValidation");
     assert!(!attr.infer_type);
-    assert!(attr.infer_full_type);
-    assert!(attr.explicit_type.is_none());
-}
-
-#[test]
-fn test_validator_attr_parse_full_type_inference_with_args() {
-    // ::<?> syntax with arguments
-    let attr: ValidatorAttr = syn::parse_quote!(SomeValidator::<?>(min = 0, max = 100));
-    assert_eq!(attr.validator.to_string(), "SomeValidator");
-    assert!(!attr.infer_type);
-    assert!(attr.infer_full_type);
-    assert!(attr.explicit_type.is_none());
-    assert_eq!(attr.args.len(), 2);
+    assert!(attr.explicit_type.is_some());
+    let explicit_ty = attr.explicit_type.unwrap();
+    let ty_str = quote::quote!(#explicit_ty).to_string();
+    assert!(ty_str.contains("Option"), "expected Option<_>, got: {}", ty_str);
 }
 
 #[test]

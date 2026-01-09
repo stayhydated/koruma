@@ -4,14 +4,14 @@
 //! - `RequiredValidation` validator to check if a value is present (not None for Option types)
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::required::RequiredValidation;
+//! use koruma_collection::general::RequiredValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     // <?> uses the full field type (Option<String>) without unwrapping
-//!     #[koruma(RequiredValidation::<?> )]
+//!     // <Option<_>> substitutes `_` with the inner type (String), giving Option<String>
+//!     #[koruma(RequiredValidation::<Option<_>>)]
 //!     name: Option<String>,
 //! }
 //! ```

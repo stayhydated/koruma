@@ -1,0 +1,109 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum MultiValidatorItemValueKorumaValidator {
+    NumberRangeValidation(NumberRangeValidation),
+    EvenNumberValidation(EvenNumberValidation),
+}
+#[derive(Clone, Debug)]
+pub struct MultiValidatorItemValueKorumaValidationError {
+    number_range_validation: Option<NumberRangeValidation>,
+    even_number_validation: Option<EvenNumberValidation>,
+}
+impl MultiValidatorItemValueKorumaValidationError {
+    pub fn number_range_validation(&self) -> Option<&NumberRangeValidation> {
+        self.number_range_validation.as_ref()
+    }
+    pub fn even_number_validation(&self) -> Option<&EvenNumberValidation> {
+        self.even_number_validation.as_ref()
+    }
+    /// Returns all failed field-level validators.
+    pub fn all(&self) -> Vec<MultiValidatorItemValueKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.number_range_validation {
+            result
+                .push(
+                    MultiValidatorItemValueKorumaValidator::NumberRangeValidation(
+                        v.clone(),
+                    ),
+                );
+        }
+        if let Some(v) = &self.even_number_validation {
+            result
+                .push(
+                    MultiValidatorItemValueKorumaValidator::EvenNumberValidation(
+                        v.clone(),
+                    ),
+                );
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.number_range_validation.is_none() && self.even_number_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct MultiValidatorItemKorumaValidationError {
+    value: MultiValidatorItemValueKorumaValidationError,
+}
+impl MultiValidatorItemKorumaValidationError {
+    pub fn value(&self) -> &MultiValidatorItemValueKorumaValidationError {
+        &self.value
+    }
+}
+impl koruma::ValidationError for MultiValidatorItemKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+}
+impl MultiValidatorItem {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), MultiValidatorItemKorumaValidationError> {
+        let mut error = MultiValidatorItemKorumaValidationError {
+            value: MultiValidatorItemValueKorumaValidationError {
+                number_range_validation: None,
+                even_number_validation: None,
+            },
+        };
+        let mut has_error = false;
+        let __field_value = &self.value;
+        let validator = NumberRangeValidation::builder()
+            .min(0)
+            .max(100)
+            .with_value(__field_value.clone())
+            .build();
+        if !validator.validate(__field_value) {
+            error.value.number_range_validation = Some(validator);
+            has_error = true;
+        }
+        let validator = EvenNumberValidation::builder()
+            .with_value(__field_value.clone())
+            .build();
+        if !validator.validate(__field_value) {
+            error.value.even_number_validation = Some(validator);
+            has_error = true;
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl koruma::ValidateExt for MultiValidatorItem {
+    type Error = MultiValidatorItemKorumaValidationError;
+    fn validate(&self) -> Result<(), MultiValidatorItemKorumaValidationError> {
+        MultiValidatorItem::validate(self)
+    }
+}

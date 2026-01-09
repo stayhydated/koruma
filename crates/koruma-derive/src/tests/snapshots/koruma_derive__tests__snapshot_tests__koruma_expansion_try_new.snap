@@ -1,0 +1,92 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum PersonAgeKorumaValidator {
+    RangeValidation(RangeValidation),
+}
+#[derive(Clone, Debug)]
+pub struct PersonAgeKorumaValidationError {
+    range_validation: Option<RangeValidation>,
+}
+impl PersonAgeKorumaValidationError {
+    pub fn range_validation(&self) -> Option<&RangeValidation> {
+        self.range_validation.as_ref()
+    }
+    /// Returns all failed field-level validators.
+    pub fn all(&self) -> Vec<PersonAgeKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.range_validation {
+            result.push(PersonAgeKorumaValidator::RangeValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct PersonKorumaValidationError {
+    age: PersonAgeKorumaValidationError,
+}
+impl PersonKorumaValidationError {
+    pub fn age(&self) -> &PersonAgeKorumaValidationError {
+        &self.age
+    }
+}
+impl koruma::ValidationError for PersonKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.age.is_empty()
+    }
+}
+impl Person {
+    /// Creates a new instance and validates it.
+    ///
+    /// Returns `Ok(instance)` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn try_new(age: i32, name: String) -> Result<Self, PersonKorumaValidationError> {
+        let instance = Self { age, name };
+        instance.validate()?;
+        Ok(instance)
+    }
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), PersonKorumaValidationError> {
+        let mut error = PersonKorumaValidationError {
+            age: PersonAgeKorumaValidationError {
+                range_validation: None,
+            },
+        };
+        let mut has_error = false;
+        let __field_value = &self.age;
+        let validator = RangeValidation::builder()
+            .min(0)
+            .max(150)
+            .with_value(__field_value.clone())
+            .build();
+        if !validator.validate(__field_value) {
+            error.age.range_validation = Some(validator);
+            has_error = true;
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl koruma::ValidateExt for Person {
+    type Error = PersonKorumaValidationError;
+    fn validate(&self) -> Result<(), PersonKorumaValidationError> {
+        Person::validate(self)
+    }
+}

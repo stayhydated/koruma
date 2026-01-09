@@ -2,8 +2,8 @@
 
 use crate::expand::{parse::*, utils::*};
 
-use syn::ItemStruct;
 use quote::quote;
+use syn::ItemStruct;
 
 #[test]
 fn test_option_inner_type_extracts_inner() {

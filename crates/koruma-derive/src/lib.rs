@@ -1,4 +1,6 @@
 mod expand;
+#[cfg(test)]
+mod tests;
 
 use proc_macro::TokenStream;
 use proc_macro_error2::{abort, proc_macro_error};

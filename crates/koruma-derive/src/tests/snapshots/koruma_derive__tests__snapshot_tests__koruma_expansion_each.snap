@@ -1,0 +1,121 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible element validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum OrderScoresElementKorumaValidator {
+    GenericRangeValidation(GenericRangeValidation<f64>),
+}
+/// Per-element validation error struct.
+#[derive(Clone, Debug)]
+pub struct OrderScoresElementKorumaValidationError {
+    generic_range_validation: Option<GenericRangeValidation<f64>>,
+}
+impl OrderScoresElementKorumaValidationError {
+    pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<f64>> {
+        self.generic_range_validation.as_ref()
+    }
+    /// Returns all failed element validators.
+    pub fn all(&self) -> Vec<OrderScoresElementKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.generic_range_validation {
+            result
+                .push(
+                    OrderScoresElementKorumaValidator::GenericRangeValidation(v.clone()),
+                );
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.generic_range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[derive(Clone, Debug)]
+pub struct OrderScoresKorumaValidationError {
+    element_errors: Vec<(usize, OrderScoresElementKorumaValidationError)>,
+}
+impl OrderScoresKorumaValidationError {
+    /// Returns all element validation errors with their indices.
+    pub fn element_errors(&self) -> &[(usize, OrderScoresElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    pub fn is_empty(&self) -> bool {
+        self.element_errors.is_empty()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct OrderKorumaValidationError {
+    scores: OrderScoresKorumaValidationError,
+}
+impl OrderKorumaValidationError {
+    pub fn scores(&self) -> &OrderScoresKorumaValidationError {
+        &self.scores
+    }
+}
+impl koruma::ValidationError for OrderKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.scores.is_empty()
+    }
+}
+impl Order {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), OrderKorumaValidationError> {
+        let mut error = OrderKorumaValidationError {
+            scores: OrderScoresKorumaValidationError {
+                element_errors: Vec::new(),
+            },
+        };
+        let mut has_error = false;
+        for (idx, __item_value) in self.scores.iter().enumerate() {
+            let mut element_error = OrderScoresElementKorumaValidationError {
+                generic_range_validation: None,
+            };
+            let mut element_has_error = false;
+            fn __koruma_assert_validate_scores_generic_range_validation_element<
+                V: koruma::Validate<T>,
+                T,
+            >(v: &V, t: &T) -> bool {
+                v.validate(t)
+            }
+            let validator = GenericRangeValidation::<f64>::builder()
+                .min(0.0)
+                .max(100.0)
+                .with_value(__item_value.clone())
+                .build();
+            if !__koruma_assert_validate_scores_generic_range_validation_element(
+                &validator,
+                __item_value,
+            ) {
+                element_error.generic_range_validation = Some(validator);
+                element_has_error = true;
+            }
+            if element_has_error {
+                error.scores.element_errors.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl koruma::ValidateExt for Order {
+    type Error = OrderKorumaValidationError;
+    fn validate(&self) -> Result<(), OrderKorumaValidationError> {
+        Order::validate(self)
+    }
+}

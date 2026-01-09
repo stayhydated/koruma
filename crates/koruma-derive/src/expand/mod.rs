@@ -31,7 +31,8 @@ pub(crate) use parse::ShowcaseAttr;
 pub(crate) use parse::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use parse::{
-    FieldInfo, KorumaAttr, ParseFieldResult, ValidatorAttr, find_value_field, parse_field,
+    FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidatorAttr, find_value_field,
+    parse_field, parse_struct_options,
 };
 #[allow(unused_imports)]
 pub(crate) use utils::{

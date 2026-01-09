@@ -1,5 +1,5 @@
 use syn::{
-    Error, Expr, Field, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
+    Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     token,
 };
@@ -183,6 +183,51 @@ impl Parse for KorumaAttr {
             is_nested: false,
         })
     }
+}
+
+/// Struct-level options parsed from `#[koruma(...)]`
+#[derive(Default)]
+pub(crate) struct StructOptions {
+    /// Generate a `try_new` function that validates on construction
+    pub try_new: bool,
+}
+
+impl Parse for StructOptions {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut options = StructOptions::default();
+
+        while !input.is_empty() {
+            let ident: Ident = input.parse()?;
+            match ident.to_string().as_str() {
+                "try_new" => options.try_new = true,
+                other => {
+                    return Err(Error::new(
+                        ident.span(),
+                        format!(
+                            "unknown struct-level koruma option: `{}`. Expected `try_new`",
+                            other
+                        ),
+                    ));
+                },
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(options)
+    }
+}
+
+/// Parse struct-level `#[koruma(...)]` attributes from a list of attributes
+pub(crate) fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
+    for attr in attrs {
+        if attr.path().is_ident("koruma") {
+            return attr.parse_args::<StructOptions>();
+        }
+    }
+    Ok(StructOptions::default())
 }
 
 /// Field info extracted from the struct

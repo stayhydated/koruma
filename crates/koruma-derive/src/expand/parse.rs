@@ -1,5 +1,5 @@
 use syn::{
-    Error, Expr, Field, Fields, Ident, ItemStruct, LitStr, Result, Token, Type, parenthesized,
+    Error, Expr, Field, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     token,
 };
@@ -298,8 +298,8 @@ pub(crate) fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
 /// Optional `input_type` can be "text" (default) or "numeric".
 #[cfg(feature = "showcase")]
 pub(crate) struct ShowcaseAttr {
-    pub name: LitStr,
-    pub description: LitStr,
+    pub name: syn::LitStr,
+    pub description: syn::LitStr,
     pub create: syn::ExprClosure,
     pub input_type: Option<Ident>,
 }
@@ -307,8 +307,8 @@ pub(crate) struct ShowcaseAttr {
 #[cfg(feature = "showcase")]
 impl Parse for ShowcaseAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut name: Option<LitStr> = None;
-        let mut description: Option<LitStr> = None;
+        let mut name: Option<syn::LitStr> = None;
+        let mut description: Option<syn::LitStr> = None;
         let mut create: Option<syn::ExprClosure> = None;
         let mut input_type: Option<Ident> = None;
 

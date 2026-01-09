@@ -1,22 +1,20 @@
-//! Pattern validation for koruma.
-//!
-//! This module provides:
-//! - `PatternValidation` validator to check if a string matches a regular expression pattern
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::pattern::PatternValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(PatternValidation<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
-//!     username: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Pattern validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::PatternValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(PatternValidation::<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
+///     username: String,
+/// }
+/// ```
+///
 /// Validates that a string matches a regular expression pattern.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(
@@ -25,7 +23,7 @@ use koruma::{Validate, validator};
     create = |input: &str| {
         PatternValidation::builder()
             .with_value(input.to_string())
-            .pattern(r"^[a-zA-Z0-9_]+$".to_string())
+            .pattern(r"^[a-zA-Z0-9_]+$")
             .build()
     }
 ))]
@@ -33,6 +31,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct PatternValidation<T: AsRef<str>> {
     /// The regex pattern to match against
+    #[builder(into)]
     pub pattern: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]

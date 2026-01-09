@@ -1,6 +1,6 @@
 //! Error case tests for the expand module.
 
-use super::*;
+use crate::expand::*;
 use syn::{DeriveInput, ItemStruct};
 
 #[test]

@@ -1,22 +1,20 @@
-//! Suffix validation for koruma.
-//!
-//! This module provides:
-//! - `SuffixValidation` validator to check if a string ends with a specified suffix
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::suffix::SuffixValidation;
-//!
-//! #[derive(Koruma)]
-//! struct File {
-//!     #[koruma(SuffixValidation<_>(suffix = ".txt"))]
-//!     name: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Suffix validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::SuffixValidation;
+///
+/// #[derive(Koruma)]
+/// struct File {
+///     #[koruma(SuffixValidation::<_>(suffix = ".txt"))]
+///     name: String,
+/// }
+/// ```
+///
 /// Validates that a string ends with a specified suffix.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(
@@ -24,7 +22,7 @@ use koruma::{Validate, validator};
     description = "Validates that the input ends with '.rs'",
     create = |input: &str| {
         SuffixValidation::builder()
-            .suffix(".rs".to_string())
+            .suffix(".rs")
             .with_value(input.to_string())
             .build()
     }
@@ -33,6 +31,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct SuffixValidation<T: AsRef<str>> {
     /// The suffix to check for
+    #[builder(into)]
     pub suffix: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]

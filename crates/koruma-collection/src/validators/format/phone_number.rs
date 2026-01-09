@@ -1,22 +1,20 @@
-//! Phone number validation for koruma.
-//!
-//! This module provides:
-//! - `PhoneNumberValidation` validator to check if a string is a valid phone number
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::phone_number::PhoneNumberValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Contact {
-//!     #[koruma(PhoneNumberValidation<_>)]
-//!     phone: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Phone number validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::format::PhoneNumberValidation;
+///
+/// #[derive(Koruma)]
+/// struct Contact {
+///     #[koruma(PhoneNumberValidation::<_>)]
+///     phone: String,
+/// }
+/// ```
+///
 /// Validates that a string is a valid phone number.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

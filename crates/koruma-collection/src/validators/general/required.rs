@@ -1,22 +1,21 @@
-//! Required validation for koruma.
-//!
-//! This module provides:
-//! - `RequiredValidation` validator to check if a value is present (not None for Option types)
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::required::RequiredValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(RequiredValidation<_>)]
-//!     name: Option<String>,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Required validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::general::RequiredValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     // <Option<_>> substitutes `_` with the inner type (String), giving Option<String>
+///     #[koruma(RequiredValidation::<Option<_>>)]
+///     name: Option<String>,
+/// }
+/// ```
+///
 /// Validates that a value is present (not None for Option types).
 #[validator]
 #[derive(Clone, Debug)]

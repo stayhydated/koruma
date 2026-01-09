@@ -1,22 +1,20 @@
-//! Contains validation for koruma.
-//!
-//! This module provides:
-//! - `ContainsValidation` validator to check if a string contains a specified substring
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::contains::ContainsValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(ContainsValidation<_>(substring = "test"))]
-//!     email: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Contains validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::ContainsValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(ContainsValidation::<_>(substring = "test"))]
+///     email: String,
+/// }
+/// ```
+///
 /// Validates that a string contains a specified substring.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(
@@ -24,7 +22,7 @@ use koruma::{Validate, validator};
     description = "Validates that the input contains the substring 'test'",
     create = |input: &str| {
         ContainsValidation::builder()
-            .substring("test".to_string())
+            .substring("test")
             .with_value(input.to_string())
             .build()
     }
@@ -33,6 +31,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct ContainsValidation<T: AsRef<str>> {
     /// The substring to search for
+    #[builder(into)]
     pub substring: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]

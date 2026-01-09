@@ -1,24 +1,22 @@
-//! Positive number validation for koruma.
-//!
-//! This module provides:
-//! - `PositiveValidation` validator to check if a numeric value is strictly positive (> 0)
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::positive::PositiveValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Order {
-//!     #[koruma(PositiveValidation<_>)]
-//!     quantity: i32,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 use super::Numeric;
 
+/// Positive number validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::numeric::PositiveValidation;
+///
+/// #[derive(Koruma)]
+/// struct Order {
+///     #[koruma(PositiveValidation::<_>)]
+///     quantity: i32,
+/// }
+/// ```
+///
 /// Validates that a numeric value is strictly positive (> 0).
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

@@ -1,24 +1,22 @@
-//! Length validation for collections.
-//!
-//! This module provides:
-//! - `LenValidation` validator with min/max bounds
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::collection::len::LenValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Order {
-//!     #[koruma(LenValidation<_>(min = 1, max = 5))]
-//!     items: Vec<String>,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 use super::HasLen;
 
+/// Length validation for collections.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::collection::LenValidation;
+///
+/// #[derive(Koruma)]
+/// struct Order {
+///     #[koruma(LenValidation::<_>(min = 1, max = 5))]
+///     items: Vec<String>,
+/// }
+/// ```
+///
 /// Validates that a collection's length is within the specified bounds.
 ///
 /// Works with any type that implements `HasLen + Clone`.

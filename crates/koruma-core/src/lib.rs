@@ -43,17 +43,18 @@ pub trait ValidateExt {
     fn validate(&self) -> Result<(), Self::Error>;
 }
 
-/// Showcase module for TUI validator discovery.
+/// Showcase module for validator discovery and registration.
 ///
 /// When the `showcase` feature is enabled, validators decorated with
 /// `#[showcase(...)]` attributes are automatically registered for
-/// discovery by the TUI.
+/// programmatic discovery by showcase consumers (for example, UIs, examples, or tooling).
+/// discovery for showcase purposes.
 #[cfg(feature = "showcase")]
 pub mod showcase {
-    /// Trait for validators that can be displayed in the TUI.
+    /// Trait for validators that can be presented by showcase consumers.
     ///
     /// This trait provides a type-erased interface for validators,
-    /// allowing the TUI to work with any validator regardless of its
+    /// allowing consumers to work with any validator regardless of its
     /// generic type parameters.
     ///
     /// Methods are always present but may return placeholder values
@@ -81,7 +82,7 @@ pub mod showcase {
         Numeric,
     }
 
-    /// Information about a validator for showcase/TUI purposes.
+    /// Information about a validator for showcase purposes.
     ///
     /// This struct is registered via `inventory` when a validator uses
     /// `#[showcase(...)]` attributes.
@@ -93,7 +94,6 @@ pub mod showcase {
         /// The type of input expected by the validator
         pub input_type: InputType,
         /// Factory function that creates a validator from string input.
-        /// Returns a boxed DynValidator that the TUI can use.
         pub create_validator: fn(&str) -> Box<dyn DynValidator>,
     }
 

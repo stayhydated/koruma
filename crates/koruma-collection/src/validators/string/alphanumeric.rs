@@ -1,22 +1,20 @@
-//! Alphanumeric validation for koruma.
-//!
-//! This module provides:
-//! - `AlphanumericValidation` validator to check if a string contains only alphanumeric characters
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::alphanumeric::AlphanumericValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(AlphanumericValidation<_>)]
-//!     username: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Alphanumeric validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::AlphanumericValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(AlphanumericValidation::<_>)]
+///     username: String,
+/// }
+/// ```
+///
 /// Validates that a string contains only alphanumeric characters.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

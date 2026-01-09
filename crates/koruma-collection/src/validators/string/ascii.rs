@@ -1,22 +1,20 @@
-//! ASCII validation for koruma.
-//!
-//! This module provides:
-//! - `AsciiValidation` validator to check if a string contains only ASCII characters
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::ascii::AsciiValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(AsciiValidation<_>)]
-//!     username: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// ASCII validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::AsciiValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(AsciiValidation::<_>)]
+///     username: String,
+/// }
+/// ```
+///
 /// Validates that a string contains only ASCII characters.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

@@ -1,22 +1,20 @@
-//! Range validation for koruma.
-//!
-//! This module provides:
-//! - `RangeValidation` validator to check if a numeric value is within specified bounds
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::range::RangeValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Score {
-//!     #[koruma(RangeValidation<_>(min = 0, max = 100))]
-//!     value: u32,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Range validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::numeric::RangeValidation;
+///
+/// #[derive(Koruma)]
+/// struct Score {
+///     #[koruma(RangeValidation::<_>(min = 0, max = 100))]
+///     value: u32,
+/// }
+/// ```
+///
 /// Validates that a numeric value is within specified bounds.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

@@ -1,22 +1,20 @@
-//! URL validation for koruma.
-//!
-//! This module provides:
-//! - `UrlValidation` validator to check if a string is a valid URL
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::url::UrlValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Resource {
-//!     #[koruma(UrlValidation<_>)]
-//!     link: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// URL validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::format::UrlValidation;
+///
+/// #[derive(Koruma)]
+/// struct Resource {
+///     #[koruma(UrlValidation::<_>)]
+///     link: String,
+/// }
+/// ```
+///
 /// Validates that a string is a valid URL.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

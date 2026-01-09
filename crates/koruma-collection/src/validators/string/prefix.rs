@@ -1,22 +1,20 @@
-//! Prefix validation for koruma.
-//!
-//! This module provides:
-//! - `PrefixValidation` validator to check if a string starts with a specified prefix
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::prefix::PrefixValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Config {
-//!     #[koruma(PrefixValidation<_>(prefix = "config_"))]
-//!     key: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Prefix validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::PrefixValidation;
+///
+/// #[derive(Koruma)]
+/// struct Config {
+///     #[koruma(PrefixValidation::<_>(prefix = "config_"))]
+///     key: String,
+/// }
+/// ```
+///
 /// Validates that a string starts with a specified prefix.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(
@@ -24,7 +22,7 @@ use koruma::{Validate, validator};
     description = "Validates that the input starts with 'hello'",
     create = |input: &str| {
         PrefixValidation::builder()
-            .prefix("hello".to_string())
+            .prefix("hello")
             .with_value(input.to_string())
             .build()
     }
@@ -33,6 +31,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct PrefixValidation<T: AsRef<str>> {
     /// The prefix to check for
+    #[builder(into)]
     pub prefix: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]

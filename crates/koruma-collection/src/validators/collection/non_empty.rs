@@ -1,26 +1,24 @@
-//! Non-empty validation for strings and collections.
-//!
-//! This module provides:
-//! - `NonEmptyValidation` validator to check if a string/collection is not empty
-//!
-//! This is a convenience validator that wraps length checking with a min of 1.
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::non_empty::NonEmptyValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(NonEmptyValidation<_>)]
-//!     name: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 use super::HasLen;
 
+/// Non-empty validation for strings and collections.
+///
+///
+/// This is a convenience validator that wraps length checking with a min of 1.
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::collection::NonEmptyValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(NonEmptyValidation::<_>)]
+///     name: String,
+/// }
+/// ```
+///
 /// Validates that a string or collection is not empty.
 ///
 /// Works with any type that implements `HasLen + Clone`.

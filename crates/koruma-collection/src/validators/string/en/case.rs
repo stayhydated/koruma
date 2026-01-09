@@ -1,24 +1,3 @@
-//! Case validation for koruma.
-//!
-//! This module provides:
-//! - `Case` enum representing different string case formats
-//! - `CaseValidation` validator to check if a string matches a specific case format
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::string::case::{CaseValidation, Case};
-//!
-//! #[derive(Koruma)]
-//! struct Config {
-//!     #[koruma(CaseValidation<_>(case = Case::Snake))]
-//!     env_var_name: String,
-//!
-//!     #[koruma(CaseValidation<_>(case = Case::Kebab))]
-//!     css_class: String,
-//! }
-//! ```
-
 use heck::{
     ToKebabCase, ToLowerCamelCase, ToShoutyKebabCase, ToShoutySnakeCase, ToSnakeCase, ToTitleCase,
     ToTrainCase, ToUpperCamelCase,
@@ -79,6 +58,24 @@ impl Case {
     }
 }
 
+/// Case validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::en::{CaseValidation, Case};
+///
+/// #[derive(Koruma)]
+/// struct Config {
+///     #[koruma(CaseValidation::<_>(case = Case::Snake))]
+///     env_var_name: String,
+///
+///     #[koruma(CaseValidation::<_>(case = Case::Kebab))]
+///     css_class: String,
+/// }
+/// ```
+///
 /// Validates that a string matches a specific case format.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

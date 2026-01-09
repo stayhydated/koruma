@@ -1,20 +1,3 @@
-//! IP address validation for koruma.
-//!
-//! This module provides:
-//! - `IpValidation` validator to check if a string is a valid IP address
-//!
-//! # Example
-//! ```ignore
-//! use koruma::Koruma;
-//! use koruma_collection::validators::ip::IpValidation;
-//!
-//! #[derive(Koruma)]
-//! struct NetworkConfig {
-//!     #[koruma(IpValidation<_>(kind = IpKind::V4))]
-//!     ip_address: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 /// The type of IP address to validate
@@ -36,6 +19,21 @@ impl std::fmt::Display for IpKind {
     }
 }
 
+/// IP address validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::format::{IpValidation, IpKind};
+///
+/// #[derive(Koruma)]
+/// struct NetworkConfig {
+///     #[koruma(IpValidation::<_>(kind = IpKind::V4))]
+///     ip_address: String,
+/// }
+/// ```
+///
 /// Validates that a string is a valid IP address.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

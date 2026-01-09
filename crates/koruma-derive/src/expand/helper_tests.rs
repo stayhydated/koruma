@@ -117,8 +117,9 @@ fn test_parse_field_with_single_validator() {
     };
 
     let result = parse_field(&field);
-    assert!(result.is_some());
-    let info = result.unwrap();
+    let ParseFieldResult::Valid(info) = result else {
+        panic!("expected Valid result");
+    };
     assert_eq!(info.name.to_string(), "age");
     assert_eq!(info.field_validators.len(), 1);
     assert_eq!(
@@ -133,13 +134,14 @@ fn test_parse_field_with_single_validator() {
 #[test]
 fn test_parse_field_with_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange<_>(min = 0.0, max = 1.0))]
+        #[koruma(GenericRange::<_>(min = 0.0, max = 1.0))]
         pub score: f64
     };
 
     let result = parse_field(&field);
-    assert!(result.is_some());
-    let info = result.unwrap();
+    let ParseFieldResult::Valid(info) = result else {
+        panic!("expected Valid result");
+    };
     assert!(info.field_validators[0].infer_type);
 }
 
@@ -151,27 +153,28 @@ fn test_parse_field_with_each() {
     };
 
     let result = parse_field(&field);
-    assert!(result.is_some());
-    let info = result.unwrap();
+    let ParseFieldResult::Valid(info) = result else {
+        panic!("expected Valid result");
+    };
     assert!(info.field_validators.is_empty());
     assert_eq!(info.element_validators.len(), 1);
 }
 
 #[test]
-fn test_parse_field_with_skip_returns_none() {
+fn test_parse_field_with_skip_returns_skip() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(skip)]
         pub internal: u64
     };
 
-    assert!(parse_field(&field).is_none());
+    assert!(matches!(parse_field(&field), ParseFieldResult::Skip));
 }
 
 #[test]
-fn test_parse_field_without_koruma_returns_none() {
+fn test_parse_field_without_koruma_returns_skip() {
     let field: syn::Field = syn::parse_quote! {
         pub normal_field: String
     };
 
-    assert!(parse_field(&field).is_none());
+    assert!(matches!(parse_field(&field), ParseFieldResult::Skip));
 }

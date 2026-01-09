@@ -4,13 +4,13 @@
 //! - `AlphanumericValidation` validator to check if a string contains only alphanumeric characters
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::alphanumeric::AlphanumericValidation;
+//! use koruma_collection::string::AlphanumericValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(AlphanumericValidation<_>)]
+//!     #[koruma(AlphanumericValidation::<_>)]
 //!     username: String,
 //! }
 //! ```

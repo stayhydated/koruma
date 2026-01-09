@@ -4,13 +4,13 @@
 //! - `NonNegativeValidation` validator to check if a numeric value is >= 0
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::non_negative::NonNegativeValidation;
+//! use koruma_collection::numeric::NonNegativeValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Account {
-//!     #[koruma(NonNegativeValidation<_>)]
+//!     #[koruma(NonNegativeValidation::<_>)]
 //!     balance: f64,
 //! }
 //! ```

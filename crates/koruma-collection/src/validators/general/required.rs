@@ -6,11 +6,12 @@
 //! # Example
 //! ```ignore
 //! use koruma::Koruma;
-//! use koruma_collection::validators::required::RequiredValidation;
+//! use koruma_collection::required::RequiredValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(RequiredValidation<_>)]
+//!     // <?> uses the full field type (Option<String>) without unwrapping
+//!     #[koruma(RequiredValidation::<?> )]
 //!     name: Option<String>,
 //! }
 //! ```

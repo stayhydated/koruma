@@ -4,13 +4,13 @@
 //! - `NegativeValidation` validator to check if a numeric value is strictly negative (< 0)
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::negative::NegativeValidation;
+//! use koruma_collection::numeric::NegativeValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Temperature {
-//!     #[koruma(NegativeValidation<_>)]
+//!     #[koruma(NegativeValidation::<_>)]
 //!     celsius: f64,
 //! }
 //! ```

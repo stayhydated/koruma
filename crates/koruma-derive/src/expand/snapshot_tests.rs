@@ -74,7 +74,7 @@ fn test_koruma_expansion_multiple_validators() {
 fn test_koruma_expansion_generic_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct GenericItem {
-            #[koruma(GenericRangeValidation<_>(min = 0.0, max = 100.0))]
+            #[koruma(GenericRangeValidation::<_>(min = 0.0, max = 100.0))]
             pub score: f64,
         }
     };
@@ -87,7 +87,7 @@ fn test_koruma_expansion_generic_validator() {
 fn test_koruma_expansion_each() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Order {
-            #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+            #[koruma(each(GenericRangeValidation::<_>(min = 0.0, max = 100.0)))]
             pub scores: Vec<f64>,
         }
     };
@@ -198,7 +198,7 @@ fn test_koruma_expansion_optional_with_generic() {
     // Optional field with generic validator
     let input: DeriveInput = syn::parse_quote! {
         pub struct Item {
-            #[koruma(GenericRange<_>(min = 0, max = 100))]
+            #[koruma(GenericRange::<_>(min = 0, max = 100))]
             pub score: Option<i32>,
         }
     };
@@ -211,10 +211,10 @@ fn test_koruma_expansion_optional_with_generic() {
 fn test_koruma_expansion_combined_field_and_element_validators() {
     // Combined: field-level validator (for Vec) + element validators (for each element)
     // Note: VecLenValidation<T> expects T to be the inner type, so we use explicit <i32>
-    // instead of <_> (which would give Vec<i32>).
+    // instead of ::<_> (which would give Vec<i32>).
     let input: DeriveInput = syn::parse_quote! {
         pub struct OrderWithLenCheck {
-            #[koruma(VecLenValidation<i32>(min = 1, max = 10), each(RangeValidation<_>(min = 0, max = 100)))]
+            #[koruma(VecLenValidation::<i32>(min = 1, max = 10), each(RangeValidation::<_>(min = 0, max = 100)))]
             pub scores: Vec<i32>,
         }
     };
@@ -228,7 +228,7 @@ fn test_koruma_expansion_only_element_validators() {
     // Only element validators (no field-level validators) - backwards compatible with existing each()
     let input: DeriveInput = syn::parse_quote! {
         pub struct Scores {
-            #[koruma(each(RangeValidation<_>(min = 0, max = 100)))]
+            #[koruma(each(RangeValidation::<_>(min = 0, max = 100)))]
             pub values: Vec<i32>,
         }
     };

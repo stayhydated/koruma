@@ -4,13 +4,13 @@
 //! - `PositiveValidation` validator to check if a numeric value is strictly positive (> 0)
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::positive::PositiveValidation;
+//! use koruma_collection::numeric::PositiveValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Order {
-//!     #[koruma(PositiveValidation<_>)]
+//!     #[koruma(PositiveValidation::<_>)]
 //!     quantity: i32,
 //! }
 //! ```

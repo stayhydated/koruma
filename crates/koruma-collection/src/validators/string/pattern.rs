@@ -4,13 +4,13 @@
 //! - `PatternValidation` validator to check if a string matches a regular expression pattern
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::pattern::PatternValidation;
+//! use koruma_collection::string::PatternValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(PatternValidation<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
+//!     #[koruma(PatternValidation::<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
 //!     username: String,
 //! }
 //! ```

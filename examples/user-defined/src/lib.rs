@@ -9,9 +9,15 @@ use crate::{
 };
 use koruma::{Koruma, Validate};
 
+// #[derive(Koruma)]
+// struct Order {
+//     #[koruma(LenValidation::<_>(min = 1, max = 5))]
+//     items: Vec<String>,
+// }
+
 #[derive(Koruma)]
 pub struct Item {
-    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
+    #[koruma(NumberRangeValidation::<_>(min = 0, max = 100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -24,7 +30,7 @@ pub struct Item {
 /// Example struct using EsFluent-based validators.
 #[derive(Koruma)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation<_>)]
+    #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -56,7 +62,7 @@ pub struct Customer {
     #[koruma(StringLengthValidation(min = 1, max = 100))]
     pub name: String,
 
-    #[koruma(NumberRangeValidation<_>(min = 18, max = 120))]
+    #[koruma(NumberRangeValidation::<_>(min = 18, max = 120))]
     pub age: i32,
 
     /// Nested struct - validation cascades automatically
@@ -72,7 +78,7 @@ pub struct Customer {
 /// Uses EsFluent-based validators for i18n support.
 #[derive(Clone, Koruma)]
 pub struct AccountSettings {
-    #[koruma(PositiveNumberValidation<_>)]
+    #[koruma(PositiveNumberValidation::<_>)]
     pub max_login_attempts: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -83,7 +89,7 @@ pub struct AccountSettings {
 /// Demonstrates `#[koruma(nested)]` for EsFluent-based error messages.
 #[derive(Koruma)]
 pub struct Account {
-    #[koruma(IsEvenNumberValidation<_>)]
+    #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
 
     #[koruma(NonEmptyStringValidation)]

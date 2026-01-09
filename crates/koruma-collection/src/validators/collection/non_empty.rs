@@ -6,13 +6,13 @@
 //! This is a convenience validator that wraps length checking with a min of 1.
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::non_empty::NonEmptyValidation;
+//! use koruma_collection::collection::NonEmptyValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(NonEmptyValidation<_>)]
+//!     #[koruma(NonEmptyValidation::<_>)]
 //!     name: String,
 //! }
 //! ```

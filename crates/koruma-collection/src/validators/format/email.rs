@@ -4,13 +4,13 @@
 //! - `EmailValidation` validator to check if a string is a valid email address
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::email::EmailValidation;
+//! use koruma_collection::format::EmailValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(EmailValidation<_>)]
+//!     #[koruma(EmailValidation::<_>)]
 //!     email: String,
 //! }
 //! ```

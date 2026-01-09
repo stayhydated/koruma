@@ -4,13 +4,13 @@
 //! - `PhoneNumberValidation` validator to check if a string is a valid phone number
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::phone_number::PhoneNumberValidation;
+//! use koruma_collection::format::PhoneNumberValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Contact {
-//!     #[koruma(PhoneNumberValidation<_>)]
+//!     #[koruma(PhoneNumberValidation::<_>)]
 //!     phone: String,
 //! }
 //! ```

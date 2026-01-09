@@ -5,16 +5,16 @@
 //! - `CaseValidation` validator to check if a string matches a specific case format
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::string::case::{CaseValidation, Case};
+//! use koruma_collection::string::en::{CaseValidation, Case};
 //!
 //! #[derive(Koruma)]
 //! struct Config {
-//!     #[koruma(CaseValidation<_>(case = Case::Snake))]
+//!     #[koruma(CaseValidation::<_>(case = Case::Snake))]
 //!     env_var_name: String,
 //!
-//!     #[koruma(CaseValidation<_>(case = Case::Kebab))]
+//!     #[koruma(CaseValidation::<_>(case = Case::Kebab))]
 //!     css_class: String,
 //! }
 //! ```

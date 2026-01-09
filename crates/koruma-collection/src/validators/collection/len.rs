@@ -4,13 +4,13 @@
 //! - `LenValidation` validator with min/max bounds
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::collection::len::LenValidation;
+//! use koruma_collection::collection::LenValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Order {
-//!     #[koruma(LenValidation<_>(min = 1, max = 5))]
+//!     #[koruma(LenValidation::<_>(min = 1, max = 5))]
 //!     items: Vec<String>,
 //! }
 //! ```

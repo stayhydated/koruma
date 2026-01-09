@@ -4,13 +4,13 @@
 //! - `NonPositiveValidation` validator to check if a numeric value is <= 0
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::non_positive::NonPositiveValidation;
+//! use koruma_collection::numeric::NonPositiveValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Debit {
-//!     #[koruma(NonPositiveValidation<_>)]
+//!     #[koruma(NonPositiveValidation::<_>)]
 //!     amount: f64,
 //! }
 //! ```

@@ -8,13 +8,20 @@ use quote::{format_ident, quote};
 use syn::{DeriveInput, Field, Fields, Ident, ItemStruct, Token, parse::Parse, parse::ParseStream};
 
 /// Represents a single parsed validator: `ValidatorName(arg = value, ...)` or
-/// `ValidatorName<_>(arg = value, ...)` or `ValidatorName<SomeType>(arg = value, ...)`
+/// `ValidatorName::<_>(arg = value, ...)` or `ValidatorName::<SomeType>(arg = value, ...)`
+///
+/// Uses turbofish syntax (`::<>`) for type parameters, which simplifies parsing
+/// and naturally handles nested generics like `Validator::<Option<Vec<T>>>`.
 pub(crate) struct ValidatorAttr {
     pub validator: Ident,
-    /// Whether the validator uses `<_>` syntax for type inference from field type.
-    /// When true, the full field type is used (unwrapping Option if present).
+    /// Whether the validator uses `::<_>` syntax for type inference from field type.
+    /// When true, the field type is used (unwrapping Option if present).
     pub infer_type: bool,
-    /// Explicit type parameter if specified (e.g., `<f64>`, `<Vec<_>>`)
+    /// Whether the validator uses `::<?>` syntax for full type inference.
+    /// When true, the full field type is used WITHOUT unwrapping Option.
+    /// This is useful for validators like RequiredValidation that need Option<T>.
+    pub infer_full_type: bool,
+    /// Explicit type parameter if specified (e.g., `::<f64>`, `::<Vec<_>>`)
     /// If this contains `_`, it will be substituted with the inner type from the field.
     pub explicit_type: Option<syn::Type>,
     pub args: Vec<(Ident, syn::Expr)>,
@@ -24,26 +31,48 @@ impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let validator: Ident = input.parse()?;
 
-        // Check for generic type parameter syntax: <_> or <SomeType>
-        // <_> means "use the full field type" (unwrapping Option if present)
-        // <Vec<_>> means "substitute _ with the inner type from the field"
-        let (infer_type, explicit_type) = if input.peek(Token![<]) {
-            input.parse::<Token![<]>()?;
-            // Check if it's <_> (full type inference) or an explicit/partial type
-            if input.peek(Token![_]) {
-                input.parse::<Token![_]>()?;
-                input.parse::<Token![>]>()?;
-                // <_> means use the full field type
-                (true, None)
+        // Check for turbofish generic syntax: ::<_>, ::<?>, or ::<SomeType>
+        // ::<_> means "use the field type" (unwrapping Option if present)
+        // ::<?> means "use the full field type" (WITHOUT unwrapping Option)
+        // ::<Vec<_>> means "substitute _ with the inner type from the field"
+        let (infer_type, infer_full_type, explicit_type) = if input.peek(Token![::]) {
+            // Look ahead to check if < follows ::
+            let fork = input.fork();
+            let has_turbofish = fork.parse::<Token![::]>().is_ok() && fork.peek(Token![<]);
+
+            if has_turbofish {
+                input.parse::<Token![::]>()?;
+                input.parse::<Token![<]>()?;
+
+                // Check for ::<?> syntax (full type inference)
+                if input.peek(Token![?]) {
+                    input.parse::<Token![?]>()?;
+                    input.parse::<Token![>]>()?;
+                    (false, true, None)
+                }
+                // Check for ::<_> syntax (type inference with Option unwrapping)
+                else if input.peek(Token![_]) {
+                    input.parse::<Token![_]>()?;
+                    input.parse::<Token![>]>()?;
+                    (true, false, None)
+                }
+                // Explicit type: ::<SomeType>
+                else {
+                    let ty: syn::Type = input.parse()?;
+                    input.parse::<Token![>]>()?;
+                    (false, false, Some(ty))
+                }
             } else {
-                // Parse explicit type parameter and store it
-                // This handles types like <f64>, <Vec<u8>>, <Vec<_>>, etc.
-                let explicit_type: syn::Type = input.parse()?;
-                input.parse::<Token![>]>()?;
-                (false, Some(explicit_type))
+                (false, false, None)
             }
+        } else if input.peek(Token![<]) {
+            // User used old syntax without ::, give helpful error
+            return Err(syn::Error::new(
+                input.span(),
+                "use turbofish syntax for type parameters: `Validator::<_>` not `Validator<_>`",
+            ));
         } else {
-            (false, None)
+            (false, false, None)
         };
 
         let args = if input.peek(syn::token::Paren) {
@@ -70,6 +99,7 @@ impl Parse for ValidatorAttr {
         Ok(ValidatorAttr {
             validator,
             infer_type,
+            infer_full_type,
             explicit_type,
             args,
         })
@@ -192,8 +222,20 @@ impl FieldInfo {
     }
 }
 
-pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
-    let name = field.ident.clone()?;
+/// Result of parsing a field with #[koruma(...)] attribute
+pub(crate) enum ParseFieldResult {
+    /// Field has valid koruma validators
+    Valid(FieldInfo),
+    /// Field should be skipped (no koruma attribute, or #[koruma(skip)])
+    Skip,
+    /// Parse error occurred
+    Error(syn::Error),
+}
+
+pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
+    let Some(name) = field.ident.clone() else {
+        return ParseFieldResult::Skip;
+    };
     let ty = field.ty.clone();
 
     for attr in &field.attrs {
@@ -208,11 +250,11 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
             Ok(koruma_attr) => {
                 // Check for skip
                 if koruma_attr.is_skip {
-                    return None;
+                    return ParseFieldResult::Skip;
                 }
                 // Check for nested
                 if koruma_attr.is_nested {
-                    return Some(FieldInfo {
+                    return ParseFieldResult::Valid(FieldInfo {
                         name,
                         ty,
                         field_validators: Vec::new(),
@@ -224,9 +266,9 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
                 if koruma_attr.field_validators.is_empty()
                     && koruma_attr.element_validators.is_empty()
                 {
-                    return None;
+                    return ParseFieldResult::Skip;
                 }
-                return Some(FieldInfo {
+                return ParseFieldResult::Valid(FieldInfo {
                     name,
                     ty,
                     field_validators: koruma_attr.field_validators,
@@ -234,14 +276,14 @@ pub(crate) fn parse_field(field: &Field) -> Option<FieldInfo> {
                     is_nested: false,
                 });
             },
-            Err(_) => {
-                return None;
+            Err(e) => {
+                return ParseFieldResult::Error(e);
             },
         }
     }
 
     // Field without koruma attribute - skip it
-    None
+    ParseFieldResult::Skip
 }
 
 /// Find the field marked with #[koruma(value)] and return its name and type
@@ -704,8 +746,17 @@ fn validator_type_for_field(
     // Unwrap Option<T> for optional field validation
     let effective_ty = option_inner_type(after_vec).unwrap_or(after_vec);
 
-    if v.infer_type {
-        // <_> means use the full field type (after unwrapping Option)
+    if v.infer_full_type {
+        // <?> means use the full field type WITHOUT unwrapping Option
+        // This is useful for validators like RequiredValidation that need Option<T>
+        let full_ty = if validate_each {
+            vec_inner_type(field_ty).unwrap_or(field_ty)
+        } else {
+            field_ty
+        };
+        quote! { #validator<#full_ty> }
+    } else if v.infer_type {
+        // <_> means use the field type (after unwrapping Option)
         quote! { #validator<#effective_ty> }
     } else {
         quote! { #validator }
@@ -756,7 +807,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     };
 
     // Parse all fields and extract validation info
-    let field_infos: Vec<FieldInfo> = fields.iter().filter_map(parse_field).collect();
+    let mut field_infos: Vec<FieldInfo> = Vec::new();
+    for field in fields.iter() {
+        match parse_field(field) {
+            ParseFieldResult::Valid(info) => field_infos.push(info),
+            ParseFieldResult::Skip => {},
+            ParseFieldResult::Error(e) => return Err(e),
+        }
+    }
 
     if field_infos.is_empty() {
         return Err(syn::Error::new_spanned(
@@ -1273,7 +1331,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         })
                         .collect();
 
-                    if v.infer_type {
+                    if v.infer_type || v.infer_full_type {
+                        // For <?>, use the full field type (don't unwrap Option)
+                        let validator_ty = if v.infer_full_type {
+                            field_ty
+                        } else {
+                            effective_ty
+                        };
                         let assert_fn = format_ident!(
                             "__koruma_assert_validate_{}_{}_field",
                             field_name,
@@ -1283,7 +1347,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
                                 v.validate(t)
                             }
-                            let validator = #validator::<#effective_ty>::builder()
+                            let validator = #validator::<#validator_ty>::builder()
                                 #(#builder_calls)*
                                 .with_value(__field_value.clone())
                                 .build();
@@ -1335,7 +1399,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             })
                             .collect();
 
-                        if v.infer_type {
+                        if v.infer_type || v.infer_full_type {
+                            // For <?>, use element_ty (don't unwrap Option from element)
+                            let validator_ty = if v.infer_full_type {
+                                element_ty
+                            } else {
+                                effective_element_ty
+                            };
                             let assert_fn = format_ident!(
                                 "__koruma_assert_validate_{}_{}_element",
                                 field_name,
@@ -1345,7 +1415,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                 fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
                                     v.validate(t)
                                 }
-                                let validator = #validator::<#effective_element_ty>::builder()
+                                let validator = #validator::<#validator_ty>::builder()
                                     #(#builder_calls)*
                                     .with_value(__item_value.clone())
                                     .build();
@@ -1522,7 +1592,14 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
     };
 
     // Parse all fields and extract validation info
-    let field_infos: Vec<FieldInfo> = fields.iter().filter_map(parse_field).collect();
+    let mut field_infos: Vec<FieldInfo> = Vec::new();
+    for field in fields.iter() {
+        match parse_field(field) {
+            ParseFieldResult::Valid(info) => field_infos.push(info),
+            ParseFieldResult::Skip => {},
+            ParseFieldResult::Error(e) => return Err(e),
+        }
+    }
 
     // Generate Display impls for each field's validator enum
     let display_impls: Vec<TokenStream2> = field_infos
@@ -1629,7 +1706,14 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     };
 
     // Parse all fields and extract validation info
-    let field_infos: Vec<FieldInfo> = fields.iter().filter_map(parse_field).collect();
+    let mut field_infos: Vec<FieldInfo> = Vec::new();
+    for field in fields.iter() {
+        match parse_field(field) {
+            ParseFieldResult::Valid(info) => field_infos.push(info),
+            ParseFieldResult::Skip => {},
+            ParseFieldResult::Error(e) => return Err(e),
+        }
+    }
 
     // Generate ToFluentString impls for each field's validator enum
     let fluent_impls: Vec<TokenStream2> = field_infos

@@ -4,13 +4,13 @@
 //! - `PrefixValidation` validator to check if a string starts with a specified prefix
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::prefix::PrefixValidation;
+//! use koruma_collection::string::PrefixValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Config {
-//!     #[koruma(PrefixValidation<_>(prefix = "config_"))]
+//!     #[koruma(PrefixValidation::<_>(prefix = "config_"))]
 //!     key: String,
 //! }
 //! ```

@@ -4,13 +4,13 @@
 //! - `SuffixValidation` validator to check if a string ends with a specified suffix
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::suffix::SuffixValidation;
+//! use koruma_collection::string::SuffixValidation;
 //!
 //! #[derive(Koruma)]
 //! struct File {
-//!     #[koruma(SuffixValidation<_>(suffix = ".txt"))]
+//!     #[koruma(SuffixValidation::<_>(suffix = ".txt"))]
 //!     name: String,
 //! }
 //! ```

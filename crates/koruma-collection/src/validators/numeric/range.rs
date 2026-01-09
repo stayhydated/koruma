@@ -4,13 +4,13 @@
 //! - `RangeValidation` validator to check if a numeric value is within specified bounds
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::range::RangeValidation;
+//! use koruma_collection::numeric::RangeValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Score {
-//!     #[koruma(RangeValidation<_>(min = 0, max = 100))]
+//!     #[koruma(RangeValidation::<_>(min = 0, max = 100))]
 //!     value: u32,
 //! }
 //! ```

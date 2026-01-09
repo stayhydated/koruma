@@ -4,13 +4,13 @@
 //! - `ContainsValidation` validator to check if a string contains a specified substring
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::contains::ContainsValidation;
+//! use koruma_collection::string::ContainsValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(ContainsValidation<_>(substring = "test"))]
+//!     #[koruma(ContainsValidation::<_>(substring = "test"))]
 //!     email: String,
 //! }
 //! ```

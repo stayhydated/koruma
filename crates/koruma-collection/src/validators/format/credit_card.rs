@@ -4,13 +4,13 @@
 //! - `CreditCardValidation` validator to check if a string is a valid credit card number
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::credit_card::CreditCardValidation;
+//! use koruma_collection::format::CreditCardValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Payment {
-//!     #[koruma(CreditCardValidation<_>)]
+//!     #[koruma(CreditCardValidation::<_>)]
 //!     card_number: String,
 //! }
 //! ```

@@ -4,13 +4,13 @@
 //! - `AsciiValidation` validator to check if a string contains only ASCII characters
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::ascii::AsciiValidation;
+//! use koruma_collection::string::AsciiValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
-//!     #[koruma(AsciiValidation<_>)]
+//!     #[koruma(AsciiValidation::<_>)]
 //!     username: String,
 //! }
 //! ```

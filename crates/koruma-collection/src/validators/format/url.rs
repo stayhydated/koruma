@@ -4,13 +4,13 @@
 //! - `UrlValidation` validator to check if a string is a valid URL
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::url::UrlValidation;
+//! use koruma_collection::format::UrlValidation;
 //!
 //! #[derive(Koruma)]
 //! struct Resource {
-//!     #[koruma(UrlValidation<_>)]
+//!     #[koruma(UrlValidation::<_>)]
 //!     link: String,
 //! }
 //! ```

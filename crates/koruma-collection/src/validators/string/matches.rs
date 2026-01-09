@@ -4,14 +4,14 @@
 //! - `MatchesValidation` validator to check if a value matches another field
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::matches::MatchesValidation;
+//! use koruma_collection::string::MatchesValidation;
 //!
 //! #[derive(Koruma)]
 //! struct User {
 //!     password: String,
-//!     #[koruma(MatchesValidation<_>(other = password))]
+//!     #[koruma(MatchesValidation::<_>(other = password))]
 //!     confirm_password: String,
 //! }
 //! ```

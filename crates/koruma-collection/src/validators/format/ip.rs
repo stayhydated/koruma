@@ -4,13 +4,13 @@
 //! - `IpValidation` validator to check if a string is a valid IP address
 //!
 //! # Example
-//! ```ignore
+//! ```rust
 //! use koruma::Koruma;
-//! use koruma_collection::validators::ip::IpValidation;
+//! use koruma_collection::format::{IpValidation, IpKind};
 //!
 //! #[derive(Koruma)]
 //! struct NetworkConfig {
-//!     #[koruma(IpValidation<_>(kind = IpKind::V4))]
+//!     #[koruma(IpValidation::<_>(kind = IpKind::V4))]
 //!     ip_address: String,
 //! }
 //! ```

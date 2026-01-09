@@ -8,7 +8,7 @@ A per-field validation library for Rust with struct-based errors.
 
 ## Features
 
-- Per-field validation with strongly-typed error structs
+- Per-field validation with strongly-typed error
 - Multiple validators per field
 - Generic validator support with type inference
 - Optional field support (skips validation when `None`)
@@ -19,13 +19,16 @@ A per-field validation library for Rust with struct-based errors.
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
 
-provides a collection of common validators, with partial i18n support (`en`, `fr`).
+provides a collection of common validators, with partial i18n support.
+
+currently supported: `en`, `fr`
 
 ## Installation
 
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive"] }
+bon = { version = "*" } # internally used by koruma
 ```
 
 ## Examples
@@ -39,8 +42,32 @@ koruma = { version = "*", features = ["derive"] }
 
 Use `#[koruma::validator]` to define validation rules. Each validator must have a field marked with `#[koruma(value)]` to capture the validated value:
 
+### Generic Validators
+
+For validators that work with multiple types, use generics with a blanket impl:
+
 ```rs
-use koruma::{Validate, validator};
+#[koruma::validator]
+#[derive(Clone, Debug)]
+pub struct RangeValidation::<T> {
+    pub min: T,
+    pub max: T,
+    #[koruma(value)]
+    pub actual: T,
+}
+
+// Use a blanket impl with trait bounds
+impl<T: PartialOrd + Clone> Validate<T> for RangeValidation<T> {
+    fn validate(&self, value: &T) -> bool {
+        *value >= self.min && *value <= self.max
+    }
+}
+```
+
+### Type-specific Validators
+
+```rs
+use koruma::{Validate as _, validator};
 
 #[koruma::validator]
 #[derive(Clone, Debug)]
@@ -53,28 +80,6 @@ pub struct NumberRangeValidation {
 
 impl Validate<i32> for NumberRangeValidation {
     fn validate(&self, value: &i32) -> bool {
-        *value >= self.min && *value <= self.max
-    }
-}
-```
-
-### Generic Validators
-
-For validators that work with multiple types, use generics with a blanket impl:
-
-```rs
-#[koruma::validator]
-#[derive(Clone, Debug)]
-pub struct RangeValidation<T> {
-    pub min: T,
-    pub max: T,
-    #[koruma(value)]
-    pub actual: T,
-}
-
-// Use a blanket impl with trait bounds
-impl<T: PartialOrd + Clone> Validate<T> for RangeValidation<T> {
-    fn validate(&self, value: &T) -> bool {
         *value >= self.min && *value <= self.max
     }
 }
@@ -99,13 +104,13 @@ pub struct User {
     pub internal_id: u64,
 }
 
-// Use <_> to infer the type from the field
+// Use `::<_>` (turbofish) to infer the type from the field
 #[derive(Koruma)]
 pub struct Measurements {
-    #[koruma(RangeValidation<_>(min = 0.0, max = 100.0))]
+    #[koruma(RangeValidation::<_>(min = 0.0, max = 100.0))]
     pub temperature: f64,
 
-    #[koruma(RangeValidation<_>(min = 0, max = 1000))]
+    #[koruma(RangeValidation::<_>(min = 0, max = 1000))]
     pub pressure: i32,
 }
 ```
@@ -168,7 +173,7 @@ Use the `each(...)` syntax to validate each element in a `Vec`:
 #[derive(Koruma)]
 pub struct Order {
     // Each score must be in range 0-100
-    #[koruma(each(RangeValidation<_>(min = 0.0, max = 100.0)))]
+    #[koruma(each(RangeValidation::<_>(min = 0.0, max = 100.0)))]
     pub scores: Vec<f64>,
 }
 
@@ -359,12 +364,6 @@ if let Some(err) = errors.age().number_range_validation() {
 
 For internationalized error messages, use [es-fluent](https://crates.io/crates/es-fluent):
 
-```toml
-[dependencies]
-koruma = { version = "0.1" }
-es-fluent = "0.4"
-```
-
 Derive `EsFluent` on your validators:
 
 ```rs
@@ -390,7 +389,7 @@ number-range-validation = Value { $actual } must be between { $min } and { $max 
 Use `to_fluent_string()` to get localized messages:
 
 ```rs
-use es_fluent::ToFluentString;
+use es_fluent::ToFluentString as _;
 
 if let Some(err) = errors.age().number_range_validation() {
     println!("{}", err.to_fluent_string());
@@ -402,7 +401,7 @@ if let Some(err) = errors.age().number_range_validation() {
 When using the `all()` method to get all failed validators, you can derive `KorumaFluentEnum` on the generated enum to implement `ToFluentString`:
 
 ```rs
-use es_fluent::ToFluentString;
+use es_fluent::ToFluentString as _;
 use koruma::KorumaFluentEnum;
 
 // Derive KorumaFluentEnum on the generated validator enum

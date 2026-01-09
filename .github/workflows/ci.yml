@@ -53,11 +53,11 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Cache es-fluent-cli
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/bin/cargo-es-fluent
-          key: ${{ runner.os }}-es-fluent-cli
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Setup mold
+        uses: rui314/setup-mold@v1
 
       - name: Install es-fluent-cli
         run: cargo install es-fluent-cli --locked

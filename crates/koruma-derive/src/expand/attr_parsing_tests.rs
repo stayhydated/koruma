@@ -142,7 +142,11 @@ fn test_validator_attr_parse_option_infer_type() {
     assert!(attr.explicit_type.is_some());
     let explicit_ty = attr.explicit_type.unwrap();
     let ty_str = quote::quote!(#explicit_ty).to_string();
-    assert!(ty_str.contains("Option"), "expected Option<_>, got: {}", ty_str);
+    assert!(
+        ty_str.contains("Option"),
+        "expected Option<_>, got: {}",
+        ty_str
+    );
 }
 
 #[test]

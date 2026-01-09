@@ -213,6 +213,7 @@ impl FieldInfo {
 }
 
 /// Result of parsing a field with #[koruma(...)] attribute
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum ParseFieldResult {
     /// Field has valid koruma validators
     Valid(FieldInfo),
@@ -718,9 +719,7 @@ fn is_option_infer_type(ty: &syn::Type) -> bool {
 /// Check if a validator wants the full field type (not unwrapped from Option).
 /// This is true for `<Option<_>>` syntax.
 fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
-    v.explicit_type
-        .as_ref()
-        .map_or(false, is_option_infer_type)
+    v.explicit_type.as_ref().is_some_and(is_option_infer_type)
 }
 
 /// Check if an expression is a simple identifier (bare field name like `password`).
@@ -1377,8 +1376,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     };
 
                     // Determine the validator type
-                    let uses_infer = v.infer_type || v.explicit_type.as_ref().map_or(false, contains_infer_type);
-                    
+                    let uses_infer =
+                        v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
+
                     if uses_infer {
                         let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
                             if contains_infer_type(explicit_ty) {
@@ -1467,10 +1467,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             })
                             .collect();
 
-                        if v.infer_type || v.explicit_type.as_ref().map_or(false, contains_infer_type) {
+                        if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type)
+                        {
                             let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
                                 if contains_infer_type(explicit_ty) {
-                                    let inner_ty = first_generic_arg(element_ty).unwrap_or(element_ty);
+                                    let inner_ty =
+                                        first_generic_arg(element_ty).unwrap_or(element_ty);
                                     let substituted = substitute_infer_type(explicit_ty, inner_ty);
                                     quote! { #substituted }
                                 } else {

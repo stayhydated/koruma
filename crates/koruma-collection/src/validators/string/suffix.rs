@@ -24,7 +24,7 @@ use koruma::{Validate, validator};
     description = "Validates that the input ends with '.rs'",
     create = |input: &str| {
         SuffixValidation::builder()
-            .suffix(".rs".to_string())
+            .suffix(".rs")
             .with_value(input.to_string())
             .build()
     }
@@ -33,6 +33,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct SuffixValidation<T: AsRef<str>> {
     /// The suffix to check for
+    #[builder(into)]
     pub suffix: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]

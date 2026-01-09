@@ -24,7 +24,7 @@ use koruma::{Validate, validator};
     description = "Validates that the input contains the substring 'test'",
     create = |input: &str| {
         ContainsValidation::builder()
-            .substring("test".to_string())
+            .substring("test")
             .with_value(input.to_string())
             .build()
     }
@@ -33,6 +33,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 pub struct ContainsValidation<T: AsRef<str>> {
     /// The substring to search for
+    #[builder(into)]
     pub substring: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]

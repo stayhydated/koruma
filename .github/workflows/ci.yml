@@ -47,20 +47,22 @@ jobs:
       - name: Lint code
         run: cargo clippy --workspace --all-features
 
-  i18n:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
+  # https://github.com/stayhydated/es-fluent/issues/108
+  # https://github.com/stayhydated/es-fluent/issues/110
+  # i18n:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v6
+  #     - uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+  #     - name: Setup sccache
+  #       uses: mozilla-actions/sccache-action@v0.0.9
 
-      - name: Setup mold
-        uses: rui314/setup-mold@v1
+  #     - name: Setup mold
+  #       uses: rui314/setup-mold@v1
 
-      - name: Install es-fluent-cli
-        run: cargo install es-fluent-cli --locked
+  #     - name: Install es-fluent-cli
+  #       run: cargo install es-fluent-cli --locked
 
-      - name: Run es-fluent check
-        run: cargo es-fluent check
+  #     - name: Run es-fluent check on all locales
+  #       run: cargo es-fluent check --all

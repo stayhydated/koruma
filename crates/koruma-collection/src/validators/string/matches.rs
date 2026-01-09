@@ -1,23 +1,21 @@
-//! Field matching validation for koruma.
-//!
-//! This module provides:
-//! - `MatchesValidation` validator to check if a value matches another field
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::string::MatchesValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     password: String,
-//!     #[koruma(MatchesValidation::<_>(other = password))]
-//!     confirm_password: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Field matching validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::MatchesValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     password: String,
+///     #[koruma(MatchesValidation::<_>(other = password))]
+///     confirm_password: String,
+/// }
+/// ```
+///
 /// Validates that a value matches another value.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

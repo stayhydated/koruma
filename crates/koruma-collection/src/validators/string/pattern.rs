@@ -1,22 +1,20 @@
-//! Pattern validation for koruma.
-//!
-//! This module provides:
-//! - `PatternValidation` validator to check if a string matches a regular expression pattern
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::string::PatternValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(PatternValidation::<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
-//!     username: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Pattern validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::PatternValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(PatternValidation::<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
+///     username: String,
+/// }
+/// ```
+///
 /// Validates that a string matches a regular expression pattern.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

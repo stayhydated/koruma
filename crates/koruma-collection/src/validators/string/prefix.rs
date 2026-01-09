@@ -1,22 +1,20 @@
-//! Prefix validation for koruma.
-//!
-//! This module provides:
-//! - `PrefixValidation` validator to check if a string starts with a specified prefix
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::string::PrefixValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Config {
-//!     #[koruma(PrefixValidation::<_>(prefix = "config_"))]
-//!     key: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Prefix validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::PrefixValidation;
+///
+/// #[derive(Koruma)]
+/// struct Config {
+///     #[koruma(PrefixValidation::<_>(prefix = "config_"))]
+///     key: String,
+/// }
+/// ```
+///
 /// Validates that a string starts with a specified prefix.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

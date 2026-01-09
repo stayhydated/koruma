@@ -1,24 +1,22 @@
-//! Non-negative number validation for koruma.
-//!
-//! This module provides:
-//! - `NonNegativeValidation` validator to check if a numeric value is >= 0
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::numeric::NonNegativeValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Account {
-//!     #[koruma(NonNegativeValidation::<_>)]
-//!     balance: f64,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 use super::Numeric;
 
+/// Non-negative number validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::numeric::NonNegativeValidation;
+///
+/// #[derive(Koruma)]
+/// struct Account {
+///     #[koruma(NonNegativeValidation::<_>)]
+///     balance: f64,
+/// }
+/// ```
+///
 /// Validates that a numeric value is non-negative (>= 0).
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

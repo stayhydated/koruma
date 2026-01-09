@@ -1,22 +1,20 @@
-//! Email validation for koruma.
-//!
-//! This module provides:
-//! - `EmailValidation` validator to check if a string is a valid email address
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::format::EmailValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(EmailValidation::<_>)]
-//!     email: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Email validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::format::EmailValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(EmailValidation::<_>)]
+///     email: String,
+/// }
+/// ```
+///
 /// Validates that a string is a valid email address.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

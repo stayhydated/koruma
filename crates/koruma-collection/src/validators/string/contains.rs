@@ -1,22 +1,20 @@
-//! Contains validation for koruma.
-//!
-//! This module provides:
-//! - `ContainsValidation` validator to check if a string contains a specified substring
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::string::ContainsValidation;
-//!
-//! #[derive(Koruma)]
-//! struct User {
-//!     #[koruma(ContainsValidation::<_>(substring = "test"))]
-//!     email: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Contains validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::ContainsValidation;
+///
+/// #[derive(Koruma)]
+/// struct User {
+///     #[koruma(ContainsValidation::<_>(substring = "test"))]
+///     email: String,
+/// }
+/// ```
+///
 /// Validates that a string contains a specified substring.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

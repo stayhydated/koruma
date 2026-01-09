@@ -1,22 +1,20 @@
-//! Credit card validation for koruma.
-//!
-//! This module provides:
-//! - `CreditCardValidation` validator to check if a string is a valid credit card number
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::format::CreditCardValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Payment {
-//!     #[koruma(CreditCardValidation::<_>)]
-//!     card_number: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Credit card validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::format::CreditCardValidation;
+///
+/// #[derive(Koruma)]
+/// struct Payment {
+///     #[koruma(CreditCardValidation::<_>)]
+///     card_number: String,
+/// }
+/// ```
+///
 /// Validates that a string is a valid credit card number.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

@@ -1,24 +1,22 @@
-//! Negative number validation for koruma.
-//!
-//! This module provides:
-//! - `NegativeValidation` validator to check if a numeric value is strictly negative (< 0)
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::numeric::NegativeValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Temperature {
-//!     #[koruma(NegativeValidation::<_>)]
-//!     celsius: f64,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 use super::Numeric;
 
+/// Negative number validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::numeric::NegativeValidation;
+///
+/// #[derive(Koruma)]
+/// struct Temperature {
+///     #[koruma(NegativeValidation::<_>)]
+///     celsius: f64,
+/// }
+/// ```
+///
 /// Validates that a numeric value is strictly negative (< 0).
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

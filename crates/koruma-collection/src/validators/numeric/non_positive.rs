@@ -1,24 +1,22 @@
-//! Non-positive number validation for koruma.
-//!
-//! This module provides:
-//! - `NonPositiveValidation` validator to check if a numeric value is <= 0
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::numeric::NonPositiveValidation;
-//!
-//! #[derive(Koruma)]
-//! struct Debit {
-//!     #[koruma(NonPositiveValidation::<_>)]
-//!     amount: f64,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
 use super::Numeric;
 
+/// Non-positive number validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::numeric::NonPositiveValidation;
+///
+/// #[derive(Koruma)]
+/// struct Debit {
+///     #[koruma(NonPositiveValidation::<_>)]
+///     amount: f64,
+/// }
+/// ```
+///
 /// Validates that a numeric value is non-positive (<= 0).
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

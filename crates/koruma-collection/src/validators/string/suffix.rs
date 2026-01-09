@@ -1,22 +1,20 @@
-//! Suffix validation for koruma.
-//!
-//! This module provides:
-//! - `SuffixValidation` validator to check if a string ends with a specified suffix
-//!
-//! # Example
-//! ```rust
-//! use koruma::Koruma;
-//! use koruma_collection::string::SuffixValidation;
-//!
-//! #[derive(Koruma)]
-//! struct File {
-//!     #[koruma(SuffixValidation::<_>(suffix = ".txt"))]
-//!     name: String,
-//! }
-//! ```
-
 use koruma::{Validate, validator};
 
+/// Suffix validation for koruma.
+///
+///
+/// # Example
+/// ```rust
+/// use koruma::Koruma;
+/// use koruma_collection::string::SuffixValidation;
+///
+/// #[derive(Koruma)]
+/// struct File {
+///     #[koruma(SuffixValidation::<_>(suffix = ".txt"))]
+///     name: String,
+/// }
+/// ```
+///
 /// Validates that a string ends with a specified suffix.
 #[validator]
 #[cfg_attr(feature = "showcase", showcase(

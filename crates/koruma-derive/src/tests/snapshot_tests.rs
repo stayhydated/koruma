@@ -2,9 +2,11 @@
 //!
 //! These tests verify the generated TokenStream output using insta snapshots.
 
-use super::*;
+use crate::expand::*;
+
 use insta::assert_snapshot;
 use syn::{DeriveInput, ItemStruct};
+use proc_macro2::TokenStream as TokenStream2;
 
 /// Helper to format TokenStream as pretty-printed Rust code
 fn pretty_print(tokens: TokenStream2) -> String {

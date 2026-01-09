@@ -1,6 +1,7 @@
 //! Tests for ValidatorAttr and KorumaAttr parsing.
 
-use super::*;
+use crate::expand::parse::*;
+use quote::quote;
 
 #[test]
 fn test_validator_attr_parse_simple() {

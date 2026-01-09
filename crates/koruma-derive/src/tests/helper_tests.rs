@@ -1,7 +1,9 @@
 //! Unit tests for helper functions in the expand module.
 
-use super::*;
+use crate::expand::{parse::*, utils::*};
+
 use syn::ItemStruct;
+use quote::quote;
 
 #[test]
 fn test_option_inner_type_extracts_inner() {

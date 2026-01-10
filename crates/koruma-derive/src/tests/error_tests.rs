@@ -20,7 +20,7 @@ fn test_validator_error_missing_value_field() {
 }
 
 #[test]
-fn test_koruma_error_no_validated_fields() {
+fn test_koruma_success_no_validated_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct EmptyStruct {
             // No #[koruma(...)] attributes
@@ -29,9 +29,10 @@ fn test_koruma_error_no_validated_fields() {
     };
 
     let result = expand_koruma(input);
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(err.to_string().contains("koruma(...)"));
+    assert!(
+        result.is_ok(),
+        "Should succeed even without validated fields"
+    );
 }
 
 #[test]

@@ -43,6 +43,16 @@ pub trait ValidateExt {
     fn validate(&self) -> Result<(), Self::Error>;
 }
 
+/// Marker trait for newtype structs (single-field wrappers) that derive `Koruma`.
+///
+/// This trait is auto-implemented by `#[derive(Koruma)]` when `#[koruma(newtype)]`
+/// is used at the struct level. It signals that this type is a newtype wrapper
+/// and its error type supports transparent `Deref` access.
+///
+/// When using a newtype as a field in another struct, use `#[koruma(newtype)]`
+/// on the field (instead of `#[koruma(nested)]`) to get transparent error access.
+pub trait NewtypeValidation: ValidateExt {}
+
 /// Showcase module for validator discovery and registration.
 ///
 /// When the `showcase` feature is enabled, validators decorated with

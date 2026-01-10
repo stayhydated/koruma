@@ -146,3 +146,15 @@ pub struct AddressWrapper {
     #[koruma(nested)]
     pub inner: Address,
 }
+
+/// Example struct containing a field-level newtype.
+/// The field uses `#[koruma(newtype)]` for transparent error access.
+#[derive(Koruma)]
+pub struct ContainsNewtype {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub name: String,
+
+    /// This field is a newtype - errors deref to the inner type's errors
+    #[koruma(newtype)]
+    pub number: PositiveNumber,
+}

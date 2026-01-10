@@ -98,6 +98,7 @@ impl Parse for ValidatorAttr {
 /// Can also include `each` modifier for collection validation:
 /// `#[koruma(VecValidator(min = 0), each(ElementValidator(max = 100)))]`
 /// Can also include `nested` to validate nested structs that also derive Koruma.
+/// Can also include `newtype` to validate a newtype wrapper with transparent error access.
 pub(crate) struct KorumaAttr {
     /// Validators applied to the field/collection itself
     pub field_validators: Vec<ValidatorAttr>,
@@ -106,11 +107,14 @@ pub(crate) struct KorumaAttr {
     pub is_skip: bool,
     /// Whether this field is a nested Koruma struct
     pub is_nested: bool,
+    /// Whether this field is a newtype wrapper (single-field struct deriving Koruma).
+    /// Similar to nested, but generates a wrapper error struct with Deref for transparent access.
+    pub is_newtype: bool,
 }
 
 impl Parse for KorumaAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Check for skip
+        // Check for skip, nested, or newtype
         if input.peek(Ident) {
             let fork = input.fork();
             let ident: Ident = fork.parse()?;
@@ -121,6 +125,7 @@ impl Parse for KorumaAttr {
                     element_validators: Vec::new(),
                     is_skip: true,
                     is_nested: false,
+                    is_newtype: false,
                 });
             }
             // Check for nested
@@ -131,6 +136,18 @@ impl Parse for KorumaAttr {
                     element_validators: Vec::new(),
                     is_skip: false,
                     is_nested: true,
+                    is_newtype: false,
+                });
+            }
+            // Check for newtype
+            if ident == "newtype" && fork.is_empty() {
+                input.parse::<Ident>()?; // consume "newtype"
+                return Ok(KorumaAttr {
+                    field_validators: Vec::new(),
+                    element_validators: Vec::new(),
+                    is_skip: false,
+                    is_nested: false,
+                    is_newtype: true,
                 });
             }
         }
@@ -181,6 +198,7 @@ impl Parse for KorumaAttr {
             element_validators,
             is_skip: false,
             is_nested: false,
+            is_newtype: false,
         })
     }
 }
@@ -245,6 +263,8 @@ pub(crate) struct FieldInfo {
     pub element_validators: Vec<ValidatorAttr>,
     /// Whether this field is a nested Koruma struct
     pub is_nested: bool,
+    /// Whether this field is a newtype wrapper
+    pub is_newtype: bool,
 }
 
 impl FieldInfo {
@@ -256,6 +276,11 @@ impl FieldInfo {
     /// Returns true if this field is a nested Koruma struct
     pub fn is_nested(&self) -> bool {
         self.is_nested
+    }
+
+    /// Returns true if this field is a newtype wrapper
+    pub fn is_newtype(&self) -> bool {
+        self.is_newtype
     }
 }
 
@@ -298,6 +323,18 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
                         field_validators: Vec::new(),
                         element_validators: Vec::new(),
                         is_nested: true,
+                        is_newtype: false,
+                    });
+                }
+                // Check for newtype
+                if koruma_attr.is_newtype {
+                    return ParseFieldResult::Valid(FieldInfo {
+                        name,
+                        ty,
+                        field_validators: Vec::new(),
+                        element_validators: Vec::new(),
+                        is_nested: false,
+                        is_newtype: true,
                     });
                 }
                 // Must have at least one validator
@@ -312,6 +349,7 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
                     field_validators: koruma_attr.field_validators,
                     element_validators: koruma_attr.element_validators,
                     is_nested: false,
+                    is_newtype: false,
                 });
             },
             Err(e) => {

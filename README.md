@@ -13,6 +13,8 @@ A per-field validation library for Rust with struct-based errors.
 - Generic validator support with type inference
 - Optional field support (skips validation when `None`)
 - Nested struct validation with `#[koruma(nested)]`
+- Newtype wrapper support with `#[koruma(newtype)]`
+- Validated constructors with `#[koruma(try_new)]`
 
 ## koruma-collection
 
@@ -333,6 +335,117 @@ if let Some(company_err) = err.employer() {
         }
     }
 }
+```
+
+### Newtype Wrappers
+
+For single-field wrapper structs (newtypes), use `#[koruma(newtype)]` at both the struct level and field level to get transparent error access.
+
+#### Defining a Newtype
+
+Use `#[koruma(newtype)]` at the struct level to mark a single-field struct as a newtype:
+
+```rs
+#[derive(Koruma)]
+#[koruma(newtype)]
+pub struct PositiveNumber {
+    #[koruma(RangeValidation::<_>(min = 0, max = 1000))]
+    pub value: i32,
+}
+
+// The error struct implements Deref, so you can access .all() directly
+let num = PositiveNumber { value: -5 };
+let err = num.validate().unwrap_err();
+
+// Access validators directly via Deref
+let all_errors = err.all();  // No need to go through .value()
+if let Some(range_err) = err.range_validation() {
+    println!("Value {} is out of range", range_err.actual);
+}
+```
+
+#### Using Newtypes as Fields
+
+When using a newtype as a field in another struct, use `#[koruma(newtype)]` instead of `#[koruma(nested)]` to get transparent error access:
+
+```rs
+#[derive(Koruma)]
+pub struct Order {
+    #[koruma(StringLengthValidation(min = 1, max = 100))]
+    pub description: String,
+
+    // Use newtype instead of nested for single-field wrappers
+    #[koruma(newtype)]
+    pub quantity: PositiveNumber,
+}
+
+let order = Order {
+    description: "Widget".to_string(),
+    quantity: PositiveNumber { value: -10 },
+};
+let err = order.validate().unwrap_err();
+
+// Access nested newtype errors directly via Deref
+// No need for .unwrap() or pattern matching on Option
+let all_qty_errors = err.quantity().all();
+if let Some(range_err) = err.quantity().range_validation() {
+    println!("Quantity {} is invalid", range_err.actual);
+}
+```
+
+The difference between `nested` and `newtype`:
+
+| Attribute | Use Case | Error Access |
+|-----------|----------|--------------|
+| `#[koruma(nested)]` | Multi-field structs | `err.field()` returns `Option<&InnerError>` |
+| `#[koruma(newtype)]` | Single-field wrappers | `err.field()` returns `&Wrapper` with `Deref` |
+
+### Validated Constructors with `try_new`
+
+Use `#[koruma(try_new)]` at the struct level to generate a `try_new` constructor that validates on creation:
+
+```rs
+#[derive(Koruma)]
+#[koruma(try_new)]
+pub struct ValidatedUser {
+    #[koruma(StringLengthValidation(min = 1, max = 50))]
+    pub username: String,
+
+    #[koruma(RangeValidation::<_>(min = 18, max = 150))]
+    pub age: i32,
+}
+
+// Use try_new instead of struct literal + validate
+match ValidatedUser::try_new("alice".to_string(), 25) {
+    Ok(user) => println!("Created user: {}", user.username),
+    Err(errors) => {
+        if let Some(name_err) = errors.username().string_length_validation() {
+            println!("Invalid username");
+        }
+    }
+}
+
+// Equivalent to:
+// let user = ValidatedUser { username: "alice".to_string(), age: 25 };
+// user.validate()?;
+```
+
+You can combine `try_new` with `newtype` for validated wrapper types:
+
+```rs
+#[derive(Koruma)]
+#[koruma(try_new, newtype)]
+pub struct Email {
+    #[koruma(EmailValidation)]
+    pub value: String,
+}
+
+// Create validated email
+let email = Email::try_new("user@example.com".to_string())?;
+
+// Invalid emails are rejected at construction
+let result = Email::try_new("not-an-email".to_string());
+assert!(result.is_err());
 ```
 
 ## Error Messages

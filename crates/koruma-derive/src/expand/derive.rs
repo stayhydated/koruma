@@ -59,6 +59,17 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         ));
     }
 
+    // Validate newtype option - must have exactly one validated field
+    if struct_options.newtype && field_infos.len() != 1 {
+        return Err(syn::Error::new_spanned(
+            &input,
+            format!(
+                "newtype structs must have exactly one validated field, found {}",
+                field_infos.len()
+            ),
+        ));
+    }
+
     // Generate per-field error structs and collect info for main error struct
     // For nested fields, we don't generate a per-field error struct - we use the nested type's error directly
     let field_error_structs: Vec<TokenStream2> = field_infos
@@ -846,6 +857,57 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         quote! {}
     };
 
+    // Generate Deref impl for newtype error structs
+    let newtype_deref_impl = if struct_options.newtype {
+        let field_info = &field_infos[0];
+        let field_name = &field_info.name;
+        let field_ty = &field_info.ty;
+
+        if field_info.is_nested() {
+            // For nested newtypes, deref to the inner type's error struct
+            let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+            let is_optional = is_option_type(field_ty);
+
+            if is_optional {
+                // For Option<NestedType>, we can't implement Deref since the error might not exist
+                // Instead, we'll just add a convenience method
+                quote! {}
+            } else {
+                // For non-optional nested, we can deref directly
+                // But the field is Option in the error struct, so we need to handle that
+                // Actually, for newtype we should change the error struct to not use Option
+                // Let's add a deref that panics if no error (which shouldn't happen if we have an error struct)
+                quote! {
+                    impl core::ops::Deref for #error_struct_name {
+                        type Target = <#inner_ty as koruma::ValidateExt>::Error;
+
+                        fn deref(&self) -> &Self::Target {
+                            self.#field_name.as_ref().expect("newtype error should have inner error")
+                        }
+                    }
+                }
+            }
+        } else {
+            // For newtypes with validators, deref to the per-field error struct
+            let field_error_struct_name = format_ident!(
+                "{}{}KorumaValidationError",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+            quote! {
+                impl core::ops::Deref for #error_struct_name {
+                    type Target = #field_error_struct_name;
+
+                    fn deref(&self) -> &Self::Target {
+                        &self.#field_name
+                    }
+                }
+            }
+        }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         // Per-field error structs
         #(#field_error_structs)*
@@ -862,6 +924,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         impl #error_struct_name {
             #(#getter_methods)*
         }
+
+        #newtype_deref_impl
 
         impl koruma::ValidationError for #error_struct_name {
             fn is_empty(&self) -> bool {

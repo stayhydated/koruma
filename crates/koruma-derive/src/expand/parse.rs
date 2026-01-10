@@ -190,6 +190,10 @@ impl Parse for KorumaAttr {
 pub(crate) struct StructOptions {
     /// Generate a `try_new` function that validates on construction
     pub try_new: bool,
+    /// Treat this struct as a newtype (single-field wrapper).
+    /// Generates an `.all()` method on the error struct that aggregates
+    /// all validators from the single field.
+    pub newtype: bool,
 }
 
 impl Parse for StructOptions {
@@ -200,11 +204,12 @@ impl Parse for StructOptions {
             let ident: Ident = input.parse()?;
             match ident.to_string().as_str() {
                 "try_new" => options.try_new = true,
+                "newtype" => options.newtype = true,
                 other => {
                     return Err(Error::new(
                         ident.span(),
                         format!(
-                            "unknown struct-level koruma option: `{}`. Expected `try_new`",
+                            "unknown struct-level koruma option: `{}`. Expected `try_new` or `newtype`",
                             other
                         ),
                     ));

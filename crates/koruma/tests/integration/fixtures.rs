@@ -128,3 +128,21 @@ pub struct Employee {
     #[koruma(nested)]
     pub employer: Company,
 }
+
+/// Example newtype struct with validators on the inner field.
+/// The `newtype` option allows the error struct to deref to the inner field's error.
+#[derive(Koruma)]
+#[koruma(newtype)]
+pub struct PositiveNumber {
+    #[koruma(NumberRangeValidation(min = 0, max = 1000))]
+    pub value: i32,
+}
+
+/// Example newtype struct wrapping a nested Koruma type.
+/// The error struct derefs to the inner type's error struct.
+#[derive(Koruma)]
+#[koruma(newtype)]
+pub struct AddressWrapper {
+    #[koruma(nested)]
+    pub inner: Address,
+}

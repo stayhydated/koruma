@@ -3,7 +3,7 @@ use crate::expand::{
         effective_validation_type, transform_arg_value, validator_type_for_field,
         validator_wants_full_type,
     },
-    parse::{FieldInfo, ParseFieldResult, ValidatorAttr, parse_field},
+    parse::{FieldInfo, ParseFieldResult, ValidatorAttr, parse_field, parse_struct_options},
     utils::{
         contains_infer_type, first_generic_arg, is_option_type, option_inner_type,
         substitute_infer_type, vec_inner_type,
@@ -20,6 +20,9 @@ use syn::{DeriveInput, Fields};
 pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
     let error_struct_name = format_ident!("{}KorumaValidationError", struct_name);
+
+    // Parse struct-level options like #[koruma(try_new, const_new)]
+    let struct_options = parse_struct_options(&input.attrs)?;
 
     let fields = match &input.data {
         syn::Data::Struct(data) => match &data.fields {
@@ -811,6 +814,38 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         })
         .collect();
 
+    // Generate try_new function if requested
+    let try_new_fn = if struct_options.try_new {
+        // Collect all struct fields (not just validated ones) for constructor parameters
+        let all_field_params: Vec<TokenStream2> = fields
+            .iter()
+            .map(|f| {
+                let name = f.ident.as_ref().unwrap();
+                let ty = &f.ty;
+                quote! { #name: #ty }
+            })
+            .collect();
+
+        let all_field_names: Vec<&syn::Ident> =
+            fields.iter().map(|f| f.ident.as_ref().unwrap()).collect();
+
+        quote! {
+            /// Creates a new instance and validates it.
+            ///
+            /// Returns `Ok(instance)` if all validations pass, or `Err(error)` where
+            /// `error` contains the validation failures for each field.
+            pub fn try_new(#(#all_field_params),*) -> Result<Self, #error_struct_name> {
+                let instance = Self {
+                    #(#all_field_names),*
+                };
+                instance.validate()?;
+                Ok(instance)
+            }
+        }
+    } else {
+        quote! {}
+    };
+
     Ok(quote! {
         // Per-field error structs
         #(#field_error_structs)*
@@ -835,6 +870,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
 
         impl #struct_name {
+            #try_new_fn
+
             /// Validates all fields and returns an error struct containing
             /// all validation failures.
             ///

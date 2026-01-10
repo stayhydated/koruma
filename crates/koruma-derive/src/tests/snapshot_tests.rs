@@ -5,8 +5,8 @@
 use crate::expand::*;
 
 use insta::assert_snapshot;
-use syn::{DeriveInput, ItemStruct};
 use proc_macro2::TokenStream as TokenStream2;
+use syn::{DeriveInput, ItemStruct};
 
 /// Helper to format TokenStream as pretty-printed Rust code
 fn pretty_print(tokens: TokenStream2) -> String {
@@ -232,6 +232,22 @@ fn test_koruma_expansion_only_element_validators() {
         pub struct Scores {
             #[koruma(each(RangeValidation::<_>(min = 0, max = 100)))]
             pub values: Vec<i32>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
+fn test_koruma_expansion_try_new() {
+    // Struct with #[koruma(try_new)] generates a try_new constructor
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(try_new)]
+        pub struct Person {
+            #[koruma(RangeValidation(min = 0, max = 150))]
+            pub age: i32,
+            pub name: String,
         }
     };
 

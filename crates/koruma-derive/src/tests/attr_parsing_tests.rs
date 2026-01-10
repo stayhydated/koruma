@@ -1,7 +1,6 @@
 //! Tests for ValidatorAttr and KorumaAttr parsing.
 
 use crate::expand::parse::*;
-use quote::quote;
 
 #[test]
 fn test_validator_attr_parse_simple() {
@@ -159,6 +158,24 @@ fn test_validator_attr_parse_old_syntax_error() {
     assert!(
         err.contains("turbofish"),
         "expected helpful error about turbofish, got: {}",
+        err
+    );
+}
+
+#[test]
+fn test_struct_options_parse_try_new() {
+    let opts: StructOptions = syn::parse_quote!(try_new);
+    assert!(opts.try_new);
+}
+
+#[test]
+fn test_struct_options_parse_unknown_error() {
+    let result: Result<StructOptions, _> = syn::parse_str("unknown_option");
+    assert!(result.is_err(), "expected error for unknown option");
+    let err = result.err().unwrap().to_string();
+    assert!(
+        err.contains("unknown struct-level koruma option"),
+        "expected helpful error message, got: {}",
         err
     );
 }

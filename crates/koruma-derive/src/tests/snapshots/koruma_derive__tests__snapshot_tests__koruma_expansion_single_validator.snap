@@ -1,0 +1,83 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+/// Enum of all possible validators for this field.
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum ItemAgeKorumaValidator {
+    NumberRangeValidation(NumberRangeValidation),
+}
+#[derive(Clone, Debug)]
+pub struct ItemAgeKorumaValidationError {
+    number_range_validation: Option<NumberRangeValidation>,
+}
+impl ItemAgeKorumaValidationError {
+    pub fn number_range_validation(&self) -> Option<&NumberRangeValidation> {
+        self.number_range_validation.as_ref()
+    }
+    /// Returns all failed field-level validators.
+    pub fn all(&self) -> Vec<ItemAgeKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.number_range_validation {
+            result.push(ItemAgeKorumaValidator::NumberRangeValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.number_range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+/// Auto-generated validation error struct for [`#struct_name`].
+///
+/// Each field contains a nested error struct with `Option<Validator>` for each
+/// validator. Access errors via chained calls like `error.field().validator()`.
+#[derive(Clone, Debug)]
+pub struct ItemKorumaValidationError {
+    age: ItemAgeKorumaValidationError,
+}
+impl ItemKorumaValidationError {
+    pub fn age(&self) -> &ItemAgeKorumaValidationError {
+        &self.age
+    }
+}
+impl koruma::ValidationError for ItemKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.age.is_empty()
+    }
+}
+impl Item {
+    /// Validates all fields and returns an error struct containing
+    /// all validation failures.
+    ///
+    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
+    /// `error` contains the validation failures for each field.
+    pub fn validate(&self) -> Result<(), ItemKorumaValidationError> {
+        let mut error = ItemKorumaValidationError {
+            age: ItemAgeKorumaValidationError {
+                number_range_validation: None,
+            },
+        };
+        let mut has_error = false;
+        let __field_value = &self.age;
+        let validator = NumberRangeValidation::builder()
+            .min(0)
+            .max(100)
+            .with_value(__field_value.clone())
+            .build();
+        if !validator.validate(__field_value) {
+            error.age.number_range_validation = Some(validator);
+            has_error = true;
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl koruma::ValidateExt for Item {
+    type Error = ItemKorumaValidationError;
+    fn validate(&self) -> Result<(), ItemKorumaValidationError> {
+        Item::validate(self)
+    }
+}

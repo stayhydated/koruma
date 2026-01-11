@@ -52,13 +52,6 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
     }
 
-    if field_infos.is_empty() {
-        return Err(syn::Error::new_spanned(
-            &input,
-            "Koruma requires at least one field with a #[koruma(...)] attribute",
-        ));
-    }
-
     // Validate newtype option - must have exactly one validated field
     if struct_options.newtype && field_infos.len() != 1 {
         return Err(syn::Error::new_spanned(
@@ -509,6 +502,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             }
         })
         .collect();
+
+    // Generate is_empty body - either `true` or the checks
+    let is_empty_body = if is_empty_checks.is_empty() {
+        quote! { true }
+    } else {
+        quote! { #(#is_empty_checks)&&* }
+    };
 
     // Generate default values for main error struct initialization
     let error_defaults: Vec<TokenStream2> = field_infos
@@ -1011,7 +1011,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
         impl koruma::ValidationError for #error_struct_name {
             fn is_empty(&self) -> bool {
-                #(#is_empty_checks)&&*
+                #is_empty_body
             }
         }
 

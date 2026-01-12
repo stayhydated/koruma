@@ -38,6 +38,16 @@ pub struct MultiValidatorItem {
     pub value: i32,
 }
 
+/// Example struct demonstrating multiple separate #[koruma(...)] attributes per field.
+/// This is equivalent to MultiValidatorItem but uses separate attributes.
+#[derive(Koruma)]
+pub struct MultiAttrItem {
+    // Multiple #[koruma] attributes on the same field - all are collected
+    #[koruma(NumberRangeValidation(min = 0, max = 100))]
+    #[koruma(EvenNumberValidation)]
+    pub value: i32,
+}
+
 /// Example struct demonstrating collection validation with `each`.
 #[derive(Koruma)]
 pub struct Order {

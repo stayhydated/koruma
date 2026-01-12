@@ -61,3 +61,62 @@ fn test_koruma_error_on_tuple_struct() {
     let err = result.unwrap_err();
     assert!(err.to_string().contains("named fields"));
 }
+
+#[test]
+fn test_koruma_error_on_duplicate_validator_same_attr() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DuplicateValidatorSameAttr {
+            #[koruma(RangeValidation(min = 0, max = 100), RangeValidation(min = 10, max = 50))]
+            pub value: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string().contains("duplicate validator"),
+        "expected 'duplicate validator' error, got: {}",
+        err
+    );
+}
+
+#[test]
+fn test_koruma_error_on_duplicate_validator_separate_attrs() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DuplicateValidatorSeparateAttrs {
+            #[koruma(RangeValidation(min = 0, max = 100))]
+            #[koruma(RangeValidation(min = 10, max = 50))]
+            pub value: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string().contains("duplicate validator"),
+        "expected 'duplicate validator' error, got: {}",
+        err
+    );
+}
+
+#[test]
+fn test_koruma_error_on_duplicate_element_validator() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DuplicateElementValidator {
+            #[koruma(each(RangeValidation(min = 0, max = 100)))]
+            #[koruma(each(RangeValidation(min = 10, max = 50)))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string().contains("duplicate element validator"),
+        "expected 'duplicate element validator' error, got: {}",
+        err
+    );
+}

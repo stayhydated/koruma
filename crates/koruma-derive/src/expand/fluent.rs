@@ -57,7 +57,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .iter()
                 .map(|v| {
                     let variant_name =
-                        format_ident!("{}", v.validator.to_string().to_upper_camel_case());
+                        format_ident!("{}", v.name().to_string().to_upper_camel_case());
                     quote! {
                         #enum_name::#variant_name(v) => v.to_fluent_string()
                     }
@@ -94,7 +94,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .iter()
                 .map(|v| {
                     let variant_name =
-                        format_ident!("{}", v.validator.to_string().to_upper_camel_case());
+                        format_ident!("{}", v.name().to_string().to_upper_camel_case());
                     quote! {
                         #enum_name::#variant_name(v) => v.to_fluent_string()
                     }

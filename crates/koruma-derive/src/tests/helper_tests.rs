@@ -125,7 +125,7 @@ fn test_parse_field_with_single_validator() {
     assert_eq!(info.name.to_string(), "age");
     assert_eq!(info.field_validators.len(), 1);
     assert_eq!(
-        info.field_validators[0].validator.to_string(),
+        info.field_validators[0].name().to_string(),
         "RangeValidation"
     );
     assert!(!info.field_validators[0].infer_type);

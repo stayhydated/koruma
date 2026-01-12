@@ -511,24 +511,31 @@ if let Some(err) = errors.age().number_range_validation() {
 
 ### Fluent with `all()` Method
 
-When using the `all()` method to get all failed validators, you can derive `KorumaFluentEnum` on the generated enum to implement `ToFluentString`:
+When using the `all()` method to get all failed validators, you can derive `KorumaAllFluent` alongside the item that implements `Koruma`
 
 ```rs
 use es_fluent::ToFluentString as _;
-use koruma::KorumaFluentEnum;
+use koruma::{Koruma, KorumaAllFluent};
 
-// Derive KorumaFluentEnum on the generated validator enum
+// Derive KorumaAllFluent on the item that implements Koruma
 // This requires all inner validators to implement ToFluentString
-#[derive(KorumaFluentEnum)]
-pub enum ItemValueKorumaValidator {
-    NumberRangeValidation(NumberRangeValidation),
-    EvenNumberValidation(EvenNumberValidation),
+#[derive(Koruma, KorumaAllFluent)]
+pub struct ValidatedUser {
+    #[koruma(StringLengthValidation(min = 1, max = 50))]
+    pub username: String,
+
+    #[koruma(RangeValidation::<_>(min = 18, max = 150))]
+    pub age: i32,
 }
 
 // Now you can iterate over all errors
-for validator in errors.value().all() {
-    println!("{}", validator.to_fluent_string());
+let validation_errors = ValidatedUser{ ... }.validate().err();
+if let Some(e) = validation_errors.as_ref() {
+    let errs = e.username().all();
+    for v in errs {
+        println!("{}", v.to_fluent_string());
+    }
 }
 ```
 
-Note: `KorumaFluentEnum` requires the `fluent` feature to be enabled and all variant types must implement `ToFluentString`.
+Note: `KorumaAllFluent` requires the `fluent` feature to be enabled and all variant types must implement `ToFluentString`.

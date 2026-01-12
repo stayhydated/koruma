@@ -5,7 +5,7 @@ use crate::expand::parse::*;
 #[test]
 fn test_validator_attr_parse_simple() {
     let attr: ValidatorAttr = syn::parse_quote!(RangeValidation);
-    assert_eq!(attr.validator.to_string(), "RangeValidation");
+    assert_eq!(attr.name().to_string(), "RangeValidation");
     assert!(!attr.infer_type);
     assert!(attr.args.is_empty());
 }
@@ -13,7 +13,7 @@ fn test_validator_attr_parse_simple() {
 #[test]
 fn test_validator_attr_parse_with_args() {
     let attr: ValidatorAttr = syn::parse_quote!(RangeValidation(min = 0, max = 100));
-    assert_eq!(attr.validator.to_string(), "RangeValidation");
+    assert_eq!(attr.name().to_string(), "RangeValidation");
     assert!(!attr.infer_type);
     assert_eq!(attr.args.len(), 2);
     assert_eq!(attr.args[0].0.to_string(), "min");
@@ -24,7 +24,7 @@ fn test_validator_attr_parse_with_args() {
 fn test_validator_attr_parse_generic() {
     // Turbofish syntax: ::<_>
     let attr: ValidatorAttr = syn::parse_quote!(GenericRange::<_>(min = 0.0, max = 1.0));
-    assert_eq!(attr.validator.to_string(), "GenericRange");
+    assert_eq!(attr.name().to_string(), "GenericRange");
     assert!(attr.infer_type);
     assert_eq!(attr.args.len(), 2);
 }
@@ -66,13 +66,10 @@ fn test_koruma_attr_parse_combined_field_and_each() {
     );
     assert!(!attr.is_skip);
     assert_eq!(attr.field_validators.len(), 1);
-    assert_eq!(
-        attr.field_validators[0].validator.to_string(),
-        "LenValidator"
-    );
+    assert_eq!(attr.field_validators[0].name().to_string(), "LenValidator");
     assert_eq!(attr.element_validators.len(), 1);
     assert_eq!(
-        attr.element_validators[0].validator.to_string(),
+        attr.element_validators[0].name().to_string(),
         "RangeValidation"
     );
     assert!(attr.element_validators[0].infer_type);
@@ -94,7 +91,7 @@ fn test_koruma_attr_parse_each_then_field() {
 fn test_validator_attr_parse_nested_generic() {
     // Nested generics with turbofish: ::<Option<_>>
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
-    assert_eq!(attr.validator.to_string(), "RequiredValidation");
+    assert_eq!(attr.name().to_string(), "RequiredValidation");
     assert!(!attr.infer_type);
     assert!(attr.explicit_type.is_some());
 
@@ -111,7 +108,7 @@ fn test_validator_attr_parse_nested_generic() {
 fn test_validator_attr_parse_nested_generic_concrete() {
     // Nested generics with concrete types: ::<Vec<String>>
     let attr: ValidatorAttr = syn::parse_quote!(SomeValidator::<Vec<String>>);
-    assert_eq!(attr.validator.to_string(), "SomeValidator");
+    assert_eq!(attr.name().to_string(), "SomeValidator");
     assert!(!attr.infer_type);
     assert!(attr.explicit_type.is_some());
 
@@ -128,7 +125,7 @@ fn test_validator_attr_parse_nested_generic_concrete() {
 fn test_validator_attr_parse_deeply_nested_generic() {
     // Deeply nested generics: ::<Option<Vec<_>>>
     let attr: ValidatorAttr = syn::parse_quote!(DeepValidator::<Option<Vec<_>>>);
-    assert_eq!(attr.validator.to_string(), "DeepValidator");
+    assert_eq!(attr.name().to_string(), "DeepValidator");
     assert!(!attr.infer_type);
     assert!(attr.explicit_type.is_some());
 }
@@ -137,7 +134,7 @@ fn test_validator_attr_parse_deeply_nested_generic() {
 fn test_validator_attr_parse_option_infer_type() {
     // ::<Option<_>> syntax for full Option type (no unwrapping)
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
-    assert_eq!(attr.validator.to_string(), "RequiredValidation");
+    assert_eq!(attr.name().to_string(), "RequiredValidation");
     assert!(!attr.infer_type);
     assert!(attr.explicit_type.is_some());
     let explicit_ty = attr.explicit_type.unwrap();

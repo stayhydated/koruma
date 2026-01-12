@@ -1,16 +1,21 @@
 use syn::{
-    Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
+    Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Path, Result, Token, Type,
+    parenthesized,
     parse::{Parse, ParseStream},
+    spanned::Spanned,
     token,
 };
 
 /// Represents a single parsed validator: `ValidatorName(arg = value, ...)` or
 /// `ValidatorName::<_>(arg = value, ...)` or `ValidatorName::<SomeType>(arg = value, ...)`
+/// Also supports fully-qualified paths like `module::path::ValidatorName::<_>`.
 ///
 /// Uses turbofish syntax (`::<>`) for type parameters, which simplifies parsing
 /// and naturally handles nested generics like `Validator::<Option<Vec<T>>>`.
 pub(crate) struct ValidatorAttr {
-    pub validator: Ident,
+    /// The validator path, which may be a simple identifier or a full path.
+    /// Examples: `StringLengthValidation`, `validators::normal::NumberRangeValidation`
+    pub validator: Path,
     /// Whether the validator uses `::<_>` syntax for type inference from field type.
     /// When true, the field type is used (unwrapping Option if present).
     pub infer_type: bool,
@@ -21,9 +26,71 @@ pub(crate) struct ValidatorAttr {
     pub args: Vec<(Ident, Expr)>,
 }
 
+impl ValidatorAttr {
+    /// Returns the simple name of the validator (the last segment of the path).
+    /// Used for generating field names and enum variants.
+    pub fn name(&self) -> &Ident {
+        &self
+            .validator
+            .segments
+            .last()
+            .expect("path should have at least one segment")
+            .ident
+    }
+}
+
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        let validator: Ident = input.parse()?;
+        // Parse the path manually, segment by segment.
+        // We need to stop BEFORE consuming any turbofish generics (`::<...>`)
+        // because we want to handle those separately for our ::<_> syntax.
+
+        // Check for leading ::
+        let leading_colon = if input.peek(Token![::]) {
+            Some(input.parse::<Token![::]>()?)
+        } else {
+            None
+        };
+
+        // Parse path segments manually
+        let mut segments = syn::punctuated::Punctuated::new();
+
+        loop {
+            // Parse an identifier (path segment)
+            let ident: Ident = input.parse()?;
+            segments.push(syn::PathSegment {
+                ident,
+                arguments: syn::PathArguments::None,
+            });
+
+            // Check what follows:
+            // - `::` followed by `<` = turbofish, stop here
+            // - `::` followed by ident = more path segments, continue
+            // - anything else = end of path
+            if input.peek(Token![::]) {
+                let fork = input.fork();
+                fork.parse::<Token![::]>().ok();
+
+                if fork.peek(Token![<]) {
+                    // This is a turbofish, don't consume the ::, let the turbofish handling below do it
+                    break;
+                } else if fork.peek(Ident) {
+                    // More path segments, consume :: and continue
+                    segments.push_punct(input.parse()?);
+                } else {
+                    // :: followed by something else, stop
+                    break;
+                }
+            } else {
+                // Not ::, end of path
+                break;
+            }
+        }
+
+        let validator = Path {
+            leading_colon,
+            segments,
+        };
 
         // Check for turbofish generic syntax: ::<_> or ::<SomeType>
         // ::<_> means "use the field type" (unwrapping Option if present)
@@ -339,7 +406,7 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
                 }
                 // Collect validators from this attribute, checking for duplicates
                 for validator in koruma_attr.field_validators {
-                    let validator_name = validator.validator.to_string();
+                    let validator_name = validator.name().to_string();
                     if !seen_field_validators.insert(validator_name.clone()) {
                         return ParseFieldResult::Error(Error::new(
                             validator.validator.span(),
@@ -352,7 +419,7 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
                     all_field_validators.push(validator);
                 }
                 for validator in koruma_attr.element_validators {
-                    let validator_name = validator.validator.to_string();
+                    let validator_name = validator.name().to_string();
                     if !seen_element_validators.insert(validator_name.clone()) {
                         return ParseFieldResult::Error(Error::new(
                             validator.validator.span(),

@@ -17,7 +17,7 @@ use koruma::{Koruma, Validate};
 
 #[derive(Koruma)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::<_>(min = 0, max = 100))]
+    #[koruma(validators::normal::NumberRangeValidation::<_>(min = 0, max = 100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]

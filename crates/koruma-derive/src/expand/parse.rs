@@ -301,6 +301,17 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
     };
     let ty = field.ty.clone();
 
+    // Collect validators from ALL #[koruma(...)] attributes on this field
+    let mut all_field_validators = Vec::new();
+    let mut all_element_validators = Vec::new();
+    let mut is_skip = false;
+    let mut is_nested = false;
+    let mut is_newtype = false;
+
+    // Track seen validator names to detect duplicates
+    let mut seen_field_validators = std::collections::HashSet::new();
+    let mut seen_element_validators = std::collections::HashSet::new();
+
     for attr in &field.attrs {
         if !attr.path().is_ident("koruma") {
             continue;
@@ -311,46 +322,48 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
 
         match parsed {
             Ok(koruma_attr) => {
-                // Check for skip
+                // Check for skip - if any attribute says skip, skip the field
                 if koruma_attr.is_skip {
-                    return ParseFieldResult::Skip;
+                    is_skip = true;
+                    continue;
                 }
                 // Check for nested
                 if koruma_attr.is_nested {
-                    return ParseFieldResult::Valid(FieldInfo {
-                        name,
-                        ty,
-                        field_validators: Vec::new(),
-                        element_validators: Vec::new(),
-                        is_nested: true,
-                        is_newtype: false,
-                    });
+                    is_nested = true;
+                    continue;
                 }
                 // Check for newtype
                 if koruma_attr.is_newtype {
-                    return ParseFieldResult::Valid(FieldInfo {
-                        name,
-                        ty,
-                        field_validators: Vec::new(),
-                        element_validators: Vec::new(),
-                        is_nested: false,
-                        is_newtype: true,
-                    });
+                    is_newtype = true;
+                    continue;
                 }
-                // Must have at least one validator
-                if koruma_attr.field_validators.is_empty()
-                    && koruma_attr.element_validators.is_empty()
-                {
-                    return ParseFieldResult::Skip;
+                // Collect validators from this attribute, checking for duplicates
+                for validator in koruma_attr.field_validators {
+                    let validator_name = validator.validator.to_string();
+                    if !seen_field_validators.insert(validator_name.clone()) {
+                        return ParseFieldResult::Error(Error::new(
+                            validator.validator.span(),
+                            format!(
+                                "duplicate validator `{}` on field `{}`",
+                                validator_name, name
+                            ),
+                        ));
+                    }
+                    all_field_validators.push(validator);
                 }
-                return ParseFieldResult::Valid(FieldInfo {
-                    name,
-                    ty,
-                    field_validators: koruma_attr.field_validators,
-                    element_validators: koruma_attr.element_validators,
-                    is_nested: false,
-                    is_newtype: false,
-                });
+                for validator in koruma_attr.element_validators {
+                    let validator_name = validator.validator.to_string();
+                    if !seen_element_validators.insert(validator_name.clone()) {
+                        return ParseFieldResult::Error(Error::new(
+                            validator.validator.span(),
+                            format!(
+                                "duplicate element validator `{}` on field `{}`",
+                                validator_name, name
+                            ),
+                        ));
+                    }
+                    all_element_validators.push(validator);
+                }
             },
             Err(e) => {
                 return ParseFieldResult::Error(e);
@@ -358,8 +371,48 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
         }
     }
 
-    // Field without koruma attribute - skip it
-    ParseFieldResult::Skip
+    // If skip was specified, skip the field
+    if is_skip {
+        return ParseFieldResult::Skip;
+    }
+
+    // Check for nested
+    if is_nested {
+        return ParseFieldResult::Valid(FieldInfo {
+            name,
+            ty,
+            field_validators: all_field_validators,
+            element_validators: all_element_validators,
+            is_nested: true,
+            is_newtype: false,
+        });
+    }
+
+    // Check for newtype
+    if is_newtype {
+        return ParseFieldResult::Valid(FieldInfo {
+            name,
+            ty,
+            field_validators: all_field_validators,
+            element_validators: all_element_validators,
+            is_nested: false,
+            is_newtype: true,
+        });
+    }
+
+    // Must have at least one validator or modifier
+    if all_field_validators.is_empty() && all_element_validators.is_empty() {
+        return ParseFieldResult::Skip;
+    }
+
+    ParseFieldResult::Valid(FieldInfo {
+        name,
+        ty,
+        field_validators: all_field_validators,
+        element_validators: all_element_validators,
+        is_nested: false,
+        is_newtype: false,
+    })
 }
 
 /// Find the field marked with #[koruma(value)] and return its name and type

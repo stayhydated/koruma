@@ -1,3 +1,8 @@
+//! Parsing logic for `#[koruma(...)]` attributes.
+//!
+//! This module provides types and functions for parsing koruma validation
+//! attributes from syn AST nodes.
+
 use syn::{
     Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Path, Result, Token, Type,
     parenthesized,
@@ -12,7 +17,24 @@ use syn::{
 ///
 /// Uses turbofish syntax (`::<>`) for type parameters, which simplifies parsing
 /// and naturally handles nested generics like `Validator::<Option<Vec<T>>>`.
-pub(crate) struct ValidatorAttr {
+///
+/// # Examples
+///
+/// ```ignore
+/// // Simple validator
+/// #[koruma(NonEmptyValidation)]
+///
+/// // Validator with type inference
+/// #[koruma(RangeValidation::<_>(min = 0, max = 100))]
+///
+/// // Validator with explicit type
+/// #[koruma(RangeValidation::<i32>(min = 0, max = 100))]
+///
+/// // Full path
+/// #[koruma(validators::numeric::RangeValidation::<_>(min = 0))]
+/// ```
+#[derive(Clone, Debug)]
+pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
     /// Examples: `StringLengthValidation`, `validators::normal::NumberRangeValidation`
     pub validator: Path,
@@ -23,6 +45,7 @@ pub(crate) struct ValidatorAttr {
     /// If this contains `_`, it will be substituted with the inner type from the field.
     /// Use `::<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<Type>,
+    /// Key-value argument pairs passed to the validator.
     pub args: Vec<(Ident, Expr)>,
 }
 
@@ -36,6 +59,21 @@ impl ValidatorAttr {
             .last()
             .expect("path should have at least one segment")
             .ident
+    }
+
+    /// Returns whether this validator has any arguments.
+    pub fn has_args(&self) -> bool {
+        !self.args.is_empty()
+    }
+
+    /// Returns whether this validator uses type inference (`::<_>` syntax).
+    pub fn uses_type_inference(&self) -> bool {
+        self.infer_type
+    }
+
+    /// Returns whether this validator has an explicit type parameter.
+    pub fn has_explicit_type(&self) -> bool {
+        self.explicit_type.is_some()
     }
 }
 
@@ -162,21 +200,53 @@ impl Parse for ValidatorAttr {
 
 /// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
 /// separated by commas: `#[koruma(Validator1(a = 1), Validator2(b = 2))]`
-/// Can also include `each` modifier for collection validation:
-/// `#[koruma(VecValidator(min = 0), each(ElementValidator(max = 100)))]`
-/// Can also include `nested` to validate nested structs that also derive Koruma.
-/// Can also include `newtype` to validate a newtype wrapper with transparent error access.
-pub(crate) struct KorumaAttr {
+///
+/// Can also include:
+/// - `each(...)` modifier for collection validation
+/// - `skip` to skip validation for a field
+/// - `nested` to validate nested structs that also derive Koruma
+/// - `newtype` to validate a newtype wrapper with transparent error access
+///
+/// # Examples
+///
+/// ```ignore
+/// // Multiple validators
+/// #[koruma(Validator1(a = 1), Validator2(b = 2))]
+///
+/// // Element validation for collections
+/// #[koruma(VecValidator(min = 0), each(ElementValidator(max = 100)))]
+///
+/// // Skip validation
+/// #[koruma(skip)]
+///
+/// // Nested Koruma struct
+/// #[koruma(nested)]
+/// ```
+#[derive(Clone, Debug, Default)]
+pub struct KorumaAttr {
     /// Validators applied to the field/collection itself
     pub field_validators: Vec<ValidatorAttr>,
     /// Validators applied to each element in a collection (from `each(...)`)
     pub element_validators: Vec<ValidatorAttr>,
+    /// Whether this field should be skipped
     pub is_skip: bool,
     /// Whether this field is a nested Koruma struct
     pub is_nested: bool,
     /// Whether this field is a newtype wrapper (single-field struct deriving Koruma).
     /// Similar to nested, but generates a wrapper error struct with Deref for transparent access.
     pub is_newtype: bool,
+}
+
+impl KorumaAttr {
+    /// Returns whether this attribute has any validators (field or element).
+    pub fn has_validators(&self) -> bool {
+        !self.field_validators.is_empty() || !self.element_validators.is_empty()
+    }
+
+    /// Returns whether this attribute represents a modifier (skip, nested, newtype).
+    pub fn is_modifier(&self) -> bool {
+        self.is_skip || self.is_nested || self.is_newtype
+    }
 }
 
 impl Parse for KorumaAttr {
@@ -271,8 +341,27 @@ impl Parse for KorumaAttr {
 }
 
 /// Struct-level options parsed from `#[koruma(...)]`
-#[derive(Default)]
-pub(crate) struct StructOptions {
+///
+/// # Examples
+///
+/// ```ignore
+/// // Generate try_new constructor
+/// #[koruma(try_new)]
+/// #[derive(Koruma)]
+/// struct User { ... }
+///
+/// // Newtype wrapper
+/// #[koruma(newtype)]
+/// #[derive(Koruma)]
+/// struct Email(String);
+///
+/// // Both options
+/// #[koruma(try_new, newtype)]
+/// #[derive(Koruma)]
+/// struct Email(String);
+/// ```
+#[derive(Clone, Debug, Default)]
+pub struct StructOptions {
     /// Generate a `try_new` function that validates on construction
     pub try_new: bool,
     /// Treat this struct as a newtype (single-field wrapper).
@@ -310,8 +399,10 @@ impl Parse for StructOptions {
     }
 }
 
-/// Parse struct-level `#[koruma(...)]` attributes from a list of attributes
-pub(crate) fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
+/// Parse struct-level `#[koruma(...)]` attributes from a list of attributes.
+///
+/// Returns `StructOptions::default()` if no `#[koruma(...)]` attribute is found.
+pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
     for attr in attrs {
         if attr.path().is_ident("koruma") {
             return attr.parse_args::<StructOptions>();
@@ -320,9 +411,15 @@ pub(crate) fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions>
     Ok(StructOptions::default())
 }
 
-/// Field info extracted from the struct
-pub(crate) struct FieldInfo {
+/// Field information extracted from parsing `#[koruma(...)]` attributes.
+///
+/// This struct contains all the parsed validation information for a single field,
+/// including validators, element validators (for collections), and modifier flags.
+#[derive(Clone, Debug)]
+pub struct FieldInfo {
+    /// The field name
     pub name: Ident,
+    /// The field type
     pub ty: Type,
     /// Validators for the field/collection itself
     pub field_validators: Vec<ValidatorAttr>,
@@ -340,6 +437,11 @@ impl FieldInfo {
         !self.element_validators.is_empty()
     }
 
+    /// Returns true if this field has any validators (field or element)
+    pub fn has_validators(&self) -> bool {
+        !self.field_validators.is_empty() || !self.element_validators.is_empty()
+    }
+
     /// Returns true if this field is a nested Koruma struct
     pub fn is_nested(&self) -> bool {
         self.is_nested
@@ -349,11 +451,25 @@ impl FieldInfo {
     pub fn is_newtype(&self) -> bool {
         self.is_newtype
     }
+
+    /// Returns an iterator over all validator names on this field.
+    pub fn validator_names(&self) -> impl Iterator<Item = &Ident> {
+        self.field_validators
+            .iter()
+            .chain(self.element_validators.iter())
+            .map(|v| v.name())
+    }
 }
 
-/// Result of parsing a field with #[koruma(...)] attribute
+/// Result of parsing a field with `#[koruma(...)]` attribute.
+///
+/// This enum represents the three possible outcomes of parsing a field:
+/// - `Valid`: The field has valid koruma validators
+/// - `Skip`: The field should be skipped (no koruma attribute, or `#[koruma(skip)]`)
+/// - `Error`: A parse error occurred
 #[allow(clippy::large_enum_variant)]
-pub(crate) enum ParseFieldResult {
+#[derive(Debug)]
+pub enum ParseFieldResult {
     /// Field has valid koruma validators
     Valid(FieldInfo),
     /// Field should be skipped (no koruma attribute, or #[koruma(skip)])
@@ -362,7 +478,53 @@ pub(crate) enum ParseFieldResult {
     Error(Error),
 }
 
-pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
+impl ParseFieldResult {
+    /// Returns the field info if this is a `Valid` result.
+    pub fn valid(self) -> Option<FieldInfo> {
+        match self {
+            ParseFieldResult::Valid(info) => Some(info),
+            _ => None,
+        }
+    }
+
+    /// Returns the error if this is an `Error` result.
+    pub fn error(self) -> Option<Error> {
+        match self {
+            ParseFieldResult::Error(e) => Some(e),
+            _ => None,
+        }
+    }
+
+    /// Returns true if this is a `Valid` result.
+    pub fn is_valid(&self) -> bool {
+        matches!(self, ParseFieldResult::Valid(_))
+    }
+
+    /// Returns true if this is a `Skip` result.
+    pub fn is_skip(&self) -> bool {
+        matches!(self, ParseFieldResult::Skip)
+    }
+
+    /// Returns true if this is an `Error` result.
+    pub fn is_error(&self) -> bool {
+        matches!(self, ParseFieldResult::Error(_))
+    }
+}
+
+/// Parse a single field and extract its koruma validation information.
+///
+/// This function handles:
+/// - Multiple `#[koruma(...)]` attributes on the same field
+/// - Combining validators from multiple attributes
+/// - Detecting duplicate validators
+/// - The `skip`, `nested`, and `newtype` modifiers
+///
+/// # Returns
+///
+/// - `ParseFieldResult::Valid(FieldInfo)` if the field has validators
+/// - `ParseFieldResult::Skip` if the field has no koruma attributes or is marked with `skip`
+/// - `ParseFieldResult::Error(Error)` if parsing failed (e.g., duplicate validators)
+pub fn parse_field(field: &Field) -> ParseFieldResult {
     let Some(name) = field.ident.clone() else {
         return ParseFieldResult::Skip;
     };
@@ -482,8 +644,11 @@ pub(crate) fn parse_field(field: &Field) -> ParseFieldResult {
     })
 }
 
-/// Find the field marked with #[koruma(value)] and return its name and type
-pub(crate) fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
+/// Find the field marked with `#[koruma(value)]` and return its name and type.
+///
+/// This is used by the `#[koruma::validator]` attribute macro to find which
+/// field should receive the value being validated.
+pub fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
     if let Fields::Named(ref fields) = input.fields {
         for field in &fields.named {
             for attr in &field.attrs {
@@ -502,10 +667,12 @@ pub(crate) fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
 }
 
 /// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`
+///
 /// The `create` closure takes a `&str` and returns the validator instance.
 /// Optional `input_type` can be "text" (default) or "numeric".
 #[cfg(feature = "showcase")]
-pub(crate) struct ShowcaseAttr {
+#[derive(Clone, Debug)]
+pub struct ShowcaseAttr {
     pub name: syn::LitStr,
     pub description: syn::LitStr,
     pub create: syn::ExprClosure,
@@ -565,7 +732,7 @@ impl Parse for ShowcaseAttr {
 
 /// Find and parse showcase attribute from struct
 #[cfg(feature = "showcase")]
-pub(crate) fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
+pub fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
     for attr in &input.attrs {
         if attr.path().is_ident("showcase")
             && let Ok(parsed) = attr.parse_args::<ShowcaseAttr>()

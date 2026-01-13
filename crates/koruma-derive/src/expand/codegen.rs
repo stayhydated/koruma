@@ -1,9 +1,6 @@
-use crate::expand::{
-    parse::ValidatorAttr,
-    utils::{
-        contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-        option_inner_type, substitute_infer_type, vec_inner_type,
-    },
+use koruma_derive_core::{
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, first_generic_arg,
+    is_option_infer_type, option_inner_type, substitute_infer_type, vec_inner_type,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;

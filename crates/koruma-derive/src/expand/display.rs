@@ -1,5 +1,5 @@
-use crate::expand::parse::{FieldInfo, ParseFieldResult, parse_field};
 use heck::ToUpperCamelCase;
+use koruma_derive_core::{FieldInfo, ParseFieldResult, parse_field};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{DeriveInput, Fields};

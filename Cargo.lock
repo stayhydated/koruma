@@ -1069,8 +1069,18 @@ dependencies = [
  "heck",
  "insta",
  "inventory",
+ "koruma-derive-core",
  "prettyplease",
  "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.114",
+]
+
+[[package]]
+name = "koruma-derive-core"
+version = "0.3.0"
+dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",

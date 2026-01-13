@@ -1,7 +1,7 @@
-#[cfg(feature = "showcase")]
-use crate::expand::parse::find_showcase_attr;
-use crate::expand::{parse::find_value_field, utils::option_inner_type};
 use heck::{ToSnakeCase, ToUpperCamelCase};
+#[cfg(feature = "showcase")]
+use koruma_derive_core::find_showcase_attr;
+use koruma_derive_core::{find_value_field, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{Fields, GenericParam, Ident, ItemStruct, parse_quote};

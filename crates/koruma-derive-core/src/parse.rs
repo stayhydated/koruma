@@ -4,12 +4,120 @@
 //! attributes from syn AST nodes.
 
 use syn::{
-    Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Path, Result, Token, Type,
+    Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Meta, Path, Result, Token, Type,
     parenthesized,
     parse::{Parse, ParseStream},
     spanned::Spanned,
     token,
 };
+
+/// Check if an attribute is a `koruma` attribute or a `cfg_attr` containing a `koruma` attribute.
+/// Returns `Some(true)` if it's a direct koruma attribute, `Some(false)` if it's a cfg_attr with koruma,
+/// and `None` if it's neither.
+fn is_koruma_attr(attr: &Attribute) -> Option<bool> {
+    if attr.path().is_ident("koruma") {
+        return Some(true);
+    }
+
+    // Check for cfg_attr(condition, koruma(...))
+    if attr.path().is_ident("cfg_attr") {
+        if let Meta::List(meta_list) = &attr.meta {
+            // Parse the tokens inside cfg_attr(...)
+            // Format: cfg_attr(condition, attr1, attr2, ...)
+            let tokens = meta_list.tokens.clone();
+            let mut iter = tokens.into_iter().peekable();
+
+            // Skip the condition (everything until we hit a comma at depth 0)
+            let mut depth: i32 = 0;
+            loop {
+                match iter.next() {
+                    Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == ',' && depth == 0 => {
+                        break;
+                    },
+                    Some(proc_macro2::TokenTree::Group(_)) => {
+                        // Groups don't affect our comma detection at top level
+                    },
+                    Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '<' => depth += 1,
+                    Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '>' => {
+                        depth = depth.saturating_sub(1);
+                    },
+                    None => return None,
+                    _ => {},
+                }
+            }
+
+            // Now check if any of the remaining attributes is "koruma"
+            while let Some(token) = iter.next() {
+                if let proc_macro2::TokenTree::Ident(ident) = token {
+                    if ident == "koruma" {
+                        return Some(false);
+                    }
+                }
+                // Skip to next attribute (after comma) if we hit a group
+                if let Some(proc_macro2::TokenTree::Punct(p)) = iter.peek() {
+                    if p.as_char() == ',' {
+                        iter.next();
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Extract the koruma attribute content from a cfg_attr.
+/// For `#[cfg_attr(condition, koruma(content))]`, returns a parsed KorumaAttr.
+fn parse_koruma_from_cfg_attr(attr: &Attribute) -> Result<KorumaAttr> {
+    if let Meta::List(meta_list) = &attr.meta {
+        let tokens = meta_list.tokens.clone();
+        let mut iter = tokens.into_iter().peekable();
+
+        // Skip the condition
+        let mut depth: i32 = 0;
+        loop {
+            match iter.next() {
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == ',' && depth == 0 => {
+                    break;
+                },
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '<' => depth += 1,
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '>' => {
+                    depth = depth.saturating_sub(1);
+                },
+                None => {
+                    return Err(Error::new_spanned(
+                        attr,
+                        "invalid cfg_attr: missing attribute after condition",
+                    ));
+                },
+                _ => {},
+            }
+        }
+
+        // Find koruma(...) and extract its content
+        while let Some(token) = iter.next() {
+            if let proc_macro2::TokenTree::Ident(ident) = token {
+                if ident == "koruma" {
+                    // Next should be a group containing the koruma content
+                    if let Some(proc_macro2::TokenTree::Group(group)) = iter.next() {
+                        return syn::parse2::<KorumaAttr>(group.stream());
+                    } else {
+                        // koruma without parens - this is valid for things like just "koruma"
+                        // but we need to check what follows
+                        return Ok(KorumaAttr::default());
+                    }
+                }
+            }
+        }
+
+        Err(Error::new_spanned(
+            attr,
+            "cfg_attr does not contain a koruma attribute",
+        ))
+    } else {
+        Err(Error::new_spanned(attr, "invalid cfg_attr format"))
+    }
+}
 
 /// Represents a single parsed validator: `ValidatorName(arg = value, ...)` or
 /// `ValidatorName::<_>(arg = value, ...)` or `ValidatorName::<SomeType>(arg = value, ...)`
@@ -404,11 +512,71 @@ impl Parse for StructOptions {
 /// Returns `StructOptions::default()` if no `#[koruma(...)]` attribute is found.
 pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
     for attr in attrs {
-        if attr.path().is_ident("koruma") {
-            return attr.parse_args::<StructOptions>();
+        // Check if this is a koruma attribute (direct or via cfg_attr)
+        match is_koruma_attr(attr) {
+            Some(true) => {
+                // Direct #[koruma(...)]
+                return attr.parse_args::<StructOptions>();
+            },
+            Some(false) => {
+                // cfg_attr containing koruma - parse struct options from it
+                return parse_struct_options_from_cfg_attr(attr);
+            },
+            None => continue,
         }
     }
     Ok(StructOptions::default())
+}
+
+/// Extract struct options from a cfg_attr containing koruma.
+fn parse_struct_options_from_cfg_attr(attr: &Attribute) -> Result<StructOptions> {
+    if let Meta::List(meta_list) = &attr.meta {
+        let tokens = meta_list.tokens.clone();
+        let mut iter = tokens.into_iter().peekable();
+
+        // Skip the condition
+        let mut depth: i32 = 0;
+        loop {
+            match iter.next() {
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == ',' && depth == 0 => {
+                    break;
+                },
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '<' => depth += 1,
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '>' => {
+                    depth = depth.saturating_sub(1);
+                },
+                None => {
+                    return Err(Error::new_spanned(
+                        attr,
+                        "invalid cfg_attr: missing attribute after condition",
+                    ));
+                },
+                _ => {},
+            }
+        }
+
+        // Find koruma(...) and extract its content
+        while let Some(token) = iter.next() {
+            if let proc_macro2::TokenTree::Ident(ident) = token {
+                if ident == "koruma" {
+                    // Next should be a group containing the koruma content
+                    if let Some(proc_macro2::TokenTree::Group(group)) = iter.next() {
+                        return syn::parse2::<StructOptions>(group.stream());
+                    } else {
+                        // koruma without parens - return default
+                        return Ok(StructOptions::default());
+                    }
+                }
+            }
+        }
+
+        Err(Error::new_spanned(
+            attr,
+            "cfg_attr does not contain a koruma attribute",
+        ))
+    } else {
+        Err(Error::new_spanned(attr, "invalid cfg_attr format"))
+    }
 }
 
 /// Field information extracted from parsing `#[koruma(...)]` attributes.
@@ -542,12 +710,19 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
     let mut seen_element_validators = std::collections::HashSet::new();
 
     for attr in &field.attrs {
-        if !attr.path().is_ident("koruma") {
-            continue;
-        }
+        // Check if this is a koruma attribute (direct or via cfg_attr)
+        let is_direct = match is_koruma_attr(attr) {
+            Some(true) => true,   // Direct #[koruma(...)]
+            Some(false) => false, // cfg_attr containing koruma
+            None => continue,     // Not a koruma attribute
+        };
 
         // Parse the attribute content
-        let parsed: Result<KorumaAttr> = attr.parse_args();
+        let parsed: Result<KorumaAttr> = if is_direct {
+            attr.parse_args()
+        } else {
+            parse_koruma_from_cfg_attr(attr)
+        };
 
         match parsed {
             Ok(koruma_attr) => {
@@ -652,18 +827,69 @@ pub fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
     if let Fields::Named(ref fields) = input.fields {
         for field in &fields.named {
             for attr in &field.attrs {
-                if attr.path().is_ident("koruma") {
-                    // Try to parse as just "value"
-                    if let Ok(ident) = attr.parse_args::<Ident>()
-                        && ident == "value"
-                    {
-                        return Some((field.ident.clone().unwrap(), field.ty.clone()));
-                    }
+                // Check if this is a koruma attribute (direct or via cfg_attr)
+                match is_koruma_attr(attr) {
+                    Some(true) => {
+                        // Direct #[koruma(...)] - try to parse as just "value"
+                        if let Ok(ident) = attr.parse_args::<Ident>()
+                            && ident == "value"
+                        {
+                            return Some((field.ident.clone().unwrap(), field.ty.clone()));
+                        }
+                    },
+                    Some(false) => {
+                        // cfg_attr containing koruma - check if it's "value"
+                        if is_koruma_value_in_cfg_attr(attr) {
+                            return Some((field.ident.clone().unwrap(), field.ty.clone()));
+                        }
+                    },
+                    None => continue,
                 }
             }
         }
     }
     None
+}
+
+/// Check if a cfg_attr contains `koruma(value)`.
+fn is_koruma_value_in_cfg_attr(attr: &Attribute) -> bool {
+    if let Meta::List(meta_list) = &attr.meta {
+        let tokens = meta_list.tokens.clone();
+        let mut iter = tokens.into_iter().peekable();
+
+        // Skip the condition
+        let mut depth: i32 = 0;
+        loop {
+            match iter.next() {
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == ',' && depth == 0 => {
+                    break;
+                },
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '<' => depth += 1,
+                Some(proc_macro2::TokenTree::Punct(p)) if p.as_char() == '>' => {
+                    depth = depth.saturating_sub(1);
+                },
+                None => return false,
+                _ => {},
+            }
+        }
+
+        // Find koruma(...) and check if it contains "value"
+        while let Some(token) = iter.next() {
+            if let proc_macro2::TokenTree::Ident(ident) = token {
+                if ident == "koruma" {
+                    // Next should be a group containing the koruma content
+                    if let Some(proc_macro2::TokenTree::Group(group)) = iter.next() {
+                        // Check if the content is just "value"
+                        if let Ok(ident) = syn::parse2::<Ident>(group.stream()) {
+                            return ident == "value";
+                        }
+                    }
+                    return false;
+                }
+            }
+        }
+    }
+    false
 }
 
 /// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`

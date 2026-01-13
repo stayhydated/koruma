@@ -5,6 +5,7 @@ members = [
   "crates/koruma-collection",
   "crates/koruma-core",
   "crates/koruma-derive",
+  "crates/koruma-derive-core",
   "examples/collection",
   "examples/user-defined",
   "examples/shared-lib",
@@ -36,6 +37,7 @@ koruma = { path = "crates/koruma", version = "0.3.0" }
 koruma-collection = { path = "crates/koruma-collection", version = "0.3.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.3.0" }
 koruma-derive = { path = "crates/koruma-derive", version = "0.3.0" }
+koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.3.0" }
 paste = "1.0"
 phonenumber = "0.3.7"
 prettyplease = "0.2"

@@ -1,0 +1,24 @@
+[package]
+name = "koruma-derive-core"
+description = """
+Core of koruma-derive
+"""
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+repository.workspace = true
+readme = "README.md"
+
+[features]
+default = [  ]
+showcase = [  ]
+
+[dependencies]
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { features = [ "full", "extra-traits" ], workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true

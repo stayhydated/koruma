@@ -1,6 +1,6 @@
 //! Unit tests for helper functions in the expand module.
 
-use crate::expand::{parse::*, utils::*};
+use koruma_derive_core::*;
 
 use quote::quote;
 use syn::ItemStruct;

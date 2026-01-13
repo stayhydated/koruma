@@ -1,15 +1,13 @@
-use crate::expand::{
-    codegen::{
-        effective_validation_type, transform_arg_value, validator_type_for_field,
-        validator_wants_full_type,
-    },
-    parse::{FieldInfo, ParseFieldResult, ValidatorAttr, parse_field, parse_struct_options},
-    utils::{
-        contains_infer_type, first_generic_arg, is_option_type, option_inner_type,
-        substitute_infer_type, vec_inner_type,
-    },
+use crate::expand::codegen::{
+    effective_validation_type, transform_arg_value, validator_type_for_field,
+    validator_wants_full_type,
 };
 use heck::{ToSnakeCase, ToUpperCamelCase};
+use koruma_derive_core::{
+    FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type, first_generic_arg,
+    is_option_type, option_inner_type, parse_field, parse_struct_options, substitute_infer_type,
+    vec_inner_type,
+};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{DeriveInput, Fields};

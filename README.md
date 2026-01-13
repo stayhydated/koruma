@@ -49,9 +49,11 @@ Use `#[koruma::validator]` to define validation rules. Each validator must have 
 For validators that work with multiple types, use generics with a blanket impl:
 
 ```rs
+use koruma::{Validate, validator};
+
 #[koruma::validator]
 #[derive(Clone, Debug)]
-pub struct RangeValidation::<T> {
+pub struct RangeValidation<T> {
     pub min: T,
     pub max: T,
     #[koruma(value)]
@@ -69,8 +71,6 @@ impl<T: PartialOrd + Clone> Validate<T> for RangeValidation<T> {
 ### Type-specific Validators
 
 ```rs
-use koruma::{Validate as _, validator};
-
 #[koruma::validator]
 #[derive(Clone, Debug)]
 pub struct NumberRangeValidation {

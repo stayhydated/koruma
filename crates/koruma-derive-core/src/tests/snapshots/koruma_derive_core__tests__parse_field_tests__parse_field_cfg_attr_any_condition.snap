@@ -1,0 +1,69 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_field_info(&field)
+---
+Some(
+    FieldInfo {
+        name: Ident(
+            age,
+        ),
+        ty: Type::Path {
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            i32,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+        },
+        field_validators: [
+            ValidatorAttr {
+                validator: Path {
+                    leading_colon: None,
+                    segments: [
+                        PathSegment {
+                            ident: Ident(
+                                RangeValidation,
+                            ),
+                            arguments: PathArguments::None,
+                        },
+                    ],
+                },
+                infer_type: false,
+                explicit_type: None,
+                args: [
+                    (
+                        Ident(
+                            min,
+                        ),
+                        Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Int {
+                                token: 0,
+                            },
+                        },
+                    ),
+                    (
+                        Ident(
+                            max,
+                        ),
+                        Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Int {
+                                token: 100,
+                            },
+                        },
+                    ),
+                ],
+            },
+        ],
+        element_validators: [],
+        is_nested: false,
+        is_newtype: false,
+    },
+)

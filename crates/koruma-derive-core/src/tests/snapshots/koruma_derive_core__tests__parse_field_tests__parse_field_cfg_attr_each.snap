@@ -1,0 +1,91 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_field_info(&field)
+---
+Some(
+    FieldInfo {
+        name: Ident(
+            scores,
+        ),
+        ty: Type::Path {
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            Vec,
+                        ),
+                        arguments: PathArguments::AngleBracketed {
+                            colon2_token: None,
+                            lt_token: Lt,
+                            args: [
+                                GenericArgument::Type(
+                                    Type::Path {
+                                        qself: None,
+                                        path: Path {
+                                            leading_colon: None,
+                                            segments: [
+                                                PathSegment {
+                                                    ident: Ident(
+                                                        i32,
+                                                    ),
+                                                    arguments: PathArguments::None,
+                                                },
+                                            ],
+                                        },
+                                    },
+                                ),
+                            ],
+                            gt_token: Gt,
+                        },
+                    },
+                ],
+            },
+        },
+        field_validators: [],
+        element_validators: [
+            ValidatorAttr {
+                validator: Path {
+                    leading_colon: None,
+                    segments: [
+                        PathSegment {
+                            ident: Ident(
+                                RangeValidation,
+                            ),
+                            arguments: PathArguments::None,
+                        },
+                    ],
+                },
+                infer_type: false,
+                explicit_type: None,
+                args: [
+                    (
+                        Ident(
+                            min,
+                        ),
+                        Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Int {
+                                token: 0,
+                            },
+                        },
+                    ),
+                    (
+                        Ident(
+                            max,
+                        ),
+                        Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Int {
+                                token: 100,
+                            },
+                        },
+                    ),
+                ],
+            },
+        ],
+        is_nested: false,
+        is_newtype: false,
+    },
+)

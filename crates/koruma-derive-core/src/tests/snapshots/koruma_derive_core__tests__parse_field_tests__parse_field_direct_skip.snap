@@ -1,0 +1,5 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_field(&field)
+---
+Skip

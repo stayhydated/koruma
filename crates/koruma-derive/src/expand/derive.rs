@@ -74,24 +74,32 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                 return quote! {
                     /// Per-field validation error struct for a newtype field.
-                    /// Derefs to the inner type's error struct for transparent access.
-                    #[derive(Clone, Debug)]
+                    /// Stores the inner error directly for transparent, friction-free access.
+                    #[derive(Clone, Debug, Default)]
                     pub struct #field_error_struct_name {
-                        inner: Option<<#inner_ty as koruma::ValidateExt>::Error>,
+                        inner: <#inner_ty as koruma::ValidateExt>::Error,
                     }
 
                     impl #field_error_struct_name {
-                        /// Returns the inner validation error if present.
-                        pub fn inner(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
-                            self.inner.as_ref()
+                        /// Returns a reference to the inner validation error.
+                        pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                            &self.inner
                         }
 
                         pub fn is_empty(&self) -> bool {
-                            self.inner.is_none()
+                            self.inner.is_empty()
                         }
 
                         pub fn has_errors(&self) -> bool {
                             !self.is_empty()
+                        }
+                    }
+
+                    impl std::ops::Deref for #field_error_struct_name {
+                        type Target = <#inner_ty as koruma::ValidateExt>::Error;
+
+                        fn deref(&self) -> &Self::Target {
+                            &self.inner
                         }
                     }
 
@@ -227,7 +235,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     }
 
                     /// Per-element validation error struct.
-                    #[derive(Clone, Debug)]
+                    #[derive(Clone, Debug, Default)]
                     pub struct #element_error_struct_name {
                         #(#element_validator_fields),*
                     }
@@ -394,7 +402,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                 #enum_and_all
 
-                #[derive(Clone, Debug)]
+                #[derive(Clone, Debug, Default)]
                 pub struct #field_error_struct_name {
                     #struct_fields
                 }
@@ -457,6 +465,16 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         self.#field_name.as_ref()
                     }
                 }
+            } else if f.is_newtype() {
+                // For newtype fields, return &InnerError directly for friction-free access
+                // This allows `e.field().all()` directly without needing `?`
+                let field_ty = &f.ty;
+                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                quote! {
+                    pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                        &self.#field_name.inner
+                    }
+                }
             } else {
                 let field_error_struct_name = format_ident!(
                     "{}{}KorumaValidationError",
@@ -510,12 +528,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 field_name.to_string().to_upper_camel_case()
             );
 
-            // For newtype fields, default inner to None
+            // For newtype fields, use Default for the wrapper (which defaults inner to empty)
             if f.is_newtype() {
                 return quote! {
-                    #field_name: #field_error_struct_name {
-                        inner: None
-                    }
+                    #field_name: #field_error_struct_name::default()
                 };
             }
 
@@ -597,7 +613,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     return quote! {
                         if let Some(ref __newtype_value) = self.#field_member {
                             if let Err(newtype_err) = __newtype_value.validate() {
-                                error.#field_name.inner = Some(newtype_err);
+                                error.#field_name.inner = newtype_err;
                                 has_error = true;
                             }
                         }
@@ -606,7 +622,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     // For non-optional newtype field, always validate
                     return quote! {
                         if let Err(newtype_err) = self.#field_member.validate() {
-                            error.#field_name.inner = Some(newtype_err);
+                            error.#field_name.inner = newtype_err;
                             has_error = true;
                         }
                     };
@@ -984,7 +1000,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         ///
         /// Each field contains a nested error struct with `Option<Validator>` for each
         /// validator. Access errors via chained calls like `error.field().validator()`.
-        #[derive(Clone, Debug)]
+        #[derive(Clone, Debug, Default)]
         pub struct #error_struct_name {
             #(#error_fields),*
         }

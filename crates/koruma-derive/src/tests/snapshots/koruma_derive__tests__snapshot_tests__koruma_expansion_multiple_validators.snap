@@ -9,7 +9,7 @@ pub enum MultiValidatorItemValueKorumaValidator {
     NumberRangeValidation(NumberRangeValidation),
     EvenNumberValidation(EvenNumberValidation),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct MultiValidatorItemValueKorumaValidationError {
     number_range_validation: Option<NumberRangeValidation>,
     even_number_validation: Option<EvenNumberValidation>,
@@ -53,7 +53,7 @@ impl MultiValidatorItemValueKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct MultiValidatorItemKorumaValidationError {
     value: MultiValidatorItemValueKorumaValidationError,
 }

@@ -8,7 +8,7 @@ expression: pretty_print(expanded)
 pub enum ComplexItemAgeKorumaValidator {
     RangeValidation(RangeValidation),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComplexItemAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
@@ -38,7 +38,7 @@ pub enum ComplexItemTagsElementKorumaValidator {
     LengthValidation(LengthValidation),
 }
 /// Per-element validation error struct.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComplexItemTagsElementKorumaValidationError {
     length_validation: Option<LengthValidation>,
 }
@@ -64,7 +64,7 @@ impl ComplexItemTagsElementKorumaValidationError {
         !self.is_empty()
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComplexItemTagsKorumaValidationError {
     element_errors: Vec<(usize, ComplexItemTagsElementKorumaValidationError)>,
 }
@@ -89,7 +89,7 @@ pub enum ComplexItemRatingKorumaValidator {
     RangeValidation(RangeValidation),
     EvenValidation(EvenValidation),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComplexItemRatingKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
@@ -123,7 +123,7 @@ impl ComplexItemRatingKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ComplexItemKorumaValidationError {
     age: ComplexItemAgeKorumaValidationError,
     tags: ComplexItemTagsKorumaValidationError,

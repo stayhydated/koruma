@@ -9,7 +9,7 @@ pub enum OrderWithLenCheckScoresElementKorumaValidator {
     RangeValidation(RangeValidation<i32>),
 }
 /// Per-element validation error struct.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderWithLenCheckScoresElementKorumaValidationError {
     range_validation: Option<RangeValidation<i32>>,
 }
@@ -43,7 +43,7 @@ impl OrderWithLenCheckScoresElementKorumaValidationError {
 pub enum OrderWithLenCheckScoresKorumaValidator {
     VecLenValidation(VecLenValidation<i32>),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderWithLenCheckScoresKorumaValidationError {
     vec_len_validation: Option<VecLenValidation<i32>>,
     element_errors: Vec<(usize, OrderWithLenCheckScoresElementKorumaValidationError)>,
@@ -80,7 +80,7 @@ impl OrderWithLenCheckScoresKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderWithLenCheckKorumaValidationError {
     scores: OrderWithLenCheckScoresKorumaValidationError,
 }

@@ -8,7 +8,7 @@ expression: pretty_print(expanded)
 pub enum PersonAgeKorumaValidator {
     RangeValidation(RangeValidation),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PersonAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
@@ -35,7 +35,7 @@ impl PersonAgeKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PersonKorumaValidationError {
     age: PersonAgeKorumaValidationError,
 }

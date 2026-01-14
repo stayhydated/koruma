@@ -8,7 +8,7 @@ expression: pretty_print(expanded)
 pub enum ItemAgeKorumaValidator {
     NumberRangeValidation(NumberRangeValidation),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ItemAgeKorumaValidationError {
     number_range_validation: Option<NumberRangeValidation>,
 }
@@ -37,7 +37,7 @@ impl ItemAgeKorumaValidationError {
 pub enum ItemNameKorumaValidator {
     StringLengthValidation(StringLengthValidation),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ItemNameKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
@@ -64,7 +64,7 @@ impl ItemNameKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ItemKorumaValidationError {
     age: ItemAgeKorumaValidationError,
     name: ItemNameKorumaValidationError,

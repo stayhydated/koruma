@@ -21,65 +21,67 @@ Some(
                 ],
             },
         },
-        field_validators: [
-            ValidatorAttr {
-                validator: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                RangeValidation,
+        validation: ValidationInfo {
+            field_validators: [
+                ValidatorAttr {
+                    validator: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    RangeValidation,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                    infer_type: false,
+                    explicit_type: None,
+                    args: [
+                        (
+                            Ident(
+                                min,
                             ),
-                            arguments: PathArguments::None,
-                        },
+                            Expr::Lit {
+                                attrs: [],
+                                lit: Lit::Int {
+                                    token: 0,
+                                },
+                            },
+                        ),
+                        (
+                            Ident(
+                                max,
+                            ),
+                            Expr::Lit {
+                                attrs: [],
+                                lit: Lit::Int {
+                                    token: 100,
+                                },
+                            },
+                        ),
                     ],
                 },
-                infer_type: false,
-                explicit_type: None,
-                args: [
-                    (
-                        Ident(
-                            min,
-                        ),
-                        Expr::Lit {
-                            attrs: [],
-                            lit: Lit::Int {
-                                token: 0,
+                ValidatorAttr {
+                    validator: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    EvenValidation,
+                                ),
+                                arguments: PathArguments::None,
                             },
-                        },
-                    ),
-                    (
-                        Ident(
-                            max,
-                        ),
-                        Expr::Lit {
-                            attrs: [],
-                            lit: Lit::Int {
-                                token: 100,
-                            },
-                        },
-                    ),
-                ],
-            },
-            ValidatorAttr {
-                validator: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                EvenValidation,
-                            ),
-                            arguments: PathArguments::None,
-                        },
-                    ],
+                        ],
+                    },
+                    infer_type: false,
+                    explicit_type: None,
+                    args: [],
                 },
-                infer_type: false,
-                explicit_type: None,
-                args: [],
-            },
-        ],
-        element_validators: [],
-        is_nested: false,
-        is_newtype: false,
+            ],
+            element_validators: [],
+            is_nested: false,
+            is_newtype: false,
+        },
     },
 )

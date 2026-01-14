@@ -412,16 +412,9 @@ pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
     }
 }
 
-/// Field information extracted from parsing `#[koruma(...)]` attributes.
-///
-/// This struct contains all the parsed validation information for a single field,
-/// including validators, element validators (for collections), and modifier flags.
-#[derive(Clone, Debug)]
-pub struct FieldInfo {
-    /// The field name
-    pub name: Ident,
-    /// The field type
-    pub ty: Type,
+/// Validation information extracted from `#[koruma(...)]` attributes.
+#[derive(Clone, Debug, Default)]
+pub struct ValidationInfo {
     /// Validators for the field/collection itself
     pub field_validators: Vec<ValidatorAttr>,
     /// Validators for each element in a collection
@@ -432,32 +425,48 @@ pub struct FieldInfo {
     pub is_newtype: bool,
 }
 
+/// Field information extracted from parsing `#[koruma(...)]` attributes.
+///
+/// This struct contains all the parsed validation information for a single field,
+/// including validators, element validators (for collection), and modifier flags.
+#[derive(Clone, Debug)]
+pub struct FieldInfo {
+    /// The field name
+    pub name: Ident,
+    /// The field type
+    pub ty: Type,
+    /// Validation info for this field
+    pub validation: ValidationInfo,
+}
+
 impl FieldInfo {
     /// Returns true if this field has element validators (uses `each(...)`)
     pub fn has_element_validators(&self) -> bool {
-        !self.element_validators.is_empty()
+        !self.validation.element_validators.is_empty()
     }
 
     /// Returns true if this field has any validators (field or element)
     pub fn has_validators(&self) -> bool {
-        !self.field_validators.is_empty() || !self.element_validators.is_empty()
+        !self.validation.field_validators.is_empty()
+            || !self.validation.element_validators.is_empty()
     }
 
     /// Returns true if this field is a nested Koruma struct
     pub fn is_nested(&self) -> bool {
-        self.is_nested
+        self.validation.is_nested
     }
 
     /// Returns true if this field is a newtype wrapper
     pub fn is_newtype(&self) -> bool {
-        self.is_newtype
+        self.validation.is_newtype
     }
 
     /// Returns an iterator over all validator names on this field.
     pub fn validator_names(&self) -> impl Iterator<Item = &Ident> {
-        self.field_validators
+        self.validation
+            .field_validators
             .iter()
-            .chain(self.element_validators.iter())
+            .chain(self.validation.element_validators.iter())
             .map(|v| v.name())
     }
 }
@@ -606,10 +615,12 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
         return ParseFieldResult::Valid(Box::new(FieldInfo {
             name,
             ty,
-            field_validators: all_field_validators,
-            element_validators: all_element_validators,
-            is_nested: true,
-            is_newtype: false,
+            validation: ValidationInfo {
+                field_validators: all_field_validators,
+                element_validators: all_element_validators,
+                is_nested: true,
+                is_newtype: false,
+            },
         }));
     }
 
@@ -618,10 +629,12 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
         return ParseFieldResult::Valid(Box::new(FieldInfo {
             name,
             ty,
-            field_validators: all_field_validators,
-            element_validators: all_element_validators,
-            is_nested: false,
-            is_newtype: true,
+            validation: ValidationInfo {
+                field_validators: all_field_validators,
+                element_validators: all_element_validators,
+                is_nested: false,
+                is_newtype: true,
+            },
         }));
     }
 
@@ -633,10 +646,12 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
     ParseFieldResult::Valid(Box::new(FieldInfo {
         name,
         ty,
-        field_validators: all_field_validators,
-        element_validators: all_element_validators,
-        is_nested: false,
-        is_newtype: false,
+        validation: ValidationInfo {
+            field_validators: all_field_validators,
+            element_validators: all_element_validators,
+            is_nested: false,
+            is_newtype: false,
+        },
     }))
 }
 

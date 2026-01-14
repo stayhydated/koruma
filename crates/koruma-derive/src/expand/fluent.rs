@@ -1,5 +1,5 @@
 use heck::ToUpperCamelCase;
-use koruma_derive_core::{FieldInfo, ParseFieldResult, parse_field};
+use koruma_derive_core::{FieldInfo, ParseFieldResult, ValidatorAttr, parse_field};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 use syn::{DeriveInput, Fields};
@@ -43,7 +43,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     // Generate ToFluentString impls for each field's validator enum
     let fluent_impls: Vec<TokenStream2> = field_infos
         .iter()
-        .filter(|f| !f.field_validators.is_empty())
+        .filter(|f| !f.validation.field_validators.is_empty())
         .map(|f| {
             let field_name = &f.name;
             let enum_name = format_ident!(
@@ -53,9 +53,10 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             );
 
             let match_arms: Vec<TokenStream2> = f
+                .validation
                 .field_validators
                 .iter()
-                .map(|v| {
+                .map(|v: &ValidatorAttr| {
                     let variant_name =
                         format_ident!("{}", v.name().to_string().to_upper_camel_case());
                     quote! {
@@ -80,7 +81,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     // Generate ToFluentString impls for element validator enums (if any)
     let element_fluent_impls: Vec<TokenStream2> = field_infos
         .iter()
-        .filter(|f| !f.element_validators.is_empty())
+        .filter(|f| !f.validation.element_validators.is_empty())
         .map(|f| {
             let field_name = &f.name;
             let enum_name = format_ident!(
@@ -90,9 +91,10 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             );
 
             let match_arms: Vec<TokenStream2> = f
+                .validation
                 .element_validators
                 .iter()
-                .map(|v| {
+                .map(|v: &ValidatorAttr| {
                     let variant_name =
                         format_ident!("{}", v.name().to_string().to_upper_camel_case());
                     quote! {

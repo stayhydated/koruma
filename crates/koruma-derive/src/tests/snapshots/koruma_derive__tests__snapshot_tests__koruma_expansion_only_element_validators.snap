@@ -9,7 +9,7 @@ pub enum ScoresValuesElementKorumaValidator {
     RangeValidation(RangeValidation<i32>),
 }
 /// Per-element validation error struct.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ScoresValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation<i32>>,
 }
@@ -32,7 +32,7 @@ impl ScoresValuesElementKorumaValidationError {
         !self.is_empty()
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ScoresValuesKorumaValidationError {
     element_errors: Vec<(usize, ScoresValuesElementKorumaValidationError)>,
 }
@@ -54,7 +54,7 @@ impl ScoresValuesKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ScoresKorumaValidationError {
     values: ScoresValuesKorumaValidationError,
 }

@@ -10,7 +10,7 @@ pub enum OrderValuesElementKorumaValidator {
     EvenValidation(EvenValidation),
 }
 /// Per-element validation error struct.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
@@ -40,7 +40,7 @@ impl OrderValuesElementKorumaValidationError {
         !self.is_empty()
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderValuesKorumaValidationError {
     element_errors: Vec<(usize, OrderValuesElementKorumaValidationError)>,
 }
@@ -60,7 +60,7 @@ impl OrderValuesKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderKorumaValidationError {
     values: OrderValuesKorumaValidationError,
 }

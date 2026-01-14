@@ -281,13 +281,10 @@ pub fn main() {
                 // With #[koruma(newtype)] on the struct Email, it should expose "all" errors or behave transparently.
                 // With #[koruma(newtype)] on the field `email`, it might just expose the inner error type directly.
 
-                // Based on typically recursive implementations:
-                // Accessing the validator error on the newtype - need to use .inner() to get the inner error
-                // The inner EmailKorumaValidationError has Deref to Email0KorumaValidationError
-                if let Some(email_inner_err) = errors.email().inner() {
-                    if let Some(inner_err) = email_inner_err.non_empty_string_validation() {
-                        println!("  - email: {}", inner_err.to_fluent_string());
-                    }
+                // Accessing the validator error on the newtype - now friction-free, no ? needed
+                // errors.email() returns &InnerError directly
+                if let Some(inner_err) = errors.email().non_empty_string_validation() {
+                    println!("  - email: {}", inner_err.to_fluent_string());
                 }
             },
         }

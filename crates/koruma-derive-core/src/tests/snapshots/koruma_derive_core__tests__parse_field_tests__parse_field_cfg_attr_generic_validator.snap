@@ -21,49 +21,51 @@ Some(
                 ],
             },
         },
-        field_validators: [
-            ValidatorAttr {
-                validator: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                GenericRange,
+        validation: ValidationInfo {
+            field_validators: [
+                ValidatorAttr {
+                    validator: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    GenericRange,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                    infer_type: true,
+                    explicit_type: None,
+                    args: [
+                        (
+                            Ident(
+                                min,
                             ),
-                            arguments: PathArguments::None,
-                        },
+                            Expr::Lit {
+                                attrs: [],
+                                lit: Lit::Float {
+                                    token: 0.0,
+                                },
+                            },
+                        ),
+                        (
+                            Ident(
+                                max,
+                            ),
+                            Expr::Lit {
+                                attrs: [],
+                                lit: Lit::Float {
+                                    token: 1.0,
+                                },
+                            },
+                        ),
                     ],
                 },
-                infer_type: true,
-                explicit_type: None,
-                args: [
-                    (
-                        Ident(
-                            min,
-                        ),
-                        Expr::Lit {
-                            attrs: [],
-                            lit: Lit::Float {
-                                token: 0.0,
-                            },
-                        },
-                    ),
-                    (
-                        Ident(
-                            max,
-                        ),
-                        Expr::Lit {
-                            attrs: [],
-                            lit: Lit::Float {
-                                token: 1.0,
-                            },
-                        },
-                    ),
-                ],
-            },
-        ],
-        element_validators: [],
-        is_nested: false,
-        is_newtype: false,
+            ],
+            element_validators: [],
+            is_nested: false,
+            is_newtype: false,
+        },
     },
 )

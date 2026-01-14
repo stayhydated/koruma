@@ -123,14 +123,14 @@ fn test_parse_field_with_single_validator() {
         panic!("expected Valid result");
     };
     assert_eq!(info.name.to_string(), "age");
-    assert_eq!(info.field_validators.len(), 1);
+    assert_eq!(info.validation.field_validators.len(), 1);
     assert_eq!(
-        info.field_validators[0].name().to_string(),
+        info.validation.field_validators[0].name().to_string(),
         "RangeValidation"
     );
-    assert!(!info.field_validators[0].infer_type);
-    assert_eq!(info.field_validators[0].args.len(), 2);
-    assert!(info.element_validators.is_empty());
+    assert!(!info.validation.field_validators[0].infer_type);
+    assert_eq!(info.validation.field_validators[0].args.len(), 2);
+    assert!(info.validation.element_validators.is_empty());
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn test_parse_field_with_generic_validator() {
     let ParseFieldResult::Valid(info) = result else {
         panic!("expected Valid result");
     };
-    assert!(info.field_validators[0].infer_type);
+    assert!(info.validation.field_validators[0].infer_type);
 }
 
 #[test]
@@ -158,8 +158,8 @@ fn test_parse_field_with_each() {
     let ParseFieldResult::Valid(info) = result else {
         panic!("expected Valid result");
     };
-    assert!(info.field_validators.is_empty());
-    assert_eq!(info.element_validators.len(), 1);
+    assert!(info.validation.field_validators.is_empty());
+    assert_eq!(info.validation.element_validators.len(), 1);
 }
 
 #[test]

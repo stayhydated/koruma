@@ -21,9 +21,11 @@ Some(
                 ],
             },
         },
-        field_validators: [],
-        element_validators: [],
-        is_nested: false,
-        is_newtype: true,
+        validation: ValidationInfo {
+            field_validators: [],
+            element_validators: [],
+            is_nested: false,
+            is_newtype: true,
+        },
     },
 )

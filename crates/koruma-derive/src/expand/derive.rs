@@ -118,7 +118,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate fields for field-level validators
             let field_validator_fields: Vec<TokenStream2> = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
@@ -130,7 +130,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate getter methods for field-level validators
             let field_validator_getters: Vec<TokenStream2> = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
@@ -146,7 +146,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate is_empty checks for field-level validators
             let field_is_empty_checks: Vec<TokenStream2> = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
@@ -164,7 +164,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 );
 
                 let element_validator_fields: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =
@@ -175,7 +175,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .collect();
 
                 let element_validator_getters: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =
@@ -190,7 +190,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .collect();
 
                 let element_is_empty_checks: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =
@@ -207,7 +207,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 );
 
                 let element_enum_variants: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let variant_name =
@@ -218,7 +218,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .collect();
 
                 let element_all_pushes: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =
@@ -314,7 +314,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             );
 
             let enum_variants: Vec<TokenStream2> = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .map(|v| {
                     let variant_name =
@@ -326,7 +326,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate the all() method body
             let all_pushes: Vec<TokenStream2> = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake =
@@ -342,7 +342,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .collect();
 
             // Handle case where there are no field validators (only element validators)
-            let enum_and_all = if f.field_validators.is_empty() {
+            let enum_and_all = if f.validation.field_validators.is_empty() {
                 quote! {}
             } else {
                 quote! {
@@ -355,7 +355,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 }
             };
 
-            let all_method = if f.field_validators.is_empty() {
+            let all_method = if f.validation.field_validators.is_empty() {
                 quote! {}
             } else {
                 quote! {
@@ -368,7 +368,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 }
             };
 
-            let is_empty_body = if f.field_validators.is_empty() {
+            let is_empty_body = if f.validation.field_validators.is_empty() {
                 // Only element validators
                 quote! { self.element_errors.is_empty() }
             } else {
@@ -376,7 +376,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             };
 
             // Generate struct fields - need proper comma handling
-            let struct_fields = if !f.field_validators.is_empty() && f.has_element_validators() {
+            let struct_fields = if !f.validation.field_validators.is_empty() && f.has_element_validators() {
                 // Both field validators and element errors
                 let element_error_struct_name = format_ident!(
                     "{}{}ElementKorumaValidationError",
@@ -536,7 +536,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate defaults for field-level validators
             let field_validator_defaults: Vec<TokenStream2> = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake = format_ident!("{}", v.name().to_string().to_snake_case());
@@ -545,7 +545,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .collect();
 
             // Handle different combinations of field/element validators
-            if f.has_element_validators() && f.field_validators.is_empty() {
+            if f.has_element_validators() && f.validation.field_validators.is_empty() {
                 // Only element validators
                 quote! {
                     #field_name: #field_error_struct_name {
@@ -631,7 +631,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             // Split field validators into those that want the full type vs those that want
             // the unwrapped type (for Option fields)
             let (full_type_validators, unwrapped_validators): (Vec<_>, Vec<_>) = f
-                .field_validators
+                .validation.field_validators
                 .iter()
                 .partition(|v| validator_wants_full_type(v));
 
@@ -734,7 +734,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let effective_element_ty = effective_validation_type(field_ty, true);
 
                 let element_validator_checks: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let validator = &v.validator;
@@ -798,7 +798,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .collect();
 
                 let element_validator_defaults: Vec<TokenStream2> = f
-                    .element_validators
+                    .validation.element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =

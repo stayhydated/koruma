@@ -43,49 +43,51 @@ Some(
                 ],
             },
         },
-        field_validators: [],
-        element_validators: [
-            ValidatorAttr {
-                validator: Path {
-                    leading_colon: None,
-                    segments: [
-                        PathSegment {
-                            ident: Ident(
-                                RangeValidation,
+        validation: ValidationInfo {
+            field_validators: [],
+            element_validators: [
+                ValidatorAttr {
+                    validator: Path {
+                        leading_colon: None,
+                        segments: [
+                            PathSegment {
+                                ident: Ident(
+                                    RangeValidation,
+                                ),
+                                arguments: PathArguments::None,
+                            },
+                        ],
+                    },
+                    infer_type: false,
+                    explicit_type: None,
+                    args: [
+                        (
+                            Ident(
+                                min,
                             ),
-                            arguments: PathArguments::None,
-                        },
+                            Expr::Lit {
+                                attrs: [],
+                                lit: Lit::Int {
+                                    token: 0,
+                                },
+                            },
+                        ),
+                        (
+                            Ident(
+                                max,
+                            ),
+                            Expr::Lit {
+                                attrs: [],
+                                lit: Lit::Int {
+                                    token: 100,
+                                },
+                            },
+                        ),
                     ],
                 },
-                infer_type: false,
-                explicit_type: None,
-                args: [
-                    (
-                        Ident(
-                            min,
-                        ),
-                        Expr::Lit {
-                            attrs: [],
-                            lit: Lit::Int {
-                                token: 0,
-                            },
-                        },
-                    ),
-                    (
-                        Ident(
-                            max,
-                        ),
-                        Expr::Lit {
-                            attrs: [],
-                            lit: Lit::Int {
-                                token: 100,
-                            },
-                        },
-                    ),
-                ],
-            },
-        ],
-        is_nested: false,
-        is_newtype: false,
+            ],
+            is_nested: false,
+            is_newtype: false,
+        },
     },
 )

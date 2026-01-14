@@ -7,7 +7,7 @@ use insta::assert_debug_snapshot;
 
 /// Helper to extract FieldInfo from ParseFieldResult for snapshotting.
 fn parse_field_info(field: &syn::Field) -> Option<FieldInfo> {
-    match parse_field(field) {
+    match parse_field(field, 0) {
         ParseFieldResult::Valid(info) => Some(*info),
         _ => None,
     }
@@ -84,7 +84,7 @@ fn test_parse_field_direct_skip() {
         pub internal: u64
     };
 
-    assert_debug_snapshot!(parse_field(&field));
+    assert_debug_snapshot!(parse_field(&field, 0));
 }
 
 // =============================================================================
@@ -158,7 +158,7 @@ fn test_parse_field_cfg_attr_skip() {
         pub internal: u64
     };
 
-    assert_debug_snapshot!(parse_field(&field));
+    assert_debug_snapshot!(parse_field(&field, 0));
 }
 
 // =============================================================================
@@ -320,7 +320,7 @@ fn test_parse_field_non_koruma_cfg_attr_skipped() {
         pub name: String
     };
 
-    assert_debug_snapshot!(parse_field(&field));
+    assert_debug_snapshot!(parse_field(&field, 0));
 }
 
 #[test]
@@ -332,5 +332,16 @@ fn test_parse_field_mixed_attrs_only_koruma_parsed() {
         pub value: i32
     };
 
+    assert_debug_snapshot!(parse_field_info(&field));
+}
+
+#[test]
+fn test_parse_field_unnamed() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(NonEmptyStringValidation)]
+        String
+    };
+
+    // Unnamed fields in tuple structs don't have an ident, so we rely on the index passed to parse_field
     assert_debug_snapshot!(parse_field_info(&field));
 }

@@ -1,6 +1,8 @@
 use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
-use koruma_user_defined_example::{Account, AccountSettings, Address, Customer, Item, User, i18n};
+use koruma_user_defined_example::{
+    Account, AccountSettings, Address, Customer, Email, Item, SignupForm, User, i18n,
+};
 use strum::IntoEnumIterator as _;
 
 pub fn main() {
@@ -229,5 +231,63 @@ pub fn main() {
             valid_customer.name, valid_customer.address.city
         ),
         Err(_) => println!("Unexpected validation failure"),
+    }
+
+    // =========================================================================
+    // Newtype Validation with EsFluent-based validators
+    // =========================================================================
+    println!();
+    println!("Newtype Validation (EsFluent-based) \n");
+
+    let signup = SignupForm {
+        username: "".to_string(),     // Invalid: empty
+        email: Email("".to_string()), // Invalid: empty
+    };
+
+    for lang in Languages::iter() {
+        i18n::change_locale(lang).expect("Failed to change locale");
+
+        println!(
+            ">> Current Language: {:?} : {}",
+            lang,
+            lang.to_fluent_string()
+        );
+
+        match signup.validate() {
+            Ok(()) => println!("Signup form is valid!"),
+            Err(errors) => {
+                use es_fluent::ToFluentString;
+
+                if let Some(username_err) = errors.username().non_empty_string_validation() {
+                    println!("  - username: {}", username_err.to_fluent_string());
+                }
+
+                // Access newtype field errors
+                // Note: The structure of errors for a newtype field depends on how the derive is implemented.
+                // Assuming #[koruma(newtype)] flattens or provides access similarly to nested.
+
+                // When using #[koruma(newtype)], the generated error accessor for the field
+                // typically returns the error type of the inner type directly, or a wrapper that behaves like it.
+                // If Email wraps String, errors.email() might return errors for String fields.
+                // However, Email is a SINGLE tuple struct.
+                // So errors.email() likely gives us access to validators on that single field.
+
+                // Let's check how many levels we need to go down.
+                // Email(String) -> The String has validators.
+                // SignupForm has field `email: Email`.
+                // errors.email() -> EmailError
+                // EmailError has methods for the inner field validators?
+
+                // With #[koruma(newtype)] on the struct Email, it should expose "all" errors or behave transparently.
+                // With #[koruma(newtype)] on the field `email`, it might just expose the inner error type directly.
+
+                // Accessing the validator error on the newtype - now friction-free, no ? needed
+                // errors.email() returns &InnerError directly
+                if let Some(inner_err) = errors.email().non_empty_string_validation() {
+                    println!("  - email: {}", inner_err.to_fluent_string());
+                }
+            },
+        }
+        println!();
     }
 }

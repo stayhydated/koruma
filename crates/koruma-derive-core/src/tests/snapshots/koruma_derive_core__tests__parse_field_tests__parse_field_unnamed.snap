@@ -5,12 +5,13 @@ expression: parse_field_info(&field)
 Some(
     FieldInfo {
         name: Ident(
-            value,
+            _0,
         ),
-        member: Member::Named(
-            Ident(
-                value,
-            ),
+        member: Member::Unnamed(
+            Index {
+                index: 0,
+                span: Span,
+            },
         ),
         ty: Type::Path {
             qself: None,
@@ -19,7 +20,7 @@ Some(
                 segments: [
                     PathSegment {
                         ident: Ident(
-                            i32,
+                            String,
                         ),
                         arguments: PathArguments::None,
                     },
@@ -34,7 +35,7 @@ Some(
                         segments: [
                             PathSegment {
                                 ident: Ident(
-                                    RangeValidation,
+                                    NonEmptyStringValidation,
                                 ),
                                 arguments: PathArguments::None,
                             },
@@ -42,30 +43,7 @@ Some(
                     },
                     infer_type: false,
                     explicit_type: None,
-                    args: [
-                        (
-                            Ident(
-                                min,
-                            ),
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Int {
-                                    token: 0,
-                                },
-                            },
-                        ),
-                        (
-                            Ident(
-                                max,
-                            ),
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Int {
-                                    token: 100,
-                                },
-                            },
-                        ),
-                    ],
+                    args: [],
                 },
             ],
             element_validators: [],

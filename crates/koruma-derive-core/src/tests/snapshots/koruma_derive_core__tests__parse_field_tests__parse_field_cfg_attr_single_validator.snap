@@ -7,6 +7,11 @@ Some(
         name: Ident(
             age,
         ),
+        member: Member::Named(
+            Ident(
+                age,
+            ),
+        ),
         ty: Type::Path {
             qself: None,
             path: Path {

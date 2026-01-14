@@ -9,7 +9,7 @@ pub enum OrderScoresElementKorumaValidator {
     GenericRangeValidation(GenericRangeValidation<f64>),
 }
 /// Per-element validation error struct.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderScoresElementKorumaValidationError {
     generic_range_validation: Option<GenericRangeValidation<f64>>,
 }
@@ -35,7 +35,7 @@ impl OrderScoresElementKorumaValidationError {
         !self.is_empty()
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderScoresKorumaValidationError {
     element_errors: Vec<(usize, OrderScoresElementKorumaValidationError)>,
 }
@@ -55,7 +55,7 @@ impl OrderScoresKorumaValidationError {
 ///
 /// Each field contains a nested error struct with `Option<Validator>` for each
 /// validator. Access errors via chained calls like `error.field().validator()`.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct OrderKorumaValidationError {
     scores: OrderScoresKorumaValidationError,
 }

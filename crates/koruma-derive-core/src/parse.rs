@@ -4,8 +4,8 @@
 //! attributes from syn AST nodes.
 
 use syn::{
-    Attribute, Error, Expr, Field, Fields, Ident, ItemStruct, Path, Result, Token, Type,
-    parenthesized,
+    Attribute, Error, Expr, Field, Fields, Ident, Index, ItemStruct, Member, Path, Result, Token,
+    Type, parenthesized,
     parse::{Parse, ParseStream},
     spanned::Spanned,
     token,
@@ -433,6 +433,8 @@ pub struct ValidationInfo {
 pub struct FieldInfo {
     /// The field name
     pub name: Ident,
+    /// The struct member access (Named or Unnamed index)
+    pub member: Member,
     /// The field type
     pub ty: Type,
     /// Validation info for this field
@@ -533,9 +535,16 @@ impl ParseFieldResult {
 /// - `ParseFieldResult::Valid(FieldInfo)` if the field has validators
 /// - `ParseFieldResult::Skip` if the field has no koruma attributes or is marked with `skip`
 /// - `ParseFieldResult::Error(Error)` if parsing failed (e.g., duplicate validators)
-pub fn parse_field(field: &Field) -> ParseFieldResult {
-    let Some(name) = field.ident.clone() else {
-        return ParseFieldResult::Skip;
+/// - `ParseFieldResult::Valid(FieldInfo)` if the field has validators
+/// - `ParseFieldResult::Skip` if the field has no koruma attributes or is marked with `skip`
+/// - `ParseFieldResult::Error(Error)` if parsing failed (e.g., duplicate validators)
+pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
+    let (name, member) = match field.ident.clone() {
+        Some(ident) => (ident.clone(), Member::Named(ident)),
+        None => (
+            quote::format_ident!("_{}", index),
+            Member::Unnamed(Index::from(index)),
+        ),
     };
     let ty = field.ty.clone();
 
@@ -614,6 +623,7 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
     if is_nested {
         return ParseFieldResult::Valid(Box::new(FieldInfo {
             name,
+            member: member.clone(),
             ty,
             validation: ValidationInfo {
                 field_validators: all_field_validators,
@@ -628,6 +638,7 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
     if is_newtype {
         return ParseFieldResult::Valid(Box::new(FieldInfo {
             name,
+            member: member.clone(),
             ty,
             validation: ValidationInfo {
                 field_validators: all_field_validators,
@@ -645,6 +656,7 @@ pub fn parse_field(field: &Field) -> ParseFieldResult {
 
     ParseFieldResult::Valid(Box::new(FieldInfo {
         name,
+        member: member.clone(),
         ty,
         validation: ValidationInfo {
             field_validators: all_field_validators,

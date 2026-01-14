@@ -51,18 +51,6 @@ fn test_koruma_error_on_enum() {
 }
 
 #[test]
-fn test_koruma_error_on_tuple_struct() {
-    let input: DeriveInput = syn::parse_quote! {
-        pub struct TupleStruct(i32, String);
-    };
-
-    let result = expand_koruma(input);
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(err.to_string().contains("named fields"));
-}
-
-#[test]
 fn test_koruma_error_on_duplicate_validator_same_attr() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateValidatorSameAttr {

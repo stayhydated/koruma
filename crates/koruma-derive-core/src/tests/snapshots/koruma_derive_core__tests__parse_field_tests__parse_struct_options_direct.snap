@@ -1,0 +1,10 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_struct_options(&input.attrs)
+---
+Ok(
+    StructOptions {
+        try_new: true,
+        newtype: false,
+    },
+)

@@ -1,0 +1,69 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_field_info(&field)
+---
+Some(
+    FieldInfo {
+        name: Ident(
+            score,
+        ),
+        ty: Type::Path {
+            qself: None,
+            path: Path {
+                leading_colon: None,
+                segments: [
+                    PathSegment {
+                        ident: Ident(
+                            f64,
+                        ),
+                        arguments: PathArguments::None,
+                    },
+                ],
+            },
+        },
+        field_validators: [
+            ValidatorAttr {
+                validator: Path {
+                    leading_colon: None,
+                    segments: [
+                        PathSegment {
+                            ident: Ident(
+                                GenericRange,
+                            ),
+                            arguments: PathArguments::None,
+                        },
+                    ],
+                },
+                infer_type: true,
+                explicit_type: None,
+                args: [
+                    (
+                        Ident(
+                            min,
+                        ),
+                        Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Float {
+                                token: 0.0,
+                            },
+                        },
+                    ),
+                    (
+                        Ident(
+                            max,
+                        ),
+                        Expr::Lit {
+                            attrs: [],
+                            lit: Lit::Float {
+                                token: 1.0,
+                            },
+                        },
+                    ),
+                ],
+            },
+        ],
+        element_validators: [],
+        is_nested: false,
+        is_newtype: false,
+    },
+)

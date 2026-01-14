@@ -20,5 +20,8 @@ proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { features = [ "full", "extra-traits" ], workspace = true }
 
+[dev-dependencies]
+insta = { workspace = true }
+
 [package.metadata.docs.rs]
 all-features = true

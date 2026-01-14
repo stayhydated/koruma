@@ -1,0 +1,7 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: "result.map(|(name, _ty)| name.to_string())"
+---
+Some(
+    "actual",
+)

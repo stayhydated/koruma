@@ -21,3 +21,5 @@ Before you start to write code, please read the existing code to follow the same
 On Linux, [mold](https://github.com/rui314/mold) is used as the linker.
 
 For [fluent](https://projectfluent.org/), install the [es-fluent](https://crates.io/crates/es-fluent-cli) cli to generate the resources.
+
+[insta](https://insta.rs/) is used for snapshot testing. Prefer snapshot tests over complex assertion-based unit tests where appropriate.

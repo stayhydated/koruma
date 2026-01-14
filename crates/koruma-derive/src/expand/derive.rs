@@ -10,7 +10,7 @@ use koruma_derive_core::{
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{DeriveInput, Fields};
+use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(Koruma)]` derive macro.
 ///
@@ -23,15 +23,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_options = parse_struct_options(&input.attrs)?;
 
     let fields = match &input.data {
-        syn::Data::Struct(data) => match &data.fields {
-            Fields::Named(fields) => &fields.named,
-            _ => {
-                return Err(syn::Error::new_spanned(
-                    &input,
-                    "Koruma only supports structs with named fields",
-                ));
-            },
-        },
+        syn::Data::Struct(data) => &data.fields,
         _ => {
             return Err(syn::Error::new_spanned(
                 &input,
@@ -42,8 +34,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
     // Parse all fields and extract validation info
     let mut field_infos: Vec<FieldInfo> = Vec::new();
-    for field in fields.iter() {
-        match parse_field(field) {
+    for (i, field) in fields.iter().enumerate() {
+        match parse_field(field, i) {
             ParseFieldResult::Valid(info) => field_infos.push(*info),
             ParseFieldResult::Skip => {},
             ParseFieldResult::Error(e) => return Err(e),
@@ -577,6 +569,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .iter()
         .map(|f| {
             let field_name = &f.name;
+            let field_member = &f.member;
             let field_ty = &f.ty;
 
             // Handle nested fields - call validate() on the nested struct
@@ -585,7 +578,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 if field_is_optional {
                     // For Option<NestedType>, only validate if Some
                     return quote! {
-                        if let Some(ref __nested_value) = self.#field_name {
+                        if let Some(ref __nested_value) = self.#field_member {
                             if let Err(nested_err) = __nested_value.validate() {
                                 error.#field_name = Some(nested_err);
                                 has_error = true;
@@ -595,7 +588,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 } else {
                     // For non-optional nested field, always validate
                     return quote! {
-                        if let Err(nested_err) = self.#field_name.validate() {
+                        if let Err(nested_err) = self.#field_member.validate() {
                             error.#field_name = Some(nested_err);
                             has_error = true;
                         }
@@ -609,7 +602,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 if field_is_optional {
                     // For Option<NewtypeType>, only validate if Some
                     return quote! {
-                        if let Some(ref __newtype_value) = self.#field_name {
+                        if let Some(ref __newtype_value) = self.#field_member {
                             if let Err(newtype_err) = __newtype_value.validate() {
                                 error.#field_name.inner = Some(newtype_err);
                                 has_error = true;
@@ -619,7 +612,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 } else {
                     // For non-optional newtype field, always validate
                     return quote! {
-                        if let Err(newtype_err) = self.#field_name.validate() {
+                        if let Err(newtype_err) = self.#field_member.validate() {
                             error.#field_name.inner = Some(newtype_err);
                             has_error = true;
                         }
@@ -714,7 +707,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             // and &... for validate()
             let full_type_checks: Vec<TokenStream2> = full_type_validators
                 .iter()
-                .map(|v| generate_validator_check(v, quote! { self.#field_name }, true))
+                .map(|v| generate_validator_check(v, quote! { self.#field_member }, true))
                 .collect();
 
             // Generate checks for unwrapped validators (use __field_value which is already a ref)
@@ -828,7 +821,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 if element_is_optional {
                     // For Vec<Option<T>>, skip None items
                     quote! {
-                        for (idx, item) in self.#field_name.iter().enumerate() {
+                        for (idx, item) in self.#field_member.iter().enumerate() {
                             if let Some(ref __item_value) = item {
                                 #inner_element_validation
                             }
@@ -837,7 +830,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 } else {
                     // For Vec<T>, validate each item directly
                     quote! {
-                        for (idx, __item_value) in self.#field_name.iter().enumerate() {
+                        for (idx, __item_value) in self.#field_member.iter().enumerate() {
                             #inner_element_validation
                         }
                     }
@@ -857,7 +850,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 // Both full-type and unwrapped validators, optional field
                 quote! {
                     #(#full_type_checks)*
-                    if let Some(ref __field_value) = self.#field_name {
+                    if let Some(ref __field_value) = self.#field_member {
                         #(#unwrapped_checks)*
                     }
                     #element_validation
@@ -866,7 +859,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 // Both types, non-optional field
                 quote! {
                     #(#full_type_checks)*
-                    let __field_value = &self.#field_name;
+                    let __field_value = &self.#field_member;
                     #(#unwrapped_checks)*
                     #element_validation
                 }
@@ -879,7 +872,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             } else if has_unwrapped_validators && field_is_optional {
                 // Only unwrapped validators, optional field
                 quote! {
-                    if let Some(ref __field_value) = self.#field_name {
+                    if let Some(ref __field_value) = self.#field_member {
                         #(#unwrapped_checks)*
                     }
                     #element_validation
@@ -887,7 +880,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             } else if has_unwrapped_validators {
                 // Only unwrapped validators, non-optional field
                 quote! {
-                    let __field_value = &self.#field_name;
+                    let __field_value = &self.#field_member;
                     #(#unwrapped_checks)*
                     #element_validation
                 }

@@ -2,7 +2,7 @@ use heck::ToUpperCamelCase;
 use koruma_derive_core::{FieldInfo, ParseFieldResult, ValidatorAttr, parse_field};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{DeriveInput, Fields};
+use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(KorumaAllFluent)]` derive macro.
 ///
@@ -13,15 +13,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     let struct_name = &input.ident;
 
     let fields = match &input.data {
-        syn::Data::Struct(data) => match &data.fields {
-            Fields::Named(fields) => &fields.named,
-            _ => {
-                return Err(syn::Error::new_spanned(
-                    &input,
-                    "KorumaAllFluent only supports structs with named fields",
-                ));
-            },
-        },
+        syn::Data::Struct(data) => &data.fields,
         _ => {
             return Err(syn::Error::new_spanned(
                 &input,
@@ -32,8 +24,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
 
     // Parse all fields and extract validation info
     let mut field_infos: Vec<FieldInfo> = Vec::new();
-    for field in fields.iter() {
-        match parse_field(field) {
+    for (i, field) in fields.iter().enumerate() {
+        match parse_field(field, i) {
             ParseFieldResult::Valid(info) => field_infos.push(*info),
             ParseFieldResult::Skip => {},
             ParseFieldResult::Error(e) => return Err(e),

@@ -118,7 +118,7 @@ fn test_parse_field_with_single_validator() {
         pub age: i32
     };
 
-    let result = parse_field(&field);
+    let result = parse_field(&field, 0);
     let ParseFieldResult::Valid(info) = result else {
         panic!("expected Valid result");
     };
@@ -140,7 +140,7 @@ fn test_parse_field_with_generic_validator() {
         pub score: f64
     };
 
-    let result = parse_field(&field);
+    let result = parse_field(&field, 0);
     let ParseFieldResult::Valid(info) = result else {
         panic!("expected Valid result");
     };
@@ -154,7 +154,7 @@ fn test_parse_field_with_each() {
         pub scores: Vec<i32>
     };
 
-    let result = parse_field(&field);
+    let result = parse_field(&field, 0);
     let ParseFieldResult::Valid(info) = result else {
         panic!("expected Valid result");
     };
@@ -169,7 +169,7 @@ fn test_parse_field_with_skip_returns_skip() {
         pub internal: u64
     };
 
-    assert!(matches!(parse_field(&field), ParseFieldResult::Skip));
+    assert!(matches!(parse_field(&field, 0), ParseFieldResult::Skip));
 }
 
 #[test]
@@ -178,5 +178,5 @@ fn test_parse_field_without_koruma_returns_skip() {
         pub normal_field: String
     };
 
-    assert!(matches!(parse_field(&field), ParseFieldResult::Skip));
+    assert!(matches!(parse_field(&field, 0), ParseFieldResult::Skip));
 }

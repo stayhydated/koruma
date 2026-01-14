@@ -11,7 +11,7 @@
 //! use syn::Field;
 //!
 //! fn analyze_field(field: &Field) {
-//!     match parse_field(field) {
+//!     match parse_field(field, 0) {
 //!         ParseFieldResult::Valid(info) => {
 //!             println!("Field {} has {} validators", info.name, info.field_validators.len());
 //!             for v in &info.field_validators {

@@ -33,7 +33,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
     let mut field_infos: Vec<FieldInfo> = Vec::new();
     for field in fields.iter() {
         match parse_field(field) {
-            ParseFieldResult::Valid(info) => field_infos.push(info),
+            ParseFieldResult::Valid(info) => field_infos.push(*info),
             ParseFieldResult::Skip => {},
             ParseFieldResult::Error(e) => return Err(e),
         }

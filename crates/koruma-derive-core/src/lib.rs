@@ -27,6 +27,9 @@
 mod parse;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 // Re-export parsing types
 pub use parse::{
     FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidatorAttr, find_value_field,

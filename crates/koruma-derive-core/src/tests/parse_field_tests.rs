@@ -8,7 +8,7 @@ use insta::assert_debug_snapshot;
 /// Helper to extract FieldInfo from ParseFieldResult for snapshotting.
 fn parse_field_info(field: &syn::Field) -> Option<FieldInfo> {
     match parse_field(field) {
-        ParseFieldResult::Valid(info) => Some(info),
+        ParseFieldResult::Valid(info) => Some(*info),
         _ => None,
     }
 }

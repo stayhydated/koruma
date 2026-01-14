@@ -95,13 +95,6 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         }
                     }
 
-                    impl core::ops::Deref for #field_error_struct_name {
-                        type Target = <#inner_ty as koruma::ValidateExt>::Error;
-
-                        fn deref(&self) -> &Self::Target {
-                            self.inner.as_ref().expect("newtype field error should have inner error when accessed via Deref")
-                        }
-                    }
                 };
             }
 

@@ -53,7 +53,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             );
 
             let match_arms: Vec<TokenStream2> = f
-                .validation.field_validators
+                .validation
+                .field_validators
                 .iter()
                 .map(|v: &ValidatorAttr| {
                     let variant_name =
@@ -90,7 +91,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             );
 
             let match_arms: Vec<TokenStream2> = f
-                .validation.element_validators
+                .validation
+                .element_validators
                 .iter()
                 .map(|v: &ValidatorAttr| {
                     let variant_name =

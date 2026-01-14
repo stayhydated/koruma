@@ -536,7 +536,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // Generate defaults for field-level validators
             let field_validator_defaults: Vec<TokenStream2> = f
-                .validation.field_validators
+                .validation
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake = format_ident!("{}", v.name().to_string().to_snake_case());
@@ -631,7 +632,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             // Split field validators into those that want the full type vs those that want
             // the unwrapped type (for Option fields)
             let (full_type_validators, unwrapped_validators): (Vec<_>, Vec<_>) = f
-                .validation.field_validators
+                .validation
+                .field_validators
                 .iter()
                 .partition(|v| validator_wants_full_type(v));
 
@@ -734,7 +736,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let effective_element_ty = effective_validation_type(field_ty, true);
 
                 let element_validator_checks: Vec<TokenStream2> = f
-                    .validation.element_validators
+                    .validation
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator = &v.validator;
@@ -798,7 +801,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .collect();
 
                 let element_validator_defaults: Vec<TokenStream2> = f
-                    .validation.element_validators
+                    .validation
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake =

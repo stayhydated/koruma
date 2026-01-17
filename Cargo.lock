@@ -1025,7 +1025,6 @@ name = "koruma"
 version = "0.3.0"
 dependencies = [
  "bon",
- "es-fluent",
  "inventory",
  "koruma-core",
  "koruma-derive",

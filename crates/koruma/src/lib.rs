@@ -18,9 +18,6 @@ pub use koruma_derive::{Koruma, KorumaAllDisplay, validator};
 #[cfg(all(feature = "derive", feature = "fluent"))]
 pub use koruma_derive::KorumaAllFluent;
 
-#[cfg(feature = "fluent")]
-pub use es_fluent;
-
 #[cfg(feature = "showcase")]
 pub use koruma_core::showcase;
 

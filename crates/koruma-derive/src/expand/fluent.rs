@@ -58,9 +58,9 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .collect();
 
             quote! {
-                impl koruma::es_fluent::ToFluentString for #enum_name {
+                impl ::es_fluent::ToFluentString for #enum_name {
                     fn to_fluent_string(&self) -> String {
-                        use koruma::es_fluent::ToFluentString;
+                        use ::es_fluent::ToFluentString;
                         match self {
                             #(#match_arms),*
                         }
@@ -96,9 +96,9 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .collect();
 
             quote! {
-                impl koruma::es_fluent::ToFluentString for #enum_name {
+                impl ::es_fluent::ToFluentString for #enum_name {
                     fn to_fluent_string(&self) -> String {
-                        use koruma::es_fluent::ToFluentString;
+                        use ::es_fluent::ToFluentString;
                         match self {
                             #(#match_arms),*
                         }

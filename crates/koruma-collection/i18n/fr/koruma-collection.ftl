@@ -1,10 +1,10 @@
 ## AlphanumericValidation
 
-alphanumeric_validation = La valeur « { $actual } » doit contenir uniquement des lettres et des chiffres.
+alphanumeric_validation = Doit contenir uniquement des lettres et des chiffres.
 
 ## AsciiValidation
 
-ascii_validation = La valeur « { $actual } » doit contenir uniquement des caractères ASCII.
+ascii_validation = Doit contenir uniquement des caractères ASCII.
 
 ## Case
 
@@ -19,19 +19,19 @@ case-Train = Train-Case
 
 ## CaseValidation
 
-case_validation = La valeur « { $actual } » doit être en casse { $case }.
+case_validation = Doit être en casse { $case }.
 
 ## ContainsValidation
 
-contains_validation = La valeur « { $actual } » doit contenir la sous-chaîne « { $substring } ».
+contains_validation = Doit contenir la sous-chaîne « { $substring } ».
 
 ## CreditCardValidation
 
-credit_card_validation = La valeur « { $actual } » n'est pas un numéro de carte de crédit valide.
+credit_card_validation = N'est pas un numéro de carte de crédit valide.
 
 ## EmailValidation
 
-email_validation = La valeur « { $actual } » n'est pas une adresse e-mail valide.
+email_validation = N'est pas une adresse e-mail valide.
 
 ## IpValidation
 
@@ -44,47 +44,47 @@ ip_validation =
 
 ## LenValidation
 
-len_validation = La longueur doit être comprise entre { $min } et { $max } (actuelle : { $actual }).
+len_validation = La longueur doit être comprise entre { $min } et { $max }.
 
 ## MatchesValidation
 
-matches_validation = La valeur ne correspond pas à la valeur attendue « { $other } » (actuelle : « { $actual } »).
+matches_validation = Ne correspond pas à la valeur attendue « { $other } ».
 
 ## NegativeValidation
 
-negative_validation = La valeur « { $actual } » doit être négative.
+negative_validation = Doit être négatif.
 
 ## NonEmptyValidation
 
-non_empty_validation = La valeur ne doit pas être vide.
+non_empty_validation = Ne doit pas être vide.
 
 ## NonNegativeValidation
 
-non_negative_validation = La valeur « { $actual } » doit être nulle ou positive.
+non_negative_validation = Doit être nul ou positif.
 
 ## NonPositiveValidation
 
-non_positive_validation = La valeur « { $actual } » doit être nulle ou négative.
+non_positive_validation = Doit être nul ou négatif.
 
 ## PatternValidation
 
-pattern_validation = La valeur « { $actual } » ne correspond pas au motif requis « { $pattern } ».
+pattern_validation = Ne correspond pas au motif requis « { $pattern } ».
 
 ## PhoneNumberValidation
 
-phone_number_validation = La valeur « { $actual } » n'est pas un numéro de téléphone valide.
+phone_number_validation = N'est pas un numéro de téléphone valide.
 
 ## PositiveValidation
 
-positive_validation = La valeur « { $actual } » doit être positive.
+positive_validation = Doit être positif.
 
 ## PrefixValidation
 
-prefix_validation = La valeur « { $actual } » doit commencer par « { $prefix } ».
+prefix_validation = Doit commencer par « { $prefix } ».
 
 ## RangeValidation
 
-range_validation = La valeur doit être comprise entre { $min } et { $max } (actuelle : { $actual }).
+range_validation = Doit être compris entre { $min } et { $max }.
 
 ## RequiredValidation
 
@@ -92,8 +92,8 @@ required_validation = Ce champ est obligatoire et ne doit pas être vide.
 
 ## SuffixValidation
 
-suffix_validation = La valeur « { $actual } » doit se terminer par « { $suffix } ».
+suffix_validation = Doit se terminer par « { $suffix } ».
 
 ## UrlValidation
 
-url_validation = La valeur « { $actual } » n'est pas une URL valide.
+url_validation = N'est pas une URL valide.

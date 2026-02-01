@@ -49,7 +49,7 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
     pub exclusive_max: bool,
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub actual: T,
 }
 

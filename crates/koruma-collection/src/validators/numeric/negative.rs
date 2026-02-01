@@ -35,7 +35,7 @@ use super::Numeric;
 pub struct NegativeValidation<T: Numeric> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub actual: T,
 }
 

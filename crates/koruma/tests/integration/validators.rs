@@ -108,3 +108,18 @@ impl<T> VecLenValidation<T> {
         self.actual.len()
     }
 }
+
+/// A validation rule that checks if a value is present (not None).
+/// Works with Option<T> types.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct RequiredValidation<T> {
+    #[koruma(value)]
+    pub actual: Option<T>,
+}
+
+impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
+    fn validate(&self, value: &Option<T>) -> bool {
+        value.is_some()
+    }
+}

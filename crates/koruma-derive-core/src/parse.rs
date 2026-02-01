@@ -278,16 +278,71 @@ impl Parse for KorumaAttr {
                     is_newtype: false,
                 });
             }
-            // Check for newtype
-            if ident == "newtype" && fork.is_empty() {
+            // Check for newtype - can be standalone or followed by validators
+            if ident == "newtype" {
+                // Check if newtype is followed by a comma or end of input
                 input.parse::<Ident>()?; // consume "newtype"
-                return Ok(KorumaAttr {
-                    field_validators: Vec::new(),
-                    element_validators: Vec::new(),
-                    is_skip: false,
-                    is_nested: false,
-                    is_newtype: true,
-                });
+
+                // Check for comma followed by validators
+                if input.peek(Token![,]) {
+                    input.parse::<Token![,]>()?; // consume comma
+                    // Continue parsing validators below
+                    let mut field_validators = Vec::new();
+                    let mut element_validators = Vec::new();
+
+                    while !input.is_empty() {
+                        // Check if this is an `each(...)` block
+                        if input.peek(Ident) {
+                            let fork = input.fork();
+                            let ident: Ident = fork.parse()?;
+                            if ident == "each" && fork.peek(token::Paren) {
+                                input.parse::<Ident>()?; // consume "each"
+                                let content;
+                                parenthesized!(content in input);
+
+                                while !content.is_empty() {
+                                    element_validators.push(content.parse::<ValidatorAttr>()?);
+                                    if content.peek(Token![,]) {
+                                        content.parse::<Token![,]>()?;
+                                    } else {
+                                        break;
+                                    }
+                                }
+
+                                if input.peek(Token![,]) {
+                                    input.parse::<Token![,]>()?;
+                                }
+                                continue;
+                            }
+                        }
+
+                        field_validators.push(input.parse::<ValidatorAttr>()?);
+                        if input.peek(Token![,]) {
+                            input.parse::<Token![,]>()?;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    return Ok(KorumaAttr {
+                        field_validators,
+                        element_validators,
+                        is_skip: false,
+                        is_nested: false,
+                        is_newtype: true,
+                    });
+                }
+
+                // Standalone newtype
+                if input.is_empty() {
+                    return Ok(KorumaAttr {
+                        field_validators: Vec::new(),
+                        element_validators: Vec::new(),
+                        is_skip: false,
+                        is_nested: false,
+                        is_newtype: true,
+                    });
+                }
             }
         }
 
@@ -578,7 +633,8 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
                 // Check for newtype
                 if koruma_attr.is_newtype {
                     is_newtype = true;
-                    continue;
+                    // Don't continue here - newtype can have validators too
+                    // e.g., #[koruma(newtype, RequiredValidation)]
                 }
                 // Collect validators from this attribute, checking for duplicates
                 for validator in koruma_attr.field_validators {

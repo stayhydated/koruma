@@ -1,68 +1,10 @@
 ## AlphanumericValidation
 
-alphanumeric_validation = The value '{ $actual }' must contain only letters and numbers.
+alphanumeric_validation = Must contain only letters and numbers.
 
 ## AsciiValidation
 
-ascii_validation = The value '{ $actual }' must contain only ASCII characters.
-
-## ContainsValidation
-
-contains_validation = The value '{ $actual }' must contain the substring '{ $substring }'.
-
-## IpKind
-
-ip_kind-Any = any IP version
-ip_kind-V4 = IPv4
-ip_kind-V6 = IPv6
-
-## IpValidation
-
-ip_validation = The value '{ $actual }' is not a valid { $kind } IP address.
-
-## LenValidation
-
-len_validation = The length must be between { $min } and { $max } (actual: { $actual }).
-
-## MatchesValidation
-
-matches_validation = The value does not match the expected value '{ $other }' (actual: '{ $actual }').
-
-## PrefixValidation
-
-prefix_validation = The value '{ $actual }' must start with '{ $prefix }'.
-
-## RangeValidation
-
-range_validation = The value must be between { $min } and { $max } (actual: { $actual }).
-
-## RequiredValidation
-
-required_validation = This field is required and must not be empty.
-
-## SuffixValidation
-
-suffix_validation = The value '{ $actual }' must end with '{ $suffix }'.
-
-## NegativeValidation
-
-negative_validation = The value '{ $actual }' must be negative.
-
-## NonEmptyValidation
-
-non_empty_validation = The value must not be empty.
-
-## NonNegativeValidation
-
-non_negative_validation = The value '{ $actual }' must be zero or a positive number.
-
-## NonPositiveValidation
-
-non_positive_validation = The value '{ $actual }' must be zero or a negative number.
-
-## PositiveValidation
-
-positive_validation = The value '{ $actual }' must be positive.
+ascii_validation = Must contain only ASCII characters.
 
 ## Case
 
@@ -77,24 +19,81 @@ case-Train = Train-Case
 
 ## CaseValidation
 
-case_validation = The value '{ $actual }' must be in { $case } case.
+case_validation = Must be in { $case } case.
+
+## ContainsValidation
+
+contains_validation = Must contain the substring '{ $substring }'.
 
 ## CreditCardValidation
 
-credit_card_validation = The value '{ $actual }' is not a valid credit card number.
+credit_card_validation = Not a valid credit card number.
 
 ## EmailValidation
 
-email_validation = The value '{ $actual }' is not a valid email address.
+email_validation = Not a valid email address.
+
+## IpValidation
+
+ip_validation =
+    Not a valid { $kind ->
+        [v4] IPv4
+        [v6] IPv6
+       *[other] IP
+    } address.
+
+## LenValidation
+
+len_validation = The length must be between { $min } and { $max }.
+
+## MatchesValidation
+
+matches_validation = Does not match the expected value '{ $other }'.
+
+## NegativeValidation
+
+negative_validation = Must be negative.
+
+## NonEmptyValidation
+
+non_empty_validation = Must not be empty.
+
+## NonNegativeValidation
+
+non_negative_validation = Must be zero or a positive number.
+
+## NonPositiveValidation
+
+non_positive_validation = Must be zero or a negative number.
 
 ## PatternValidation
 
-pattern_validation = The value '{ $actual }' does not match the required pattern '{ $pattern }'.
+pattern_validation = Does not match the required pattern '{ $pattern }'.
 
 ## PhoneNumberValidation
 
-phone_number_validation = The value '{ $actual }' is not a valid phone number.
+phone_number_validation = Not a valid phone number.
+
+## PositiveValidation
+
+positive_validation = Must be positive.
+
+## PrefixValidation
+
+prefix_validation = Must start with '{ $prefix }'.
+
+## RangeValidation
+
+range_validation = Must be between { $min } and { $max }.
+
+## RequiredValidation
+
+required_validation = This field is required and must not be empty.
+
+## SuffixValidation
+
+suffix_validation = Must end with '{ $suffix }'.
 
 ## UrlValidation
 
-url_validation = The value '{ $actual }' is not a valid URL.
+url_validation = Not a valid URL.

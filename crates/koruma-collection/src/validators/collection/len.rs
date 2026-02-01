@@ -41,7 +41,7 @@ pub struct LenValidation<T: HasLen> {
     pub max: usize,
     /// The collection being validated (stored for error context)
     #[koruma(value)]
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.len())))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub actual: T,
 }
 

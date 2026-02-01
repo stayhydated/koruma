@@ -35,7 +35,7 @@ pub struct ContainsValidation<T: AsRef<str>> {
     pub substring: String,
     /// The string being validated (stored for error context)
     #[koruma(value)]
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.as_ref().to_string())))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub actual: T,
 }
 

@@ -1,10 +1,10 @@
 ## AlphanumericValidation
 
-alphanumeric_validation = Must contain only letters and numbers.
+alphanumeric_validation = Doit contenir uniquement des lettres et des chiffres.
 
 ## AsciiValidation
 
-ascii_validation = Must contain only ASCII characters.
+ascii_validation = Doit contenir uniquement des caractères ASCII.
 
 ## Case
 
@@ -19,81 +19,81 @@ case-Train = Train-Case
 
 ## CaseValidation
 
-case_validation = Must be in { $case } case.
+case_validation = Doit être en casse { $case }.
 
 ## ContainsValidation
 
-contains_validation = Must contain the substring '{ $substring }'.
+contains_validation = Doit contenir la sous-chaîne « { $substring } ».
 
 ## CreditCardValidation
 
-credit_card_validation = Not a valid credit card number.
+credit_card_validation = N'est pas un numéro de carte de crédit valide.
 
 ## EmailValidation
 
-email_validation = Not a valid email address.
+email_validation = N'est pas une adresse e-mail valide.
 
 ## IpValidation
 
 ip_validation =
-    Not a valid { $kind ->
+    Ce n'est pas une adresse { $kind ->
         [v4] IPv4
         [v6] IPv6
        *[other] IP
-    } address.
+    } valide.
 
 ## LenValidation
 
-len_validation = The length must be between { $min } and { $max }.
+len_validation = La longueur doit être comprise entre { $min } et { $max }.
 
 ## MatchesValidation
 
-matches_validation = Does not match the expected value '{ $other }'.
+matches_validation = Ne correspond pas à la valeur attendue « { $other } ».
 
 ## NegativeValidation
 
-negative_validation = Must be negative.
+negative_validation = Doit être négatif.
 
 ## NonEmptyValidation
 
-non_empty_validation = Must not be empty.
+non_empty_validation = Ne doit pas être vide.
 
 ## NonNegativeValidation
 
-non_negative_validation = Must be zero or a positive number.
+non_negative_validation = Doit être nul ou positif.
 
 ## NonPositiveValidation
 
-non_positive_validation = Must be zero or a negative number.
+non_positive_validation = Doit être nul ou négatif.
 
 ## PatternValidation
 
-pattern_validation = Does not match the required pattern '{ $pattern }'.
+pattern_validation = Ne correspond pas au motif requis « { $pattern } ».
 
 ## PhoneNumberValidation
 
-phone_number_validation = Not a valid phone number.
+phone_number_validation = N'est pas un numéro de téléphone valide.
 
 ## PositiveValidation
 
-positive_validation = Must be positive.
+positive_validation = Doit être positif.
 
 ## PrefixValidation
 
-prefix_validation = Must start with '{ $prefix }'.
+prefix_validation = Doit commencer par « { $prefix } ».
 
 ## RangeValidation
 
-range_validation = Must be between { $min } and { $max }.
+range_validation = Doit être compris entre { $min } et { $max }.
 
 ## RequiredValidation
 
-required_validation = This field is required and must not be empty.
+required_validation = Ce champ est obligatoire et ne doit pas être vide.
 
 ## SuffixValidation
 
-suffix_validation = Must end with '{ $suffix }'.
+suffix_validation = Doit se terminer par « { $suffix } ».
 
 ## UrlValidation
 
-url_validation = Not a valid URL.
+url_validation = N'est pas une URL valide.

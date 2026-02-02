@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 /// Trait for types that can validate a value of type `T`.
 ///
 /// Implementors should return `true` if validation passes,

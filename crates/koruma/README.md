@@ -4,7 +4,7 @@
 [![Docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 
-`koruma` is a per-field validation framework written in **Rust**, focused on:
+`koruma` is a per-field validation framework focused on:
 
 1. **Type Safety**: Strongly typed validation error structs generated at compile time.
 1. **Ergonomics**: Derive macros and validator attributes that minimize boilerplate.

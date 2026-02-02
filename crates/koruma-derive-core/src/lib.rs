@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 //! Core parsing types and utilities for koruma derive macros.
 //!
 //! This crate provides a public API for parsing `#[koruma(...)]` attributes,

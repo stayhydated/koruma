@@ -24,5 +24,5 @@ Use this crate when you are:
 
 ```toml
 [dependencies]
-koruma-core = "0.3"
+koruma-core = "*"
 ```

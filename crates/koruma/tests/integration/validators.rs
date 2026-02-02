@@ -115,6 +115,7 @@ impl<T> VecLenValidation<T> {
 #[derive(Clone, Debug)]
 pub struct RequiredValidation<T> {
     #[koruma(value)]
+    #[allow(dead_code)]
     pub actual: Option<T>,
 }
 

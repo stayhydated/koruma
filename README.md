@@ -14,7 +14,8 @@
 
 ```toml
 [dependencies]
-koruma = { version = "0.3", features = ["derive"] } # derive is the default
+koruma = { version = "*", features = ["derive"] } # derive is the default
+bon = { version = "*" }
 ```
 
 ## koruma-collection
@@ -28,7 +29,7 @@ string, format, numeric, collection, and general-purpose validators.
 
 ```toml
 [dependencies]
-koruma-collection = { version = "0.3", features = ["full"] }
+koruma-collection = { version = "*", features = ["full"] }
 ```
 
 ## Quick Start

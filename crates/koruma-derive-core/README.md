@@ -12,5 +12,5 @@ Most users should depend on `koruma` (or `koruma-derive`) instead of this crate 
 
 ```toml
 [dependencies]
-koruma-derive-core = "0.3"
+koruma-derive-core = "*"
 ```

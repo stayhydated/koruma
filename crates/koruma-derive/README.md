@@ -19,7 +19,7 @@ Use this crate directly when you need to pin the macro dependency or integrate i
 
 ```toml
 [dependencies]
-koruma-derive = "0.3"
+koruma-derive = "*"
 ```
 
 ## Features

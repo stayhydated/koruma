@@ -11,7 +11,7 @@ string, format, numeric, collection, and general-purpose validators.
 
 ```toml
 [dependencies]
-koruma-collection = { version = "0.3", features = ["full"] }
+koruma-collection = { version = "*", features = ["full"] }
 ```
 
 ## Features

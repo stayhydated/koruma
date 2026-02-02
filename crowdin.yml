@@ -1,1 +1,3 @@
-files: []
+files:
+  - source: crates/koruma-collection/i18n/**/*.ftl
+    translation: crates/koruma-collection/i18n/**/*.ftl

@@ -6,13 +6,11 @@
 Parsing utilities for `koruma` derive macros. This crate exposes the data model for
 `#[koruma(...)]` attributes and is intended for tooling or proc-macro internals.
 
+Most users should depend on `koruma` (or `koruma-derive`) instead of this crate directly.
+
 ## Installation
 
 ```toml
 [dependencies]
 koruma-derive-core = "0.3"
 ```
-
-## Features
-
-- `showcase`: enables parsing of `#[showcase(...)]` metadata.

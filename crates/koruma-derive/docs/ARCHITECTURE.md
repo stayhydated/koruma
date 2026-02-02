@@ -16,15 +16,16 @@
 
 1. Parse input with `syn`.
 1. Parse `#[koruma(...)]` metadata via `koruma-derive-core`.
-1. Build `FieldInfo` and `StructOptions` describing validation intent.
+1. Build per-field `FieldInfo` plus struct-level `StructOptions` (`try_new`, `newtype`).
+1. Generate error structs, `all()` enums, `validate()` implementations, and optional `try_new` constructors.
 1. Emit token streams via `expand/*` modules.
 
 ## Modules
 
-- `expand/validator.rs`: adds `bon` builders, `with_value`, and showcase registration.
-- `expand/derive.rs`: generates error structs, accessors, `validate()` impls, and `try_new` when requested.
-- `expand/display.rs`: implements `Display` for the `all()` validator enums.
-- `expand/fluent.rs`: implements `ToFluentString` for the `all()` validator enums (feature `fluent`).
+- `expand/validator.rs`: adds `bon` builders, `with_value`, and optional showcase registration.
+- `expand/derive.rs`: generates error structs, `validate()`, `try_new`, nested/newtype handling, and element validator errors for `each(...)`.
+- `expand/display.rs`: implements `Display` for field and element validator enums.
+- `expand/fluent.rs`: implements `ToFluentString` for validator enums and error structs (feature `fluent`).
 - `expand/codegen.rs`: shared helpers for type resolution and argument transformations.
 
 ## Feature flags

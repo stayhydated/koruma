@@ -8,7 +8,7 @@
 
 - `crates/koruma-collection/src/lib.rs`: re-exports validators and exposes the `i18n` module when `fluent` is enabled.
 - `crates/koruma-collection/src/validators/`: category modules (`string`, `format`, `numeric`, `collection`, `general`).
-- `crates/koruma-collection/src/i18n.rs`: embedded Fluent loader via `es_fluent_manager_embedded`.
+- `crates/koruma-collection/src/i18n.rs`: embedded Fluent module via `es_fluent_manager_embedded::define_i18n_module!()`.
 - `crates/koruma-collection/i18n/`: Fluent resources by locale.
 
 ## Validator pattern
@@ -22,10 +22,10 @@
 
 - `default`: `fmt`.
 - `full`: enables all optional validators and dependencies.
-- `fluent`: enables Fluent integration and i18n assets.
+- `fluent`: enables Fluent integration and embedded i18n assets.
 - `full-fluent`: `full` + `fluent`.
 - Per-validator features: `email`, `email-idna`, `url`, `phone-number`, `credit-card`, `regex`, `rust_decimal`, `smallvec`, `heck`.
-- `showcase`: enables validator registry support via `koruma/showcase`.
+- `showcase`: enables validator registry support via `koruma/showcase` and requires `full`.
 
 ## Extending
 

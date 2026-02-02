@@ -12,16 +12,23 @@
 ## Core traits
 
 - `Validate<T>`: implemented by validator structs; returns `true`/`false`.
-- `ValidationError`: implemented by generated error structs; supplies `is_empty()`.
+- `ValidationError`: implemented by generated error structs; supplies `is_empty()` and `has_errors()`.
 - `BuilderWithValue<T>`: implemented by `#[koruma::validator]` builders.
-- `ValidateExt`: implemented by `#[derive(Koruma)]` for nested validation.
+- `ValidateExt`: implemented by `#[derive(Koruma)]` for nested/newtype validation.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.
+
+## Showcase registry (feature `showcase`)
+
+- `DynValidator`: type-erased validator interface.
+- `InputType`: expected input classification (text or numeric).
+- `ValidatorShowcase`: metadata collected via `inventory`.
+- `validators()`: returns all registered validators.
 
 ## Control flow
 
 - Validator structs implement `Validate<T>`.
 - Derive macros emit error types implementing `ValidationError` and `ValidateExt`.
-- Nested/newtype validation relies on `ValidateExt::Error` to carry typed error state.
+- Nested/newtype validation relies on `ValidateExt::Error` for typed error state.
 
 ## Feature flags
 
@@ -29,5 +36,4 @@
 
 ## Tests
 
-- Unit tests live under `crates/koruma-core/tests/` and cover core trait behavior
-  (`Validate`, `ValidationError`, `BuilderWithValue`).
+- Unit tests live under `crates/koruma-core/tests/` and cover core trait behavior.

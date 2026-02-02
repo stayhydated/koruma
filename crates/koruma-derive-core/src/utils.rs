@@ -258,3 +258,26 @@ pub fn vec_inner_type(ty: &Type) -> Option<&Type> {
 pub fn is_option_type(ty: &Type) -> bool {
     option_inner_type(ty).is_some()
 }
+
+/// Extract the ident (name) from a type path.
+///
+/// Returns `None` if the type is not a simple path type.
+///
+/// # Examples
+///
+/// ```ignore
+/// use syn::parse_quote;
+/// use koruma_derive_core::type_to_ident;
+///
+/// let ty: Type = parse_quote!(Age);
+/// assert_eq!(type_to_ident(&ty), Some("Age".to_string()));
+///
+/// let ty2: Type = parse_quote!(Option<Age>);
+/// assert_eq!(type_to_ident(&ty2), Some("Option".to_string()));
+/// ```
+pub fn type_to_ident(ty: &Type) -> Option<Ident> {
+    match ty {
+        Type::Path(type_path) => type_path.path.segments.last().map(|s| s.ident.clone()),
+        _ => None,
+    }
+}

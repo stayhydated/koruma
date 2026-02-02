@@ -169,6 +169,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     })
                     .collect();
 
+                // Add Inner variant for wrapping inner newtype validation errors
+                let inner_error_ty = quote! { <#inner_ty as koruma::ValidateExt>::Error };
+                let inner_variant = quote! { Inner(#inner_error_ty) };
+
                 let all_pushes: Vec<TokenStream2> = f
                     .validation
                     .field_validators
@@ -186,12 +190,20 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     })
                     .collect();
 
+                // Add push for inner error when it's not empty
+                let inner_push = quote! {
+                    if !self.inner.is_empty() {
+                        result.push(#enum_name::Inner(self.inner.clone()));
+                    }
+                };
+
                 return quote! {
                     /// Enum of all possible validators for this newtype field.
                     #[derive(Clone, Debug)]
                     #[allow(dead_code)]
                     pub enum #enum_name {
-                        #(#enum_variants),*
+                        #(#enum_variants,)*
+                        #inner_variant
                     }
 
                     /// Per-field validation error struct for a newtype field with additional validators.
@@ -209,10 +221,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             &self.inner
                         }
 
-                        /// Returns all failed field-level validators.
+                        /// Returns all failed validators including inner newtype validation errors.
                         pub fn all(&self) -> Vec<#enum_name> {
                             let mut result = Vec::new();
                             #(#all_pushes)*
+                            #inner_push
                             result
                         }
 

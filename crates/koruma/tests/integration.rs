@@ -11,3 +11,11 @@ mod fixtures;
 #[path = "integration/tests.rs"]
 #[cfg(test)]
 mod tests;
+
+#[path = "integration/newtype_required_tests.rs"]
+#[cfg(test)]
+mod newtype_required_tests;
+
+#[path = "integration/external_macro_wrapping_tests.rs"]
+#[cfg(test)]
+mod external_macro_wrapping_tests;

@@ -71,38 +71,172 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             // Handle newtype fields - generate a wrapper struct with Deref
             if f.is_newtype() {
                 let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                let has_field_validators = !f.validation.field_validators.is_empty();
+
+                // If the newtype field has no validators, generate simple wrapper
+                if !has_field_validators {
+                    return quote! {
+                        /// Per-field validation error struct for a newtype field.
+                        /// Stores the inner error directly for transparent, friction-free access.
+                        #[derive(Clone, Debug, Default)]
+                        pub struct #field_error_struct_name {
+                            inner: <#inner_ty as koruma::ValidateExt>::Error,
+                        }
+
+                        impl #field_error_struct_name {
+                            /// Returns a reference to the inner validation error.
+                            pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                                &self.inner
+                            }
+
+                            pub fn is_empty(&self) -> bool {
+                                self.inner.is_empty()
+                            }
+
+                            pub fn has_errors(&self) -> bool {
+                                !self.is_empty()
+                            }
+                        }
+
+                        impl std::ops::Deref for #field_error_struct_name {
+                            type Target = <#inner_ty as koruma::ValidateExt>::Error;
+
+                            fn deref(&self) -> &Self::Target {
+                                &self.inner
+                            }
+                        }
+
+                    };
+                }
+
+                // Newtype field with validators - generate full error struct like regular fields
+                // but also include the inner newtype error
+                let field_validator_fields: Vec<TokenStream2> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.name().to_string().to_snake_case());
+                        let vtype = validator_type_for_field(v, field_ty, false);
+                        quote! { #validator_snake: Option<#vtype> }
+                    })
+                    .collect();
+
+                let field_validator_getters: Vec<TokenStream2> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.name().to_string().to_snake_case());
+                        let vtype = validator_type_for_field(v, field_ty, false);
+                        quote! {
+                            pub fn #validator_snake(&self) -> Option<&#vtype> {
+                                self.#validator_snake.as_ref()
+                            }
+                        }
+                    })
+                    .collect();
+
+                let field_is_empty_checks: Vec<TokenStream2> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.name().to_string().to_snake_case());
+                        quote! { self.#validator_snake.is_none() }
+                    })
+                    .collect();
+
+                // Generate enum variants for the all() method
+                let enum_name = format_ident!(
+                    "{}{}KorumaValidator",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+
+                let enum_variants: Vec<TokenStream2> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| {
+                        let variant_name =
+                            format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                        let vtype = validator_type_for_field(v, field_ty, false);
+                        quote! { #variant_name(#vtype) }
+                    })
+                    .collect();
+
+                // Add Inner variant for wrapping inner newtype validation errors
+                let inner_error_ty = quote! { <#inner_ty as koruma::ValidateExt>::Error };
+                let inner_variant = quote! { Inner(#inner_error_ty) };
+
+                let all_pushes: Vec<TokenStream2> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.name().to_string().to_snake_case());
+                        let variant_name =
+                            format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                        quote! {
+                            if let Some(v) = &self.#validator_snake {
+                                result.push(#enum_name::#variant_name(v.clone()));
+                            }
+                        }
+                    })
+                    .collect();
+
+                // Add push for inner error when it's not empty
+                let inner_push = quote! {
+                    if !self.inner.is_empty() {
+                        result.push(#enum_name::Inner(self.inner.clone()));
+                    }
+                };
 
                 return quote! {
-                    /// Per-field validation error struct for a newtype field.
-                    /// Stores the inner error directly for transparent, friction-free access.
+                    /// Enum of all possible validators for this newtype field.
+                    #[derive(Clone, Debug)]
+                    #[allow(dead_code)]
+                    pub enum #enum_name {
+                        #(#enum_variants,)*
+                        #inner_variant
+                    }
+
+                    /// Per-field validation error struct for a newtype field with additional validators.
                     #[derive(Clone, Debug, Default)]
                     pub struct #field_error_struct_name {
+                        #(#field_validator_fields,)*
                         inner: <#inner_ty as koruma::ValidateExt>::Error,
                     }
 
                     impl #field_error_struct_name {
+                        #(#field_validator_getters)*
+
                         /// Returns a reference to the inner validation error.
                         pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
                             &self.inner
                         }
 
+                        /// Returns all failed validators including inner newtype validation errors.
+                        pub fn all(&self) -> Vec<#enum_name> {
+                            let mut result = Vec::new();
+                            #(#all_pushes)*
+                            #inner_push
+                            result
+                        }
+
                         pub fn is_empty(&self) -> bool {
-                            self.inner.is_empty()
+                            #(#field_is_empty_checks)&&* && self.inner.is_empty()
                         }
 
                         pub fn has_errors(&self) -> bool {
                             !self.is_empty()
                         }
                     }
-
-                    impl std::ops::Deref for #field_error_struct_name {
-                        type Target = <#inner_ty as koruma::ValidateExt>::Error;
-
-                        fn deref(&self) -> &Self::Target {
-                            &self.inner
-                        }
-                    }
-
                 };
             }
 
@@ -466,13 +600,30 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     }
                 }
             } else if f.is_newtype() {
-                // For newtype fields, return &InnerError directly for friction-free access
-                // This allows `e.field().all()` directly without needing `?`
-                let field_ty = &f.ty;
-                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
-                quote! {
-                    pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
-                        &self.#field_name.inner
+                let field_error_struct_name = format_ident!(
+                    "{}{}KorumaValidationError",
+                    struct_name,
+                    field_name.to_string().to_upper_camel_case()
+                );
+                let has_field_validators = !f.validation.field_validators.is_empty();
+
+                if has_field_validators {
+                    // Newtype field with validators - return the wrapper struct
+                    // This provides access to both field validators and inner error
+                    quote! {
+                        pub fn #field_name(&self) -> &#field_error_struct_name {
+                            &self.#field_name
+                        }
+                    }
+                } else {
+                    // For newtype fields without validators, return &InnerError directly for friction-free access
+                    // This allows `e.field().all()` directly without needing `?`
+                    let field_ty = &f.ty;
+                    let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                    quote! {
+                        pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                            &self.#field_name.inner
+                        }
                     }
                 }
             } else {
@@ -528,8 +679,34 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 field_name.to_string().to_upper_camel_case()
             );
 
-            // For newtype fields, use Default for the wrapper (which defaults inner to empty)
+            // For newtype fields, generate appropriate defaults
             if f.is_newtype() {
+                let has_field_validators = !f.validation.field_validators.is_empty();
+                let field_ty = &f.ty;
+                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+
+                if has_field_validators {
+                    // Newtype field with validators - generate explicit defaults for field validators
+                    let field_validator_defaults: Vec<TokenStream2> = f
+                        .validation
+                        .field_validators
+                        .iter()
+                        .map(|v| {
+                            let validator_snake =
+                                format_ident!("{}", v.name().to_string().to_snake_case());
+                            quote! { #validator_snake: None }
+                        })
+                        .collect();
+
+                    return quote! {
+                        #field_name: #field_error_struct_name {
+                            #(#field_validator_defaults,)*
+                            inner: <#inner_ty as koruma::ValidateExt>::Error::default()
+                        }
+                    };
+                }
+
+                // Simple newtype field without validators - use Default
                 return quote! {
                     #field_name: #field_error_struct_name::default()
                 };
@@ -608,6 +785,135 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             // Handle newtype fields - similar to nested but stores in wrapper struct
             if f.is_newtype() {
                 let field_is_optional = is_option_type(field_ty);
+                let has_field_validators = !f.validation.field_validators.is_empty();
+
+                if has_field_validators {
+                    // Newtype field with validators - use two-phase validation
+                    // First run field validators, then if required check passes, validate inner
+
+                    // Split field validators into full-type and unwrapped
+                    let (full_type_validators, unwrapped_validators): (Vec<_>, Vec<_>) = f
+                        .validation
+                        .field_validators
+                        .iter()
+                        .partition(|v| validator_wants_full_type(v));
+
+                    // Generate validator check code for newtype fields
+                    let generate_newtype_validator_check = |v: &ValidatorAttr,
+                                                            value_expr: TokenStream2,
+                                                            needs_ref: bool|
+                     -> TokenStream2 {
+                        let validator = &v.validator;
+                        let validator_snake =
+                            format_ident!("{}", v.name().to_string().to_snake_case());
+                        let effective_ty = effective_validation_type(field_ty, false);
+
+                        let builder_calls: Vec<TokenStream2> = v
+                            .args
+                            .iter()
+                            .map(|(arg_name, arg_value)| {
+                                let transformed = transform_arg_value(arg_value);
+                                quote! { .#arg_name(#transformed) }
+                            })
+                            .collect();
+
+                        let ref_expr = if needs_ref {
+                            quote! { &#value_expr }
+                        } else {
+                            quote! { #value_expr }
+                        };
+
+                        let uses_infer = v.infer_type
+                            || v.explicit_type.as_ref().is_some_and(contains_infer_type);
+
+                        if uses_infer {
+                            let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
+                                if contains_infer_type(explicit_ty) {
+                                    let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
+                                    let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                                    quote! { #substituted }
+                                } else {
+                                    quote! { #explicit_ty }
+                                }
+                            } else {
+                                quote! { #effective_ty }
+                            };
+                            let assert_fn = format_ident!(
+                                "__koruma_assert_validate_{}_{}_newtype_field",
+                                field_name,
+                                validator_snake
+                            );
+                            quote! {
+                                fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
+                                    v.validate(t)
+                                }
+                                let validator = #validator::<#validator_ty>::builder()
+                                    #(#builder_calls)*
+                                    .with_value(#value_expr.clone())
+                                    .build();
+                                if !#assert_fn(&validator, #ref_expr) {
+                                    error.#field_name.#validator_snake = Some(validator);
+                                    has_error = true;
+                                }
+                            }
+                        } else {
+                            quote! {
+                                let validator = #validator::builder()
+                                    #(#builder_calls)*
+                                    .with_value(#value_expr.clone())
+                                    .build();
+                                if !validator.validate(#ref_expr) {
+                                    error.#field_name.#validator_snake = Some(validator);
+                                    has_error = true;
+                                }
+                            }
+                        }
+                    };
+
+                    // Generate checks for full-type validators
+                    let full_type_checks: Vec<TokenStream2> = full_type_validators
+                        .iter()
+                        .map(|v| {
+                            generate_newtype_validator_check(v, quote! { self.#field_member }, true)
+                        })
+                        .collect();
+
+                    // Generate checks for unwrapped validators
+                    let unwrapped_checks: Vec<TokenStream2> = unwrapped_validators
+                        .iter()
+                        .map(|v| {
+                            generate_newtype_validator_check(v, quote! { __newtype_value }, false)
+                        })
+                        .collect();
+
+                    // Build the inner validation logic
+                    let inner_validation = if unwrapped_validators.is_empty() {
+                        quote! {
+                            if let Err(newtype_err) = __newtype_value.validate() {
+                                error.#field_name.inner = newtype_err;
+                                has_error = true;
+                            }
+                        }
+                    } else {
+                        quote! {
+                            #(#unwrapped_checks)*
+                            if let Err(newtype_err) = __newtype_value.validate() {
+                                error.#field_name.inner = newtype_err;
+                                has_error = true;
+                            }
+                        }
+                    };
+
+                    // Two-phase validation: field validators first, then inner if Some
+                    return quote! {
+                        #(#full_type_checks)*
+                        if let Some(ref __newtype_value) = self.#field_member {
+                            #inner_validation
+                        }
+                    };
+                }
+
+                // Newtype field without validators - simple case
                 if field_is_optional {
                     // For Option<NewtypeType>, only validate if Some
                     return quote! {

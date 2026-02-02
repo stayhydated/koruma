@@ -1,8 +1,8 @@
 use koruma::{Koruma, Validate};
 
 use super::validators::{
-    EvenNumberValidation, GenericRangeValidation, NumberRangeValidation, StringLengthValidation,
-    VecLenValidation,
+    EvenNumberValidation, GenericRangeValidation, NumberRangeValidation, RequiredValidation,
+    StringLengthValidation, VecLenValidation,
 };
 
 /// Example struct demonstrating validation with non-generic validators.
@@ -141,7 +141,7 @@ pub struct Employee {
 
 /// Example newtype struct with validators on the inner field.
 /// The `newtype` option allows the error struct to deref to the inner field's error.
-#[derive(Koruma)]
+#[derive(Clone, Debug, Koruma)]
 #[koruma(newtype)]
 pub struct PositiveNumber {
     #[koruma(NumberRangeValidation(min = 0, max = 1000))]
@@ -167,4 +167,21 @@ pub struct ContainsNewtype {
     /// This field is a newtype - errors deref to the inner type's errors
     #[koruma(newtype)]
     pub number: PositiveNumber,
+}
+
+/// Example struct containing an optional newtype field with RequiredValidation.
+/// This tests the new functionality where newtype fields can have additional validators.
+#[derive(Koruma)]
+pub struct ContainsRequiredNewtype {
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    pub age: Option<PositiveNumber>,
+}
+
+/// Example struct containing an optional newtype field with multiple validators.
+#[derive(Koruma)]
+pub struct ContainsNewtypeWithValidators {
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    pub age: Option<PositiveNumber>,
+
+    pub name: String,
 }

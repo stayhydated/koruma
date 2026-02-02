@@ -1,4 +1,4 @@
-use heck::ToUpperCamelCase;
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{FieldInfo, ParseFieldResult, ValidatorAttr, parse_field};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -57,12 +57,22 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 })
                 .collect();
 
+            // Add Inner variant arm for newtype fields with additional validators
+            let inner_arm = if f.is_newtype() {
+                Some(quote! {
+                    #enum_name::Inner(inner) => inner.to_fluent_string()
+                })
+            } else {
+                None
+            };
+
             quote! {
                 impl ::es_fluent::ToFluentString for #enum_name {
                     fn to_fluent_string(&self) -> String {
                         use ::es_fluent::ToFluentString;
                         match self {
-                            #(#match_arms),*
+                            #(#match_arms,)*
+                            #inner_arm
                         }
                     }
                 }
@@ -108,8 +118,62 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
         })
         .collect();
 
+    // Generate ToFluentString impls for error structs
+    let error_struct_impls: Vec<TokenStream2> = field_infos
+        .iter()
+        .filter(|f| !f.validation.field_validators.is_empty() || f.is_newtype())
+        .map(|f| {
+            let field_name = &f.name;
+            let error_struct_name = format_ident!(
+                "{}{}KorumaValidationError",
+                struct_name,
+                field_name.to_string().to_upper_camel_case()
+            );
+
+            if f.is_newtype() {
+                // For newtype fields, delegate to the inner error's to_fluent_string
+                quote! {
+                    impl ::es_fluent::ToFluentString for #error_struct_name {
+                        fn to_fluent_string(&self) -> String {
+                            use ::es_fluent::ToFluentString;
+                            self.inner().to_fluent_string()
+                        }
+                    }
+                }
+            } else {
+                // For regular fields, join all validator messages
+                let message_pushes: Vec<TokenStream2> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| {
+                        let validator_snake =
+                            format_ident!("{}", v.name().to_string().to_snake_case());
+                        quote! {
+                            if let Some(v) = &self.#validator_snake {
+                                messages.push(v.to_fluent_string());
+                            }
+                        }
+                    })
+                    .collect();
+
+                quote! {
+                    impl ::es_fluent::ToFluentString for #error_struct_name {
+                        fn to_fluent_string(&self) -> String {
+                            use ::es_fluent::ToFluentString;
+                            let mut messages = Vec::new();
+                            #(#message_pushes)*
+                            messages.join("\n")
+                        }
+                    }
+                }
+            }
+        })
+        .collect();
+
     Ok(quote! {
         #(#fluent_impls)*
         #(#element_fluent_impls)*
+        #(#error_struct_impls)*
     })
 }

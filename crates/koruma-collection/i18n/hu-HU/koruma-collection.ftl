@@ -1,10 +1,10 @@
 ## AlphanumericValidation
 
-alphanumeric_validation = 必须只包含字母和数字。
+alphanumeric_validation = Must contain only letters and numbers.
 
 ## AsciiValidation
 
-ascii_validation = 必须只包含 ASCII 字符。
+ascii_validation = Must contain only ASCII characters.
 
 ## Case
 
@@ -19,81 +19,81 @@ case-Train = Train-Case
 
 ## CaseValidation
 
-case_validation = 必须使用 { $case } 格式。
+case_validation = Must be in { $case } case.
 
 ## ContainsValidation
 
-contains_validation = 必须包含子串 '{ $substring }'。
+contains_validation = Must contain the substring '{ $substring }'.
 
 ## CreditCardValidation
 
-credit_card_validation = 不是有效的信用卡号。
+credit_card_validation = Not a valid credit card number.
 
 ## EmailValidation
 
-email_validation = 不是有效的电子邮件地址。
+email_validation = Not a valid email address.
 
 ## IpValidation
 
 ip_validation =
-    不是有效的 { $kind ->
+    Not a valid { $kind ->
         [v4] IPv4
         [v6] IPv6
        *[other] IP
-    } 地址。
+    } address.
 
 ## LenValidation
 
-len_validation = 长度必须在 { $min } 到 { $max } 之间。
+len_validation = The length must be between { $min } and { $max }.
 
 ## MatchesValidation
 
-matches_validation = 与期望值 '{ $other }' 不匹配。
+matches_validation = Does not match the expected value '{ $other }'.
 
 ## NegativeValidation
 
-negative_validation = 必须为负数。
+negative_validation = Must be negative.
 
 ## NonEmptyValidation
 
-non_empty_validation = 不能为空。
+non_empty_validation = Must not be empty.
 
 ## NonNegativeValidation
 
-non_negative_validation = 必须为零或正数。
+non_negative_validation = Must be zero or a positive number.
 
 ## NonPositiveValidation
 
-non_positive_validation = 必须为零或负数。
+non_positive_validation = Must be zero or a negative number.
 
 ## PatternValidation
 
-pattern_validation = 不匹配所需的模式 '{ $pattern }'。
+pattern_validation = Does not match the required pattern '{ $pattern }'.
 
 ## PhoneNumberValidation
 
-phone_number_validation = 不是有效的电话号码。
+phone_number_validation = Not a valid phone number.
 
 ## PositiveValidation
 
-positive_validation = 必须为正数。
+positive_validation = Must be positive.
 
 ## PrefixValidation
 
-prefix_validation = 必须以 '{ $prefix }' 开头。
+prefix_validation = Must start with '{ $prefix }'.
 
 ## RangeValidation
 
-range_validation = 必须在 { $min } 到 { $max } 之间。
+range_validation = Must be between { $min } and { $max }.
 
 ## RequiredValidation
 
-required_validation = 此字段为必填，不能为空。
+required_validation = This field is required and must not be empty.
 
 ## SuffixValidation
 
-suffix_validation = 必须以 '{ $suffix }' 结尾。
+suffix_validation = Must end with '{ $suffix }'.
 
 ## UrlValidation
 
-url_validation = 不是有效的 URL。
+url_validation = Not a valid URL.

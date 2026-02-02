@@ -21,7 +21,7 @@ pub struct ExplicitOptionForm {
     pub age: Option<Age>,
 }
 
-/// This simulates the ORIGINAL struct before gpui_form transforms it 
+/// This simulates the ORIGINAL struct before gpui_form transforms it
 /// The field is non-optional `Age`, but gpui_form would wrap it to `Option<Age>`
 /// When Koruma runs on the transformed struct, it sees `Option<Age>` and works correctly
 ///

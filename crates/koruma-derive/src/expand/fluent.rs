@@ -57,12 +57,22 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 })
                 .collect();
 
+            // Add Inner variant arm for newtype fields with additional validators
+            let inner_arm = if f.is_newtype() {
+                Some(quote! {
+                    #enum_name::Inner(inner) => inner.to_fluent_string()
+                })
+            } else {
+                None
+            };
+
             quote! {
                 impl ::es_fluent::ToFluentString for #enum_name {
                     fn to_fluent_string(&self) -> String {
                         use ::es_fluent::ToFluentString;
                         match self {
-                            #(#match_arms),*
+                            #(#match_arms,)*
+                            #inner_arm
                         }
                     }
                 }

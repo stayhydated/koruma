@@ -56,11 +56,21 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                 })
                 .collect();
 
+            // Add Inner variant arm for newtype fields with additional validators
+            let inner_arm = if f.is_newtype() {
+                Some(quote! {
+                    #enum_name::Inner(inner) => ::std::fmt::Display::fmt(inner, f)
+                })
+            } else {
+                None
+            };
+
             quote! {
                 impl ::std::fmt::Display for #enum_name {
                     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                         match self {
-                            #(#match_arms),*
+                            #(#match_arms,)*
+                            #inner_arm
                         }
                     }
                 }

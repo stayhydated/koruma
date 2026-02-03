@@ -1029,7 +1029,7 @@ dependencies = [
 
 [[package]]
 name = "koruma"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bon",
  "inventory",
@@ -1039,7 +1039,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-collection"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bon",
  "card-validate",
@@ -1060,7 +1060,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-collection-example"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crossterm",
  "es-fluent",
@@ -1077,14 +1077,14 @@ dependencies = [
 
 [[package]]
 name = "koruma-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "inventory",
 ]
 
 [[package]]
 name = "koruma-derive"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "heck",
  "insta",
@@ -1099,7 +1099,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive-core"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "insta",
  "proc-macro2",
@@ -1110,7 +1110,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-shared-lib"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "es-fluent",
  "es-fluent-lang",
@@ -1122,7 +1122,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-user-defined-example"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bon",
  "es-fluent",

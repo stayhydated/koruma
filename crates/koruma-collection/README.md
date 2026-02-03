@@ -7,13 +7,6 @@
 A curated set of validators built on top of `koruma`, organized by domain:
 string, format, numeric, collection, and general-purpose validators.
 
-## Installation
-
-```toml
-[dependencies]
-koruma-collection = { version = "*", features = ["full"] }
-```
-
 ## Features
 
 - `full`: enables all validators and optional dependencies.

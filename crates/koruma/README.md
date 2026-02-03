@@ -10,14 +10,6 @@
 1. **Ergonomics**: Derive macros and validator attributes that minimize boilerplate.
 1. **Developer Experience**: Optional constructors, nested/newtype validation, and fluent/i18n.
 
-## Installation
-
-```toml
-[dependencies]
-koruma = { version = "*", features = ["derive"] } # derive is the default
-bon = { version = "*" }
-```
-
 ## koruma-collection
 
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
@@ -26,11 +18,6 @@ bon = { version = "*" }
 
 A curated set of validators built on top of `koruma`, organized by domain:
 string, format, numeric, collection, and general-purpose validators.
-
-```toml
-[dependencies]
-koruma-collection = { version = "*", features = ["full"] }
-```
 
 ## Quick Start
 

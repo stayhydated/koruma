@@ -15,14 +15,6 @@ Use this crate directly when you need to pin the macro dependency or integrate i
 - `#[derive(KorumaAllDisplay)]`: adds `Display` for `all()` validator enums.
 - `#[derive(KorumaAllFluent)]`: adds `ToFluentString` for `all()` validator enums (feature `fluent`).
 
-## Installation
-
-```toml
-[dependencies]
-koruma-derive = "*"
-```
-
 ## Features
 
 - `fluent`: enables `KorumaAllFluent` derive.
-- `showcase`: enables showcase registration for validators.

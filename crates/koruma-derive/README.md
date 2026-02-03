@@ -6,21 +6,15 @@
 Proc-macro crate for `koruma`. Most users should depend on `koruma` with the `derive` feature
 instead of using this crate directly.
 
+Use this crate directly when you need to pin the macro dependency or integrate it into tooling.
+
 ## Macros
 
 - `#[koruma::validator]`: generates a `bon` builder and `with_value()` helper for validators.
 - `#[derive(Koruma)]`: generates validation error structs and `validate()`.
 - `#[derive(KorumaAllDisplay)]`: adds `Display` for `all()` validator enums.
-- `#[derive(KorumaAllFluent)]`: adds `ToFluentString` for `all()` enums (feature `fluent`).
-
-## Installation
-
-```toml
-[dependencies]
-koruma-derive = "0.3"
-```
+- `#[derive(KorumaAllFluent)]`: adds `ToFluentString` for `all()` validator enums (feature `fluent`).
 
 ## Features
 
 - `fluent`: enables `KorumaAllFluent` derive.
-- `showcase`: enables showcase registration for validators.

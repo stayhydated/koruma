@@ -182,6 +182,6 @@ pub struct ContainsRequiredNewtype {
 pub struct ContainsNewtypeWithValidators {
     #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<PositiveNumber>,
-
+    #[allow(dead_code)]
     pub name: String,
 }

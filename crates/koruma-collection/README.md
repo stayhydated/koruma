@@ -7,20 +7,12 @@
 A curated set of validators built on top of `koruma`, organized by domain:
 string, format, numeric, collection, and general-purpose validators.
 
-## Installation
-
-```toml
-[dependencies]
-koruma-collection = { version = "0.3", features = ["full"] }
-```
-
-## Common features
+## Features
 
 - `full`: enables all validators and optional dependencies.
 - `fmt` (default): enables `Display` implementations for validators.
-- `fluent`: enables fluent/i18n integration.
+- `fluent`: enables fluent/i18n integration and embedded translations.
 - `full-fluent`: `full` + `fluent`.
-- `showcase`: enables validator registry support.
 
 ## Example
 
@@ -30,7 +22,7 @@ use koruma_collection::string::ContainsValidation;
 
 #[derive(Koruma)]
 struct User {
-    #[koruma(ContainsValidation::<_>(substring = "@"))]
-    email: String,
+    #[koruma(ContainsValidation::<_>(substring = "67"))]
+    username: String,
 }
 ```

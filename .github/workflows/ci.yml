@@ -20,7 +20,8 @@ jobs:
         with:
           path: .
           all: true
-          ignore: koruma-user-defined-example
+          ignore: |
+            koruma-user-defined-example
 
   test:
     runs-on: ubuntu-latest

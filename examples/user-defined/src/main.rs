@@ -33,6 +33,14 @@ pub fn main() {
                 println!("  - name: {}", name_err);
                 println!("    (input was: {:?})", name_err.input);
             }
+
+            println!("  - all failed validators (via all()):");
+            for err in errors.age().all() {
+                println!("    - age: {}", err);
+            }
+            for err in errors.name().all() {
+                println!("    - name: {}", err);
+            }
         },
     }
 
@@ -285,6 +293,14 @@ pub fn main() {
                 // errors.email() returns &InnerError directly
                 if let Some(inner_err) = errors.email().non_empty_string_validation() {
                     println!("  - email: {}", inner_err.to_fluent_string());
+                }
+
+                println!("  - all failed validators (via all()):");
+                for err in errors.username().all() {
+                    println!("    - username: {}", err.to_fluent_string());
+                }
+                for err in errors.email().all() {
+                    println!("    - email: {}", err.to_fluent_string());
                 }
             },
         }

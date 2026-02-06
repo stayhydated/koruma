@@ -15,7 +15,7 @@ use koruma::{Koruma, Validate};
 //     items: Vec<String>,
 // }
 
-#[derive(Koruma)]
+#[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
     #[koruma(validators::normal::NumberRangeValidation::<_>(min = 0, max = 100))]
     pub age: i32,

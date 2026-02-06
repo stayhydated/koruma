@@ -481,14 +481,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "es-fluent"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de656ceed70bb82968eeb645cb8a2f38b92f3e90b32707407e47aede2162e5c6"
+checksum = "4943abe6c95995f5268e11adcc677544283383019c5c62184d3e5fd237416c61"
 dependencies = [
  "arc-swap",
  "bon",
@@ -506,9 +506,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e491a8c05453be10d67838ab9748c4f4432cfb4b473e3b8bb3fa0c96ad349877"
+checksum = "437a46d69ccac6f7acf940724bd2a7d8083b3dbb4286e03d7ffbf5fe98e0fe9b"
 dependencies = [
  "darling",
  "es-fluent-derive-core",
@@ -523,9 +523,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive-core"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4299d703bb82505b438c070625a242f6114a2b33d67442f502f11863cd2f0dea"
+checksum = "684ba20e454b6e1f45239d212e005d6c6ddae8880751aaddecbfde8301600bed"
 dependencies = [
  "anyhow",
  "bon",
@@ -579,9 +579,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-core"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a037f1456a20a7bc9bb5bad0f2b52fc45ccdbfeb4308b9a80446f8403961a1e2"
+checksum = "fd9efa42554a80e7364f46247c4ae6b6a52c803c42f15730f09faf353078ca71"
 dependencies = [
  "anyhow",
  "es-fluent-derive-core",
@@ -624,9 +624,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-toml"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d4bbb91e0d39925dcea99ef444eba852e2ad718eac4e45fd72d7554cef7f255"
+checksum = "3d6fcc0e5de03075a6314c3ece41eb357b1f0f201897bc14fe3e6ef077a36bab"
 dependencies = [
  "serde",
  "thiserror 2.0.17",
@@ -2052,7 +2052,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2345,7 +2345,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2904,7 +2904,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

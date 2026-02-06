@@ -1,5 +1,5 @@
 [workspace]
-default-members = ["examples/collection"]
+default-members = [ "examples/collection" ]
 members = [
   "crates/koruma",
   "crates/koruma-collection",

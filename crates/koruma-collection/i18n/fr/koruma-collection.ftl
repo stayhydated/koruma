@@ -6,21 +6,6 @@ alphanumeric_validation = Doit contenir uniquement des lettres et des chiffres.
 
 ascii_validation = Doit contenir uniquement des caractères ASCII.
 
-## Case
-
-case-Camel = camelCase (lower camel case)
-case-Kebab = kebab-case
-case-Pascal = PascalCase (upper camel case)
-case-ShoutyKebab = SCREAMING-KEBAB-CASE
-case-ShoutySnake = SCREAMING_SNAKE_CASE
-case-Snake = snake_case
-case-Title = Title Case
-case-Train = Train-Case
-
-## CaseValidation
-
-case_validation = Doit être en casse { $case }.
-
 ## ContainsValidation
 
 contains_validation = Doit contenir la sous-chaîne « { $substring } ».

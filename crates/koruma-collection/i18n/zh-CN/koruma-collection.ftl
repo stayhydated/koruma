@@ -6,21 +6,6 @@ alphanumeric_validation = 必须只包含字母和数字。
 
 ascii_validation = 必须只包含 ASCII 字符。
 
-## Case
-
-case-Camel = camelCase (lower camel case)
-case-Kebab = kebab-case
-case-Pascal = PascalCase (upper camel case)
-case-ShoutyKebab = SCREAMING-KEBAB-CASE
-case-ShoutySnake = SCREAMING_SNAKE_CASE
-case-Snake = snake_case
-case-Title = Title Case
-case-Train = Train-Case
-
-## CaseValidation
-
-case_validation = 必须使用 { $case } 格式。
-
 ## ContainsValidation
 
 contains_validation = 必须包含子串 '{ $substring }'。

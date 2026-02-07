@@ -28,6 +28,9 @@ url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
 heck = { optional = true, workspace = true }
 
+[build-dependencies]
+es-fluent = { features = [ "build" ], workspace = true }
+
 [features]
 default = [ "fmt" ]
 full = [

@@ -16,3 +16,6 @@ unic-langid = { workspace = true }
 
 [build-dependencies]
 es-fluent = { features = [ "build" ], workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = [ "rust-embed" ]

@@ -8,13 +8,16 @@ publish = false
 
 [dependencies]
 bon = { workspace = true }
-es-fluent = { features = [ "derive" ], workspace = true }
+es-fluent = { features = ["derive"], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
-koruma = { features = [ "derive", "fluent" ], workspace = true }
+koruma = { features = ["derive", "fluent"], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 rust-embed = { workspace = true }
-strum = { features = [ "derive" ], workspace = true }
+strum = { features = ["derive"], workspace = true }
 unic-langid = { workspace = true }
 
 [build-dependencies]
-es-fluent = { features = [ "build" ], workspace = true }
+es-fluent = { features = ["build"], workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["bon", "rust-embed"]

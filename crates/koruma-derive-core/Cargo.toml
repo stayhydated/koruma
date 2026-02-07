@@ -16,7 +16,6 @@ default = [  ]
 showcase = [  ]
 
 [dependencies]
-proc-macro2 = { workspace = true }
 quote = { workspace = true }
 syn = { features = [ "full", "extra-traits" ], workspace = true }
 syn-cfg-attr = { workspace = true }

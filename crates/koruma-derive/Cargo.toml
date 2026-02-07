@@ -33,3 +33,6 @@ prettyplease = { workspace = true }
 
 [package.metadata.docs.rs]
 features = [ "fluent" ]
+
+[package.metadata.cargo-machete]
+ignored = [ "inventory" ]

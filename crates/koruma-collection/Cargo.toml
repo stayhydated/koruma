@@ -16,53 +16,29 @@ bon = { workspace = true }
 card-validate = { optional = true, workspace = true }
 es-fluent = { features = [ "derive" ], optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
-idna = { optional = true, workspace = true }
 inventory = { optional = true, workspace = true }
 koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
 rust-embed = { optional = true, workspace = true }
-rust_decimal = { optional = true, workspace = true }
-unic-langid = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
-heck = { optional = true, workspace = true }
 
 [build-dependencies]
 es-fluent = { features = [ "build" ], workspace = true }
 
 [features]
 default = [ "fmt" ]
-full = [
-  "heck",
-  "fmt",
-  "url",
-  "credit-card",
-  "phone-number",
-  "email",
-  "email-idna",
-  "rust_decimal",
-  "regex",
-  "smallvec",
-]
+full = [ "url", "credit-card", "phone-number", "email", "regex", "smallvec" ]
 full-fluent = [ "full", "fluent" ]
-fluent = [
-  "koruma/fluent",
-  "dep:es-fluent",
-  "dep:es-fluent-manager-embedded",
-  "dep:unic-langid",
-  "dep:rust-embed",
-]
-showcase = [ "full", "koruma/showcase" ]
+fluent = [ "koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:rust-embed" ]
+showcase = [ "full-fluent", "koruma/showcase", "fmt" ]
 credit-card = [ "dep:card-validate" ]
 email = [ "dep:regex" ]
-email-idna = [ "dep:idna" ]
 smallvec = [ "dep:smallvec" ]
 fmt = [  ]
-heck = [ "dep:heck" ]
 phone-number = [ "dep:phonenumber" ]
 regex = [ "dep:regex" ]
-rust_decimal = [ "dep:rust_decimal" ]
 url = [ "dep:url" ]
 
 [package.metadata.docs.rs]
@@ -72,12 +48,12 @@ features = [
   "fluent",
   "credit-card",
   "email",
-  "email-idna",
   "smallvec",
   "fmt",
-  "heck",
   "phone-number",
   "regex",
-  "rust_decimal",
   "url",
 ]
+
+[package.metadata.cargo-machete]
+ignored = [ "bon", "inventory", "rust-embed" ]

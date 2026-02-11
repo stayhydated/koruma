@@ -29,6 +29,7 @@ use koruma::{Validate, validator};
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct PatternValidation<T: AsRef<str>> {
     /// The regex pattern to match against
     #[builder(into)]

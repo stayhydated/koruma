@@ -49,6 +49,7 @@ impl std::fmt::Display for IpKind {
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct IpValidation<T: AsRef<str>> {
     /// The type of IP address to validate
     #[cfg_attr(feature = "fluent", fluent(choice))]

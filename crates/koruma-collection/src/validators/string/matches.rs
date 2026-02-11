@@ -30,6 +30,7 @@ use koruma::{Validate, validator};
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct MatchesValidation<T: PartialEq + std::fmt::Display + Clone> {
     /// The value to match against
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]

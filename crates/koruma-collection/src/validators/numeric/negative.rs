@@ -32,6 +32,7 @@ use super::Numeric;
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
 pub struct NegativeValidation<T: Numeric> {
     /// The value being validated (stored for error context)
     #[koruma(value)]

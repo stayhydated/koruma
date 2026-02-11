@@ -32,6 +32,7 @@ use koruma::{Validate, validator};
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
 pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
     /// Minimum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]

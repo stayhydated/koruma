@@ -34,6 +34,7 @@ use super::HasLen;
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "collection"))]
 pub struct LenValidation<T: HasLen> {
     /// Minimum allowed length (inclusive)
     pub min: usize,

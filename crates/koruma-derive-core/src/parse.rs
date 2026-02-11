@@ -4,8 +4,8 @@
 //! attributes from syn AST nodes.
 
 use syn::{
-    Attribute, Error, Expr, Field, Fields, Ident, Index, ItemStruct, Member, Path, Result, Token,
-    Type, parenthesized,
+    Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
+    PathArguments, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     spanned::Spanned,
     token,
@@ -52,6 +52,7 @@ pub struct ValidatorAttr {
 }
 
 impl ValidatorAttr {
+    const USE_TURBO_SYNTAX_MSG: &'static str = "use turbofish syntax `::<_>` to infer the type";
     /// Returns the simple name of the validator (the last segment of the path).
     /// Used for generating field names and enum variants.
     pub fn name(&self) -> &Ident {
@@ -81,93 +82,59 @@ impl ValidatorAttr {
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Parse the path manually, segment by segment.
-        // We need to stop BEFORE consuming any turbofish generics (`::<...>`)
-        // because we want to handle those separately for our ::<_> syntax.
-
-        // Check for leading ::
-        let leading_colon = if input.peek(Token![::]) {
-            Some(input.parse::<Token![::]>()?)
-        } else {
-            None
-        };
-
-        // Parse path segments manually
-        let mut segments = syn::punctuated::Punctuated::new();
-
-        loop {
-            // Parse an identifier (path segment)
-            let ident: Ident = input.parse()?;
-            segments.push(syn::PathSegment {
-                ident,
-                arguments: syn::PathArguments::None,
-            });
-
-            // Check what follows:
-            // - `::` followed by `<` = turbofish, stop here
-            // - `::` followed by ident = more path segments, continue
-            // - anything else = end of path
-            if input.peek(Token![::]) {
-                let fork = input.fork();
-                fork.parse::<Token![::]>().ok();
-
-                if fork.peek(Token![<]) {
-                    // This is a turbofish, don't consume the ::, let the turbofish handling below do it
-                    break;
-                } else if fork.peek(Ident) {
-                    // More path segments, consume :: and continue
-                    segments.push_punct(input.parse()?);
-                } else {
-                    // :: followed by something else, stop
-                    break;
-                }
-            } else {
-                // Not ::, end of path
-                break;
-            }
-        }
-
-        let validator = Path {
-            leading_colon,
-            segments,
-        };
+        // Parse validator path first; syn captures turbofish as arguments on the final segment.
+        let mut validator: Path = input.parse()?;
 
         // Check for turbofish generic syntax: ::<_> or ::<SomeType>
         // ::<_> means "use the field type" (unwrapping Option if present)
         // ::<Option<_>> means "use the full Option type" (without unwrapping)
         // ::<Vec<_>> means "substitute _ with the inner type from the field"
-        let (infer_type, explicit_type) = if input.peek(Token![::]) {
-            // Look ahead to check if < follows ::
-            let fork = input.fork();
-            let has_turbofish = fork.parse::<Token![::]>().is_ok() && fork.peek(Token![<]);
+        let (infer_type, explicit_type) = {
+            let validator_span = validator.span();
+            let last_segment = validator
+                .segments
+                .last_mut()
+                .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
 
-            if has_turbofish {
-                input.parse::<Token![::]>()?;
-                input.parse::<Token![<]>()?;
+            // Strip generic args from stored validator path and parse them into fields.
+            let args = std::mem::replace(&mut last_segment.arguments, PathArguments::None);
+            match args {
+                PathArguments::None => {
+                    // User used old syntax without ::, give helpful error.
+                    if input.peek(Token![<]) {
+                        return Err(Error::new(input.span(), Self::USE_TURBO_SYNTAX_MSG));
+                    }
+                    (false, None)
+                },
+                PathArguments::AngleBracketed(mut angle_args) => {
+                    if angle_args.colon2_token.is_none() {
+                        return Err(Error::new(angle_args.span(), Self::USE_TURBO_SYNTAX_MSG));
+                    }
 
-                // Check for ::<_> syntax (type inference with Option unwrapping)
-                if input.peek(Token![_]) {
-                    input.parse::<Token![_]>()?;
-                    input.parse::<Token![>]>()?;
-                    (true, None)
-                }
-                // Explicit type: ::<SomeType>
-                else {
-                    let ty: Type = input.parse()?;
-                    input.parse::<Token![>]>()?;
-                    (false, Some(ty))
-                }
-            } else {
-                (false, None)
+                    if angle_args.args.len() != 1 {
+                        return Err(Error::new(
+                            angle_args.span(),
+                            "validator type syntax expects exactly one type argument",
+                        ));
+                    }
+
+                    let arg = angle_args.args.pop().expect("len checked").into_value();
+                    match arg {
+                        GenericArgument::Type(Type::Infer(_)) => (true, None),
+                        GenericArgument::Type(ty) => (false, Some(ty)),
+                        _ => Err(Error::new(
+                            arg.span(),
+                            "validator type syntax expects a type argument",
+                        ))?,
+                    }
+                },
+                PathArguments::Parenthesized(args) => {
+                    return Err(Error::new(
+                        args.span(),
+                        "validator path does not support parenthesized arguments",
+                    ));
+                },
             }
-        } else if input.peek(Token![<]) {
-            // User used old syntax without ::, give helpful error
-            return Err(Error::new(
-                input.span(),
-                "use turbofish syntax for type parameters: `Validator::<_>` not `Validator<_>`",
-            ));
-        } else {
-            (false, None)
         };
 
         let args = if input.peek(token::Paren) {

@@ -20,6 +20,7 @@ use koruma::{Validate, validator};
 #[validator]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "general"))]
 pub struct RequiredValidation<T> {
     /// The value being validated (stored for error context)
     #[koruma(value)]

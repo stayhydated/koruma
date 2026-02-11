@@ -34,6 +34,7 @@ use super::HasLen;
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "collection"))]
 pub struct NonEmptyValidation<T: HasLen> {
     /// The value being validated (stored for error context)
     #[koruma(value)]

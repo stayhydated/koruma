@@ -1,19 +1,24 @@
 ## CreditCardValidation
 
-credit_card_validation = Credit Card Validation
+credit_card_validation = Not a valid credit card number.
 
 ## EmailValidation
 
-email_validation = Email Validation
+email_validation = Not a valid email address.
 
 ## IpValidation
 
-ip_validation = Ip Validation { $kind }
+ip_validation =
+    Not a valid { $kind ->
+        [v4] IPv4
+        [v6] IPv6
+       *[other] IP
+    } address.
 
 ## PhoneNumberValidation
 
-phone_number_validation = Phone Number Validation
+phone_number_validation = Not a valid phone number.
 
 ## UrlValidation
 
-url_validation = Url Validation
+url_validation = Not a valid URL.

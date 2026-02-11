@@ -1,27 +1,27 @@
 ## AlphanumericValidation
 
-alphanumeric_validation = Alphanumeric Validation
+alphanumeric_validation = Must contain only letters and numbers.
 
 ## AsciiValidation
 
-ascii_validation = Ascii Validation
+ascii_validation = Must contain only ASCII characters.
 
 ## ContainsValidation
 
-contains_validation = Contains Validation { $substring }
+contains_validation = Must contain the substring '{ $substring }'.
 
 ## MatchesValidation
 
-matches_validation = Matches Validation { $other }
+matches_validation = Does not match the expected value '{ $other }'.
 
 ## PatternValidation
 
-pattern_validation = Pattern Validation { $pattern }
+pattern_validation = Does not match the required pattern '{ $pattern }'.
 
 ## PrefixValidation
 
-prefix_validation = Prefix Validation { $prefix }
+prefix_validation = Must start with '{ $prefix }'.
 
 ## SuffixValidation
 
-suffix_validation = Suffix Validation { $suffix }
+suffix_validation = Must end with '{ $suffix }'.

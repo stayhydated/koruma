@@ -1,19 +1,19 @@
 ## NegativeValidation
 
-negative_validation = Negative Validation
+negative_validation = Must be negative.
 
 ## NonNegativeValidation
 
-non_negative_validation = Non Negative Validation
+non_negative_validation = Must be zero or a positive number.
 
 ## NonPositiveValidation
 
-non_positive_validation = Non Positive Validation
+non_positive_validation = Must be zero or a negative number.
 
 ## PositiveValidation
 
-positive_validation = Positive Validation
+positive_validation = Must be positive.
 
 ## RangeValidation
 
-range_validation = Range Validation { $min } { $max }
+range_validation = Must be between { $min } and { $max }.

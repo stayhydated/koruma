@@ -20,10 +20,11 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Email",
     description = "Validates that the input is a valid email address",
-    create = |input: &str| {
-        EmailValidation::builder()
+    module = "format",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(EmailValidation::builder()
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

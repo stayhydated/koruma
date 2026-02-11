@@ -23,11 +23,12 @@ use super::Numeric;
     name = "Positive Number",
     description = "Validates that the input is a positive number (> 0)",
     input_type = Numeric,
-    create = |input: &str| {
-        let num = input.parse::<f64>().unwrap_or(0.0);
-        PositiveValidation::builder()
+    module = "numeric",
+    create = |input: &str| -> anyhow::Result<_> {
+        let num = input.parse::<f64>()?;
+        Ok(PositiveValidation::builder()
             .with_value(num)
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

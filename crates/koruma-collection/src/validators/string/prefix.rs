@@ -20,11 +20,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Prefix 'hello'",
     description = "Validates that the input starts with 'hello'",
-    create = |input: &str| {
-        PrefixValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(PrefixValidation::builder()
             .prefix("hello")
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

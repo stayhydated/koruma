@@ -24,12 +24,13 @@ use super::HasLen;
 #[cfg_attr(feature = "showcase", showcase(
     name = "Length",
     description = "Validates string length is between 1 and 10",
-    create = |input: &str| {
-        LenValidation::builder()
+    module = "collection",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(LenValidation::builder()
             .min(1)
             .max(10)
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

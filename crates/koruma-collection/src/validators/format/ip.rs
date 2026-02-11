@@ -40,11 +40,12 @@ impl std::fmt::Display for IpKind {
 #[cfg_attr(feature = "showcase", showcase(
     name = "IP Address",
     description = "Validates that the input is a valid IP address (v4 or v6)",
-    create = |input: &str| {
-        IpValidation::builder()
+    module = "format",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(IpValidation::builder()
             .kind(IpKind::Any)
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

@@ -20,11 +20,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Regex Pattern",
     description = "Validates that the input matches a regex pattern (uses ^[a-zA-Z0-9_]+$)",
-    create = |input: &str| {
-        PatternValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(PatternValidation::builder()
             .with_value(input.to_string())
             .pattern(r"^[a-zA-Z0-9_]+$")
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

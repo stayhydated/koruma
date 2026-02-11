@@ -21,13 +21,14 @@ use koruma::{Validate, validator};
     name = "Range [0, 100]",
     description = "Validates that the input is a number between 0 and 100",
     input_type = Numeric,
-    create = |input: &str| {
-        let num = input.parse::<f64>().unwrap_or(0.0);
-        RangeValidation::builder()
+    module = "numeric",
+    create = |input: &str| -> anyhow::Result<_> {
+        let num = input.parse::<f64>()?;
+        Ok(RangeValidation::builder()
             .min(0_f64)
             .max(100_f64)
             .with_value(num)
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

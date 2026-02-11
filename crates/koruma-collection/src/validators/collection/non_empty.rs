@@ -26,10 +26,11 @@ use super::HasLen;
 #[cfg_attr(feature = "showcase", showcase(
     name = "NonEmpty",
     description = "Validates that the input is not empty",
-    create = |input: &str| {
-        NonEmptyValidation::builder()
+    module = "collection",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(NonEmptyValidation::builder()
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

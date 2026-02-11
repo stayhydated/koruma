@@ -147,6 +147,11 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         } else {
             quote! { ::koruma::showcase::InputType::Text }
         };
+        let module_tokens = if let Some(ref m) = showcase.module {
+            quote! { #m }
+        } else {
+            quote! { "general" }
+        };
 
         // Extract generics from the struct
         let (impl_generics, type_generics, _where_clause) = input.generics.split_for_impl();
@@ -208,8 +213,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                     name: #name,
                     description: #description,
                     input_type: #input_type_tokens,
-                    create_validator: |input: &str| -> Box<dyn ::koruma::showcase::DynValidator> {
-                        Box::new((#create_closure)(input))
+                    module: #module_tokens,
+                    create_validator: |input: &str| -> ::anyhow::Result<Box<dyn ::koruma::showcase::DynValidator>> {
+                        (#create_closure)(input).map(|v| Box::new(v) as Box<dyn ::koruma::showcase::DynValidator>)
                     },
                 }
             }

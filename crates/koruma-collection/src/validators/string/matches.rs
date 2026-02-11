@@ -21,11 +21,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Matches Value",
     description = "Validates that the input matches 'expected'",
-    create = |input: &str| {
-        MatchesValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(MatchesValidation::builder()
             .with_value(input.to_string())
             .other("expected".to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

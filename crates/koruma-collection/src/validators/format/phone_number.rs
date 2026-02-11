@@ -28,6 +28,7 @@ use koruma::{Validate, validator};
 ))]
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
+#[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct PhoneNumberValidation<T: AsRef<str>> {
     /// The string being validated (stored for error context)
     #[koruma(value)]

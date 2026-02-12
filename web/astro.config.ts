@@ -6,7 +6,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 
 export default defineConfig({
   site: "https://stayhydated.github.io",
-  base: "/es-fluent",
+  base: "/koruma",
 
   vite: {
     plugins: [wasm(), topLevelAwait(), tailwindcss()],

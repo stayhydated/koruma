@@ -47,16 +47,6 @@ impl ValidatorModule {
         }
     }
 
-    fn description(&self) -> &'static str {
-        match self {
-            Self::String => "String-based validators (alphanumeric, ascii, contains, etc.)",
-            Self::Format => "Format validators (email, URL, phone, credit card, etc.)",
-            Self::Numeric => "Numeric validators (positive, negative, range, etc.)",
-            Self::Collection => "Collection validators (length, non-empty)",
-            Self::General => "General-purpose validators (required)",
-        }
-    }
-
     fn contains_validator(&self, showcase: &ValidatorShowcase) -> bool {
         match self {
             Self::String => showcase.module == "string",
@@ -320,22 +310,12 @@ impl App {
 
     fn render_module_selector(&self, frame: &mut Frame, area: Rect) {
         let text = if let Some(module) = self.current_module() {
-            vec![
-                Line::from(vec![
-                    Span::styled("◀ ", Style::default().fg(Color::DarkGray)),
-                    Span::styled(
-                        module.name(),
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(" ▶", Style::default().fg(Color::DarkGray)),
-                ]),
-                Line::from(Span::styled(
-                    module.description(),
-                    Style::default().fg(Color::Gray),
-                )),
-            ]
+            vec![Line::from(vec![Span::styled(
+                module.name(),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )])]
         } else {
             vec![Line::from(Span::styled(
                 "No validators available",
@@ -365,16 +345,12 @@ impl App {
             .unwrap_or(("No validators", "No validators registered for this module"));
 
         let text = vec![
-            Line::from(vec![
-                Span::styled("▲ ", Style::default().fg(Color::DarkGray)),
-                Span::styled(
-                    name,
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(" ▼", Style::default().fg(Color::DarkGray)),
-            ]),
+            Line::from(vec![Span::styled(
+                name,
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )]),
             Line::from(Span::styled(description, Style::default().fg(Color::Gray))),
         ];
 

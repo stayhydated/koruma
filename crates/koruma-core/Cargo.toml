@@ -13,9 +13,10 @@ readme = "README.md"
 
 [features]
 default = [  ]
-showcase = [ "dep:inventory" ]
+showcase = [ "dep:anyhow", "dep:inventory" ]
 
 [dependencies]
+anyhow = { optional = true, workspace = true }
 inventory = { optional = true, workspace = true }
 
 [package.metadata.docs.rs]

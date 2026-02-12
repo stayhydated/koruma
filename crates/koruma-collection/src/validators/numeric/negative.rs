@@ -23,11 +23,12 @@ use super::Numeric;
     name = "Negative Number",
     description = "Validates that the input is a negative number (< 0)",
     input_type = Numeric,
-    create = |input: &str| {
-        let num = input.parse::<f64>().unwrap_or(0.0);
-        NegativeValidation::builder()
+    module = "numeric",
+    create = |input: &str| -> anyhow::Result<_> {
+        let num = input.parse::<f64>()?;
+        Ok(NegativeValidation::builder()
             .with_value(num)
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

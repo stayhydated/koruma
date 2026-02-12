@@ -712,6 +712,7 @@ pub fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
 ///
 /// The `create` closure takes a `&str` and returns the validator instance.
 /// Optional `input_type` can be "text" (default) or "numeric".
+/// Optional `module` can be "string", "format", "numeric", "collection", or "general".
 #[cfg(feature = "showcase")]
 #[derive(Clone, Debug)]
 pub struct ShowcaseAttr {
@@ -719,6 +720,7 @@ pub struct ShowcaseAttr {
     pub description: syn::LitStr,
     pub create: syn::ExprClosure,
     pub input_type: Option<Ident>,
+    pub module: Option<syn::LitStr>,
 }
 
 #[cfg(feature = "showcase")]
@@ -728,6 +730,7 @@ impl Parse for ShowcaseAttr {
         let mut description: Option<syn::LitStr> = None;
         let mut create: Option<syn::ExprClosure> = None;
         let mut input_type: Option<Ident> = None;
+        let mut module: Option<syn::LitStr> = None;
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
@@ -745,6 +748,9 @@ impl Parse for ShowcaseAttr {
                 },
                 "input_type" => {
                     input_type = Some(input.parse()?);
+                },
+                "module" => {
+                    module = Some(input.parse()?);
                 },
                 other => {
                     return Err(Error::new(
@@ -768,6 +774,7 @@ impl Parse for ShowcaseAttr {
             create: create
                 .ok_or_else(|| Error::new(input.span(), "showcase requires `create` attribute"))?,
             input_type,
+            module,
         })
     }
 }

@@ -20,11 +20,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Suffix '.rs'",
     description = "Validates that the input ends with '.rs'",
-    create = |input: &str| {
-        SuffixValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(SuffixValidation::builder()
             .suffix(".rs")
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

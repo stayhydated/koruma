@@ -20,11 +20,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Contains 'test'",
     description = "Validates that the input contains the substring 'test'",
-    create = |input: &str| {
-        ContainsValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(ContainsValidation::builder()
             .substring("test")
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

@@ -105,8 +105,11 @@ pub mod showcase {
         pub description: &'static str,
         /// The type of input expected by the validator
         pub input_type: InputType,
+        /// The module/category this validator belongs to (e.g., "string", "format", "numeric", "collection", "general")
+        pub module: &'static str,
         /// Factory function that creates a validator from string input.
-        pub create_validator: fn(&str) -> Box<dyn DynValidator>,
+        /// Returns Ok(validator) on success, or Err(error) if input cannot be parsed.
+        pub create_validator: fn(&str) -> ::anyhow::Result<Box<dyn DynValidator>>,
     }
 
     inventory::collect!(ValidatorShowcase);

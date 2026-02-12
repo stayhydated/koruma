@@ -20,10 +20,11 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "Alphanumeric",
     description = "Validates that the input contains only alphanumeric characters",
-    create = |input: &str| {
-        AlphanumericValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(AlphanumericValidation::builder()
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

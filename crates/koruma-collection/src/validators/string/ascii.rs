@@ -20,10 +20,11 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "showcase", showcase(
     name = "ASCII",
     description = "Validates that the input contains only ASCII characters",
-    create = |input: &str| {
-        AsciiValidation::builder()
+    module = "string",
+    create = |input: &str| -> anyhow::Result<_> {
+        Ok(AsciiValidation::builder()
             .with_value(input.to_string())
-            .build()
+            .build())
     }
 ))]
 #[derive(Clone, Debug)]

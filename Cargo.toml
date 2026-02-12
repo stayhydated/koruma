@@ -22,6 +22,7 @@ rust-version = "1.88"
 version = "0.5.0"
 
 [workspace.dependencies]
+anyhow = "1.0"
 bon = "3.8"
 card-validate = "2.4"
 crossterm = "0.29"

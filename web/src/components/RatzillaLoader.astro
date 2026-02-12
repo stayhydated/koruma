@@ -33,6 +33,26 @@ const {
     root.dataset.state = state;
   };
 
+  // Capture Tab so it stays inside the app
+  const abortController = new AbortController();
+  const handleKeyDown = (event) => {
+    if (event.key !== "Tab") {
+      return;
+    }
+    event.preventDefault();
+  };
+  document.addEventListener("keydown", handleKeyDown, {
+    capture: true,
+    signal: abortController.signal,
+  });
+  window.addEventListener(
+    "pagehide",
+    () => {
+      abortController.abort();
+    },
+    { once: true }
+  );
+
   (async () => {
     try {
       const module = await import(moduleUrl);

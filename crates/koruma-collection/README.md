@@ -16,6 +16,8 @@ string, format, numeric, collection, and general-purpose validators.
 
 ## Example
 
+[online demo](https://stayhydated.github.io/koruma/collection-example/)
+
 ```rust
 use koruma::Koruma;
 use koruma_collection::string::ContainsValidation;

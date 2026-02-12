@@ -18,7 +18,7 @@ koruma = { version = "*", features = ["derive"] } # derive is the default
 bon = { version = "*" }
 ```
 
-## koruma-collection
+## koruma-collection ([online demo](https://stayhydated.github.io/koruma/collection-example/))
 
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)

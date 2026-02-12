@@ -10,7 +10,7 @@
 1. **Ergonomics**: Derive macros and validator attributes that minimize boilerplate.
 1. **Developer Experience**: Optional constructors, nested/newtype validation, and fluent/i18n.
 
-## koruma-collection
+## koruma-collection ([online demo](https://stayhydated.github.io/koruma/collection-example/))
 
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)

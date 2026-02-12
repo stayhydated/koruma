@@ -1,12 +1,14 @@
 [workspace]
-default-members = [ "examples/collection" ]
+default-members = [ "examples/collection-native" ]
 members = [
   "crates/koruma",
   "crates/koruma-collection",
   "crates/koruma-core",
   "crates/koruma-derive",
   "crates/koruma-derive-core",
-  "examples/collection",
+  "examples/collection-core",
+  "examples/collection-native",
+  "examples/collection-web",
   "examples/user-defined",
   "examples/shared-lib",
 ]
@@ -56,6 +58,9 @@ syn = "2.0"
 syn-cfg-attr = "0.1"
 unic-langid = "0.9"
 url = "2.5"
+getrandom = "0.3"
+console_error_panic_hook = "0.1"
+wasm-bindgen = "0.2"
 
 [profile.dev]
 codegen-units = 16

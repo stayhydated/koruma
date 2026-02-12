@@ -1013,22 +1013,38 @@ dependencies = [
 ]
 
 [[package]]
-name = "koruma-collection-example"
+name = "koruma-collection-example-core"
 version = "0.5.0"
 dependencies = [
  "anyhow",
- "console_error_panic_hook",
- "crossterm",
  "es-fluent",
  "es-fluent-manager-embedded",
- "getrandom",
  "koruma",
  "koruma-collection",
  "koruma-shared-lib",
  "ratatui",
- "ratzilla",
  "rust-embed",
  "unic-langid",
+]
+
+[[package]]
+name = "koruma-collection-example-native"
+version = "0.5.0"
+dependencies = [
+ "crossterm",
+ "koruma-collection-example-core",
+ "ratatui",
+]
+
+[[package]]
+name = "koruma-collection-example-web"
+version = "0.5.0"
+dependencies = [
+ "console_error_panic_hook",
+ "getrandom",
+ "koruma-collection-example-core",
+ "ratatui",
+ "ratzilla",
  "wasm-bindgen",
 ]
 

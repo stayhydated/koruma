@@ -1,15 +1,10 @@
 [package]
-name = "koruma-collection-example"
+name = "koruma-collection-example-core"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 license = "Unlicense"
 publish = false
-
-[features]
-default = [ "native" ]
-native = [ "crossterm", "ratatui/crossterm" ]
-web = [ "ratzilla", "getrandom", "console_error_panic_hook", "wasm-bindgen" ]
 
 [dependencies]
 anyhow = { workspace = true }
@@ -22,14 +17,8 @@ ratatui = { workspace = true }
 rust-embed = { workspace = true }
 unic-langid = { workspace = true }
 
-crossterm = { optional = true, workspace = true }
-ratzilla = { optional = true, workspace = true }
-getrandom = { features = [ "wasm_js" ], optional = true, version = "0.3" }
-console_error_panic_hook = { optional = true, version = "0.1" }
-wasm-bindgen = { optional = true, version = "0.2" }
-
 [build-dependencies]
 es-fluent = { features = [ "build" ], workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = [ "es-fluent", "rust-embed", "getrandom", "console_error_panic_hook", "wasm-bindgen" ]
+ignored = [ "es-fluent", "rust-embed" ]

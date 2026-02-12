@@ -1,6 +1,4 @@
-use std::io;
-
-use crate::tui::input::{Input, InputRequest};
+use crate::input::{Input, InputRequest};
 use koruma::showcase::{DynValidator, InputType, ValidatorShowcase, validators};
 use ratatui::{
     Frame,
@@ -10,12 +8,7 @@ use ratatui::{
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
 
-use crate::tui::backend::{KeyCode, KeyEvent};
-
-#[cfg(feature = "native")]
-use crate::tui::backend::KeyEventKind;
-
-use crate::tui::i18n::change_locale;
+use crate::i18n::change_locale;
 use koruma_shared_lib::Languages;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -190,22 +183,13 @@ impl App {
         self.show_module_dialog = !self.show_module_dialog;
     }
 
-    #[cfg(feature = "native")]
-    pub fn handle_key_event(&mut self, key: KeyEvent) {
-        if key.kind != KeyEventKind::Press {
-            return;
-        }
-        self.handle_key_event_inner(key);
+    pub fn should_exit(&self) -> bool {
+        self.should_exit
     }
 
-    #[cfg(feature = "web")]
-    pub fn handle_key_event(&mut self, key: KeyEvent) {
-        self.handle_key_event_inner(key);
-    }
-
-    fn handle_key_event_inner(&mut self, key: KeyEvent) {
+    pub fn handle_key_code(&mut self, code: KeyCode) {
         if self.show_module_dialog {
-            match key.code {
+            match code {
                 KeyCode::Esc | KeyCode::Char('m') => self.toggle_module_dialog(),
                 KeyCode::Up => {
                     if !self.available_modules.is_empty() {
@@ -238,7 +222,7 @@ impl App {
             return;
         }
 
-        match key.code {
+        match code {
             KeyCode::Esc => self.should_exit = true,
             KeyCode::Char('m') => self.toggle_module_dialog(),
             KeyCode::Up => self.prev_validator(),
@@ -281,11 +265,6 @@ impl App {
             },
             _ => {},
         }
-    }
-
-    #[cfg(feature = "native")]
-    pub fn should_exit(&self) -> bool {
-        self.should_exit
     }
 
     pub fn render(&self, frame: &mut Frame) {
@@ -607,55 +586,23 @@ impl App {
     }
 }
 
-#[cfg(feature = "native")]
-pub fn run() -> io::Result<()> {
-    use crate::tui::backend::{init, restore};
-
-    crate::tui::i18n::init();
-    let _ = change_locale(Languages::default());
-    let mut terminal = init()?;
-    let result = run_native(&mut terminal);
-    restore();
-    result
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KeyCode {
+    Char(char),
+    Backspace,
+    Delete,
+    Home,
+    End,
+    PageUp,
+    PageDown,
+    Up,
+    Down,
+    Esc,
+    Enter,
+    Tab,
 }
 
-#[cfg(feature = "native")]
-fn run_native(terminal: &mut crate::tui::backend::Terminal) -> io::Result<()> {
-    use crossterm::event::{self, Event};
-
-    let mut app = App::new();
-    while !app.should_exit() {
-        terminal.draw(|frame| app.render(frame))?;
-        if let Event::Key(key) = event::read()? {
-            app.handle_key_event(key);
-        }
-    }
-    Ok(())
-}
-
-#[cfg(feature = "web")]
-pub fn run() -> io::Result<()> {
-    use crate::tui::backend::init;
-    use ratzilla::WebRenderer;
-    use std::cell::RefCell;
-    use std::rc::Rc;
-
-    crate::tui::i18n::init();
+pub fn init_i18n() {
+    crate::i18n::init();
     let _ = change_locale(Languages::default());
-    let terminal = init()?;
-
-    let app = Rc::new(RefCell::new(App::new()));
-
-    terminal.on_key_event({
-        let app = app.clone();
-        move |key_event| {
-            app.borrow_mut().handle_key_event(key_event);
-        }
-    });
-
-    terminal.draw_web(move |f| {
-        app.borrow().render(f);
-    });
-
-    Ok(())
 }

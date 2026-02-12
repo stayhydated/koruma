@@ -1,0 +1,18 @@
+[package]
+name = "koruma-collection-example-web"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license = "Unlicense"
+publish = false
+
+[lib]
+crate-type = [ "cdylib", "rlib" ]
+
+[dependencies]
+console_error_panic_hook = { workspace = true }
+getrandom = { features = [ "wasm_js" ], workspace = true }
+koruma-collection-example-core = { path = "../collection-core" }
+ratatui = { workspace = true }
+ratzilla = { workspace = true }
+wasm-bindgen = { workspace = true }

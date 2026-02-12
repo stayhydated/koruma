@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "//#build:wasm"],
+      "outputs": ["dist/**", ".astro/**"]
+    },
+    "//#build:wasm": {
+      "cache": true,
+      "inputs": ["Cargo.toml", "Cargo.lock", "crates/**", "examples/**"],
+      "outputs": ["web/public/collection-example/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    }
+  }
+}

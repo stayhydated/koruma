@@ -1,0 +1,26 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<Layout title="es-fluent Examples">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold text-primary mb-8 glow-primary">Examples</h1>
+    <ul class="space-y-4">
+      <li>
+        <a
+          href={`${baseUrl}/collection-example/`}
+          class="block p-6 bg-bg-card border border-primary/30 rounded-lg no-underline text-text transition-all duration-300 hover:border-primary hover:translate-x-1 border-glow-primary"
+        >
+          <div class="text-xl font-semibold mb-2 text-secondary glow-secondary">
+            Collection Example
+          </div>
+          <div class="text-sm text-text-muted">
+            Interactive TUI showcasing Koruma validators via Ratzilla (WASM).
+          </div>
+        </a>
+      </li>
+    </ul>
+  </div>
+</Layout>

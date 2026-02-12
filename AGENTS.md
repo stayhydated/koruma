@@ -8,21 +8,21 @@
 
 ## Architecture Documentation Index
 
-| Crate | Link to Architecture Doc | Purpose |
+| Crate                    | Link to Architecture Doc                                       | Purpose                                                                               |
 | ------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Core** | | |
-| `koruma` | [Architecture](crates/koruma/docs/ARCHITECTURE.md) | Public facade crate, re-exports core traits and derive macros, defines feature gates. |
-| `koruma-core` | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md) | Core traits and optional showcase registry types. |
-| **Derive & Parsing** | | |
-| `koruma-derive-core` | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros. |
-| `koruma-derive` | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md) | Proc-macros for validators, error structs, and helper derives. |
-| **Validator Collection** | | |
-| `koruma-collection` | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md) | Built-in validators with optional fluent/i18n resources. |
-| **Examples** | | |
-| `examples/collection` | | Interactive TUI showcasing validators via `showcase`. |
-| `examples/user-defined` | | Minimal example with custom validators and derives. |
-| `examples/shared-lib` | | Workspace example sharing validators across crates. |
-| `examples/i18n` | | Shared Fluent translation assets for examples. |
+| **Core**                 |                                                                |                                                                                       |
+| `koruma`                 | [Architecture](crates/koruma/docs/ARCHITECTURE.md)             | Public facade crate, re-exports core traits and derive macros, defines feature gates. |
+| `koruma-core`            | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)        | Core traits and optional showcase registry types.                                     |
+| **Derive & Parsing**     |                                                                |                                                                                       |
+| `koruma-derive-core`     | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros.                              |
+| `koruma-derive`          | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                        |
+| **Validator Collection** |                                                                |                                                                                       |
+| `koruma-collection`      | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                              |
+| **Examples**             |                                                                |                                                                                       |
+| `examples/collection`    |                                                                | Interactive TUI showcasing validators via `showcase`.                                 |
+| `examples/user-defined`  |                                                                | Minimal example with custom validators and derives.                                   |
+| `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                   |
+| `examples/i18n`          |                                                                | Shared Fluent translation assets for examples.                                        |
 
 ## Crate Descriptions
 

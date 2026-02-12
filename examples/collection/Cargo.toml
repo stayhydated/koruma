@@ -6,9 +6,13 @@ edition.workspace = true
 license = "Unlicense"
 publish = false
 
+[features]
+default = [ "native" ]
+native = [ "crossterm", "ratatui/crossterm" ]
+web = [ "ratzilla", "getrandom", "console_error_panic_hook", "wasm-bindgen" ]
+
 [dependencies]
 anyhow = { workspace = true }
-crossterm = { workspace = true }
 es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
 koruma = { features = [ "showcase", "derive" ], workspace = true }
@@ -16,11 +20,16 @@ koruma-collection = { features = [ "showcase" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 ratatui = { workspace = true }
 rust-embed = { workspace = true }
-tui-input = { workspace = true }
 unic-langid = { workspace = true }
+
+crossterm = { optional = true, workspace = true }
+ratzilla = { optional = true, workspace = true }
+getrandom = { features = [ "wasm_js" ], optional = true, version = "0.3" }
+console_error_panic_hook = { optional = true, version = "0.1" }
+wasm-bindgen = { optional = true, version = "0.2" }
 
 [build-dependencies]
 es-fluent = { features = [ "build" ], workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = [ "es-fluent", "rust-embed" ]
+ignored = [ "es-fluent", "rust-embed", "getrandom", "console_error_panic_hook", "wasm-bindgen" ]

@@ -1,19 +1,16 @@
-use std::io;
-
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crate::input::{Input, InputRequest};
 use koruma::showcase::{DynValidator, InputType, ValidatorShowcase, validators};
 use ratatui::{
-    DefaultTerminal, Frame,
+    Frame,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
 };
-use tui_input::{Input, InputRequest};
 
+use crate::i18n::change_locale;
 use koruma_shared_lib::Languages;
 
-/// Module categories for validators.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum ValidatorModule {
     String,
@@ -32,7 +29,6 @@ impl ValidatorModule {
         Self::General,
     ];
 
-    /// Get modules that have at least one validator in the showcase registry.
     fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<Self> {
         Self::ALL
             .iter()
@@ -51,17 +47,6 @@ impl ValidatorModule {
         }
     }
 
-    fn description(&self) -> &'static str {
-        match self {
-            Self::String => "String-based validators (alphanumeric, ascii, contains, etc.)",
-            Self::Format => "Format validators (email, URL, phone, credit card, etc.)",
-            Self::Numeric => "Numeric validators (positive, negative, range, etc.)",
-            Self::Collection => "Collection validators (length, non-empty)",
-            Self::General => "General-purpose validators (required)",
-        }
-    }
-
-    /// Check if a validator belongs to this module based on its showcase module field.
     fn contains_validator(&self, showcase: &ValidatorShowcase) -> bool {
         match self {
             Self::String => showcase.module == "string",
@@ -73,33 +58,22 @@ impl ValidatorModule {
     }
 }
 
-/// Application state for the TUI.
-struct App {
-    /// Current input text
+pub struct App {
     input: Input,
-    /// List of all registered validators
     all_validators: Vec<&'static ValidatorShowcase>,
-    /// Validators filtered by current module
     current_module_validators: Vec<&'static ValidatorShowcase>,
-    /// Available modules (those with at least 1 validator)
     available_modules: Vec<ValidatorModule>,
-    /// Currently selected module index (into available_modules)
     selected_module_idx: usize,
-    /// Currently selected validator index within the module
     selected_validator: usize,
-    /// Current validator instance (created from input)
-    /// Ok(validator) when input parses successfully, Err(error) when it fails
     current_validator: Option<anyhow::Result<Box<dyn DynValidator>>>,
-    /// Current language for fluent output
     current_language: Languages,
-    /// Whether the app should exit
     should_exit: bool,
-    /// Whether the module selection dialog is open
     show_module_dialog: bool,
+    dialog_selected_idx: usize,
 }
 
 impl App {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let all_validators = validators();
         let available_modules = ValidatorModule::available_modules(&all_validators);
         let selected_module_idx = 0;
@@ -123,6 +97,7 @@ impl App {
             current_language: Languages::default(),
             should_exit: false,
             show_module_dialog: false,
+            dialog_selected_idx: selected_module_idx,
         };
         app.validate_input();
         app
@@ -193,39 +168,42 @@ impl App {
 
     fn next_language(&mut self) {
         self.current_language = self.current_language.next();
-        super::i18n::change_locale(self.current_language).unwrap();
+        change_locale(self.current_language).unwrap();
     }
 
     fn toggle_module_dialog(&mut self) {
         self.show_module_dialog = !self.show_module_dialog;
+        if self.show_module_dialog {
+            // When opening the dialog, sync the dialog selection with current module
+            self.dialog_selected_idx = self.selected_module_idx;
+        }
     }
 
-    fn handle_key_event(&mut self, key: event::KeyEvent) {
-        if key.kind != KeyEventKind::Press {
-            return;
-        }
+    pub fn should_exit(&self) -> bool {
+        self.should_exit
+    }
 
-        // Handle module dialog keys
+    pub fn handle_key_code(&mut self, code: KeyCode) {
         if self.show_module_dialog {
-            match key.code {
-                KeyCode::Esc | KeyCode::Char('m') => self.toggle_module_dialog(),
+            match code {
+                KeyCode::Esc => self.toggle_module_dialog(),
                 KeyCode::Up => {
                     if !self.available_modules.is_empty() {
-                        self.selected_module_idx = if self.selected_module_idx == 0 {
+                        self.dialog_selected_idx = if self.dialog_selected_idx == 0 {
                             self.available_modules.len() - 1
                         } else {
-                            self.selected_module_idx - 1
+                            self.dialog_selected_idx - 1
                         };
                     }
                 },
                 KeyCode::Down => {
                     if !self.available_modules.is_empty() {
-                        self.selected_module_idx =
-                            (self.selected_module_idx + 1) % self.available_modules.len();
+                        self.dialog_selected_idx =
+                            (self.dialog_selected_idx + 1) % self.available_modules.len();
                     }
                 },
                 KeyCode::Enter => {
-                    self.select_module(self.selected_module_idx);
+                    self.select_module(self.dialog_selected_idx);
                     self.toggle_module_dialog();
                 },
                 KeyCode::Char(c) if c.is_ascii_digit() => {
@@ -240,10 +218,9 @@ impl App {
             return;
         }
 
-        // Handle main app keys
-        match key.code {
+        match code {
             KeyCode::Esc => self.should_exit = true,
-            KeyCode::Char('m') => self.toggle_module_dialog(),
+            KeyCode::Enter => self.toggle_module_dialog(),
             KeyCode::Up => self.prev_validator(),
             KeyCode::Down => self.next_validator(),
             KeyCode::Tab => self.next_language(),
@@ -282,47 +259,34 @@ impl App {
             KeyCode::PageDown => {
                 self.input.handle(InputRequest::GoToNextChar);
             },
-            _ => {},
         }
     }
 
-    fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
-        while !self.should_exit {
-            terminal.draw(|frame| self.render(frame))?;
-
-            if let Event::Key(key) = event::read()? {
-                self.handle_key_event(key);
-            }
-        }
-        Ok(())
-    }
-
-    fn render(&self, frame: &mut Frame) {
+    pub fn render(&self, frame: &mut Frame) {
         let area = frame.area();
 
-        // Layout constraints
         let constraints = vec![
-            Constraint::Min(0),    // Top padding
-            Constraint::Length(3), // Module selector
-            Constraint::Length(1), // Spacer
-            Constraint::Length(3), // Validator selector
-            Constraint::Length(1), // Spacer
-            Constraint::Length(3), // Input box
-            Constraint::Length(1), // Spacer
-            Constraint::Length(3), // Display output (to_string)
-            Constraint::Length(1), // Spacer
-            Constraint::Length(3), // Fluent output (to_fluent_string)
-            Constraint::Length(1), // Spacer
-            Constraint::Length(2), // Help text
-            Constraint::Min(0),    // Bottom padding
+            Constraint::Min(0),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(2),
+            Constraint::Min(0),
         ];
 
         let vertical = Layout::vertical(constraints).split(area);
 
         let horizontal = Layout::horizontal([
-            Constraint::Min(0),         // Left padding
-            Constraint::Percentage(70), // Content
-            Constraint::Min(0),         // Right padding
+            Constraint::Min(0),
+            Constraint::Percentage(70),
+            Constraint::Min(0),
         ]);
 
         let module_area = horizontal.split(vertical[1])[1];
@@ -339,7 +303,6 @@ impl App {
         self.render_fluent_output(frame, fluent_area);
         self.render_help(frame, help_area);
 
-        // Render module dialog on top if open
         if self.show_module_dialog {
             self.render_module_dialog(frame, area);
         }
@@ -347,22 +310,12 @@ impl App {
 
     fn render_module_selector(&self, frame: &mut Frame, area: Rect) {
         let text = if let Some(module) = self.current_module() {
-            vec![
-                Line::from(vec![
-                    Span::styled("◀ ", Style::default().fg(Color::DarkGray)),
-                    Span::styled(
-                        module.name(),
-                        Style::default()
-                            .fg(Color::Cyan)
-                            .add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(" ▶", Style::default().fg(Color::DarkGray)),
-                ]),
-                Line::from(Span::styled(
-                    module.description(),
-                    Style::default().fg(Color::Gray),
-                )),
-            ]
+            vec![Line::from(vec![Span::styled(
+                module.name(),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            )])]
         } else {
             vec![Line::from(Span::styled(
                 "No validators available",
@@ -392,16 +345,12 @@ impl App {
             .unwrap_or(("No validators", "No validators registered for this module"));
 
         let text = vec![
-            Line::from(vec![
-                Span::styled("▲ ", Style::default().fg(Color::DarkGray)),
-                Span::styled(
-                    name,
-                    Style::default()
-                        .fg(Color::Yellow)
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(" ▼", Style::default().fg(Color::DarkGray)),
-            ]),
+            Line::from(vec![Span::styled(
+                name,
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )]),
             Line::from(Span::styled(description, Style::default().fg(Color::Gray))),
         ];
 
@@ -429,7 +378,6 @@ impl App {
     }
 
     fn render_module_dialog(&self, frame: &mut Frame, area: Rect) {
-        // Calculate dialog size based on available modules
         let dialog_width = 60u16;
         let dialog_height = 6u16 + self.available_modules.len() as u16;
         let dialog_area = Rect::new(
@@ -439,10 +387,8 @@ impl App {
             dialog_height,
         );
 
-        // Clear the background
         frame.render_widget(Clear, dialog_area);
 
-        // Build module list
         let mut lines: Vec<Line> = vec![
             Line::from(vec![Span::styled(
                 "Select Module",
@@ -460,7 +406,7 @@ impl App {
             )]));
         } else {
             for (i, module) in self.available_modules.iter().enumerate() {
-                let is_selected = i == self.selected_module_idx;
+                let is_selected = i == self.dialog_selected_idx;
                 let number = format!("{}.", i + 1);
                 let style = if is_selected {
                     Style::default()
@@ -486,7 +432,7 @@ impl App {
             Span::raw(" navigate  "),
             Span::styled("Enter", Style::default().fg(Color::Cyan)),
             Span::raw(" select  "),
-            Span::styled("Esc/m", Style::default().fg(Color::Cyan)),
+            Span::styled("Esc", Style::default().fg(Color::Cyan)),
             Span::raw(" close"),
         ]));
 
@@ -502,11 +448,10 @@ impl App {
     }
 
     fn render_input(&self, frame: &mut Frame, area: Rect) {
-        // Determine validity emoji and style
         let (emoji, border_color) = match &self.current_validator {
             Some(Ok(v)) if v.is_valid() => ("✅ ", Color::Green),
             Some(Ok(_)) => ("❌ ", Color::Red),
-            Some(Err(_)) => ("⚠️ ", Color::Yellow), // Parse error
+            Some(Err(_)) => ("⚠️ ", Color::Yellow),
             None => ("   ", Color::Yellow),
         };
 
@@ -525,8 +470,7 @@ impl App {
 
         frame.render_widget(paragraph, area);
 
-        // Position cursor (offset by emoji width: 3 chars for emoji + space)
-        let emoji_width = 3u16; // emoji takes ~2 chars + space
+        let emoji_width = 3u16;
         let cursor_x = area.x + 1 + emoji_width + self.input.visual_cursor() as u16;
         let cursor_y = area.y + 1;
         frame.set_cursor_position((cursor_x.min(area.x + area.width - 2), cursor_y));
@@ -610,7 +554,7 @@ impl App {
         let help_text = Line::from(vec![
             Span::styled("▲/▼", Style::default().fg(Color::Cyan)),
             Span::raw(" validator  "),
-            Span::styled("m", Style::default().fg(Color::Cyan)),
+            Span::styled("Enter", Style::default().fg(Color::Cyan)),
             Span::raw(" modules  "),
             Span::styled("Tab", Style::default().fg(Color::Cyan)),
             Span::raw(" language  "),
@@ -623,12 +567,29 @@ impl App {
     }
 }
 
-/// Run the TUI application.
-pub fn run() -> io::Result<()> {
-    super::i18n::init();
-    let _ = super::i18n::change_locale(Languages::default());
-    let mut terminal = ratatui::init();
-    let result = App::new().run(&mut terminal);
-    ratatui::restore();
-    result
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum KeyCode {
+    Char(char),
+    Backspace,
+    Delete,
+    Home,
+    End,
+    PageUp,
+    PageDown,
+    Up,
+    Down,
+    Esc,
+    Enter,
+    Tab,
+}
+
+pub fn init_i18n() {
+    crate::i18n::init();
+    let _ = change_locale(Languages::default());
 }

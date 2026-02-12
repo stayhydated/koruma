@@ -5,3 +5,15 @@ target/
 .ruff_cache
 .ropeproject
 *.snap.new
+
+# Node/Bun
+node_modules/
+.turbo/
+
+# Astro
+dist/
+.astro/
+
+# WASM build outputs
+web/public/collection-example/*
+!web/public/collection-example/.gitkeep

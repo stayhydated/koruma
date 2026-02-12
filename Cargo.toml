@@ -1,12 +1,14 @@
 [workspace]
-default-members = [ "examples/collection" ]
+default-members = [ "examples/collection-native" ]
 members = [
   "crates/koruma",
   "crates/koruma-collection",
   "crates/koruma-core",
   "crates/koruma-derive",
   "crates/koruma-derive-core",
-  "examples/collection",
+  "examples/collection-core",
+  "examples/collection-native",
+  "examples/collection-web",
   "examples/user-defined",
   "examples/shared-lib",
 ]
@@ -25,6 +27,7 @@ version = "0.5.0"
 anyhow = "1.0"
 bon = "3.8"
 card-validate = "2.4"
+console_error_panic_hook = "0.1"
 crossterm = "0.29"
 derive-getters = "0.5.0"
 es-fluent = "0.12"
@@ -45,7 +48,8 @@ prettyplease = "0.2"
 proc-macro-error2 = "2.0"
 proc-macro2 = "1.0"
 quote = "1.0"
-ratatui = "0.30"
+ratatui = { default-features = false, version = "0.30" }
+ratzilla = "0.3"
 regex = "1.12"
 rust-embed = "8.11"
 rust_decimal = "1.40"
@@ -53,6 +57,30 @@ smallvec = "1.15"
 strum = "0.27"
 syn = "2.0"
 syn-cfg-attr = "0.1"
-tui-input = "0.15"
 unic-langid = "0.9"
 url = "2.5"
+wasm-bindgen = "0.2"
+
+[profile.dev]
+codegen-units = 16
+debug = "limited"
+opt-level = 1
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "deny" }
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+type_complexity = "allow"
+uninlined_format_args = "allow"
+unused_trait_names = "warn"

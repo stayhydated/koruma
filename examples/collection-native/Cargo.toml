@@ -1,0 +1,12 @@
+[package]
+name = "koruma-collection-example-native"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license = "Unlicense"
+publish = false
+
+[dependencies]
+crossterm = { workspace = true }
+koruma-collection-example-core = { path = "../collection-core" }
+ratatui = { features = [ "crossterm" ], workspace = true }

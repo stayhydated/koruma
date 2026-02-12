@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use koruma_collection_example_core::{App, KeyCode, init_i18n};
 use ratatui::Terminal;
+use ratzilla::backend::webgl2::WebGl2BackendOptions;
 use ratzilla::event::KeyCode as RatzillaKeyCode;
 use ratzilla::{WebGl2Backend, WebRenderer};
 
@@ -16,7 +17,11 @@ pub fn start() {
 fn run() -> io::Result<()> {
     init_i18n();
 
-    let backend = WebGl2Backend::new()?;
+    let webgl2_options = WebGl2BackendOptions::new()
+        .enable_console_debug_api()
+        .enable_mouse_selection_with_mode(ratzilla::SelectionMode::Linear);
+
+    let backend = WebGl2Backend::new_with_options(webgl2_options)?;
     let terminal = Terminal::new(backend)?;
 
     let app = Rc::new(RefCell::new(App::new()));

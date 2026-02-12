@@ -56,3 +56,27 @@ syn = "2.0"
 syn-cfg-attr = "0.1"
 unic-langid = "0.9"
 url = "2.5"
+
+[profile.dev]
+codegen-units = 16
+debug = "limited"
+opt-level = 1
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+
+[workspace.lints.rust]
+unexpected_cfgs = { level = "deny" }
+
+[workspace.lints.clippy]
+dbg_macro = "deny"
+todo = "deny"
+type_complexity = "allow"
+uninlined_format_args = "allow"
+unused_trait_names = "warn"

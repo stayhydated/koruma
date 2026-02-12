@@ -79,6 +79,7 @@ pub struct App {
     current_language: Languages,
     should_exit: bool,
     show_module_dialog: bool,
+    dialog_selected_idx: usize,
 }
 
 impl App {
@@ -106,6 +107,7 @@ impl App {
             current_language: Languages::default(),
             should_exit: false,
             show_module_dialog: false,
+            dialog_selected_idx: selected_module_idx,
         };
         app.validate_input();
         app
@@ -181,6 +183,10 @@ impl App {
 
     fn toggle_module_dialog(&mut self) {
         self.show_module_dialog = !self.show_module_dialog;
+        if self.show_module_dialog {
+            // When opening the dialog, sync the dialog selection with current module
+            self.dialog_selected_idx = self.selected_module_idx;
+        }
     }
 
     pub fn should_exit(&self) -> bool {
@@ -190,24 +196,24 @@ impl App {
     pub fn handle_key_code(&mut self, code: KeyCode) {
         if self.show_module_dialog {
             match code {
-                KeyCode::Esc | KeyCode::Char('m') => self.toggle_module_dialog(),
+                KeyCode::Esc => self.toggle_module_dialog(),
                 KeyCode::Up => {
                     if !self.available_modules.is_empty() {
-                        self.selected_module_idx = if self.selected_module_idx == 0 {
+                        self.dialog_selected_idx = if self.dialog_selected_idx == 0 {
                             self.available_modules.len() - 1
                         } else {
-                            self.selected_module_idx - 1
+                            self.dialog_selected_idx - 1
                         };
                     }
                 },
                 KeyCode::Down => {
                     if !self.available_modules.is_empty() {
-                        self.selected_module_idx =
-                            (self.selected_module_idx + 1) % self.available_modules.len();
+                        self.dialog_selected_idx =
+                            (self.dialog_selected_idx + 1) % self.available_modules.len();
                     }
                 },
                 KeyCode::Enter => {
-                    self.select_module(self.selected_module_idx);
+                    self.select_module(self.dialog_selected_idx);
                     self.toggle_module_dialog();
                 },
                 KeyCode::Char(c) if c.is_ascii_digit() => {
@@ -224,7 +230,7 @@ impl App {
 
         match code {
             KeyCode::Esc => self.should_exit = true,
-            KeyCode::Char('m') => self.toggle_module_dialog(),
+            KeyCode::Enter => self.toggle_module_dialog(),
             KeyCode::Up => self.prev_validator(),
             KeyCode::Down => self.next_validator(),
             KeyCode::Tab => self.next_language(),
@@ -263,7 +269,6 @@ impl App {
             KeyCode::PageDown => {
                 self.input.handle(InputRequest::GoToNextChar);
             },
-            _ => {},
         }
     }
 
@@ -425,7 +430,7 @@ impl App {
             )]));
         } else {
             for (i, module) in self.available_modules.iter().enumerate() {
-                let is_selected = i == self.selected_module_idx;
+                let is_selected = i == self.dialog_selected_idx;
                 let number = format!("{}.", i + 1);
                 let style = if is_selected {
                     Style::default()
@@ -451,7 +456,7 @@ impl App {
             Span::raw(" navigate  "),
             Span::styled("Enter", Style::default().fg(Color::Cyan)),
             Span::raw(" select  "),
-            Span::styled("Esc/m", Style::default().fg(Color::Cyan)),
+            Span::styled("Esc", Style::default().fg(Color::Cyan)),
             Span::raw(" close"),
         ]));
 
@@ -573,7 +578,7 @@ impl App {
         let help_text = Line::from(vec![
             Span::styled("▲/▼", Style::default().fg(Color::Cyan)),
             Span::raw(" validator  "),
-            Span::styled("m", Style::default().fg(Color::Cyan)),
+            Span::styled("Enter", Style::default().fg(Color::Cyan)),
             Span::raw(" modules  "),
             Span::styled("Tab", Style::default().fg(Color::Cyan)),
             Span::raw(" language  "),

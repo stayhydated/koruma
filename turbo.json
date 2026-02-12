@@ -7,7 +7,13 @@
     },
     "//#build:wasm": {
       "cache": true,
-      "inputs": ["Cargo.toml", "Cargo.lock", "crates/**", "examples/**"],
+      "inputs": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/**",
+        "examples/collection-core/**",
+        "examples/collection-web/**"
+      ],
       "outputs": ["web/public/collection-example/**"]
     },
     "dev": {

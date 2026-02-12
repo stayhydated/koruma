@@ -19,7 +19,7 @@
 | **Validator Collection** |                                                                |                                                                                       |
 | `koruma-collection`      | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                              |
 | **Examples**             |                                                                |                                                                                       |
-| `examples/collection`    |                                                                | Interactive TUI showcasing validators via `showcase`.                                 |
+| `examples/collection-*`  |                                                                | Interactive TUI showcasing validators via `showcase`.                                 |
 | `examples/user-defined`  |                                                                | Minimal example with custom validators and derives.                                   |
 | `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                   |
 | `examples/i18n`          |                                                                | Shared Fluent translation assets for examples.                                        |
@@ -42,7 +42,7 @@
 
 ### Examples
 
-- **`examples/collection`**: Interactive TUI listing showcase-registered validators.
+- **`examples/collection-*`**: Interactive TUI listing showcase-registered validators.
 - **`examples/user-defined`**: Custom validator and derive usage.
 - **`examples/shared-lib`**: Shared library example for cross-crate validation types.
 - **`examples/i18n`**: Fluent locale files used by examples.

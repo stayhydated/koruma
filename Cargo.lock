@@ -997,11 +997,9 @@ name = "koruma-collection"
 version = "0.5.0"
 dependencies = [
  "anyhow",
- "bon",
  "card-validate",
  "es-fluent",
  "es-fluent-manager-embedded",
- "inventory",
  "koruma",
  "phonenumber",
  "regex",
@@ -1059,7 +1057,6 @@ version = "0.5.0"
 dependencies = [
  "heck",
  "insta",
- "inventory",
  "koruma-derive-core",
  "prettyplease",
  "proc-macro-error2",
@@ -1094,7 +1091,6 @@ dependencies = [
 name = "koruma-user-defined-example"
 version = "0.5.0"
 dependencies = [
- "bon",
  "es-fluent",
  "es-fluent-manager-embedded",
  "koruma",

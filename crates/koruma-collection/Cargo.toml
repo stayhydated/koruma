@@ -13,11 +13,9 @@ readme = "README.md"
 
 [dependencies]
 anyhow = { optional = true, workspace = true }
-bon = { workspace = true }
 card-validate = { optional = true, workspace = true }
 es-fluent = { features = [ "derive" ], optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
-inventory = { optional = true, workspace = true }
 koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
@@ -57,4 +55,4 @@ features = [
 ]
 
 [package.metadata.cargo-machete]
-ignored = [ "bon", "inventory", "rust-embed" ]
+ignored = [ "rust-embed" ]

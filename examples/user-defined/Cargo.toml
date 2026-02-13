@@ -7,7 +7,6 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
-bon = { workspace = true }
 es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
 koruma = { features = [ "derive", "fluent" ], workspace = true }
@@ -20,4 +19,4 @@ unic-langid = { workspace = true }
 es-fluent = { features = [ "build" ], workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = [ "bon", "rust-embed" ]
+ignored = [ "rust-embed" ]

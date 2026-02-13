@@ -4,6 +4,7 @@ assertion_line: 128
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
+#[builder(crate = ::koruma::bon)]
 #[derive(Clone, Debug)]
 pub struct DirectValueValidation {
     min: i32,

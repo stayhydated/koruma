@@ -3,6 +3,7 @@ source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
+#[builder(crate = ::koruma::bon)]
 #[derive(Clone, Debug)]
 pub struct GenericRangeValidation<T> {
     pub min: T,

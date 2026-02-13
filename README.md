@@ -15,7 +15,6 @@
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive"] } # derive is the default
-bon = { version = "*" }
 ```
 
 ## koruma-collection ([online demo](https://stayhydated.github.io/koruma/collection-example/))

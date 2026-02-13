@@ -4,6 +4,7 @@ assertion_line: 28
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
+#[builder(crate = ::koruma::bon)]
 #[derive(Clone, Debug)]
 pub struct NumberRangeValidation {
     min: i32,

@@ -38,6 +38,11 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let builder_attr: syn::Attribute = parse_quote!(#[derive(koruma::bon::Builder)]);
     input.attrs.insert(0, builder_attr);
 
+    // Tell bon to use koruma's re-exported bon path, so downstream crates don't
+    // need a direct `bon` dependency.
+    let bon_crate_attr: syn::Attribute = parse_quote!(#[builder(crate = ::koruma::bon)]);
+    input.attrs.insert(1, bon_crate_attr);
+
     // Remove #[koruma(value)] and #[showcase(...)] from attributes
     input.attrs.retain(|attr| !attr.path().is_ident("showcase"));
 

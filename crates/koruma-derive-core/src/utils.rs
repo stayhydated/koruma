@@ -1,7 +1,7 @@
 //! Utility functions for type manipulation and analysis.
 //!
 //! These utilities are used for working with syn types, particularly
-//! for handling Option<T>, Vec<T>, and type inference placeholders.
+//! for handling `Option<T>`, `Vec<T>`, and type inference placeholders.
 
 use syn::{Expr, GenericArgument, Ident, PathArguments, Type};
 

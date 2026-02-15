@@ -23,6 +23,23 @@ jobs:
           ignore: |
             koruma-user-defined-example
 
+  sync-display-ftl:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Setup mold
+        uses: rui314/setup-mold@v1
+
+      - name: Check Display/FTL sync
+        run: cargo sync-display-ftl-check
+
   test:
     runs-on: ubuntu-latest
 

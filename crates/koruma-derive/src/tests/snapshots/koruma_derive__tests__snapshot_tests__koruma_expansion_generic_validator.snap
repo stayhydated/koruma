@@ -2,21 +2,31 @@
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-/// Enum of all possible validators for this field.
+#[doc = concat!(
+    "Validators for the `", "score", "` field of [`", "GenericItem", "`]: [`",
+    "GenericRangeValidation", "`]."
+)]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum GenericItemScoreKorumaValidator {
     GenericRangeValidation(GenericRangeValidation<f64>),
 }
+#[doc = concat!(
+    "Validation errors for the `", "score", "` field of [`", "GenericItem",
+    "`].\n\nValidators: [`", "GenericRangeValidation", "`]."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct GenericItemScoreKorumaValidationError {
     generic_range_validation: Option<GenericRangeValidation<f64>>,
 }
 impl GenericItemScoreKorumaValidationError {
+    #[doc = concat!(
+        "Returns the failed [`", "GenericRangeValidation", "`] validator, if any."
+    )]
     pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<f64>> {
         self.generic_range_validation.as_ref()
     }
-    /// Returns all failed field-level validators.
+    #[doc = concat!("Returns all failed validators for `", "score", "`.")]
     pub fn all(&self) -> Vec<GenericItemScoreKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.generic_range_validation {
@@ -34,15 +44,19 @@ impl GenericItemScoreKorumaValidationError {
         !self.is_empty()
     }
 }
-/// Auto-generated validation error struct for [`#struct_name`].
-///
-/// Each field contains a nested error struct with `Option<Validator>` for each
-/// validator. Access errors via chained calls like `error.field().validator()`.
+#[doc = concat!(
+    "Validation errors for [`", "GenericItem",
+    "`].\n\nContains per-field error structs for ", "field: `score`", "."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct GenericItemKorumaValidationError {
     score: GenericItemScoreKorumaValidationError,
 }
 impl GenericItemKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "score", "` field of [`", "GenericItem",
+        "`]."
+    )]
     pub fn score(&self) -> &GenericItemScoreKorumaValidationError {
         &self.score
     }
@@ -53,11 +67,10 @@ impl koruma::ValidationError for GenericItemKorumaValidationError {
     }
 }
 impl GenericItem {
-    /// Validates all fields and returns an error struct containing
-    /// all validation failures.
-    ///
-    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
-    /// `error` contains the validation failures for each field.
+    #[doc = concat!(
+        "Validates all fields of `", "GenericItem",
+        "` and returns an error struct containing all validation failures."
+    )]
     pub fn validate(&self) -> Result<(), GenericItemKorumaValidationError> {
         let mut error = GenericItemKorumaValidationError {
             score: GenericItemScoreKorumaValidationError {

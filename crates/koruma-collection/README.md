@@ -9,10 +9,19 @@ string, format, numeric, collection, and general-purpose validators.
 
 ## Features
 
+### Standard
+
 - `full`: enables all validators and optional dependencies.
 - `fmt` (default): enables `Display` implementations for validators.
 - `fluent`: enables fluent/i18n integration and embedded translations.
 - `full-fluent`: `full` + `fluent`.
+
+### Format validators
+
+- `credit-card`: validates a credit card number.
+- `email`: validates an email address.
+- `phone-number`: validates a phone number.
+- `url`: validates a URL.
 
 ## Example
 

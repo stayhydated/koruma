@@ -2,21 +2,29 @@
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-/// Enum of all possible validators for this field.
+#[doc = concat!(
+    "Validators for the `", "age", "` field of [`", "ComplexItem", "`]: [`",
+    "RangeValidation", "`]."
+)]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum ComplexItemAgeKorumaValidator {
     RangeValidation(RangeValidation),
 }
+#[doc = concat!(
+    "Validation errors for the `", "age", "` field of [`", "ComplexItem",
+    "`].\n\nValidators: [`", "RangeValidation", "`]."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct ComplexItemAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
 impl ComplexItemAgeKorumaValidationError {
+    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
-    /// Returns all failed field-level validators.
+    #[doc = concat!("Returns all failed validators for `", "age", "`.")]
     pub fn all(&self) -> Vec<ComplexItemAgeKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
@@ -31,22 +39,31 @@ impl ComplexItemAgeKorumaValidationError {
         !self.is_empty()
     }
 }
-/// Enum of all possible element validators for this field.
+#[doc = concat!(
+    "Element validators for the `", "tags", "` field of [`", "ComplexItem", "`]: [`",
+    "LengthValidation", "`]."
+)]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum ComplexItemTagsElementKorumaValidator {
     LengthValidation(LengthValidation),
 }
-/// Per-element validation error struct.
+#[doc = concat!(
+    "Per-element validation errors for the `", "tags", "` field of [`", "ComplexItem",
+    "`]."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct ComplexItemTagsElementKorumaValidationError {
     length_validation: Option<LengthValidation>,
 }
 impl ComplexItemTagsElementKorumaValidationError {
+    #[doc = concat!(
+        "Returns the failed [`", "LengthValidation", "`] validator, if any."
+    )]
     pub fn length_validation(&self) -> Option<&LengthValidation> {
         self.length_validation.as_ref()
     }
-    /// Returns all failed element validators.
+    #[doc = concat!("Returns all failed element validators for `", "tags", "`.")]
     pub fn all(&self) -> Vec<ComplexItemTagsElementKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.length_validation {
@@ -64,12 +81,19 @@ impl ComplexItemTagsElementKorumaValidationError {
         !self.is_empty()
     }
 }
+#[doc = concat!(
+    "Validation errors for the `", "tags", "` field of [`", "ComplexItem",
+    "`] (element validators only)."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct ComplexItemTagsKorumaValidationError {
     element_errors: Vec<(usize, ComplexItemTagsElementKorumaValidationError)>,
 }
 impl ComplexItemTagsKorumaValidationError {
-    /// Returns all element validation errors with their indices.
+    #[doc = concat!(
+        "Returns all element validation errors for `", "tags", "` of [`", "ComplexItem",
+        "`] with their indices."
+    )]
     pub fn element_errors(
         &self,
     ) -> &[(usize, ComplexItemTagsElementKorumaValidationError)] {
@@ -82,26 +106,35 @@ impl ComplexItemTagsKorumaValidationError {
         !self.is_empty()
     }
 }
-/// Enum of all possible validators for this field.
+#[doc = concat!(
+    "Validators for the `", "rating", "` field of [`", "ComplexItem", "`]: [`",
+    "RangeValidation`], `[EvenValidation", "`]."
+)]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum ComplexItemRatingKorumaValidator {
     RangeValidation(RangeValidation),
     EvenValidation(EvenValidation),
 }
+#[doc = concat!(
+    "Validation errors for the `", "rating", "` field of [`", "ComplexItem",
+    "`].\n\nValidators: [`", "RangeValidation`], `[EvenValidation", "`]."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct ComplexItemRatingKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
 }
 impl ComplexItemRatingKorumaValidationError {
+    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
+    #[doc = concat!("Returns the failed [`", "EvenValidation", "`] validator, if any.")]
     pub fn even_validation(&self) -> Option<&EvenValidation> {
         self.even_validation.as_ref()
     }
-    /// Returns all failed field-level validators.
+    #[doc = concat!("Returns all failed validators for `", "rating", "`.")]
     pub fn all(&self) -> Vec<ComplexItemRatingKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
@@ -119,10 +152,11 @@ impl ComplexItemRatingKorumaValidationError {
         !self.is_empty()
     }
 }
-/// Auto-generated validation error struct for [`#struct_name`].
-///
-/// Each field contains a nested error struct with `Option<Validator>` for each
-/// validator. Access errors via chained calls like `error.field().validator()`.
+#[doc = concat!(
+    "Validation errors for [`", "ComplexItem",
+    "`].\n\nContains per-field error structs for ", "fields: `age`, `tags`, `rating`",
+    "."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct ComplexItemKorumaValidationError {
     age: ComplexItemAgeKorumaValidationError,
@@ -130,12 +164,24 @@ pub struct ComplexItemKorumaValidationError {
     rating: ComplexItemRatingKorumaValidationError,
 }
 impl ComplexItemKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "age", "` field of [`", "ComplexItem",
+        "`]."
+    )]
     pub fn age(&self) -> &ComplexItemAgeKorumaValidationError {
         &self.age
     }
+    #[doc = concat!(
+        "Returns validation errors for the `", "tags", "` field of [`", "ComplexItem",
+        "`]."
+    )]
     pub fn tags(&self) -> &ComplexItemTagsKorumaValidationError {
         &self.tags
     }
+    #[doc = concat!(
+        "Returns validation errors for the `", "rating", "` field of [`", "ComplexItem",
+        "`]."
+    )]
     pub fn rating(&self) -> &ComplexItemRatingKorumaValidationError {
         &self.rating
     }
@@ -146,11 +192,10 @@ impl koruma::ValidationError for ComplexItemKorumaValidationError {
     }
 }
 impl ComplexItem {
-    /// Validates all fields and returns an error struct containing
-    /// all validation failures.
-    ///
-    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
-    /// `error` contains the validation failures for each field.
+    #[doc = concat!(
+        "Validates all fields of `", "ComplexItem",
+        "` and returns an error struct containing all validation failures."
+    )]
     pub fn validate(&self) -> Result<(), ComplexItemKorumaValidationError> {
         let mut error = ComplexItemKorumaValidationError {
             age: ComplexItemAgeKorumaValidationError {

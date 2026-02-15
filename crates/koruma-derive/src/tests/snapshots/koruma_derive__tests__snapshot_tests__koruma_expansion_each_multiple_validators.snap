@@ -2,27 +2,34 @@
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-/// Enum of all possible element validators for this field.
+#[doc = concat!(
+    "Element validators for the `", "values", "` field of [`", "Order", "`]: [`",
+    "RangeValidation`], `[EvenValidation", "`]."
+)]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum OrderValuesElementKorumaValidator {
     RangeValidation(RangeValidation),
     EvenValidation(EvenValidation),
 }
-/// Per-element validation error struct.
+#[doc = concat!(
+    "Per-element validation errors for the `", "values", "` field of [`", "Order", "`]."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct OrderValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
 }
 impl OrderValuesElementKorumaValidationError {
+    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
+    #[doc = concat!("Returns the failed [`", "EvenValidation", "`] validator, if any.")]
     pub fn even_validation(&self) -> Option<&EvenValidation> {
         self.even_validation.as_ref()
     }
-    /// Returns all failed element validators.
+    #[doc = concat!("Returns all failed element validators for `", "values", "`.")]
     pub fn all(&self) -> Vec<OrderValuesElementKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
@@ -40,12 +47,19 @@ impl OrderValuesElementKorumaValidationError {
         !self.is_empty()
     }
 }
+#[doc = concat!(
+    "Validation errors for the `", "values", "` field of [`", "Order",
+    "`] (element validators only)."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct OrderValuesKorumaValidationError {
     element_errors: Vec<(usize, OrderValuesElementKorumaValidationError)>,
 }
 impl OrderValuesKorumaValidationError {
-    /// Returns all element validation errors with their indices.
+    #[doc = concat!(
+        "Returns all element validation errors for `", "values", "` of [`", "Order",
+        "`] with their indices."
+    )]
     pub fn element_errors(&self) -> &[(usize, OrderValuesElementKorumaValidationError)] {
         &self.element_errors
     }
@@ -56,15 +70,18 @@ impl OrderValuesKorumaValidationError {
         !self.is_empty()
     }
 }
-/// Auto-generated validation error struct for [`#struct_name`].
-///
-/// Each field contains a nested error struct with `Option<Validator>` for each
-/// validator. Access errors via chained calls like `error.field().validator()`.
+#[doc = concat!(
+    "Validation errors for [`", "Order", "`].\n\nContains per-field error structs for ",
+    "field: `values`", "."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct OrderKorumaValidationError {
     values: OrderValuesKorumaValidationError,
 }
 impl OrderKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "values", "` field of [`", "Order", "`]."
+    )]
     pub fn values(&self) -> &OrderValuesKorumaValidationError {
         &self.values
     }
@@ -75,11 +92,10 @@ impl koruma::ValidationError for OrderKorumaValidationError {
     }
 }
 impl Order {
-    /// Validates all fields and returns an error struct containing
-    /// all validation failures.
-    ///
-    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
-    /// `error` contains the validation failures for each field.
+    #[doc = concat!(
+        "Validates all fields of `", "Order",
+        "` and returns an error struct containing all validation failures."
+    )]
     pub fn validate(&self) -> Result<(), OrderKorumaValidationError> {
         let mut error = OrderKorumaValidationError {
             values: OrderValuesKorumaValidationError {

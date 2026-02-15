@@ -231,7 +231,4 @@ if let Err(err) = Email::try_new("".to_string()) {
 
 ## Examples
 
-- [collection-core](examples/collection-core)
-- [collection-native](examples/collection-native)
-- [collection-web](examples/collection-web)
 - [user-defined validators](examples/user-defined) (custom validators, display/fluent, nested, and newtype patterns)

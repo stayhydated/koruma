@@ -13,20 +13,20 @@
 - Always depends on `koruma-core` for the core traits.
 - Always depends on `bon` and re-exports it as `koruma::bon` for builder generation.
 - Optionally depends on `koruma-derive` (feature `derive`, enabled by default).
-- Optionally depends on `inventory` (feature `showcase`) and re-exports it for registry submission.
+- Optionally depends on `inventory` (feature `internal-showcase`) and re-exports it for registry submission.
 
 ## Feature flags
 
 - `derive` (default): re-exports `Koruma`, `KorumaAllDisplay`, and `#[koruma::validator]` from `koruma-derive`.
 - `fluent`: re-exports `KorumaAllFluent` when `derive` is enabled and forwards fluent support to `koruma-derive`.
-- `showcase`: enables `koruma_core::showcase` and forwards showcase support to `koruma-derive`.
+- `internal-showcase`: enables `koruma_core::showcase` and forwards showcase support to `koruma-derive`.
 
 ## Control flow
 
 - Users derive `Koruma` and annotate fields with `#[koruma(...)]`.
 - The derive macro generates `validate()` implementations and typed error structs using `koruma-core` traits.
 - Validators annotated with `#[koruma::validator]` get a `bon` builder and a `with_value()` helper.
-- When `showcase` is enabled, validators can register metadata for discovery via `inventory`.
+- When `internal-showcase` is enabled, validators can register metadata for discovery via `inventory`.
 
 ## Extension points
 

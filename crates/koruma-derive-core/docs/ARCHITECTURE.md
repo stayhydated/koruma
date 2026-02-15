@@ -17,7 +17,7 @@
 - `ValidationInfo`: merged validators and modifier flags for a field.
 - `FieldInfo`: per-field metadata derived from `syn::Field`.
 - `StructOptions`: struct-level flags like `try_new` and `newtype`.
-- `ShowcaseAttr` (feature `showcase`): parsed `#[showcase(...)]` metadata.
+- `ShowcaseAttr` (feature `internal-showcase`): parsed `#[showcase(...)]` metadata.
 
 ## Parsing notes
 
@@ -26,11 +26,11 @@
 - `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
 - Turbofish syntax (`Validator::<_>`) drives type inference and substitution.
 - `find_value_field` locates `#[koruma(value)]` for validator structs.
-- `find_showcase_attr` (feature `showcase`) parses showcase metadata on validators.
+- `find_showcase_attr` (feature `internal-showcase`) parses showcase metadata on validators.
 
 ## Feature flags
 
-- `showcase`: enables parsing of `#[showcase(...)]` metadata used for validator registries.
+- `internal-showcase`: enables parsing of `#[showcase(...)]` metadata used for validator registries.
 
 ## Tests
 

@@ -31,7 +31,7 @@
 ## Feature flags
 
 - `fluent`: enables `KorumaAllFluent` and fluent codegen hooks.
-- `showcase`: emits validator registry metadata and uses derive-core showcase parsing.
+- `internal-showcase`: emits validator registry metadata and uses derive-core showcase parsing.
 
 ## Tests
 

@@ -57,7 +57,7 @@ pub trait NewtypeValidation: ValidateExt {}
 
 /// Showcase module for validator discovery and registration.
 ///
-/// When the `showcase` feature is enabled, validators decorated with
+/// When the `internal-showcase` feature is enabled, validators decorated with
 /// `#[showcase(...)]` attributes are automatically registered for
 /// programmatic discovery by showcase consumers (for example, UIs, examples, or tooling).
 /// discovery for showcase purposes.

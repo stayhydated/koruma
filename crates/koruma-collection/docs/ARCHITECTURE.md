@@ -16,7 +16,7 @@
 - Each validator is a struct annotated with `#[koruma::validator]`.
 - One field is marked `#[koruma(value)]` to store the validated value.
 - Each validator implements `Validate<T>`; optional `Display` impls live behind `fmt`.
-- Optional `#[showcase(...)]` metadata registers validators when `showcase` is enabled.
+- Optional `#[showcase(...)]` metadata registers validators when `internal-showcase` is enabled.
 
 ## Feature flags
 
@@ -25,7 +25,7 @@
 - `fluent`: enables Fluent integration and embedded i18n assets.
 - `full-fluent`: `full` + `fluent`.
 - Per-validator features: `email`, `email-idna`, `url`, `phone-number`, `credit-card`, `regex`, `rust_decimal`, `smallvec`, `heck`.
-- `showcase`: enables validator registry support via `koruma/showcase` and requires `full`.
+- `internal-showcase`: enables validator registry support via `koruma/internal-showcase` and requires `full`.
 
 ## Extending
 

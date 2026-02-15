@@ -17,7 +17,7 @@
 - `ValidateExt`: implemented by `#[derive(Koruma)]` for nested/newtype validation.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.
 
-## Showcase registry (feature `showcase`)
+## Showcase registry (feature `internal-showcase`)
 
 - `DynValidator`: type-erased validator interface.
 - `InputType`: expected input classification (text or numeric).
@@ -32,7 +32,7 @@
 
 ## Feature flags
 
-- `showcase`: enables the showcase registry types and `inventory` integration.
+- `internal-showcase`: enables the showcase registry types and `inventory` integration.
 
 ## Tests
 

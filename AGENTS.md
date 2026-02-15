@@ -52,7 +52,7 @@
 - **Docs**: Dependency installation snippets live in the root `README.md`. Crate READMEs should link to it instead of duplicating versioned dependency declarations.
 - **Rust**: Use `cargo` for building, testing, and running Rust code. In this workspace, keep dependency versions in the workspace root `Cargo.toml` and use `workspace = true` in member crates. Each crate is responsible for selecting the correct dependency `features` in its own `Cargo.toml`.
 - **Path deps**: Reserve `path` dependencies for the root `Cargo.toml` and for examples (e.g., example-to-example helpers). Non-example crates should reference other workspace crates using `workspace = true` rather than explicit paths.
-- **Showcase**: The `showcase` feature is internal; avoid advertising it in public READMEs.
+- **Showcase**: The `internal-showcase` feature is internal; avoid advertising it in public READMEs.
 - For [fluent](https://projectfluent.org/) resources, install the [es-fluent](https://crates.io/crates/es-fluent-cli) cli to generate the resources.
 - **Testing**: Use [insta](https://insta.rs/) for snapshot tests where appropriate, rather than complex assertion-based unit tests.
 - **Test snippets**: Prefer raw multiline strings (or `quote! { ... }` in macro contexts) over escaped single-line literals when embedding Rust code in tests.

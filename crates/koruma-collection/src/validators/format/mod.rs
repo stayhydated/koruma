@@ -22,3 +22,22 @@ pub use ip::{IpKind, IpValidation};
 pub use phone_number::PhoneNumberValidation;
 #[cfg(feature = "url")]
 pub use url::UrlValidation;
+
+#[cfg(feature = "internal-showcase")]
+#[doc(hidden)]
+#[inline(never)]
+pub fn __link_showcase_validators() {
+    #[cfg(feature = "credit-card")]
+    credit_card::__koruma_showcase_anchor_credit_card_validation();
+
+    #[cfg(feature = "email")]
+    email::__koruma_showcase_anchor_email_validation();
+
+    ip::__koruma_showcase_anchor_ip_validation();
+
+    #[cfg(feature = "phone-number")]
+    phone_number::__koruma_showcase_anchor_phone_number_validation();
+
+    #[cfg(feature = "url")]
+    url::__koruma_showcase_anchor_url_validation();
+}

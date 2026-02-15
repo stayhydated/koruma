@@ -74,6 +74,7 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        koruma_collection::__link_showcase_validators();
         let all_validators = validators();
         let available_modules = ValidatorModule::available_modules(&all_validators);
         let selected_module_idx = 0;

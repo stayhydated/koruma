@@ -127,10 +127,10 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 ///     pub sku: String,
 /// }
 ///
-/// // Now you can use Display on all() results:
-/// // for err in errors.sku().all() {
-/// //     println!("{}", err);  // Uses Display
-/// // }
+/// Now you can use Display on all() results:
+/// for err in errors.sku().all() {
+///     println!("{}", err);  // Uses Display
+/// }
 /// ```
 #[proc_macro_error]
 #[proc_macro_derive(KorumaAllDisplay, attributes(koruma))]
@@ -154,18 +154,18 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
 /// # Example
 ///
 /// ```ignore
-/// use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
+/// use koruma::{Koruma, KorumaAllFluent};
 ///
-/// #[derive(Koruma, KorumaAllDisplay, KorumaAllFluent)]
+/// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
 ///     #[koruma(LenValidation::<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
 /// // Now you can use ToFluentString on all() results:
-/// // for err in errors.sku().all() {
-/// //     println!("{}", err.to_fluent_string());  // Uses i18n
-/// // }
+/// for err in errors.sku().all() {
+///     println!("{}", err.to_fluent_string());  // Uses i18n
+/// }
 /// ```
 #[cfg(feature = "fluent")]
 #[proc_macro_error]

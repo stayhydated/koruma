@@ -2,21 +2,29 @@
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-/// Enum of all possible validators for this field.
+#[doc = concat!(
+    "Validators for the `", "age", "` field of [`", "Person", "`]: [`",
+    "RangeValidation", "`]."
+)]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
 pub enum PersonAgeKorumaValidator {
     RangeValidation(RangeValidation),
 }
+#[doc = concat!(
+    "Validation errors for the `", "age", "` field of [`", "Person",
+    "`].\n\nValidators: [`", "RangeValidation", "`]."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct PersonAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
 impl PersonAgeKorumaValidationError {
+    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
-    /// Returns all failed field-level validators.
+    #[doc = concat!("Returns all failed validators for `", "age", "`.")]
     pub fn all(&self) -> Vec<PersonAgeKorumaValidator> {
         let mut result = Vec::new();
         if let Some(v) = &self.range_validation {
@@ -31,15 +39,18 @@ impl PersonAgeKorumaValidationError {
         !self.is_empty()
     }
 }
-/// Auto-generated validation error struct for [`#struct_name`].
-///
-/// Each field contains a nested error struct with `Option<Validator>` for each
-/// validator. Access errors via chained calls like `error.field().validator()`.
+#[doc = concat!(
+    "Validation errors for [`", "Person", "`].\n\nContains per-field error structs for ",
+    "field: `age`", "."
+)]
 #[derive(Clone, Debug, Default)]
 pub struct PersonKorumaValidationError {
     age: PersonAgeKorumaValidationError,
 }
 impl PersonKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "age", "` field of [`", "Person", "`]."
+    )]
     pub fn age(&self) -> &PersonAgeKorumaValidationError {
         &self.age
     }
@@ -50,20 +61,19 @@ impl koruma::ValidationError for PersonKorumaValidationError {
     }
 }
 impl Person {
-    /// Creates a new instance and validates it.
-    ///
-    /// Returns `Ok(instance)` if all validations pass, or `Err(error)` where
-    /// `error` contains the validation failures for each field.
+    #[doc = concat!(
+        "Creates a new `", "Person",
+        "` instance and validates it.\n\nReturns `Ok(instance)` if all validations pass, or `Err(error)` with the validation failures."
+    )]
     pub fn try_new(age: i32, name: String) -> Result<Self, PersonKorumaValidationError> {
         let instance = Self { age, name };
         instance.validate()?;
         Ok(instance)
     }
-    /// Validates all fields and returns an error struct containing
-    /// all validation failures.
-    ///
-    /// Returns `Ok(())` if all validations pass, or `Err(error)` where
-    /// `error` contains the validation failures for each field.
+    #[doc = concat!(
+        "Validates all fields of `", "Person",
+        "` and returns an error struct containing all validation failures."
+    )]
     pub fn validate(&self) -> Result<(), PersonKorumaValidationError> {
         let mut error = PersonKorumaValidationError {
             age: PersonAgeKorumaValidationError {

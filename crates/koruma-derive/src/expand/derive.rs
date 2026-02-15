@@ -72,19 +72,20 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             if f.is_newtype() {
                 let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
                 let has_field_validators = !f.validation.field_validators.is_empty();
+                let field_name_str = field_name.to_string();
+                let struct_name_str = struct_name.to_string();
 
                 // If the newtype field has no validators, generate simple wrapper
                 if !has_field_validators {
                     return quote! {
-                        /// Per-field validation error struct for a newtype field.
-                        /// Stores the inner error directly for transparent, friction-free access.
+                        #[doc = concat!("Validation errors for the `", #field_name_str, "` newtype field of [`", #struct_name_str, "`].")]
                         #[derive(Clone, Debug, Default)]
                         pub struct #field_error_struct_name {
                             inner: <#inner_ty as koruma::ValidateExt>::Error,
                         }
 
                         impl #field_error_struct_name {
-                            /// Returns a reference to the inner validation error.
+                            #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
                             pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
                                 &self.inner
                             }
@@ -111,6 +112,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                 // Newtype field with validators - generate full error struct like regular fields
                 // but also include the inner newtype error
+                let field_validator_names: Vec<String> = f
+                    .validation
+                    .field_validators
+                    .iter()
+                    .map(|v| v.name().to_string())
+                    .collect();
+                let validators_list = field_validator_names.join("`], `[");
+
                 let field_validator_fields: Vec<TokenStream2> = f
                     .validation
                     .field_validators
@@ -130,8 +139,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .map(|v| {
                         let validator_snake =
                             format_ident!("{}", v.name().to_string().to_snake_case());
+                        let validator_name = v.name().to_string();
                         let vtype = validator_type_for_field(v, field_ty, false);
                         quote! {
+                            #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
                             pub fn #validator_snake(&self) -> Option<&#vtype> {
                                 self.#validator_snake.as_ref()
                             }
@@ -198,7 +209,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 };
 
                 return quote! {
-                    /// Enum of all possible validators for this newtype field.
+                    #[doc = concat!("Validators for the `", #field_name_str, "` field of [`", #struct_name_str, "`]: [`", #validators_list, "`] (plus inner validation).")]
                     #[derive(Clone, Debug)]
                     #[allow(dead_code)]
                     pub enum #enum_name {
@@ -206,7 +217,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         #inner_variant
                     }
 
-                    /// Per-field validation error struct for a newtype field with additional validators.
+                    #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].\n\nValidators: [`", #validators_list, "`].")]
                     #[derive(Clone, Debug, Default)]
                     pub struct #field_error_struct_name {
                         #(#field_validator_fields,)*
@@ -216,12 +227,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     impl #field_error_struct_name {
                         #(#field_validator_getters)*
 
-                        /// Returns a reference to the inner validation error.
+                        #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
                         pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
                             &self.inner
                         }
 
-                        /// Returns all failed validators including inner newtype validation errors.
+                        #[doc = concat!("Returns all failed validators for `", #field_name_str, "` including inner newtype validation errors.")]
                         pub fn all(&self) -> Vec<#enum_name> {
                             let mut result = Vec::new();
                             #(#all_pushes)*
@@ -262,8 +273,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .map(|v| {
                     let validator_snake =
                         format_ident!("{}", v.name().to_string().to_snake_case());
+                    let validator_name = v.name().to_string();
                     let vtype = validator_type_for_field(v, field_ty, false);
                     quote! {
+                        #[doc = concat!("Returns the failed [`", #validator_name, "`] validator, if any.")]
                         pub fn #validator_snake(&self) -> Option<&#vtype> {
                             self.#validator_snake.as_ref()
                         }
@@ -290,6 +303,15 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     field_name.to_string().to_upper_camel_case()
                 );
 
+                let element_validator_names: Vec<String> = f
+                    .validation.element_validators
+                    .iter()
+                    .map(|v| v.name().to_string())
+                    .collect();
+                let element_validators_list = element_validator_names.join("`], `[" );
+                let field_name_str = field_name.to_string();
+                let struct_name_str = struct_name.to_string();
+
                 let element_validator_fields: Vec<TokenStream2> = f
                     .validation.element_validators
                     .iter()
@@ -307,8 +329,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .map(|v| {
                         let validator_snake =
                             format_ident!("{}", v.name().to_string().to_snake_case());
+                        let validator_name = v.name().to_string();
                         let vtype = validator_type_for_field(v, field_ty, true);
                         quote! {
+                            #[doc = concat!("Returns the failed [`", #validator_name, "`] validator, if any.")]
                             pub fn #validator_snake(&self) -> Option<&#vtype> {
                                 self.#validator_snake.as_ref()
                             }
@@ -361,14 +385,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .collect();
 
                 quote! {
-                    /// Enum of all possible element validators for this field.
+                    #[doc = concat!("Element validators for the `", #field_name_str, "` field of [`", #struct_name_str, "`]: [`", #element_validators_list, "`].")]
                     #[derive(Clone, Debug)]
                     #[allow(dead_code)]
                     pub enum #element_enum_name {
                         #(#element_enum_variants),*
                     }
 
-                    /// Per-element validation error struct.
+                    #[doc = concat!("Per-element validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
                     #[derive(Clone, Debug, Default)]
                     pub struct #element_error_struct_name {
                         #(#element_validator_fields),*
@@ -377,7 +401,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     impl #element_error_struct_name {
                         #(#element_validator_getters)*
 
-                        /// Returns all failed element validators.
+                        #[doc = concat!("Returns all failed element validators for `", #field_name_str, "`.")]
                         pub fn all(&self) -> Vec<#element_enum_name> {
                             let mut result = Vec::new();
                             #(#element_all_pushes)*
@@ -416,8 +440,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     struct_name,
                     field_name.to_string().to_upper_camel_case()
                 );
+                let field_name_str = field_name.to_string();
+                let struct_name_str = struct_name.to_string();
                 quote! {
-                    /// Returns all element validation errors with their indices.
+                    #[doc = concat!("Returns all element validation errors for `", #field_name_str, "` of [`", #struct_name_str, "`] with their indices.")]
                     pub fn element_errors(&self) -> &[(usize, #element_error_struct_name)] {
                         &self.element_errors
                     }
@@ -472,8 +498,16 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let enum_and_all = if f.validation.field_validators.is_empty() {
                 quote! {}
             } else {
+                let validator_names: Vec<String> = f
+                    .validation.field_validators
+                    .iter()
+                    .map(|v| v.name().to_string())
+                    .collect();
+                let validators_list = validator_names.join("`], `[" );
+                let field_name_str = field_name.to_string();
+                let struct_name_str = struct_name.to_string();
                 quote! {
-                    /// Enum of all possible validators for this field.
+                    #[doc = concat!("Validators for the `", #field_name_str, "` field of [`", #struct_name_str, "`]: [`", #validators_list, "`].")]
                     #[derive(Clone, Debug)]
                     #[allow(dead_code)]
                     pub enum #enum_name {
@@ -485,8 +519,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let all_method = if f.validation.field_validators.is_empty() {
                 quote! {}
             } else {
+                let field_name_str = field_name.to_string();
                 quote! {
-                    /// Returns all failed field-level validators.
+                    #[doc = concat!("Returns all failed validators for `", #field_name_str, "`.")]
                     pub fn all(&self) -> Vec<#enum_name> {
                         let mut result = Vec::new();
                         #(#all_pushes)*
@@ -500,6 +535,45 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 quote! { self.element_errors.is_empty() }
             } else {
                 quote! { #(#field_is_empty_checks)&&* #element_is_empty_check }
+            };
+
+            // Build doc comment for field error struct
+            let field_error_struct_doc = {
+                let field_name_str = field_name.to_string();
+                let struct_name_str = struct_name.to_string();
+                if has_element_validators && !f.validation.field_validators.is_empty() {
+                    let field_validator_names: Vec<String> = f
+                        .validation.field_validators
+                        .iter()
+                        .map(|v| v.name().to_string())
+                        .collect();
+                    let field_validators = field_validator_names.join("`], `[" );
+                    let element_validator_names: Vec<String> = f
+                        .validation.element_validators
+                        .iter()
+                        .map(|v| v.name().to_string())
+                        .collect();
+                    let element_validators = element_validator_names.join("`], `[" );
+                    quote! {
+                        #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].\n\nField validators: [`", #field_validators, "`]. Element validators: [`", #element_validators, "`].")]
+                    }
+                } else if has_element_validators {
+                    quote! {
+                        #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`] (element validators only).")]
+                    }
+                } else if !f.validation.field_validators.is_empty() {
+                    let field_validator_names: Vec<String> = f
+                        .validation.field_validators
+                        .iter()
+                        .map(|v| v.name().to_string())
+                        .collect();
+                    let field_validators = field_validator_names.join("`], `[" );
+                    quote! {
+                        #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].\n\nValidators: [`", #field_validators, "`].")]
+                    }
+                } else {
+                    quote! {}
+                }
             };
 
             // Generate struct fields - need proper comma handling
@@ -536,6 +610,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                 #enum_and_all
 
+                #field_error_struct_doc
                 #[derive(Clone, Debug, Default)]
                 pub struct #field_error_struct_name {
                     #struct_fields
@@ -590,11 +665,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         .iter()
         .map(|f| {
             let field_name = &f.name;
+            let field_name_str = field_name.to_string();
+            let struct_name_str = struct_name.to_string();
             if f.is_nested() {
                 // For nested fields, return Option<&NestedTypeKorumaValidationError>
                 let field_ty = &f.ty;
                 let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
                 quote! {
+                    #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
                     pub fn #field_name(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
                         self.#field_name.as_ref()
                     }
@@ -611,6 +689,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     // Newtype field with validators - return the wrapper struct
                     // This provides access to both field validators and inner error
                     quote! {
+                        #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
                         pub fn #field_name(&self) -> &#field_error_struct_name {
                             &self.#field_name
                         }
@@ -621,6 +700,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     let field_ty = &f.ty;
                     let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
                     quote! {
+                        #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
                         pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
                             &self.#field_name.inner
                         }
@@ -633,6 +713,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     field_name.to_string().to_upper_camel_case()
                 );
                 quote! {
+                    #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
                     pub fn #field_name(&self) -> &#field_error_struct_name {
                         &self.#field_name
                     }
@@ -1206,6 +1287,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         })
         .collect();
 
+    let struct_name_str = struct_name.to_string();
+
     // Generate try_new function if requested
     let try_new_fn = if struct_options.try_new {
         // Collect all struct fields (not just validated ones) for constructor parameters
@@ -1222,10 +1305,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             fields.iter().map(|f| f.ident.as_ref().unwrap()).collect();
 
         quote! {
-            /// Creates a new instance and validates it.
-            ///
-            /// Returns `Ok(instance)` if all validations pass, or `Err(error)` where
-            /// `error` contains the validation failures for each field.
+            #[doc = concat!("Creates a new `", #struct_name_str, "` instance and validates it.\n\nReturns `Ok(instance)` if all validations pass, or `Err(error)` with the validation failures.")]
             pub fn try_new(#(#all_field_params),*) -> Result<Self, #error_struct_name> {
                 let instance = Self {
                     #(#all_field_names),*
@@ -1298,14 +1378,20 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         quote! {}
     };
 
+    let field_names: Vec<String> = field_infos.iter().map(|f| f.name.to_string()).collect();
+    let fields_doc = if field_names.is_empty() {
+        String::new()
+    } else if field_names.len() == 1 {
+        format!("field: `{}`", field_names[0])
+    } else {
+        format!("fields: `{}`", field_names.join("`, `"))
+    };
+
     Ok(quote! {
         // Per-field error structs
         #(#field_error_structs)*
 
-        /// Auto-generated validation error struct for [`#struct_name`].
-        ///
-        /// Each field contains a nested error struct with `Option<Validator>` for each
-        /// validator. Access errors via chained calls like `error.field().validator()`.
+        #[doc = concat!("Validation errors for [`", #struct_name_str, "`].\n\nContains per-field error structs for ", #fields_doc, ".")]
         #[derive(Clone, Debug, Default)]
         pub struct #error_struct_name {
             #(#error_fields),*
@@ -1326,11 +1412,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         impl #struct_name {
             #try_new_fn
 
-            /// Validates all fields and returns an error struct containing
-            /// all validation failures.
-            ///
-            /// Returns `Ok(())` if all validations pass, or `Err(error)` where
-            /// `error` contains the validation failures for each field.
+            #[doc = concat!("Validates all fields of `", #struct_name_str, "` and returns an error struct containing all validation failures.")]
             pub fn validate(&self) -> Result<(), #error_struct_name> {
                 let mut error = #error_struct_name {
                     #(#error_defaults),*

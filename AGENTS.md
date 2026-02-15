@@ -2,9 +2,9 @@
 
 `koruma` is a per-field validation framework written in Rust, focused on:
 
-1. Type Safety: Strongly typed validation error structs generated at compile time.
-1. Ergonomics: Derive macros and validator attributes that minimize boilerplate.
-1. Developer Experience: Optional constructors, nested/newtype validation, and fluent/i18n hooks.
+1. **Type Safety**: Strongly typed validation error structs generated at compile time.
+1. **Ergonomics**: Derive macros and validator attributes that minimize boilerplate.
+1. **Developer Experience**: Optional constructors, nested/newtype validation, and fluent/i18n hooks.
 
 ## Architecture Documentation Index
 
@@ -23,6 +23,8 @@
 | `examples/user-defined`  |                                                                | Minimal example with custom validators and derives.                                   |
 | `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                   |
 | `examples/i18n`          |                                                                | Shared Fluent translation assets for examples.                                        |
+| **Web**                  |                                                                |                                                                                       |
+| `web`                    |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos.        |
 
 ## Crate Descriptions
 
@@ -47,12 +49,24 @@
 - **`examples/shared-lib`**: Shared library example for cross-crate validation types.
 - **`examples/i18n`**: Fluent locale files used by examples.
 
+### Web
+
+- **`web`**: An Astro-based static site for GitHub Pages. Hosts WASM-compiled examples with live interactive demos. The site is built via the `gh-pages.yml` workflow which compiles Rust examples to WASM and deploys them.
+
 ## Development
 
-- **Docs**: Dependency installation snippets live in the root `README.md`. Crate READMEs should link to it instead of duplicating versioned dependency declarations.
-- **Rust**: Use `cargo` for building, testing, and running Rust code. In this workspace, keep dependency versions in the workspace root `Cargo.toml` and use `workspace = true` in member crates. Each crate is responsible for selecting the correct dependency `features` in its own `Cargo.toml`.
-- **Path deps**: Reserve `path` dependencies for the root `Cargo.toml` and for examples (e.g., example-to-example helpers). Non-example crates should reference other workspace crates using `workspace = true` rather than explicit paths.
-- **Showcase**: The `internal-showcase` feature is internal; avoid advertising it in public READMEs.
-- For [fluent](https://projectfluent.org/) resources, install the [es-fluent](https://crates.io/crates/es-fluent-cli) cli to generate the resources.
-- **Testing**: Use [insta](https://insta.rs/) for snapshot tests where appropriate, rather than complex assertion-based unit tests.
-- **Test snippets**: Prefer raw multiline strings (or `quote! { ... }` in macro contexts) over escaped single-line literals when embedding Rust code in tests.
+**Docs**
+
+- Dependency installation snippets live in the root `README.md`. Crate READMEs should link to it instead of duplicating versioned dependency declarations.
+
+**Rust**
+
+- Use `cargo` for building, testing, and running Rust code. In this workspace, keep dependency versions in the workspace root `Cargo.toml` and use `workspace = true` in member crates. Each crate is responsible for selecting the correct dependency `features` in its own `Cargo.toml`.
+- Reserve `path` dependencies for the root `Cargo.toml` and for examples (e.g., example-to-example helpers). Non-example crates should reference other workspace crates using `workspace = true` rather than explicit paths.
+- Use [insta](https://insta.rs/) for snapshot tests where appropriate, rather than complex assertion-based unit tests.
+- Prefer raw multiline strings (or `quote! { ... }` in macro contexts) over escaped single-line literals when embedding Rust code in tests.
+
+**JavaScript**
+
+- Use [bun](https://bun.com/) for dependency management.
+- [turborepo](https://turborepo.org/) is used as the build system.

@@ -66,3 +66,31 @@ impl<T: HasLen + Clone> std::fmt::Display for LenValidation<T> {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::LenValidation;
+
+    #[test]
+    fn accepts_values_within_bounds() {
+        let validator = LenValidation {
+            min: 1,
+            max: 3,
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"ab".to_string()));
+    }
+
+    #[test]
+    fn rejects_values_outside_bounds() {
+        let validator = LenValidation {
+            min: 1,
+            max: 3,
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"".to_string()));
+        assert!(!validator.validate(&"abcd".to_string()));
+    }
+}

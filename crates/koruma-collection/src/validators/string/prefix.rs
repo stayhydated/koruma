@@ -54,3 +54,28 @@ impl<T: AsRef<str>> std::fmt::Display for PrefixValidation<T> {
         write!(f, "value does not start with \"{}\"", self.prefix)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::PrefixValidation;
+
+    #[test]
+    fn accepts_when_prefix_matches() {
+        let validator = PrefixValidation {
+            prefix: "pre".to_string(),
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"prefix".to_string()));
+    }
+
+    #[test]
+    fn rejects_when_prefix_does_not_match() {
+        let validator = PrefixValidation {
+            prefix: "pre".to_string(),
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"xprefix".to_string()));
+    }
+}

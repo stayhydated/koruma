@@ -50,3 +50,26 @@ impl<T: AsRef<str>> std::fmt::Display for UrlValidation<T> {
         write!(f, "not a valid URL")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::UrlValidation;
+
+    #[test]
+    fn accepts_valid_url() {
+        let validator = UrlValidation {
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"https://example.com".to_string()));
+    }
+
+    #[test]
+    fn rejects_invalid_url() {
+        let validator = UrlValidation {
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"not a url".to_string()));
+    }
+}

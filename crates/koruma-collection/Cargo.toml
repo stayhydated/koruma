@@ -16,6 +16,7 @@ anyhow = { optional = true, workspace = true }
 card-validate = { optional = true, workspace = true }
 es-fluent = { features = [ "derive" ], optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
+email_address = { optional = true, workspace = true }
 koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
@@ -33,7 +34,7 @@ full-fluent = [ "full", "fluent" ]
 fluent = [ "koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:rust-embed" ]
 internal-showcase = [ "full-fluent", "koruma/internal-showcase", "fmt", "dep:anyhow" ]
 credit-card = [ "dep:card-validate" ]
-email = [ "dep:regex" ]
+email = [ "dep:email_address" ]
 smallvec = [ "dep:smallvec" ]
 fmt = [  ]
 phone-number = [ "dep:phonenumber" ]

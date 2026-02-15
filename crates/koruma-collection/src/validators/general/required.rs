@@ -40,3 +40,22 @@ impl<T> std::fmt::Display for RequiredValidation<Option<T>> {
         write!(f, "value is required but not present")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::RequiredValidation;
+
+    #[test]
+    fn accepts_some_values() {
+        let validator = RequiredValidation::<Option<String>> { actual: None };
+        assert!(validator.validate(&Some("value".to_string())));
+    }
+
+    #[test]
+    fn rejects_none_values() {
+        let validator = RequiredValidation::<Option<String>> { actual: None };
+        assert!(!validator.validate(&None));
+    }
+}

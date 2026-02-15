@@ -83,3 +83,54 @@ impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display for Ran
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::RangeValidation;
+
+    #[test]
+    fn accepts_values_within_inclusive_bounds() {
+        let validator = RangeValidation {
+            min: 1_i32,
+            exclusive_min: false,
+            max: 3_i32,
+            exclusive_max: false,
+            actual: 0_i32,
+        };
+
+        assert!(validator.validate(&1));
+        assert!(validator.validate(&2));
+        assert!(validator.validate(&3));
+    }
+
+    #[test]
+    fn rejects_values_outside_bounds() {
+        let validator = RangeValidation {
+            min: 1_i32,
+            exclusive_min: false,
+            max: 3_i32,
+            exclusive_max: false,
+            actual: 0_i32,
+        };
+
+        assert!(!validator.validate(&0));
+        assert!(!validator.validate(&4));
+    }
+
+    #[test]
+    fn supports_exclusive_bounds() {
+        let validator = RangeValidation {
+            min: 1_i32,
+            exclusive_min: true,
+            max: 3_i32,
+            exclusive_max: true,
+            actual: 0_i32,
+        };
+
+        assert!(!validator.validate(&1));
+        assert!(validator.validate(&2));
+        assert!(!validator.validate(&3));
+    }
+}

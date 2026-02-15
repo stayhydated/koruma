@@ -53,3 +53,23 @@ impl<T: Numeric> std::fmt::Display for PositiveValidation<T> {
         write!(f, "value {} must be positive (> 0)", self.actual)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::PositiveValidation;
+
+    #[test]
+    fn accepts_positive_values() {
+        let validator = PositiveValidation { actual: 0_i32 };
+        assert!(validator.validate(&1));
+    }
+
+    #[test]
+    fn rejects_zero_and_negative_values() {
+        let validator = PositiveValidation { actual: 0_i32 };
+        assert!(!validator.validate(&0));
+        assert!(!validator.validate(&-1));
+    }
+}

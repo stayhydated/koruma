@@ -55,3 +55,26 @@ impl<T: AsRef<str>> std::fmt::Display for PhoneNumberValidation<T> {
         write!(f, "not a valid phone number")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::PhoneNumberValidation;
+
+    #[test]
+    fn accepts_valid_phone_number() {
+        let validator = PhoneNumberValidation {
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"+14155552671".to_string()));
+    }
+
+    #[test]
+    fn rejects_invalid_phone_number() {
+        let validator = PhoneNumberValidation {
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"123".to_string()));
+    }
+}

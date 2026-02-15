@@ -121,8 +121,16 @@ fn run_sync_display_ftl(options: SyncOptions) -> Result<()> {
     let validators_root = workspace_root.join("crates/koruma-collection/src/validators");
     let ftl_root = workspace_root.join("crates/koruma-collection/i18n/en/koruma-collection");
 
+    run_sync_display_ftl_with_roots(&validators_root, &ftl_root, options)
+}
+
+fn run_sync_display_ftl_with_roots(
+    validators_root: &Path,
+    ftl_root: &Path,
+    options: SyncOptions,
+) -> Result<()> {
     let mut validator_files = Vec::new();
-    collect_rs_files(&validators_root, &mut validator_files)
+    collect_rs_files(validators_root, &mut validator_files)
         .with_context(|| format!("Failed to scan {}", validators_root.display()))?;
     validator_files.sort();
 
@@ -939,7 +947,585 @@ fn write_call_changed(existing: &str, next: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    use syn::spanned::Spanned as _;
+
     use super::*;
+
+    #[derive(Debug)]
+    struct TempDir {
+        path: PathBuf,
+    }
+
+    impl TempDir {
+        fn new(prefix: &str) -> Self {
+            let nanos = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("system time should be after unix epoch")
+                .as_nanos();
+            let path = std::env::temp_dir().join(format!(
+                "koruma_xtask_{prefix}_{}_{}",
+                std::process::id(),
+                nanos
+            ));
+            fs::create_dir_all(&path).expect("failed to create temp directory");
+            Self { path }
+        }
+
+        fn path(&self) -> &Path {
+            &self.path
+        }
+    }
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn write_file(path: &Path, content: &str) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("failed to create parent directory");
+        }
+        fs::write(path, content).expect("failed to write file");
+    }
+
+    fn fixture_validator_source() -> &'static str {
+        r#"
+#[fluent(namespace = "sample")]
+pub struct ExampleValidation {
+    pub min: usize,
+    #[koruma(value)]
+    pub actual: String,
+}
+
+impl std::fmt::Display for ExampleValidation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Wrong {}", self.min)
+    }
+}
+"#
+    }
+
+    fn fixture_ftl_source() -> &'static str {
+        r#"
+example_validation = Value { $min } and { $actual }.
+"#
+    }
+
+    fn create_sync_fixture() -> (TempDir, PathBuf, PathBuf, PathBuf) {
+        let tmp = TempDir::new("sync_display_ftl");
+        let validators_root = tmp.path().join("validators");
+        let ftl_root = tmp.path().join("ftl");
+        let validator_file = validators_root.join("sample.rs");
+        let ftl_file = ftl_root.join("sample.ftl");
+        write_file(&validator_file, fixture_validator_source());
+        write_file(&ftl_file, fixture_ftl_source());
+        (tmp, validators_root, ftl_root, validator_file)
+    }
+
+    fn compact_ws(input: &str) -> String {
+        input.chars().filter(|c| !c.is_whitespace()).collect()
+    }
+
+    #[test]
+    fn sync_args_into_sync_options() {
+        let options: SyncOptions = SyncArgs {
+            check: true,
+            verbose: true,
+        }
+        .into();
+        assert!(options.check);
+        assert!(options.verbose);
+    }
+
+    #[test]
+    fn sync_display_ftl_check_mode_reports_pending_changes() {
+        let (_tmp, validators_root, ftl_root, _validator_file) = create_sync_fixture();
+
+        let err = run_sync_display_ftl_with_roots(
+            &validators_root,
+            &ftl_root,
+            SyncOptions {
+                check: true,
+                verbose: false,
+            },
+        )
+        .expect_err("expected pending changes in check mode");
+
+        assert!(err.to_string().contains("would be updated"));
+    }
+
+    #[test]
+    fn sync_display_ftl_applies_changes_and_then_reports_clean() {
+        let (_tmp, validators_root, ftl_root, validator_file) = create_sync_fixture();
+
+        run_sync_display_ftl_with_roots(
+            &validators_root,
+            &ftl_root,
+            SyncOptions {
+                check: false,
+                verbose: true,
+            },
+        )
+        .expect("sync should apply changes");
+
+        let updated = fs::read_to_string(&validator_file).expect("failed to read updated file");
+        assert!(compact_ws(&updated).contains("write!(f,\"Value{}and{}.\",self.min,self.actual)"));
+
+        run_sync_display_ftl_with_roots(
+            &validators_root,
+            &ftl_root,
+            SyncOptions {
+                check: true,
+                verbose: false,
+            },
+        )
+        .expect("check mode should pass after sync");
+    }
+
+    #[test]
+    fn collect_rs_files_walks_directories() {
+        let tmp = TempDir::new("collect_rs_files");
+        write_file(&tmp.path().join("root.rs"), "fn root() {}");
+        write_file(&tmp.path().join("nested/inner.rs"), "fn inner() {}");
+        write_file(&tmp.path().join("nested/ignore.txt"), "ignore");
+
+        let mut files = Vec::new();
+        collect_rs_files(tmp.path(), &mut files).expect("collection should succeed");
+        files.sort();
+
+        assert_eq!(files.len(), 2);
+        assert!(files.iter().any(|path| path.ends_with("root.rs")));
+        assert!(files.iter().any(|path| path.ends_with("inner.rs")));
+    }
+
+    #[test]
+    fn collect_validator_info_filters_and_extracts_namespace() {
+        let source = r#"
+#[fluent(namespace = "demo")]
+pub struct IncludedValidation {
+    pub min: usize,
+    pub actual: String,
+}
+
+pub struct NoNamespaceValidation {
+    pub actual: String,
+}
+
+#[fluent(namespace = "demo")]
+pub struct IgnoredType {
+    pub actual: String,
+}
+"#;
+
+        let parsed = syn::parse_file(source).expect("valid rust");
+        let mut validators = BTreeMap::new();
+        collect_validator_info(Path::new("demo.rs"), &parsed, &mut validators);
+
+        assert_eq!(validators.len(), 1);
+        let info = validators
+            .get("IncludedValidation")
+            .expect("included validator should exist");
+        assert_eq!(info.namespace, "demo");
+        assert_eq!(info.message_id, "included_validation");
+        assert!(info.fields.contains("min"));
+        assert!(info.fields.contains("actual"));
+    }
+
+    #[test]
+    fn collect_display_info_reads_display_impls() {
+        let source = r#"
+pub struct IncludedValidation;
+
+impl std::fmt::Display for IncludedValidation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Value {1} and {0}", self.actual, self.min)
+    }
+}
+"#;
+        let parsed = syn::parse_file(source).expect("valid rust");
+        let mut displays = BTreeMap::new();
+        collect_display_info(Path::new("demo.rs"), &parsed, &mut displays).expect("parse display");
+
+        let info = displays
+            .get("IncludedValidation")
+            .expect("display info should exist");
+        assert_eq!(
+            info.expr_by_placeholder
+                .get("actual")
+                .map(|value| compact_ws(value)),
+            Some("self.actual".to_string())
+        );
+        assert_eq!(
+            info.expr_by_placeholder
+                .get("min")
+                .map(|value| compact_ws(value)),
+            Some("self.min".to_string())
+        );
+    }
+
+    #[test]
+    fn extract_namespace_supports_fluent_and_cfg_attr() {
+        let direct: syn::ItemStruct = syn::parse_quote! {
+            #[fluent(namespace = "string")]
+            struct Direct;
+        };
+        assert_eq!(extract_namespace(&direct.attrs), Some("string".to_string()));
+
+        let via_cfg_attr: syn::ItemStruct = syn::parse_quote! {
+            #[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
+            struct CfgAttr;
+        };
+        assert_eq!(
+            extract_namespace(&via_cfg_attr.attrs),
+            Some("numeric".to_string())
+        );
+
+        let none: syn::ItemStruct = syn::parse_quote! {
+            struct Plain;
+        };
+        assert_eq!(extract_namespace(&none.attrs), None);
+    }
+
+    #[test]
+    fn parse_display_impl_handles_success_none_and_error_cases() {
+        let success_impl: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for IncludedValidation {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "Value {1} and {0}", self.actual, self.min)
+                }
+            }
+        };
+        let (type_name, map, _span) = parse_display_impl(&success_impl)
+            .expect("parse should succeed")
+            .expect("display impl should be extracted");
+        assert_eq!(type_name, "IncludedValidation");
+        assert_eq!(
+            map.get("actual").map(|value| compact_ws(value)),
+            Some("self.actual".to_string())
+        );
+        assert_eq!(
+            map.get("min").map(|value| compact_ws(value)),
+            Some("self.min".to_string())
+        );
+
+        let non_display_impl: ItemImpl = syn::parse_quote! {
+            impl IncludedValidation {
+                fn fmt(&self) {}
+            }
+        };
+        assert!(
+            parse_display_impl(&non_display_impl)
+                .expect("parse should succeed")
+                .is_none()
+        );
+
+        let unsupported_slot_impl: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for BrokenValidation {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f, "Value {name}", self.actual)
+                }
+            }
+        };
+        let err = parse_display_impl(&unsupported_slot_impl).expect_err("unsupported slot");
+        assert!(err.to_string().contains("unsupported format slot"));
+    }
+
+    #[test]
+    fn find_write_macro_helpers_cover_statement_and_expression_variants() {
+        let block: Block = syn::parse_quote!({
+            let _x = write!(f, "x");
+            println!("ignore");
+        });
+        assert!(find_write_macro_in_block(&block).is_some());
+
+        let item_stmt: Stmt = syn::parse_quote! { fn helper() {} };
+        assert!(find_write_macro_in_stmt(&item_stmt).is_none());
+
+        let macro_stmt: Stmt = syn::parse_quote! { println!("x"); };
+        assert!(find_write_macro_in_stmt(&macro_stmt).is_none());
+
+        let expr_try: Expr = syn::parse_quote! { (write!(f, "x"))? };
+        assert!(find_write_macro_in_expr(&expr_try).is_some());
+
+        let expr_return: Expr = syn::parse_quote! { return write!(f, "x") };
+        assert!(find_write_macro_in_expr(&expr_return).is_some());
+    }
+
+    #[test]
+    fn format_and_slot_parsing_helpers_cover_happy_and_error_paths() {
+        let args: Vec<Expr> = vec![
+            syn::parse_quote!(self.actual),
+            syn::parse_quote!(self.min),
+            syn::parse_quote!(custom_expr()),
+        ];
+        let map = format_to_expr_map("{} {1} {}", &args).expect("format map should parse");
+        assert_eq!(
+            map.get("actual").map(|value| compact_ws(value)),
+            Some("self.actual".to_string())
+        );
+        assert_eq!(
+            map.get("min").map(|value| compact_ws(value)),
+            Some("self.min".to_string())
+        );
+
+        let err = format_to_expr_map("{9}", &args).expect_err("out-of-range slot should fail");
+        assert!(err.to_string().contains("references argument #9"));
+
+        assert_eq!(parse_slot_index("", 3).expect("empty spec"), (3, false));
+        assert_eq!(
+            parse_slot_index(":x", 4).expect("format-only spec"),
+            (4, false)
+        );
+        assert_eq!(parse_slot_index("2", 0).expect("explicit index"), (2, true));
+        assert_eq!(
+            parse_slot_index("1:?", 0).expect("explicit index with format"),
+            (1, true)
+        );
+        assert!(parse_slot_index("name", 0).is_err());
+        assert!(parse_slot_index("999999999999999999999999999999", 0).is_err());
+    }
+
+    #[test]
+    fn parse_format_chunks_handles_escapes_and_errors() {
+        let chunks = parse_format_chunks("A {{brace}} and {0}").expect("valid format string");
+        assert_eq!(
+            chunks,
+            vec![
+                FormatChunk::Text("A {brace} and ".to_string()),
+                FormatChunk::Slot("0".to_string()),
+            ]
+        );
+
+        let unmatched = parse_format_chunks("bad }").expect_err("unmatched brace should fail");
+        assert!(unmatched.to_string().contains("Unmatched"));
+
+        let unclosed = parse_format_chunks("bad {0").expect_err("unclosed brace should fail");
+        assert!(unclosed.to_string().contains("Unclosed"));
+    }
+
+    #[test]
+    fn infer_variable_name_variants() {
+        let field_expr: Expr = syn::parse_quote!(self.actual);
+        assert_eq!(infer_variable_name(&field_expr), Some("actual".to_string()));
+
+        let nested_expr: Expr = syn::parse_quote!((self.inner).value);
+        assert_eq!(
+            infer_variable_name(&nested_expr),
+            Some("inner_value".to_string())
+        );
+
+        let method_expr: Expr = syn::parse_quote!((&self.actual).len());
+        assert_eq!(
+            infer_variable_name(&method_expr),
+            Some("actual_len".to_string())
+        );
+
+        let unary_expr: Expr = syn::parse_quote!(-self.count);
+        assert_eq!(infer_variable_name(&unary_expr), Some("count".to_string()));
+
+        let plain_expr: Expr = syn::parse_quote!(some_value);
+        assert_eq!(infer_variable_name(&plain_expr), None);
+
+        let named_member: Member = syn::parse_quote!(field_name);
+        assert_eq!(member_name(&named_member), Some("field_name".to_string()));
+        let unnamed_member = Member::Unnamed(syn::Index::from(2));
+        assert_eq!(member_name(&unnamed_member), Some("2".to_string()));
+
+        let self_expr: Expr = syn::parse_quote!(self);
+        let not_self_expr: Expr = syn::parse_quote!(other);
+        assert!(is_self_expr(&self_expr));
+        assert!(!is_self_expr(&not_self_expr));
+    }
+
+    #[test]
+    fn template_conversion_covers_resolver_paths() {
+        let validator = ValidatorInfo {
+            name: "DemoValidation".to_string(),
+            namespace: "demo".to_string(),
+            message_id: "demo_validation".to_string(),
+            source: PathBuf::from("demo.rs"),
+            fields: ["actual", "kind", "other"]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+        };
+        let display = DisplayInfo {
+            expr_by_placeholder: [("kind".to_string(), "self.kind".to_string())]
+                .into_iter()
+                .collect(),
+            source: PathBuf::from("demo.rs"),
+            write_span: Span::call_site(),
+        };
+        let template = vec![
+            TemplatePart::Text("A ".to_string()),
+            TemplatePart::Placeholder("kind".to_string()),
+            TemplatePart::Text(" ".to_string()),
+            TemplatePart::Placeholder("other".to_string()),
+            TemplatePart::Text(" ".to_string()),
+            TemplatePart::Placeholder("actual".to_string()),
+        ];
+
+        let (format_literal, args) =
+            template_to_write_parts(&template, &validator, &display).expect("template conversion");
+        assert_eq!(format_literal, "A {} {} {}");
+        assert_eq!(
+            args,
+            vec![
+                "self.kind".to_string(),
+                "self.other".to_string(),
+                "self.actual".to_string()
+            ]
+        );
+
+        let unresolved = template_to_write_parts(
+            &[TemplatePart::Placeholder("missing".to_string())],
+            &validator,
+            &display,
+        )
+        .expect_err("missing placeholder should fail");
+        assert!(
+            unresolved
+                .to_string()
+                .contains("Cannot resolve placeholder '$missing'")
+        );
+    }
+
+    #[test]
+    fn template_and_expression_helpers_cover_remaining_branches() {
+        let ftl = r#"
+simple = Value { $actual }.
+unsupported = { "literal" }
+"#;
+        let resource = parser::parse(ftl.to_string()).expect("valid ftl");
+
+        let simple_pattern = match &resource.body[0] {
+            ast::Entry::Message(message) => message.value.as_ref().expect("pattern"),
+            _ => panic!("expected message"),
+        };
+        let simple_template = template_from_pattern(simple_pattern).expect("simple template");
+        assert_eq!(
+            simple_template,
+            vec![
+                TemplatePart::Text("Value ".to_string()),
+                TemplatePart::Placeholder("actual".to_string()),
+                TemplatePart::Text(".".to_string()),
+            ]
+        );
+
+        let unsupported_pattern = match &resource.body[1] {
+            ast::Entry::Message(message) => message.value.as_ref().expect("pattern"),
+            _ => panic!("expected message"),
+        };
+        assert!(template_from_pattern(unsupported_pattern).is_err());
+
+        let inline_expr: ast::Expression<String> =
+            ast::Expression::Inline(ast::InlineExpression::VariableReference {
+                id: ast::Identifier {
+                    name: "actual".to_string(),
+                },
+            });
+        assert_eq!(
+            root_variable_for_expression(&inline_expr),
+            Some("actual".to_string())
+        );
+
+        let no_var_expr: ast::Expression<String> =
+            ast::Expression::Inline(ast::InlineExpression::StringLiteral {
+                value: "x".to_string(),
+            });
+        assert_eq!(root_variable_for_expression(&no_var_expr), None);
+
+        let mut template = Vec::new();
+        push_text_part(&mut template, String::new());
+        push_text_part(&mut template, "A".to_string());
+        push_text_part(&mut template, "B".to_string());
+        assert_eq!(template, vec![TemplatePart::Text("AB".to_string())]);
+    }
+
+    #[test]
+    fn string_and_range_helpers_cover_error_paths() {
+        assert_eq!(
+            escape_format_literal("\\\"\n\r\t{}"),
+            "\\\\\\\"\\n\\r\\t{{}}"
+        );
+        assert_eq!(
+            build_write_call("Value {}", &["self.actual".to_string()]),
+            "write!(f, \"Value {}\", self.actual)"
+        );
+
+        let source = "ab\ncd\nef";
+        let starts = line_start_offsets(source);
+        assert_eq!(starts, vec![0, 3, 6]);
+        assert_eq!(
+            line_col_to_offset(LineColumn { line: 2, column: 1 }, &starts).expect("valid line/col"),
+            4
+        );
+        assert!(line_col_to_offset(LineColumn { line: 0, column: 0 }, &starts).is_err());
+        assert!(line_col_to_offset(LineColumn { line: 9, column: 0 }, &starts).is_err());
+
+        let source_with_span = "fn demo() {\n    write!(f, \"message\");\n}\n";
+        let parsed_file: File = syn::parse_file(source_with_span).expect("valid rust file");
+        let stmt_span = match &parsed_file.items[0] {
+            Item::Fn(item_fn) => item_fn.block.stmts[0].span(),
+            _ => panic!("expected function item"),
+        };
+        let valid_range = span_to_byte_range(
+            stmt_span,
+            &line_start_offsets(source_with_span),
+            source_with_span,
+        )
+        .expect("valid span");
+        assert!(valid_range.1 > valid_range.0);
+
+        let invalid_range =
+            span_to_byte_range(stmt_span, &[0], "x").expect_err("invalid byte range");
+        let message = invalid_range.to_string();
+        assert!(
+            message.contains("Invalid byte range") || message.contains("out of bounds"),
+            "unexpected span error: {message}"
+        );
+    }
+
+    #[test]
+    fn replacement_and_change_detection_helpers() {
+        let source = "abc123xyz";
+        let replaced = apply_replacements(
+            source,
+            &[
+                Replacement {
+                    start: 3,
+                    end: 6,
+                    replacement: "###".to_string(),
+                    type_name: "middle".to_string(),
+                },
+                Replacement {
+                    start: 0,
+                    end: 3,
+                    replacement: "ABC".to_string(),
+                    type_name: "start".to_string(),
+                },
+            ],
+        );
+        assert_eq!(replaced, "ABC###xyz");
+
+        assert!(!write_call_changed(
+            "write!(f, \"x\", value)",
+            "write!(f,\"x\",value)"
+        ));
+        assert!(write_call_changed(
+            "write!(f, \"x\", value)",
+            "write!(f, \"y\", value)"
+        ));
+        assert!(!write_call_changed("not-an-expr", "not-an-expr"));
+        assert!(write_call_changed("not-an-expr", "different"));
+    }
 
     #[test]
     fn extracts_placeholder_from_select_expression() {

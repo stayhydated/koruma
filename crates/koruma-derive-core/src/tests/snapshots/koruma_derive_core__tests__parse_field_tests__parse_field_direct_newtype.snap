@@ -1,32 +1,14 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_field_info(&field)
+assertion_line: 175
+expression: parse_field_snapshot(&field)
 ---
 Some(
-    FieldInfo {
-        name: Ident {
-            sym: index,
-        },
-        member: Member::Named(
-            Ident {
-                sym: index,
-            },
-        ),
-        ty: Type::Path {
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [
-                    PathSegment {
-                        ident: Ident {
-                            sym: CommonVariableIndex,
-                        },
-                        arguments: PathArguments::None,
-                    },
-                ],
-            },
-        },
-        validation: ValidationInfo {
+    SnapshotFieldInfo {
+        name: "index",
+        member: "index",
+        ty: "CommonVariableIndex",
+        validation: SnapshotValidationInfo {
             field_validators: [],
             element_validators: [],
             is_nested: false,

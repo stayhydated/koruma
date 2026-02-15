@@ -254,3 +254,96 @@ fn test_koruma_expansion_try_new() {
     let expanded = expand_koruma(input).unwrap();
     assert_snapshot!(pretty_print(expanded));
 }
+
+#[test]
+fn test_koruma_all_display_expansion() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DisplayItem {
+            #[koruma(RangeValidation(min = 0, max = 10), EvenValidation)]
+            pub value: i32,
+            #[koruma(each(RangeValidation(min = 0, max = 10)))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let expanded = expand_koruma_all_display(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert!(rendered.contains("impl ::std::fmt::Display for DisplayItemValueKorumaValidator"));
+    assert!(
+        rendered.contains("impl ::std::fmt::Display for DisplayItemValuesElementKorumaValidator")
+    );
+}
+
+#[test]
+fn test_koruma_all_display_expansion_newtype_inner_arm() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DisplayNewtypeItem {
+            #[koruma(newtype, RequiredValidation)]
+            pub wrapped: WrappedValue,
+        }
+    };
+
+    let expanded = expand_koruma_all_display(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert!(rendered.contains("DisplayNewtypeItemWrappedKorumaValidator::Inner(inner)"));
+}
+
+#[test]
+fn test_koruma_all_display_rejects_non_struct() {
+    let input: DeriveInput = syn::parse_quote! {
+        enum NotAStruct {
+            A,
+        }
+    };
+    assert!(expand_koruma_all_display(input).is_err());
+}
+
+#[cfg(feature = "fluent")]
+#[test]
+fn test_koruma_all_fluent_expansion() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct FluentItem {
+            #[koruma(RangeValidation(min = 0, max = 10), EvenValidation)]
+            pub value: i32,
+            #[koruma(each(RangeValidation(min = 0, max = 10)))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let expanded = expand_koruma_all_fluent(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert!(
+        rendered.contains("impl ::es_fluent::ToFluentString for FluentItemValueKorumaValidator")
+    );
+    assert!(
+        rendered.contains(
+            "impl ::es_fluent::ToFluentString for FluentItemValuesElementKorumaValidator"
+        )
+    );
+}
+
+#[cfg(feature = "fluent")]
+#[test]
+fn test_koruma_all_fluent_expansion_newtype_inner_delegate() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct FluentNewtypeItem {
+            #[koruma(newtype, RequiredValidation)]
+            pub wrapped: WrappedValue,
+        }
+    };
+
+    let expanded = expand_koruma_all_fluent(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert!(rendered.contains("self.inner().to_fluent_string()"));
+}
+
+#[cfg(feature = "fluent")]
+#[test]
+fn test_koruma_all_fluent_rejects_non_struct() {
+    let input: DeriveInput = syn::parse_quote! {
+        enum NotAStruct {
+            A,
+        }
+    };
+    assert!(expand_koruma_all_fluent(input).is_err());
+}

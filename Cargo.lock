@@ -81,9 +81,9 @@ checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
 name = "arc-swap"
-version = "1.8.0"
+version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51d03449bb8ca2cc2ef70869af31463d1ae5ccc8fa3e334b307203fbf815207e"
+checksum = "f9f3647c145568cec02c42054e07bdf9a5a698e15b466fb2341bfc393cd24aa5"
 dependencies = [
  "rustversion",
 ]
@@ -490,14 +490,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "es-fluent"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7811d23be6c3ec4b1ea9a97a66e096aa61313a375114e7acf0938b3012cde6d2"
+checksum = "2321de9a182baa0659cddf2dabed2718c968c5f06f5340d689d23f92235bd2fc"
 dependencies = [
  "arc-swap",
  "es-fluent-derive",
@@ -513,9 +513,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "248ea66518cf905222fed75f6d73a3b59a910f1bee223af6340f2ebe30547337"
+checksum = "219ea18c4366b55cdea2a1c170c514f5af456ede9c2fe221ffaa489dcd3cc9a1"
 dependencies = [
  "darling",
  "es-fluent-derive-core",
@@ -529,9 +529,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive-core"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "880cc49870dc6c716dcfbb130d8519e1e786bf4c407ef5bcf984237cdfca763e"
+checksum = "63f43159ad792d8213e15b45e44cb1034b25f163eeecc54392334a7226c3e007"
 dependencies = [
  "anyhow",
  "bon",
@@ -555,9 +555,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ec5776d2ee933387ba7457bdf66ef2587a697b5cb572068c9437f817e8e3354"
+checksum = "1520b21cd52d895cf72a152cde368b3ca8b4ff599f1f30bf9f235e3530ef6a23"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -570,10 +570,11 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang-macro"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc6dc70e4b8320997d6aeadf81ae9fcfe5a5c7c0ae71a56f7c41ee6ebeba788a"
+checksum = "63dba0948481561a6a54aa545810b67c60b6426b10af2ef9b4cab8e937b59d70"
 dependencies = [
+ "es-fluent-manager-core",
  "es-fluent-toml",
  "heck",
  "proc-macro-error2",
@@ -585,9 +586,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-core"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fb3e3e91f56c89a47211f0d07e8d41b5e4191778edd806e3cb93ae110758509"
+checksum = "66b1b2a0ce7b833bc241df139961222a5706c16c55488346a2be0a8cfb14f04e"
 dependencies = [
  "anyhow",
  "es-fluent-derive-core",
@@ -601,9 +602,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-embedded"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae2f40abeb2c55021c17882a80d8c1cc0ac224126827f9e15a5a0fbf072b7f2a"
+checksum = "4a5ea8ca826f210122a67292b44e82bafc4b847a3b949d0cbea3de84596c4c08"
 dependencies = [
  "arc-swap",
  "es-fluent",
@@ -615,9 +616,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-macros"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1121063457428d34b6ef47a5e13e6a7832382ec6238cdc6167ef33d7f3a55db"
+checksum = "d9d9f3d16dbda16e48780f1f203c06e2a3a87ba17ff3da5b7d32b61b4bbd519b"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -628,9 +629,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-toml"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8214cd9c576abc2a258b37463a3fdd6a75655b1c0c265f1a01860aedb28af3a"
+checksum = "b4270d76f2e3025c316d176a168135fa20c3d82b9c6ef869d52b58227db71bdb"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -1220,9 +1221,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.180"
+version = "0.2.182"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcc35a38544a891a5f7c865aca548a982ccb3b8650a5b06d0fd33a10283c56fc"
+checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
 
 [[package]]
 name = "line-clipping"
@@ -1725,7 +1726,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1989,7 +1990,7 @@ dependencies = [
  "getrandom",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2066,9 +2067,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.9.11+spec-1.1.0"
+version = "1.0.1+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3afc9a848309fe1aaffaed6e1546a7a14de1f935dc9d89d32afd9a44bab7c46"
+checksum = "bbe30f93627849fa362d4a602212d41bb237dc2bd0f8ba0b2ce785012e124220"
 dependencies = [
  "indexmap",
  "serde_core",
@@ -2081,18 +2082,18 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.7.5+spec-1.1.0"
+version = "1.0.0+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92e1cfed4a3038bc5a127e35a2d360f145e1f4b971b551a2ba5fd7aedf7e1347"
+checksum = "32c2555c699578a4f59f0cc68e5116c8d7cabbd45e1409b989d4be085b53f13e"
 dependencies = [
  "serde_core",
 ]
 
 [[package]]
 name = "toml_parser"
-version = "1.0.6+spec-1.1.0"
+version = "1.0.8+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3198b4b0a8e11f09dd03e133c0280504d0801269e9afa46362ffde1cbeebf44"
+checksum = "0742ff5ff03ea7e67c8ae6c93cac239e0d9784833362da3f9a9c1da8dfefcbdc"
 dependencies = [
  "winnow",
 ]
@@ -2373,7 +2374,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2590,6 +2591,6 @@ dependencies = [
 
 [[package]]
 name = "zmij"
-version = "1.0.20"
+version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4de98dfa5d5b7fef4ee834d0073d560c9ca7b6c46a71d058c48db7960f8cfaf7"
+checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"

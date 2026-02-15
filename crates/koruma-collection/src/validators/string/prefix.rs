@@ -51,7 +51,7 @@ impl<T: AsRef<str>> Validate<T> for PrefixValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PrefixValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value does not start with \"{}\"", self.prefix)
+        write!(f, "Must start with '{}'.", self.prefix)
     }
 }
 

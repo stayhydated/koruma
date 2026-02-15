@@ -53,7 +53,7 @@ impl<T: PartialEq + std::fmt::Debug + std::fmt::Display + Clone> std::fmt::Displ
     for MatchesValidation<T>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value does not match expected value")
+        write!(f, "Does not match the expected value '{}'.", self.other)
     }
 }
 

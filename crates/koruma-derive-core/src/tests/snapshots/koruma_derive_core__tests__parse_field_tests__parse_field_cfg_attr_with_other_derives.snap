@@ -4,13 +4,13 @@ expression: parse_field_info(&field)
 ---
 Some(
     FieldInfo {
-        name: Ident(
-            index,
-        ),
+        name: Ident {
+            sym: index,
+        },
         member: Member::Named(
-            Ident(
-                index,
-            ),
+            Ident {
+                sym: index,
+            },
         ),
         ty: Type::Path {
             qself: None,
@@ -18,9 +18,9 @@ Some(
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            CommonVariableIndex,
-                        ),
+                        ident: Ident {
+                            sym: CommonVariableIndex,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],

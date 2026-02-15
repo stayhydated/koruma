@@ -52,7 +52,7 @@ impl<T: AsRef<str>> Validate<T> for PhoneNumberValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PhoneNumberValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "not a valid phone number")
+        write!(f, "Not a valid phone number.")
     }
 }
 

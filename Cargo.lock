@@ -2390,6 +2390,8 @@ dependencies = [
  "anyhow",
  "fluent-syntax",
  "heck",
+ "proc-macro2",
+ "quote",
  "syn",
 ]
 

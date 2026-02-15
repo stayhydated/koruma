@@ -76,11 +76,7 @@ impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T
 #[cfg(feature = "fmt")]
 impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display for RangeValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "value {} is not within bounds [{}, {}]",
-            self.actual, self.min, self.max
-        )
+        write!(f, "Must be between {} and {}.", self.min, self.max)
     }
 }
 

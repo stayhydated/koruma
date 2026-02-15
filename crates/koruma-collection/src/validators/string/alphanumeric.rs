@@ -47,7 +47,7 @@ impl<T: AsRef<str>> Validate<T> for AlphanumericValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for AlphanumericValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value contains non-alphanumeric characters")
+        write!(f, "Must contain only letters and numbers.")
     }
 }
 

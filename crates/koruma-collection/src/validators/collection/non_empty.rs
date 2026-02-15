@@ -52,7 +52,7 @@ impl<T: HasLen + Clone> Validate<T> for NonEmptyValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: HasLen + Clone> std::fmt::Display for NonEmptyValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value must not be empty")
+        write!(f, "Must not be empty.")
     }
 }
 

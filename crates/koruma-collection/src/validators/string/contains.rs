@@ -51,7 +51,7 @@ impl<T: AsRef<str>> Validate<T> for ContainsValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for ContainsValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value does not contain \"{}\"", self.substring)
+        write!(f, "Must contain the substring '{}'.", self.substring)
     }
 }
 

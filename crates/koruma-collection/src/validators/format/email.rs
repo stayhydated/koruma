@@ -46,7 +46,7 @@ impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for EmailValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "not a valid email address")
+        write!(f, "Not a valid email address.")
     }
 }
 

@@ -37,7 +37,7 @@ impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
 #[cfg(feature = "fmt")]
 impl<T> std::fmt::Display for RequiredValidation<Option<T>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value is required but not present")
+        write!(f, "This field is required and must not be empty.")
     }
 }
 

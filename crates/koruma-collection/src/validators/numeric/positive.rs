@@ -50,7 +50,7 @@ impl<T: Numeric> Validate<T> for PositiveValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: Numeric> std::fmt::Display for PositiveValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value {} must be positive (> 0)", self.actual)
+        write!(f, "Must be positive.")
     }
 }
 

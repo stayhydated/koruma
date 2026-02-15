@@ -54,7 +54,7 @@ impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PatternValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value does not match pattern /{}/", self.pattern)
+        write!(f, "Does not match the required pattern '{}'.", self.pattern)
     }
 }
 

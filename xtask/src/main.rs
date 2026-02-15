@@ -5,17 +5,18 @@ use std::{
 };
 
 use anyhow::{Context, Result, anyhow, bail};
-use fluent_syntax::{ast, parser, serializer};
+use fluent_syntax::{ast, parser};
 use heck::ToSnakeCase as _;
+use proc_macro2::{LineColumn, Span};
+use quote::ToTokens as _;
 use syn::{
     Attribute, Block, Expr, ExprLit, File, ImplItem, Item, ItemImpl, Lit, Macro, Member, Meta,
-    Stmt, Type, parse::Parser as _, punctuated::Punctuated,
+    Stmt, Type, parse::Parser as _, punctuated::Punctuated, spanned::Spanned as _,
 };
 
 #[derive(Clone, Debug)]
 struct SyncOptions {
     check: bool,
-    allow_new_variables: bool,
     verbose: bool,
 }
 
@@ -25,12 +26,21 @@ struct ValidatorInfo {
     namespace: String,
     message_id: String,
     source: PathBuf,
+    fields: HashSet<String>,
 }
 
 #[derive(Clone, Debug)]
 struct DisplayInfo {
-    template: Vec<TemplatePart>,
+    expr_by_placeholder: HashMap<String, String>,
     source: PathBuf,
+    write_span: Span,
+}
+
+#[derive(Clone, Debug)]
+struct SyncTarget {
+    validator: ValidatorInfo,
+    display: DisplayInfo,
+    template: Vec<TemplatePart>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -39,23 +49,20 @@ enum TemplatePart {
     Placeholder(String),
 }
 
-#[derive(Debug)]
-struct FtlResource {
-    path: PathBuf,
-    resource: ast::Resource<String>,
-    changed: usize,
-}
-
-#[derive(Debug, Default)]
-struct ExistingPatternInfo {
-    variables: HashSet<String>,
-    placeable_for_var: HashMap<String, ast::PatternElement<String>>,
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum FormatChunk {
     Text(String),
     Slot(String),
+}
+
+type ParsedDisplay = (String, HashMap<String, String>, Span);
+
+#[derive(Clone, Debug)]
+struct Replacement {
+    start: usize,
+    end: usize,
+    replacement: String,
+    type_name: String,
 }
 
 fn main() -> Result<()> {
@@ -88,29 +95,24 @@ fn main() -> Result<()> {
 
 fn print_help() {
     println!("Usage:");
-    println!(
-        "  cargo run -p xtask -- sync-display-ftl [--check] [--allow-new-variables] [--verbose]"
-    );
+    println!("  cargo run -p xtask -- sync-display-ftl [--check] [--verbose]");
+    println!();
+    println!("Sync source of truth: EN FTL -> Rust std::fmt::Display messages.");
     println!();
     println!("Flags:");
-    println!("  --check                Exit with non-zero status if files would change.");
-    println!(
-        "  --allow-new-variables  Allow placeholders not already present in the EN FTL message."
-    );
-    println!("  --verbose              Print each updated message id.");
+    println!("  --check    Exit with non-zero status if files would change.");
+    println!("  --verbose  Print each updated Display impl.");
 }
 
 fn parse_sync_options(args: &[String]) -> Result<SyncOptions> {
     let mut options = SyncOptions {
         check: false,
-        allow_new_variables: false,
         verbose: false,
     };
 
     for arg in args {
         match arg.as_str() {
             "--check" => options.check = true,
-            "--allow-new-variables" => options.allow_new_variables = true,
             "--verbose" => options.verbose = true,
             unknown => bail!("Unknown flag '{unknown}'. Use --help for usage."),
         }
@@ -142,10 +144,11 @@ fn run_sync_display_ftl(options: SyncOptions) -> Result<()> {
         collect_display_info(file, &parsed, &mut displays)?;
     }
 
-    let mut resources = HashMap::<String, FtlResource>::new();
+    let templates = collect_ftl_templates(&ftl_root)?;
+
     let mut missing_display = Vec::<String>::new();
     let mut missing_message = Vec::<String>::new();
-    let mut updated = 0usize;
+    let mut targets = HashMap::<String, SyncTarget>::new();
 
     for validator in validators.values() {
         let Some(display) = displays.get(&validator.name) else {
@@ -157,63 +160,25 @@ fn run_sync_display_ftl(options: SyncOptions) -> Result<()> {
             continue;
         };
 
-        if !resources.contains_key(&validator.namespace) {
-            let path = ftl_root.join(format!("{}.ftl", validator.namespace));
-            let source = fs::read_to_string(&path)
-                .with_context(|| format!("Failed to read {}", path.display()))?;
-            let parsed = parser::parse(source.clone()).map_err(|(_, errors)| {
-                anyhow!(
-                    "Failed to parse FTL AST for {} ({} parser errors)",
-                    path.display(),
-                    errors.len()
-                )
-            })?;
-
-            resources.insert(
-                validator.namespace.clone(),
-                FtlResource {
-                    path,
-                    resource: parsed,
-                    changed: 0,
-                },
-            );
-        }
-
-        let resource = resources
-            .get_mut(&validator.namespace)
-            .expect("resource inserted above");
-
-        let Some(message) = find_message_mut(&mut resource.resource, &validator.message_id) else {
+        let key = (validator.namespace.clone(), validator.message_id.clone());
+        let Some(template) = templates.get(&key) else {
             missing_message.push(format!(
                 "{} -> {} ({})",
                 validator.name,
                 validator.message_id,
-                resource.path.display()
+                validator.source.display()
             ));
             continue;
         };
 
-        let Some(current_pattern) = message.value.as_ref() else {
-            continue;
-        };
-
-        let existing = analyze_pattern(current_pattern);
-        let rendered = render_pattern(&display.template, &existing, options.allow_new_variables);
-
-        if message.value.as_ref() != Some(&rendered) {
-            message.value = Some(rendered);
-            resource.changed += 1;
-            updated += 1;
-
-            if options.verbose {
-                println!(
-                    "updated {}:{} (from {})",
-                    resource.path.display(),
-                    validator.message_id,
-                    display.source.display()
-                );
-            }
-        }
+        targets.insert(
+            validator.name.clone(),
+            SyncTarget {
+                validator: validator.clone(),
+                display: display.clone(),
+                template: template.clone(),
+            },
+        );
     }
 
     if !missing_display.is_empty() {
@@ -236,28 +201,82 @@ fn run_sync_display_ftl(options: SyncOptions) -> Result<()> {
         }
     }
 
+    let mut updated_impls = 0usize;
+    let mut changed_files = 0usize;
+
+    for file in &validator_files {
+        let source = fs::read_to_string(file)
+            .with_context(|| format!("Failed to read validator file {}", file.display()))?;
+        let line_starts = line_start_offsets(&source);
+
+        let mut replacements = Vec::<Replacement>::new();
+
+        for (type_name, target) in targets
+            .iter()
+            .filter(|(_, target)| target.display.source == *file)
+        {
+            let (format_literal, args) =
+                template_to_write_parts(&target.template, &target.validator, &target.display)
+                    .with_context(|| {
+                        format!(
+                            "Failed to convert FTL template for {} from {}",
+                            type_name,
+                            target.display.source.display()
+                        )
+                    })?;
+
+            let write_call = build_write_call(&format_literal, &args);
+            let (start, end) = span_to_byte_range(target.display.write_span, &line_starts, &source)
+                .with_context(|| {
+                    format!(
+                        "Failed to map write! span for {} in {}",
+                        type_name,
+                        file.display()
+                    )
+                })?;
+
+            if write_call_changed(&source[start..end], &write_call) {
+                replacements.push(Replacement {
+                    start,
+                    end,
+                    replacement: write_call,
+                    type_name: type_name.clone(),
+                });
+            }
+        }
+
+        if !replacements.is_empty() {
+            updated_impls += replacements.len();
+            changed_files += 1;
+
+            if !options.check {
+                let rendered = apply_replacements(&source, &replacements);
+                fs::write(file, rendered)
+                    .with_context(|| format!("Failed to write {}", file.display()))?;
+            }
+
+            if options.verbose {
+                for replacement in &replacements {
+                    println!("updated {} ({})", replacement.type_name, file.display());
+                }
+            }
+        }
+    }
+
     if options.check {
-        if updated == 0 {
+        if updated_impls == 0 {
             println!("sync-display-ftl: no changes needed.");
             return Ok(());
         }
 
-        bail!("sync-display-ftl: {updated} message(s) would be updated.");
+        bail!(
+            "sync-display-ftl: {updated_impls} Display impl(s) would be updated across {changed_files} file(s).",
+        );
     }
 
-    let mut files_written = 0usize;
-    for resource in resources.values() {
-        if resource.changed == 0 {
-            continue;
-        }
-
-        let serialized = serializer::serialize(&resource.resource);
-        fs::write(&resource.path, serialized)
-            .with_context(|| format!("Failed to write {}", resource.path.display()))?;
-        files_written += 1;
-    }
-
-    println!("sync-display-ftl: updated {updated} message(s) across {files_written} file(s).");
+    println!(
+        "sync-display-ftl: updated {updated_impls} Display impl(s) across {changed_files} file(s).",
+    );
     Ok(())
 }
 
@@ -303,6 +322,15 @@ fn collect_validator_info(
             continue;
         };
 
+        let mut fields = HashSet::new();
+        if let syn::Fields::Named(named) = &item_struct.fields {
+            for field in &named.named {
+                if let Some(ident) = &field.ident {
+                    fields.insert(ident.to_string());
+                }
+            }
+        }
+
         let message_id = name.to_snake_case();
         validators.insert(
             name.clone(),
@@ -311,6 +339,7 @@ fn collect_validator_info(
                 namespace,
                 message_id,
                 source: file_path.to_path_buf(),
+                fields,
             },
         );
     }
@@ -326,20 +355,71 @@ fn collect_display_info(
             continue;
         };
 
-        let Some((type_name, template)) = parse_display_impl(item_impl)? else {
+        let Some((type_name, expr_by_placeholder, write_span)) = parse_display_impl(item_impl)?
+        else {
             continue;
         };
 
         displays.insert(
-            type_name.clone(),
+            type_name,
             DisplayInfo {
-                template,
+                expr_by_placeholder,
                 source: file_path.to_path_buf(),
+                write_span,
             },
         );
     }
 
     Ok(())
+}
+
+fn collect_ftl_templates(ftl_root: &Path) -> Result<HashMap<(String, String), Vec<TemplatePart>>> {
+    let mut templates = HashMap::new();
+
+    for entry in fs::read_dir(ftl_root)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().is_none_or(|ext| ext != "ftl") {
+            continue;
+        }
+
+        let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
+            continue;
+        };
+        let namespace = stem.to_string();
+
+        let source = fs::read_to_string(&path)
+            .with_context(|| format!("Failed to read {}", path.display()))?;
+        let parsed = parser::parse(source).map_err(|(_, errors)| {
+            anyhow!(
+                "Failed to parse FTL AST for {} ({} parser errors)",
+                path.display(),
+                errors.len()
+            )
+        })?;
+
+        for entry in parsed.body {
+            let ast::Entry::Message(message) = entry else {
+                continue;
+            };
+
+            let Some(pattern) = message.value else {
+                continue;
+            };
+
+            let template = template_from_pattern(&pattern).with_context(|| {
+                format!(
+                    "Unsupported message pattern for '{}' in {}",
+                    message.id.name,
+                    path.display()
+                )
+            })?;
+
+            templates.insert((namespace.clone(), message.id.name), template);
+        }
+    }
+
+    Ok(templates)
 }
 
 fn extract_namespace(attrs: &[Attribute]) -> Option<String> {
@@ -405,31 +485,12 @@ fn extract_namespace_from_fluent_meta(list: &syn::MetaList) -> Option<String> {
     None
 }
 
-fn parse_display_impl(item_impl: &ItemImpl) -> Result<Option<(String, Vec<TemplatePart>)>> {
-    let Some((_, trait_path, _)) = &item_impl.trait_ else {
+fn parse_display_impl(item_impl: &ItemImpl) -> Result<Option<ParsedDisplay>> {
+    let Some(type_name) = display_impl_type_name(item_impl) else {
         return Ok(None);
     };
 
-    if trait_path
-        .segments
-        .last()
-        .is_none_or(|segment| segment.ident != "Display")
-    {
-        return Ok(None);
-    }
-
-    let Some(type_name) = extract_type_ident(&item_impl.self_ty) else {
-        return Ok(None);
-    };
-
-    let Some(fmt_fn) = item_impl
-        .items
-        .iter()
-        .find_map(|impl_item| match impl_item {
-            ImplItem::Fn(method) if method.sig.ident == "fmt" => Some(method),
-            _ => None,
-        })
-    else {
+    let Some(fmt_fn) = find_fmt_fn(item_impl) else {
         return Ok(None);
     };
 
@@ -458,9 +519,25 @@ fn parse_display_impl(item_impl: &ItemImpl) -> Result<Option<(String, Vec<Templa
     };
 
     let value_args: Vec<Expr> = args.iter().skip(2).cloned().collect();
-    let template = format_to_template(&format_lit.value(), &value_args)?;
+    let expr_by_placeholder = format_to_expr_map(&format_lit.value(), &value_args)?;
 
-    Ok(Some((type_name, template)))
+    Ok(Some((type_name, expr_by_placeholder, write_macro.span())))
+}
+
+fn display_impl_type_name(item_impl: &ItemImpl) -> Option<String> {
+    let Some((_, trait_path, _)) = &item_impl.trait_ else {
+        return None;
+    };
+
+    if trait_path
+        .segments
+        .last()
+        .is_none_or(|segment| segment.ident != "Display")
+    {
+        return None;
+    }
+
+    extract_type_ident(&item_impl.self_ty)
 }
 
 fn extract_type_ident(ty: &Type) -> Option<String> {
@@ -474,6 +551,16 @@ fn extract_type_ident(ty: &Type) -> Option<String> {
         Type::Paren(paren) => extract_type_ident(&paren.elem),
         _ => None,
     }
+}
+
+fn find_fmt_fn(item_impl: &ItemImpl) -> Option<&syn::ImplItemFn> {
+    item_impl
+        .items
+        .iter()
+        .find_map(|impl_item| match impl_item {
+            ImplItem::Fn(method) if method.sig.ident == "fmt" => Some(method),
+            _ => None,
+        })
 }
 
 fn find_write_macro_in_block(block: &Block) -> Option<&Macro> {
@@ -532,37 +619,38 @@ fn is_write_macro(mac: &Macro) -> bool {
         .is_some_and(|segment| segment.ident == "write")
 }
 
-fn format_to_template(format_str: &str, args: &[Expr]) -> Result<Vec<TemplatePart>> {
+fn format_to_expr_map(format_str: &str, args: &[Expr]) -> Result<HashMap<String, String>> {
     let chunks = parse_format_chunks(format_str)?;
 
-    let mut template = Vec::new();
+    let mut expr_by_placeholder = HashMap::new();
     let mut next_arg = 0usize;
 
     for chunk in chunks {
-        match chunk {
-            FormatChunk::Text(value) => template.push(TemplatePart::Text(value)),
-            FormatChunk::Slot(spec) => {
-                let (arg_index, is_explicit) = parse_slot_index(&spec, next_arg)?;
+        let FormatChunk::Slot(spec) = chunk else {
+            continue;
+        };
 
-                let expr = args.get(arg_index).ok_or_else(|| {
-                    anyhow!(
-                        "format slot references argument #{arg_index}, but only {} argument(s) found",
-                        args.len()
-                    )
-                })?;
+        let (arg_index, is_explicit) = parse_slot_index(&spec, next_arg)?;
 
-                let inferred =
-                    infer_variable_name(expr).unwrap_or_else(|| format!("arg{}", arg_index + 1));
-                template.push(TemplatePart::Placeholder(inferred));
+        let expr = args.get(arg_index).ok_or_else(|| {
+            anyhow!(
+                "format slot references argument #{arg_index}, but only {} argument(s) found",
+                args.len()
+            )
+        })?;
 
-                if !is_explicit {
-                    next_arg += 1;
-                }
-            },
+        let placeholder =
+            infer_variable_name(expr).unwrap_or_else(|| format!("arg{}", arg_index + 1));
+        expr_by_placeholder
+            .entry(placeholder)
+            .or_insert_with(|| expr.to_token_stream().to_string());
+
+        if !is_explicit {
+            next_arg += 1;
         }
     }
 
-    Ok(template)
+    Ok(expr_by_placeholder)
 }
 
 fn parse_slot_index(spec: &str, next_arg: usize) -> Result<(usize, bool)> {
@@ -669,97 +757,24 @@ fn is_self_expr(expr: &Expr) -> bool {
     matches!(expr, Expr::Path(path) if path.path.is_ident("self"))
 }
 
-fn find_message_mut<'a>(
-    resource: &'a mut ast::Resource<String>,
-    message_id: &str,
-) -> Option<&'a mut ast::Message<String>> {
-    for entry in &mut resource.body {
-        let ast::Entry::Message(message) = entry else {
-            continue;
-        };
+fn template_from_pattern(pattern: &ast::Pattern<String>) -> Result<Vec<TemplatePart>> {
+    let mut template = Vec::new();
 
-        if message.id.name == message_id {
-            return Some(message);
-        }
-    }
-
-    None
-}
-
-fn analyze_pattern(pattern: &ast::Pattern<String>) -> ExistingPatternInfo {
-    let mut info = ExistingPatternInfo::default();
-    collect_pattern_variables(pattern, &mut info.variables);
-
-    for element in &pattern.elements {
-        let ast::PatternElement::Placeable { expression } = element else {
-            continue;
-        };
-
-        let Some(variable) = root_variable_for_expression(expression) else {
-            continue;
-        };
-
-        info.placeable_for_var
-            .entry(variable)
-            .or_insert_with(|| element.clone());
-    }
-
-    info
-}
-
-fn collect_pattern_variables(pattern: &ast::Pattern<String>, vars: &mut HashSet<String>) {
     for element in &pattern.elements {
         match element {
-            ast::PatternElement::TextElement { .. } => {},
+            ast::PatternElement::TextElement { value } => {
+                push_text_part(&mut template, value.clone())
+            },
             ast::PatternElement::Placeable { expression } => {
-                collect_expression_variables(expression, vars)
+                let Some(name) = root_variable_for_expression(expression) else {
+                    bail!("Only variable/select placeables are supported");
+                };
+                template.push(TemplatePart::Placeholder(name));
             },
         }
     }
-}
 
-fn collect_expression_variables(expression: &ast::Expression<String>, vars: &mut HashSet<String>) {
-    match expression {
-        ast::Expression::Inline(inline) => collect_inline_variables(inline, vars),
-        ast::Expression::Select { selector, variants } => {
-            collect_inline_variables(selector, vars);
-            for variant in variants {
-                collect_pattern_variables(&variant.value, vars);
-            }
-        },
-    }
-}
-
-fn collect_inline_variables(inline: &ast::InlineExpression<String>, vars: &mut HashSet<String>) {
-    match inline {
-        ast::InlineExpression::VariableReference { id } => {
-            vars.insert(id.name.clone());
-        },
-        ast::InlineExpression::FunctionReference { arguments, .. } => {
-            collect_call_argument_variables(arguments, vars);
-        },
-        ast::InlineExpression::TermReference { arguments, .. } => {
-            if let Some(arguments) = arguments {
-                collect_call_argument_variables(arguments, vars);
-            }
-        },
-        ast::InlineExpression::Placeable { expression } => {
-            collect_expression_variables(expression, vars);
-        },
-        ast::InlineExpression::StringLiteral { .. }
-        | ast::InlineExpression::NumberLiteral { .. }
-        | ast::InlineExpression::MessageReference { .. } => {},
-    }
-}
-
-fn collect_call_argument_variables(args: &ast::CallArguments<String>, vars: &mut HashSet<String>) {
-    for positional in &args.positional {
-        collect_inline_variables(positional, vars);
-    }
-
-    for named in &args.named {
-        collect_inline_variables(&named.value, vars);
-    }
+    Ok(template)
 }
 
 fn root_variable_for_expression(expression: &ast::Expression<String>) -> Option<String> {
@@ -775,176 +790,223 @@ fn root_variable_for_expression(expression: &ast::Expression<String>) -> Option<
     }
 }
 
-fn render_pattern(
-    template: &[TemplatePart],
-    existing: &ExistingPatternInfo,
-    allow_new_variables: bool,
-) -> ast::Pattern<String> {
-    let mut elements = Vec::<ast::PatternElement<String>>::new();
-
-    for part in template {
-        match part {
-            TemplatePart::Text(value) => push_text_element(&mut elements, value.clone()),
-            TemplatePart::Placeholder(variable) => {
-                if !allow_new_variables && !existing.variables.contains(variable) {
-                    continue;
-                }
-
-                if let Some(existing_placeable) = existing.placeable_for_var.get(variable) {
-                    elements.push(existing_placeable.clone());
-                } else {
-                    elements.push(ast::PatternElement::Placeable {
-                        expression: ast::Expression::Inline(
-                            ast::InlineExpression::VariableReference {
-                                id: ast::Identifier {
-                                    name: variable.clone(),
-                                },
-                            },
-                        ),
-                    });
-                }
-            },
-        }
-    }
-
-    normalize_text_elements(&mut elements);
-
-    if elements.is_empty() {
-        elements.push(ast::PatternElement::TextElement {
-            value: String::new(),
-        });
-    }
-
-    ast::Pattern { elements }
-}
-
-fn push_text_element(elements: &mut Vec<ast::PatternElement<String>>, text: String) {
+fn push_text_part(template: &mut Vec<TemplatePart>, text: String) {
     if text.is_empty() {
         return;
     }
 
-    if let Some(ast::PatternElement::TextElement { value }) = elements.last_mut() {
-        value.push_str(&text);
-        return;
+    if let Some(TemplatePart::Text(existing)) = template.last_mut() {
+        existing.push_str(&text);
+    } else {
+        template.push(TemplatePart::Text(text));
     }
-
-    elements.push(ast::PatternElement::TextElement { value: text });
 }
 
-fn normalize_text_elements(elements: &mut Vec<ast::PatternElement<String>>) {
-    for element in elements.iter_mut() {
-        let ast::PatternElement::TextElement { value } = element else {
-            continue;
-        };
-        *value = collapse_whitespace(value);
-    }
+fn template_to_write_parts(
+    template: &[TemplatePart],
+    validator: &ValidatorInfo,
+    display: &DisplayInfo,
+) -> Result<(String, Vec<String>)> {
+    let mut format_literal = String::new();
+    let mut args = Vec::<String>::new();
 
-    if let Some(ast::PatternElement::TextElement { value }) = elements.first_mut() {
-        *value = value.trim_start().to_string();
-    }
+    for part in template {
+        match part {
+            TemplatePart::Text(text) => format_literal.push_str(&escape_format_literal(text)),
+            TemplatePart::Placeholder(placeholder) => {
+                let expr =
+                    resolve_placeholder_expr(placeholder, validator, display).ok_or_else(|| {
+                        anyhow!(
+                            "Cannot resolve placeholder '${}' for {}",
+                            placeholder,
+                            validator.name
+                        )
+                    })?;
 
-    if let Some(ast::PatternElement::TextElement { value }) = elements.last_mut() {
-        *value = value.trim_end().to_string();
-    }
-
-    let mut normalized: Vec<ast::PatternElement<String>> = Vec::with_capacity(elements.len());
-    for element in elements.drain(..) {
-        match element {
-            ast::PatternElement::TextElement { value } if value.is_empty() => {},
-            ast::PatternElement::TextElement { value } => {
-                if let Some(ast::PatternElement::TextElement { value: previous }) =
-                    normalized.last_mut()
-                {
-                    previous.push_str(&value);
-                } else {
-                    normalized.push(ast::PatternElement::TextElement { value });
-                }
+                format_literal.push_str("{}");
+                args.push(expr);
             },
-            other => normalized.push(other),
         }
     }
 
-    *elements = normalized;
+    Ok((format_literal, args))
 }
 
-fn collapse_whitespace(value: &str) -> String {
-    let mut result = String::with_capacity(value.len());
-    let mut previous_was_ws = false;
+fn resolve_placeholder_expr(
+    placeholder: &str,
+    validator: &ValidatorInfo,
+    display: &DisplayInfo,
+) -> Option<String> {
+    if let Some(existing) = display.expr_by_placeholder.get(placeholder) {
+        return Some(existing.clone());
+    }
 
-    for ch in value.chars() {
-        if ch.is_whitespace() {
-            if !previous_was_ws {
-                result.push(' ');
-                previous_was_ws = true;
-            }
-        } else {
-            result.push(ch);
-            previous_was_ws = false;
+    if placeholder == "actual" && validator.fields.contains("actual") {
+        return Some("self.actual".to_string());
+    }
+
+    if validator.fields.contains(placeholder) {
+        return Some(format!("self.{placeholder}"));
+    }
+
+    None
+}
+
+fn escape_format_literal(input: &str) -> String {
+    let mut escaped = String::with_capacity(input.len());
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => escaped.push_str("\\\\"),
+            '"' => escaped.push_str("\\\""),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            '{' => escaped.push_str("{{"),
+            '}' => escaped.push_str("}}"),
+            other => escaped.push(other),
         }
     }
 
-    result
+    escaped
+}
+
+fn build_write_call(format_literal: &str, args: &[String]) -> String {
+    let mut write_call = format!("write!(f, \"{format_literal}\"");
+    for arg in args {
+        write_call.push_str(", ");
+        write_call.push_str(arg);
+    }
+    write_call.push(')');
+    write_call
+}
+
+fn line_start_offsets(source: &str) -> Vec<usize> {
+    let mut starts = vec![0];
+    for (idx, byte) in source.bytes().enumerate() {
+        if byte == b'\n' {
+            starts.push(idx + 1);
+        }
+    }
+    starts
+}
+
+fn span_to_byte_range(span: Span, line_starts: &[usize], source: &str) -> Result<(usize, usize)> {
+    let start = line_col_to_offset(span.start(), line_starts)?;
+    let end = line_col_to_offset(span.end(), line_starts)?;
+
+    if end < start || end > source.len() {
+        bail!("Invalid byte range from span: {start}..{end}");
+    }
+
+    Ok((start, end))
+}
+
+fn line_col_to_offset(pos: LineColumn, line_starts: &[usize]) -> Result<usize> {
+    let line_idx = pos
+        .line
+        .checked_sub(1)
+        .ok_or_else(|| anyhow!("Invalid line number from span: {}", pos.line))?;
+    let line_start = *line_starts.get(line_idx).ok_or_else(|| {
+        anyhow!(
+            "Span line {} is out of bounds (max line {})",
+            pos.line,
+            line_starts.len()
+        )
+    })?;
+
+    Ok(line_start + pos.column)
+}
+
+fn apply_replacements(source: &str, replacements: &[Replacement]) -> String {
+    let mut rendered = source.to_string();
+    let mut ordered = replacements.to_vec();
+    ordered.sort_by_key(|replacement| replacement.start);
+
+    for replacement in ordered.into_iter().rev() {
+        rendered.replace_range(replacement.start..replacement.end, &replacement.replacement);
+    }
+
+    rendered
+}
+
+fn write_call_changed(existing: &str, next: &str) -> bool {
+    let existing_expr = syn::parse_str::<Expr>(existing);
+    let next_expr = syn::parse_str::<Expr>(next);
+
+    match (existing_expr, next_expr) {
+        (Ok(existing_expr), Ok(next_expr)) => {
+            existing_expr.to_token_stream().to_string() != next_expr.to_token_stream().to_string()
+        },
+        _ => existing != next,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::parse_str;
 
     #[test]
-    fn infers_template_slots_from_display_format() {
-        let args = vec![
-            parse_str::<Expr>("self.actual").expect("valid expression"),
-            parse_str::<Expr>("self.min").expect("valid expression"),
-            parse_str::<Expr>("self.max").expect("valid expression"),
-        ];
+    fn extracts_placeholder_from_select_expression() {
+        let ftl = r#"
+ip_validation =
+    Not a valid { $kind ->
+        [v4] IPv4
+       *[other] IP
+    } address.
+"#;
+        let resource = parser::parse(ftl.to_string()).expect("valid ftl");
+        let message = match &resource.body[0] {
+            ast::Entry::Message(message) => message,
+            _ => panic!("expected message"),
+        };
+        let pattern = message.value.as_ref().expect("pattern exists");
 
-        let template = format_to_template("value {} in [{}, {}]", &args).expect("parse template");
-
+        let template = template_from_pattern(pattern).expect("template conversion works");
         assert_eq!(
             template,
             vec![
-                TemplatePart::Text("value ".to_string()),
-                TemplatePart::Placeholder("actual".to_string()),
-                TemplatePart::Text(" in [".to_string()),
-                TemplatePart::Placeholder("min".to_string()),
-                TemplatePart::Text(", ".to_string()),
-                TemplatePart::Placeholder("max".to_string()),
-                TemplatePart::Text("]".to_string()),
+                TemplatePart::Text("Not a valid ".to_string()),
+                TemplatePart::Placeholder("kind".to_string()),
+                TemplatePart::Text(" address.".to_string()),
             ]
         );
     }
 
     #[test]
-    fn filters_out_non_existing_variables_by_default() {
+    fn resolves_actual_from_struct_fields() {
+        let validator = ValidatorInfo {
+            name: "ExampleValidation".to_string(),
+            namespace: "example".to_string(),
+            message_id: "example_validation".to_string(),
+            source: PathBuf::from("example.rs"),
+            fields: ["actual".to_string()].into_iter().collect(),
+        };
+
+        let display = DisplayInfo {
+            expr_by_placeholder: HashMap::new(),
+            source: PathBuf::from("example.rs"),
+            write_span: Span::call_site(),
+        };
+
         let template = vec![
-            TemplatePart::Text("value ".to_string()),
+            TemplatePart::Text("Value was ".to_string()),
             TemplatePart::Placeholder("actual".to_string()),
-            TemplatePart::Text(" must be between ".to_string()),
-            TemplatePart::Placeholder("min".to_string()),
-            TemplatePart::Text(" and ".to_string()),
-            TemplatePart::Placeholder("max".to_string()),
+            TemplatePart::Text(".".to_string()),
         ];
 
-        let mut existing = ExistingPatternInfo::default();
-        existing.variables.insert("min".to_string());
-        existing.variables.insert("max".to_string());
+        let (format_literal, args) =
+            template_to_write_parts(&template, &validator, &display).expect("conversion works");
 
-        let rendered = render_pattern(&template, &existing, false);
-        let serialized = serializer::serialize(&ast::Resource {
-            body: vec![ast::Entry::Message(ast::Message {
-                id: ast::Identifier {
-                    name: "range_validation".to_string(),
-                },
-                value: Some(rendered),
-                attributes: vec![],
-                comment: None,
-            })],
-        });
+        assert_eq!(format_literal, "Value was {}.");
+        assert_eq!(args, vec!["self.actual".to_string()]);
+    }
 
+    #[test]
+    fn escapes_rust_format_literal_text() {
         assert_eq!(
-            serialized,
-            "range_validation = value must be between { $min } and { $max }\n"
+            escape_format_literal("a { brace } and \"quote\""),
+            "a {{ brace }} and \\\"quote\\\""
         );
     }
 }

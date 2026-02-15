@@ -1,4 +1,4 @@
-# koruma-collection
+# koruma-collection ([online demo](https://stayhydated.github.io/koruma/collection-example/))
 
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
@@ -22,18 +22,3 @@ string, format, numeric, collection, and general-purpose validators.
 - `email`: validates an email address.
 - `phone-number`: validates a phone number.
 - `url`: validates a URL.
-
-## Example
-
-[online demo](https://stayhydated.github.io/koruma/collection-example/)
-
-```rust
-use koruma::Koruma;
-use koruma_collection::string::ContainsValidation;
-
-#[derive(Koruma)]
-struct User {
-    #[koruma(ContainsValidation::<_>(substring = "67"))]
-    username: String,
-}
-```

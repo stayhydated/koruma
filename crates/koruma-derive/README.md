@@ -6,8 +6,6 @@
 Proc-macro crate for `koruma`. Most users should depend on `koruma` with the `derive` feature
 instead of using this crate directly.
 
-Use this crate directly when you need to pin the macro dependency or integrate it into tooling.
-
 ## Macros
 
 - `#[koruma::validator]`: generates a `bon` builder and `with_value()` helper for validators.

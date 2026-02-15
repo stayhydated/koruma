@@ -6,11 +6,6 @@
 Core traits and types for the `koruma` validation ecosystem. Most users should depend on
 `koruma` instead of this crate directly.
 
-Use this crate when you are:
-
-- Implementing custom validators without the proc-macro layer
-- Building tooling that only needs the trait definitions
-
 ## What it provides
 
 - `Validate<T>`: implemented by validator structs.

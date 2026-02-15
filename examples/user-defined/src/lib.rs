@@ -105,10 +105,15 @@ pub struct Account {
 // =============================================================================
 
 /// A newtype wrapper around String, representing an email address.
-/// Uses `#[koruma(newtype)]` to delegate validation errors directly to the wrapper.
+/// Uses `#[koruma(try_new, newtype)]` to:
+/// - validate at construction time (`Email::try_new`)
+/// - delegate validation errors directly to the wrapper
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
-#[koruma(newtype)]
-pub struct Email(#[koruma(NonEmptyStringValidation)] pub String);
+#[koruma(try_new, newtype)]
+pub struct Email {
+    #[koruma(NonEmptyStringValidation)]
+    pub value: String,
+}
 
 /// A struct using the Email newtype.
 /// Demonstrates `#[koruma(newtype)]` on a field to transparently access the inner validation errors.

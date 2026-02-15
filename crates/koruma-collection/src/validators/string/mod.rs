@@ -24,3 +24,19 @@ pub use matches::MatchesValidation;
 pub use pattern::PatternValidation;
 pub use prefix::PrefixValidation;
 pub use suffix::SuffixValidation;
+
+#[cfg(feature = "internal-showcase")]
+#[doc(hidden)]
+#[inline(never)]
+pub fn __link_showcase_validators() {
+    alphanumeric::__koruma_showcase_anchor_alphanumeric_validation();
+    ascii::__koruma_showcase_anchor_ascii_validation();
+    contains::__koruma_showcase_anchor_contains_validation();
+    matches::__koruma_showcase_anchor_matches_validation();
+
+    #[cfg(feature = "regex")]
+    pattern::__koruma_showcase_anchor_pattern_validation();
+
+    prefix::__koruma_showcase_anchor_prefix_validation();
+    suffix::__koruma_showcase_anchor_suffix_validation();
+}

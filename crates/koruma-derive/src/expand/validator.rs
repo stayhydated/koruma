@@ -148,6 +148,10 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         let name = &showcase.name;
         let description = &showcase.description;
         let create_closure = &showcase.create;
+        let anchor_fn = format_ident!(
+            "__koruma_showcase_anchor_{}",
+            struct_name.to_string().to_snake_case()
+        );
         let input_type_tokens = if let Some(ref it) = showcase.input_type {
             quote! { ::koruma::showcase::InputType::#it }
         } else {
@@ -221,6 +225,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                     },
                 }
             }
+
+            #[doc(hidden)]
+            pub fn #anchor_fn() {}
         }
     } else {
         quote! {}

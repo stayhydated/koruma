@@ -1,69 +1,27 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_field_info(&field)
+assertion_line: 145
+expression: parse_field_snapshot(&field)
 ---
 Some(
-    FieldInfo {
-        name: Ident {
-            sym: score,
-        },
-        member: Member::Named(
-            Ident {
-                sym: score,
-            },
-        ),
-        ty: Type::Path {
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [
-                    PathSegment {
-                        ident: Ident {
-                            sym: f64,
-                        },
-                        arguments: PathArguments::None,
-                    },
-                ],
-            },
-        },
-        validation: ValidationInfo {
+    SnapshotFieldInfo {
+        name: "score",
+        member: "score",
+        ty: "f64",
+        validation: SnapshotValidationInfo {
             field_validators: [
-                ValidatorAttr {
-                    validator: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident {
-                                    sym: GenericRange,
-                                },
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
+                SnapshotValidator {
+                    name: "GenericRange",
                     infer_type: true,
                     explicit_type: None,
                     args: [
                         (
-                            Ident {
-                                sym: min,
-                            },
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Float {
-                                    token: 0.0,
-                                },
-                            },
+                            "min",
+                            "0.0",
                         ),
                         (
-                            Ident {
-                                sym: max,
-                            },
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Float {
-                                    token: 1.0,
-                                },
-                            },
+                            "max",
+                            "1.0",
                         ),
                     ],
                 },

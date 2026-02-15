@@ -1,92 +1,28 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_field_info(&field)
+assertion_line: 155
+expression: parse_field_snapshot(&field)
 ---
 Some(
-    FieldInfo {
-        name: Ident {
-            sym: scores,
-        },
-        member: Member::Named(
-            Ident {
-                sym: scores,
-            },
-        ),
-        ty: Type::Path {
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [
-                    PathSegment {
-                        ident: Ident {
-                            sym: Vec,
-                        },
-                        arguments: PathArguments::AngleBracketed {
-                            colon2_token: None,
-                            lt_token: Lt,
-                            args: [
-                                GenericArgument::Type(
-                                    Type::Path {
-                                        qself: None,
-                                        path: Path {
-                                            leading_colon: None,
-                                            segments: [
-                                                PathSegment {
-                                                    ident: Ident {
-                                                        sym: i32,
-                                                    },
-                                                    arguments: PathArguments::None,
-                                                },
-                                            ],
-                                        },
-                                    },
-                                ),
-                            ],
-                            gt_token: Gt,
-                        },
-                    },
-                ],
-            },
-        },
-        validation: ValidationInfo {
+    SnapshotFieldInfo {
+        name: "scores",
+        member: "scores",
+        ty: "Vec < i32 >",
+        validation: SnapshotValidationInfo {
             field_validators: [],
             element_validators: [
-                ValidatorAttr {
-                    validator: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident {
-                                    sym: RangeValidation,
-                                },
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
+                SnapshotValidator {
+                    name: "RangeValidation",
                     infer_type: false,
                     explicit_type: None,
                     args: [
                         (
-                            Ident {
-                                sym: min,
-                            },
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Int {
-                                    token: 0,
-                                },
-                            },
+                            "min",
+                            "0",
                         ),
                         (
-                            Ident {
-                                sym: max,
-                            },
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Int {
-                                    token: 100,
-                                },
-                            },
+                            "max",
+                            "100",
                         ),
                     ],
                 },

@@ -108,3 +108,25 @@ fn test_koruma_error_on_duplicate_element_validator() {
         err
     );
 }
+
+#[test]
+fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        pub struct BadNewtype {
+            #[koruma(RangeValidation(min = 0, max = 10))]
+            pub a: i32,
+            #[koruma(RangeValidation(min = 0, max = 10))]
+            pub b: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("newtype structs must have exactly one validated field"),
+        "expected newtype field-count error, got: {err}"
+    );
+}

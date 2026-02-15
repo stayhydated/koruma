@@ -1,46 +1,17 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_field_info(&field)
+assertion_line: 441
+expression: parse_field_snapshot(&field)
 ---
 Some(
-    FieldInfo {
-        name: Ident {
-            sym: _0,
-        },
-        member: Member::Unnamed(
-            Index {
-                index: 0,
-                span: bytes(0..0),
-            },
-        ),
-        ty: Type::Path {
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [
-                    PathSegment {
-                        ident: Ident {
-                            sym: String,
-                        },
-                        arguments: PathArguments::None,
-                    },
-                ],
-            },
-        },
-        validation: ValidationInfo {
+    SnapshotFieldInfo {
+        name: "_0",
+        member: "0",
+        ty: "String",
+        validation: SnapshotValidationInfo {
             field_validators: [
-                ValidatorAttr {
-                    validator: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident {
-                                    sym: NonEmptyStringValidation,
-                                },
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
+                SnapshotValidator {
+                    name: "NonEmptyStringValidation",
                     infer_type: false,
                     explicit_type: None,
                     args: [],

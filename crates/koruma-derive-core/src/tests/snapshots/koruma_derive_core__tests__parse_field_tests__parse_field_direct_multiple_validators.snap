@@ -1,84 +1,32 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_field_info(&field)
+assertion_line: 135
+expression: parse_field_snapshot(&field)
 ---
 Some(
-    FieldInfo {
-        name: Ident {
-            sym: value,
-        },
-        member: Member::Named(
-            Ident {
-                sym: value,
-            },
-        ),
-        ty: Type::Path {
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [
-                    PathSegment {
-                        ident: Ident {
-                            sym: i32,
-                        },
-                        arguments: PathArguments::None,
-                    },
-                ],
-            },
-        },
-        validation: ValidationInfo {
+    SnapshotFieldInfo {
+        name: "value",
+        member: "value",
+        ty: "i32",
+        validation: SnapshotValidationInfo {
             field_validators: [
-                ValidatorAttr {
-                    validator: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident {
-                                    sym: RangeValidation,
-                                },
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
+                SnapshotValidator {
+                    name: "RangeValidation",
                     infer_type: false,
                     explicit_type: None,
                     args: [
                         (
-                            Ident {
-                                sym: min,
-                            },
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Int {
-                                    token: 0,
-                                },
-                            },
+                            "min",
+                            "0",
                         ),
                         (
-                            Ident {
-                                sym: max,
-                            },
-                            Expr::Lit {
-                                attrs: [],
-                                lit: Lit::Int {
-                                    token: 100,
-                                },
-                            },
+                            "max",
+                            "100",
                         ),
                     ],
                 },
-                ValidatorAttr {
-                    validator: Path {
-                        leading_colon: None,
-                        segments: [
-                            PathSegment {
-                                ident: Ident {
-                                    sym: EvenValidation,
-                                },
-                                arguments: PathArguments::None,
-                            },
-                        ],
-                    },
+                SnapshotValidator {
+                    name: "EvenValidation",
                     infer_type: false,
                     explicit_type: None,
                     args: [],

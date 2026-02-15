@@ -909,13 +909,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                         if uses_infer {
                             let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
-                                if contains_infer_type(explicit_ty) {
-                                    let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
-                                    let substituted = substitute_infer_type(explicit_ty, inner_ty);
-                                    quote! { #substituted }
-                                } else {
-                                    quote! { #explicit_ty }
-                                }
+                                let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
+                                let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                                quote! { #substituted }
                             } else {
                                 quote! { #effective_ty }
                             };
@@ -1055,14 +1051,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                     if uses_infer {
                         let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
-                            if contains_infer_type(explicit_ty) {
-                                // For Option<_>, first_generic_arg gets the inner type
-                                let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
-                                let substituted = substitute_infer_type(explicit_ty, inner_ty);
-                                quote! { #substituted }
-                            } else {
-                                quote! { #explicit_ty }
-                            }
+                            // For Option<_>, first_generic_arg gets the inner type.
+                            let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
+                            let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                            quote! { #substituted }
                         } else {
                             quote! { #effective_ty }
                         };
@@ -1145,14 +1137,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type)
                         {
                             let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
-                                if contains_infer_type(explicit_ty) {
-                                    let inner_ty =
-                                        first_generic_arg(element_ty).unwrap_or(element_ty);
-                                    let substituted = substitute_infer_type(explicit_ty, inner_ty);
-                                    quote! { #substituted }
-                                } else {
-                                    quote! { #explicit_ty }
-                                }
+                                let inner_ty = first_generic_arg(element_ty).unwrap_or(element_ty);
+                                let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                                quote! { #substituted }
                             } else {
                                 quote! { #effective_element_ty }
                             };

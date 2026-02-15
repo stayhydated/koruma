@@ -1,32 +1,14 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_field_info(&field)
+assertion_line: 239
+expression: parse_field_snapshot(&field)
 ---
 Some(
-    FieldInfo {
-        name: Ident {
-            sym: inner,
-        },
-        member: Member::Named(
-            Ident {
-                sym: inner,
-            },
-        ),
-        ty: Type::Path {
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [
-                    PathSegment {
-                        ident: Ident {
-                            sym: InnerStruct,
-                        },
-                        arguments: PathArguments::None,
-                    },
-                ],
-            },
-        },
-        validation: ValidationInfo {
+    SnapshotFieldInfo {
+        name: "inner",
+        member: "inner",
+        ty: "InnerStruct",
+        validation: SnapshotValidationInfo {
             field_validators: [],
             element_validators: [],
             is_nested: true,

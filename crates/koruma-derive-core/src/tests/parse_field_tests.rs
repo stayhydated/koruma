@@ -2,13 +2,115 @@
 //!
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
-use crate::{FieldInfo, ParseFieldResult, find_value_field, parse_field, parse_struct_options};
+use crate::{
+    FieldInfo, ParseFieldResult, ValidationInfo, ValidatorAttr, find_value_field, parse_field,
+    parse_struct_options,
+};
 use insta::assert_debug_snapshot;
+use quote::ToTokens;
 
-/// Helper to extract FieldInfo from ParseFieldResult for snapshotting.
-fn parse_field_info(field: &syn::Field) -> Option<FieldInfo> {
+#[allow(dead_code)]
+#[derive(Debug)]
+struct SnapshotValidator {
+    name: String,
+    infer_type: bool,
+    explicit_type: Option<String>,
+    args: Vec<(String, String)>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct SnapshotValidationInfo {
+    field_validators: Vec<SnapshotValidator>,
+    element_validators: Vec<SnapshotValidator>,
+    is_nested: bool,
+    is_newtype: bool,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct SnapshotFieldInfo {
+    name: String,
+    member: String,
+    ty: String,
+    validation: SnapshotValidationInfo,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum SnapshotParseFieldResult {
+    Valid(Box<SnapshotFieldInfo>),
+    Skip,
+    Error(String),
+}
+
+fn normalize_tokens<T: ToTokens>(value: &T) -> String {
+    value.to_token_stream().to_string()
+}
+
+fn snapshot_validator(validator: &ValidatorAttr) -> SnapshotValidator {
+    SnapshotValidator {
+        name: validator.name().to_string(),
+        infer_type: validator.infer_type,
+        explicit_type: validator.explicit_type.as_ref().map(normalize_tokens),
+        args: validator
+            .args
+            .iter()
+            .map(|(name, expr)| (name.to_string(), normalize_tokens(expr)))
+            .collect(),
+    }
+}
+
+fn snapshot_validation(validation: &ValidationInfo) -> SnapshotValidationInfo {
+    SnapshotValidationInfo {
+        field_validators: validation
+            .field_validators
+            .iter()
+            .map(snapshot_validator)
+            .collect(),
+        element_validators: validation
+            .element_validators
+            .iter()
+            .map(snapshot_validator)
+            .collect(),
+        is_nested: validation.is_nested,
+        is_newtype: validation.is_newtype,
+    }
+}
+
+fn snapshot_field_info(info: FieldInfo) -> SnapshotFieldInfo {
+    SnapshotFieldInfo {
+        name: info.name.to_string(),
+        member: normalize_tokens(&info.member),
+        ty: normalize_tokens(&info.ty),
+        validation: snapshot_validation(&info.validation),
+    }
+}
+
+fn parse_field_result(field: &syn::Field) -> SnapshotParseFieldResult {
     match parse_field(field, 0) {
-        ParseFieldResult::Valid(info) => Some(*info),
+        ParseFieldResult::Valid(info) => {
+            SnapshotParseFieldResult::Valid(Box::new(snapshot_field_info(*info)))
+        },
+        ParseFieldResult::Skip => SnapshotParseFieldResult::Skip,
+        ParseFieldResult::Error(err) => SnapshotParseFieldResult::Error(err.to_string()),
+    }
+}
+
+fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), String> {
+    match parse_struct_options(&item.attrs) {
+        Ok(options) => Ok((options.try_new, options.newtype)),
+        Err(err) => Err(err.to_string()),
+    }
+}
+
+fn find_value_field_name(input: &syn::ItemStruct) -> Option<String> {
+    find_value_field(input).map(|(name, _)| name.to_string())
+}
+
+fn parse_field_snapshot(field: &syn::Field) -> Option<SnapshotFieldInfo> {
+    match parse_field(field, 0) {
+        ParseFieldResult::Valid(info) => Some(snapshot_field_info(*info)),
         _ => None,
     }
 }
@@ -24,7 +126,7 @@ fn test_parse_field_direct_single_validator() {
         pub age: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -34,7 +136,7 @@ fn test_parse_field_direct_multiple_validators() {
         pub value: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -44,7 +146,7 @@ fn test_parse_field_direct_generic_validator() {
         pub score: f64
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -54,7 +156,7 @@ fn test_parse_field_direct_each() {
         pub scores: Vec<i32>
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -64,7 +166,7 @@ fn test_parse_field_direct_nested() {
         pub inner: InnerStruct
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -74,7 +176,7 @@ fn test_parse_field_direct_newtype() {
         pub index: CommonVariableIndex
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -84,7 +186,7 @@ fn test_parse_field_direct_skip() {
         pub internal: u64
     };
 
-    assert_debug_snapshot!(parse_field(&field, 0));
+    assert_debug_snapshot!(parse_field_result(&field));
 }
 
 // =============================================================================
@@ -98,7 +200,7 @@ fn test_parse_field_cfg_attr_single_validator() {
         pub age: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -108,7 +210,7 @@ fn test_parse_field_cfg_attr_multiple_validators() {
         pub value: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -118,7 +220,7 @@ fn test_parse_field_cfg_attr_generic_validator() {
         pub score: f64
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -128,7 +230,7 @@ fn test_parse_field_cfg_attr_each() {
         pub scores: Vec<i32>
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -138,7 +240,7 @@ fn test_parse_field_cfg_attr_nested() {
         pub inner: InnerStruct
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -148,7 +250,7 @@ fn test_parse_field_cfg_attr_newtype() {
         pub index: CommonVariableIndex
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -158,7 +260,7 @@ fn test_parse_field_cfg_attr_skip() {
         pub internal: u64
     };
 
-    assert_debug_snapshot!(parse_field(&field, 0));
+    assert_debug_snapshot!(parse_field_result(&field));
 }
 
 // =============================================================================
@@ -173,7 +275,7 @@ fn test_parse_field_cfg_attr_with_other_derives() {
         pub index: CommonVariableIndex
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -184,7 +286,7 @@ fn test_parse_field_cfg_attr_koruma_first() {
         pub age: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 // =============================================================================
@@ -199,7 +301,7 @@ fn test_parse_field_cfg_attr_complex_condition() {
         pub index: CommonVariableIndex
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -210,7 +312,7 @@ fn test_parse_field_cfg_attr_any_condition() {
         pub age: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 // =============================================================================
@@ -226,7 +328,7 @@ fn test_parse_struct_options_direct() {
         }
     };
 
-    assert_debug_snapshot!(parse_struct_options(&input.attrs));
+    assert_debug_snapshot!(parse_struct_options_result(&input));
 }
 
 #[test]
@@ -238,7 +340,7 @@ fn test_parse_struct_options_cfg_attr() {
         }
     };
 
-    assert_debug_snapshot!(parse_struct_options(&input.attrs));
+    assert_debug_snapshot!(parse_struct_options_result(&input));
 }
 
 #[test]
@@ -248,7 +350,7 @@ fn test_parse_struct_options_cfg_attr_newtype() {
         pub struct Email(String);
     };
 
-    assert_debug_snapshot!(parse_struct_options(&input.attrs));
+    assert_debug_snapshot!(parse_struct_options_result(&input));
 }
 
 #[test]
@@ -258,7 +360,7 @@ fn test_parse_struct_options_cfg_attr_both() {
         pub struct Email(String);
     };
 
-    assert_debug_snapshot!(parse_struct_options(&input.attrs));
+    assert_debug_snapshot!(parse_struct_options_result(&input));
 }
 
 // =============================================================================
@@ -276,8 +378,7 @@ fn test_find_value_field_direct() {
         }
     };
 
-    let result = find_value_field(&input);
-    assert_debug_snapshot!(result.map(|(name, _ty)| name.to_string()));
+    assert_debug_snapshot!(find_value_field_name(&input));
 }
 
 #[test]
@@ -291,8 +392,7 @@ fn test_find_value_field_cfg_attr() {
         }
     };
 
-    let result = find_value_field(&input);
-    assert_debug_snapshot!(result.map(|(name, _ty)| name.to_string()));
+    assert_debug_snapshot!(find_value_field_name(&input));
 }
 
 #[test]
@@ -305,8 +405,7 @@ fn test_find_value_field_cfg_attr_complex_condition() {
         }
     };
 
-    let result = find_value_field(&input);
-    assert_debug_snapshot!(result.map(|(name, _ty)| name.to_string()));
+    assert_debug_snapshot!(find_value_field_name(&input));
 }
 
 // =============================================================================
@@ -320,7 +419,7 @@ fn test_parse_field_non_koruma_cfg_attr_skipped() {
         pub name: String
     };
 
-    assert_debug_snapshot!(parse_field(&field, 0));
+    assert_debug_snapshot!(parse_field_result(&field));
 }
 
 #[test]
@@ -332,7 +431,7 @@ fn test_parse_field_mixed_attrs_only_koruma_parsed() {
         pub value: i32
     };
 
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }
 
 #[test]
@@ -343,5 +442,5 @@ fn test_parse_field_unnamed() {
     };
 
     // Unnamed fields in tuple structs don't have an ident, so we rely on the index passed to parse_field
-    assert_debug_snapshot!(parse_field_info(&field));
+    assert_debug_snapshot!(parse_field_snapshot(&field));
 }

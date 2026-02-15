@@ -22,7 +22,7 @@ publish = true
 readme = "README.md"
 repository = "https://github.com/stayhydated/koruma"
 rust-version = "1.88"
-version = "0.5.0"
+version = "0.6.0"
 
 [workspace.dependencies]
 anyhow = "1.0"
@@ -33,19 +33,19 @@ console_error_panic_hook = "0.1"
 crossterm = "0.29"
 derive-getters = "0.5.0"
 email_address = "0.2"
-es-fluent = "0.12"
-es-fluent-lang = "0.12"
-es-fluent-manager-embedded = "0.12"
+es-fluent = "0.13"
+es-fluent-lang = "0.13"
+es-fluent-manager-embedded = "0.13"
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"
 insta = "1.46"
 inventory = "0.3"
-koruma = { path = "crates/koruma", version = "0.5.0" }
-koruma-collection = { path = "crates/koruma-collection", version = "0.5.0" }
-koruma-core = { path = "crates/koruma-core", version = "0.5.0" }
-koruma-derive = { path = "crates/koruma-derive", version = "0.5.0" }
-koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.5.0" }
+koruma = { path = "crates/koruma", version = "0.6.0" }
+koruma-collection = { path = "crates/koruma-collection", version = "0.6.0" }
+koruma-core = { path = "crates/koruma-core", version = "0.6.0" }
+koruma-derive = { path = "crates/koruma-derive", version = "0.6.0" }
+koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.6.0" }
 paste = "1.0"
 phonenumber = "0.3"
 prettyplease = "0.2"

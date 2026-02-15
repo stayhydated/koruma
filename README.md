@@ -1,6 +1,7 @@
 # koruma
 
 [![Build Status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
 [![Docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 
@@ -228,7 +229,3 @@ if let Err(err) = Email::try_new("".to_string()) {
     }
 }
 ```
-
-## Examples
-
-- [user-defined validators](examples/user-defined) (custom validators, display/fluent, nested, and newtype patterns)

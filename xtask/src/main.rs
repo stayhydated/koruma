@@ -1,10 +1,11 @@
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
-    env, fs,
+    fs,
     path::{Path, PathBuf},
 };
 
 use anyhow::{Context, Result, anyhow, bail};
+use clap::{Args, Parser, Subcommand};
 use fluent_syntax::{ast, parser};
 use heck::ToSnakeCase as _;
 use proc_macro2::{LineColumn, Span};
@@ -18,6 +19,45 @@ use syn::{
 struct SyncOptions {
     check: bool,
     verbose: bool,
+}
+
+#[derive(Debug, Parser)]
+#[command(
+    name = "xtask",
+    about = "Workspace maintenance tasks.",
+    disable_help_subcommand = true
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+
+    #[command(flatten)]
+    sync: SyncArgs,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Sync source of truth: EN FTL -> Rust std::fmt::Display messages.
+    SyncDisplayFtl(SyncArgs),
+}
+
+#[derive(Args, Clone, Debug, Default)]
+struct SyncArgs {
+    /// Exit with non-zero status if files would change.
+    #[arg(long)]
+    check: bool,
+    /// Print each updated Display impl.
+    #[arg(long)]
+    verbose: bool,
+}
+
+impl From<SyncArgs> for SyncOptions {
+    fn from(value: SyncArgs) -> Self {
+        Self {
+            check: value.check,
+            verbose: value.verbose,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -66,59 +106,14 @@ struct Replacement {
 }
 
 fn main() -> Result<()> {
-    let mut args: Vec<String> = env::args().skip(1).collect();
+    let cli = Cli::parse();
 
-    if args
-        .first()
-        .is_some_and(|arg| arg == "-h" || arg == "--help")
-    {
-        print_help();
-        return Ok(());
-    }
-
-    let command = if args.first().is_some_and(|arg| !arg.starts_with('-')) {
-        args.remove(0)
-    } else {
-        "sync-display-ftl".to_string()
+    let options: SyncOptions = match cli.command {
+        Some(Command::SyncDisplayFtl(sync)) => sync.into(),
+        None => cli.sync.into(),
     };
 
-    match command.as_str() {
-        "sync-display-ftl" => {
-            let options = parse_sync_options(&args)?;
-            run_sync_display_ftl(options)
-        },
-        other => {
-            bail!("Unknown command '{other}'. Expected 'sync-display-ftl'. Use --help for usage.")
-        },
-    }
-}
-
-fn print_help() {
-    println!("Usage:");
-    println!("  cargo run -p xtask -- sync-display-ftl [--check] [--verbose]");
-    println!();
-    println!("Sync source of truth: EN FTL -> Rust std::fmt::Display messages.");
-    println!();
-    println!("Flags:");
-    println!("  --check    Exit with non-zero status if files would change.");
-    println!("  --verbose  Print each updated Display impl.");
-}
-
-fn parse_sync_options(args: &[String]) -> Result<SyncOptions> {
-    let mut options = SyncOptions {
-        check: false,
-        verbose: false,
-    };
-
-    for arg in args {
-        match arg.as_str() {
-            "--check" => options.check = true,
-            "--verbose" => options.verbose = true,
-            unknown => bail!("Unknown flag '{unknown}'. Use --help for usage."),
-        }
-    }
-
-    Ok(options)
+    run_sync_display_ftl(options)
 }
 
 fn run_sync_display_ftl(options: SyncOptions) -> Result<()> {

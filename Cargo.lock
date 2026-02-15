@@ -1133,6 +1133,7 @@ dependencies = [
  "koruma-shared-lib",
  "ratatui",
  "rust-embed",
+ "strum 0.27.2",
  "unic-langid",
 ]
 

@@ -1,62 +1,20 @@
+use crate::components::key_codes::KeyCode;
+use crate::components::searchable_select::SearchableSelect;
+use crate::components::validator_module::ValidatorModule;
 use crate::input::{Input, InputRequest};
+use es_fluent::ToFluentString as _;
 use koruma::showcase::{DynValidator, InputType, ValidatorShowcase, validators};
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph, Wrap},
+    widgets::{Block, Borders, Paragraph, Wrap},
 };
 
 use crate::i18n::change_locale;
 use koruma_shared_lib::Languages;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ValidatorModule {
-    String,
-    Format,
-    Numeric,
-    Collection,
-    General,
-}
-
-impl ValidatorModule {
-    const ALL: [Self; 5] = [
-        Self::String,
-        Self::Format,
-        Self::Numeric,
-        Self::Collection,
-        Self::General,
-    ];
-
-    fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<Self> {
-        Self::ALL
-            .iter()
-            .filter(|&&m| all_validators.iter().any(|&v| m.contains_validator(v)))
-            .copied()
-            .collect()
-    }
-
-    fn name(&self) -> &'static str {
-        match self {
-            Self::String => "String",
-            Self::Format => "Format",
-            Self::Numeric => "Numeric",
-            Self::Collection => "Collection",
-            Self::General => "General",
-        }
-    }
-
-    fn contains_validator(&self, showcase: &ValidatorShowcase) -> bool {
-        match self {
-            Self::String => showcase.module == "string",
-            Self::Format => showcase.module == "format",
-            Self::Numeric => showcase.module == "numeric",
-            Self::Collection => showcase.module == "collection",
-            Self::General => showcase.module == "general",
-        }
-    }
-}
+use strum::IntoEnumIterator as _;
 
 pub struct App {
     input: Input,
@@ -69,7 +27,9 @@ pub struct App {
     current_language: Languages,
     should_exit: bool,
     show_module_dialog: bool,
-    dialog_selected_idx: usize,
+    show_language_dialog: bool,
+    language_selector: SearchableSelect<Languages>,
+    module_selector: SearchableSelect<ValidatorModule>,
 }
 
 impl App {
@@ -87,6 +47,27 @@ impl App {
             )
         };
 
+        // Initialize language selector with all available languages
+        let current_language = Languages::default();
+        let all_languages: Vec<Languages> = Languages::iter().collect();
+
+        // Set initial selection to current language before moving all_languages
+        let initial_idx = all_languages
+            .iter()
+            .position(|&lang| lang == Languages::default())
+            .unwrap_or(0);
+
+        let mut language_selector = SearchableSelect::new(all_languages);
+        language_selector.set_selected_index(initial_idx);
+
+        // Initialize with proper filtering
+        language_selector.set_search_query("", |lang| lang.to_fluent_string());
+
+        // Initialize module selector with all available modules
+        let mut module_selector = SearchableSelect::new(available_modules.clone());
+        module_selector.set_selected_index(selected_module_idx);
+        module_selector.set_search_query("", |module| module.name().to_string());
+
         let mut app = Self {
             input: Input::default(),
             all_validators,
@@ -95,10 +76,12 @@ impl App {
             selected_module_idx,
             selected_validator: 0,
             current_validator: None,
-            current_language: Languages::default(),
+            current_language,
             should_exit: false,
             show_module_dialog: false,
-            dialog_selected_idx: selected_module_idx,
+            show_language_dialog: false,
+            language_selector,
+            module_selector,
         };
         app.validate_input();
         app
@@ -167,16 +150,31 @@ impl App {
         }
     }
 
-    fn next_language(&mut self) {
-        self.current_language = self.current_language.next();
-        change_locale(self.current_language).unwrap();
+    fn toggle_language_dialog(&mut self) {
+        self.show_language_dialog = !self.show_language_dialog;
+        if self.show_language_dialog {
+            // When opening the dialog, sync the dialog selection with current language
+            if let Some(current_idx) =
+                self.language_selector
+                    .get_selected_item()
+                    .and_then(|_selected_lang| {
+                        self.language_selector
+                            .items
+                            .iter()
+                            .position(|item| *item == self.current_language)
+                    })
+            {
+                self.language_selector.set_selected_index(current_idx);
+            }
+        }
     }
 
     fn toggle_module_dialog(&mut self) {
         self.show_module_dialog = !self.show_module_dialog;
         if self.show_module_dialog {
-            // When opening the dialog, sync the dialog selection with current module
-            self.dialog_selected_idx = self.selected_module_idx;
+            // When opening the dialog, sync the module selector with current module
+            self.module_selector
+                .set_selected_index(self.selected_module_idx);
         }
     }
 
@@ -189,29 +187,92 @@ impl App {
             match code {
                 KeyCode::Esc => self.toggle_module_dialog(),
                 KeyCode::Up => {
-                    if !self.available_modules.is_empty() {
-                        self.dialog_selected_idx = if self.dialog_selected_idx == 0 {
-                            self.available_modules.len() - 1
-                        } else {
-                            self.dialog_selected_idx - 1
-                        };
-                    }
+                    self.module_selector.move_up();
                 },
                 KeyCode::Down => {
-                    if !self.available_modules.is_empty() {
-                        self.dialog_selected_idx =
-                            (self.dialog_selected_idx + 1) % self.available_modules.len();
-                    }
+                    self.module_selector.move_down();
                 },
                 KeyCode::Enter => {
-                    self.select_module(self.dialog_selected_idx);
+                    if let Some(selected_module) = self.module_selector.get_selected_item()
+                        && let Some(idx) = self
+                            .available_modules
+                            .iter()
+                            .position(|&m| m == *selected_module)
+                    {
+                        self.select_module(idx);
+                    }
+
                     self.toggle_module_dialog();
                 },
-                KeyCode::Char(c) if c.is_ascii_digit() => {
-                    let digit = c.to_digit(10).unwrap() as usize;
-                    if digit > 0 && digit <= self.available_modules.len() {
-                        self.select_module(digit - 1);
-                        self.toggle_module_dialog();
+                KeyCode::Char('/') => {
+                    self.module_selector.toggle_search();
+                },
+                KeyCode::Char(c) => {
+                    if self.module_selector.is_searching() {
+                        if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                            let current_query = self.module_selector.get_search_query().to_string();
+                            let new_query = format!("{}{}", current_query, c);
+                            self.module_selector
+                                .set_search_query(&new_query, |module| module.name().to_string());
+                        }
+                    } else if c.is_ascii_digit() {
+                        // Support digit selection when not searching
+                        let digit = c.to_digit(10).unwrap() as usize;
+                        if digit > 0 && digit <= self.available_modules.len() {
+                            self.select_module(digit - 1);
+                            self.toggle_module_dialog();
+                        }
+                    }
+                },
+                KeyCode::Backspace => {
+                    if self.module_selector.is_searching() {
+                        let current_query = self.module_selector.get_search_query().to_string();
+                        if !current_query.is_empty() {
+                            let new_query = &current_query[..current_query.len() - 1];
+                            self.module_selector
+                                .set_search_query(new_query, |module| module.name().to_string());
+                        }
+                    }
+                },
+                _ => {},
+            }
+            return;
+        }
+
+        if self.show_language_dialog {
+            match code {
+                KeyCode::Esc => self.toggle_language_dialog(),
+                KeyCode::Up => self.language_selector.move_up(),
+                KeyCode::Down => self.language_selector.move_down(),
+                KeyCode::Enter => {
+                    if let Some(selected_language) = self.language_selector.get_selected_item() {
+                        self.current_language = *selected_language;
+                        change_locale(self.current_language).unwrap();
+                    }
+                    self.toggle_language_dialog();
+                },
+                KeyCode::Char('/') => {
+                    self.language_selector.toggle_search();
+                },
+                KeyCode::Char(c) => {
+                    if self.language_selector.is_searching() && c.is_ascii_alphanumeric()
+                        || c == '-'
+                        || c == '_'
+                    {
+                        let current_query = self.language_selector.get_search_query().to_string();
+                        let new_query = format!("{}{}", current_query, c);
+                        self.language_selector
+                            .set_search_query(&new_query, |lang| lang.to_fluent_string());
+                    }
+                },
+                KeyCode::Backspace => {
+                    if self.language_selector.is_searching() {
+                        let current_query = self.language_selector.get_search_query().to_string();
+                        if !current_query.is_empty() {
+                            let new_query = &current_query[..current_query.len() - 1];
+                            self.language_selector
+                                .set_search_query(new_query, |lang| lang.to_fluent_string());
+                        }
                     }
                 },
                 _ => {},
@@ -224,7 +285,7 @@ impl App {
             KeyCode::Enter => self.toggle_module_dialog(),
             KeyCode::Up => self.prev_validator(),
             KeyCode::Down => self.next_validator(),
-            KeyCode::Tab => self.next_language(),
+            KeyCode::Tab => self.toggle_language_dialog(),
             KeyCode::Char(c) => {
                 let allow = if let Some(showcase) = self.current_showcase() {
                     match showcase.input_type {
@@ -278,6 +339,8 @@ impl App {
             Constraint::Length(1),
             Constraint::Length(3),
             Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
             Constraint::Length(2),
             Constraint::Min(0),
         ];
@@ -295,7 +358,7 @@ impl App {
         let input_area = horizontal.split(vertical[5])[1];
         let display_area = horizontal.split(vertical[7])[1];
         let fluent_area = horizontal.split(vertical[9])[1];
-        let help_area = horizontal.split(vertical[11])[1];
+        let help_area = horizontal.split(vertical[13])[1];
 
         self.render_module_selector(frame, module_area);
         self.render_validator_selector(frame, validator_area);
@@ -306,6 +369,10 @@ impl App {
 
         if self.show_module_dialog {
             self.render_module_dialog(frame, area);
+        }
+
+        if self.show_language_dialog {
+            self.render_language_dialog(frame, area);
         }
     }
 
@@ -379,36 +446,11 @@ impl App {
     }
 
     fn render_module_dialog(&self, frame: &mut Frame, area: Rect) {
-        let dialog_width = 60u16;
-        let dialog_height = 6u16 + self.available_modules.len() as u16;
-        let dialog_area = Rect::new(
-            (area.width.saturating_sub(dialog_width)) / 2,
-            (area.height.saturating_sub(dialog_height)) / 2,
-            dialog_width,
-            dialog_height,
-        );
-
-        frame.render_widget(Clear, dialog_area);
-
-        let mut lines: Vec<Line> = vec![
-            Line::from(vec![Span::styled(
-                "Select Module",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )]),
-            Line::from(""),
-        ];
-
-        if self.available_modules.is_empty() {
-            lines.push(Line::from(vec![Span::styled(
-                "No validators available",
-                Style::default().fg(Color::DarkGray),
-            )]));
-        } else {
-            for (i, module) in self.available_modules.iter().enumerate() {
-                let is_selected = i == self.dialog_selected_idx;
-                let number = format!("{}.", i + 1);
+        self.module_selector.render_searchable_select(
+            frame,
+            area,
+            "Module",
+            |module, is_selected| {
                 let style = if is_selected {
                     Style::default()
                         .fg(Color::Yellow)
@@ -416,36 +458,27 @@ impl App {
                 } else {
                     Style::default().fg(Color::Gray)
                 };
-                let prefix = if is_selected { "▶ " } else { "  " };
+                vec![Span::styled(module.name(), style)]
+            },
+        );
+    }
 
-                lines.push(Line::from(vec![
-                    Span::raw(prefix),
-                    Span::styled(number, style),
-                    Span::raw(" "),
-                    Span::styled(module.name(), style),
-                ]));
-            }
-        }
-
-        lines.push(Line::from(""));
-        lines.push(Line::from(vec![
-            Span::styled("↑/↓", Style::default().fg(Color::Cyan)),
-            Span::raw(" navigate  "),
-            Span::styled("Enter", Style::default().fg(Color::Cyan)),
-            Span::raw(" select  "),
-            Span::styled("Esc", Style::default().fg(Color::Cyan)),
-            Span::raw(" close"),
-        ]));
-
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan))
-            .title(" Module Selection ")
-            .title_alignment(Alignment::Center);
-
-        let paragraph = Paragraph::new(lines).block(block);
-
-        frame.render_widget(paragraph, dialog_area);
+    fn render_language_dialog(&self, frame: &mut Frame, area: Rect) {
+        self.language_selector.render_searchable_select(
+            frame,
+            area,
+            "Language",
+            |language, is_selected| {
+                let style = if is_selected {
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(Color::Gray)
+                };
+                vec![Span::styled(language.to_fluent_string(), style)]
+            },
+        );
     }
 
     fn render_input(&self, frame: &mut Frame, area: Rect) {
@@ -572,22 +605,6 @@ impl Default for App {
     fn default() -> Self {
         Self::new()
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum KeyCode {
-    Char(char),
-    Backspace,
-    Delete,
-    Home,
-    End,
-    PageUp,
-    PageDown,
-    Up,
-    Down,
-    Esc,
-    Enter,
-    Tab,
 }
 
 pub fn init_i18n() {

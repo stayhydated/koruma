@@ -54,3 +54,28 @@ impl<T: AsRef<str>> std::fmt::Display for SuffixValidation<T> {
         write!(f, "value does not end with \"{}\"", self.suffix)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::SuffixValidation;
+
+    #[test]
+    fn accepts_when_suffix_matches() {
+        let validator = SuffixValidation {
+            suffix: ".rs".to_string(),
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"lib.rs".to_string()));
+    }
+
+    #[test]
+    fn rejects_when_suffix_does_not_match() {
+        let validator = SuffixValidation {
+            suffix: ".rs".to_string(),
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"lib.ts".to_string()));
+    }
+}

@@ -50,3 +50,26 @@ impl<T: AsRef<str>> std::fmt::Display for AsciiValidation<T> {
         write!(f, "value contains non-ASCII characters")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::AsciiValidation;
+
+    #[test]
+    fn accepts_ascii_input() {
+        let validator = AsciiValidation {
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"hello123".to_string()));
+    }
+
+    #[test]
+    fn rejects_non_ascii_input() {
+        let validator = AsciiValidation {
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"héllo".to_string()));
+    }
+}

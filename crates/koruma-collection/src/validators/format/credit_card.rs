@@ -50,3 +50,26 @@ impl<T: AsRef<str>> std::fmt::Display for CreditCardValidation<T> {
         write!(f, "not a valid credit card number")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::CreditCardValidation;
+
+    #[test]
+    fn accepts_valid_credit_card_number() {
+        let validator = CreditCardValidation {
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"4111111111111111".to_string()));
+    }
+
+    #[test]
+    fn rejects_invalid_credit_card_number() {
+        let validator = CreditCardValidation {
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"4111111111111112".to_string()));
+    }
+}

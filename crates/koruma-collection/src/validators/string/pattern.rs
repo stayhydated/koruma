@@ -57,3 +57,37 @@ impl<T: AsRef<str>> std::fmt::Display for PatternValidation<T> {
         write!(f, "value does not match pattern /{}/", self.pattern)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::PatternValidation;
+
+    #[test]
+    fn accepts_when_pattern_matches() {
+        let validator = PatternValidation {
+            pattern: r"^\d+$".to_string(),
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"12345".to_string()));
+    }
+
+    #[test]
+    fn rejects_when_pattern_does_not_match() {
+        let validator = PatternValidation {
+            pattern: r"^\d+$".to_string(),
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"123a".to_string()));
+    }
+
+    #[test]
+    fn rejects_invalid_pattern() {
+        let validator = PatternValidation {
+            pattern: "(".to_string(),
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"123".to_string()));
+    }
+}

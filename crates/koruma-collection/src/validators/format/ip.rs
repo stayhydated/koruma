@@ -78,3 +78,39 @@ impl<T: AsRef<str>> std::fmt::Display for IpValidation<T> {
         write!(f, "not a valid {} address", self.kind)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::{IpKind, IpValidation};
+
+    #[test]
+    fn validates_any_ip_kind() {
+        let validator = IpValidation {
+            kind: IpKind::Any,
+            actual: String::new(),
+        };
+
+        assert!(validator.validate(&"127.0.0.1".to_string()));
+        assert!(validator.validate(&"::1".to_string()));
+        assert!(!validator.validate(&"not-an-ip".to_string()));
+    }
+
+    #[test]
+    fn validates_specific_ip_kinds() {
+        let v4_validator = IpValidation {
+            kind: IpKind::V4,
+            actual: String::new(),
+        };
+        assert!(v4_validator.validate(&"127.0.0.1".to_string()));
+        assert!(!v4_validator.validate(&"::1".to_string()));
+
+        let v6_validator = IpValidation {
+            kind: IpKind::V6,
+            actual: String::new(),
+        };
+        assert!(v6_validator.validate(&"::1".to_string()));
+        assert!(!v6_validator.validate(&"127.0.0.1".to_string()));
+    }
+}

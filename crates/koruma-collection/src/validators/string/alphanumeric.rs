@@ -50,3 +50,26 @@ impl<T: AsRef<str>> std::fmt::Display for AlphanumericValidation<T> {
         write!(f, "value contains non-alphanumeric characters")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::AlphanumericValidation;
+
+    #[test]
+    fn accepts_alphanumeric_input() {
+        let validator = AlphanumericValidation {
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"abc123".to_string()));
+    }
+
+    #[test]
+    fn rejects_non_alphanumeric_input() {
+        let validator = AlphanumericValidation {
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"abc-123".to_string()));
+    }
+}

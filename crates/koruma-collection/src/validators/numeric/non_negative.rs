@@ -53,3 +53,23 @@ impl<T: Numeric> std::fmt::Display for NonNegativeValidation<T> {
         write!(f, "value {} must be non-negative (>= 0)", self.actual)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::NonNegativeValidation;
+
+    #[test]
+    fn accepts_zero_and_positive_values() {
+        let validator = NonNegativeValidation { actual: 0_i32 };
+        assert!(validator.validate(&0));
+        assert!(validator.validate(&1));
+    }
+
+    #[test]
+    fn rejects_negative_values() {
+        let validator = NonNegativeValidation { actual: 0_i32 };
+        assert!(!validator.validate(&-1));
+    }
+}

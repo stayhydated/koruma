@@ -54,3 +54,28 @@ impl<T: AsRef<str>> std::fmt::Display for ContainsValidation<T> {
         write!(f, "value does not contain \"{}\"", self.substring)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::ContainsValidation;
+
+    #[test]
+    fn accepts_when_substring_is_present() {
+        let validator = ContainsValidation {
+            substring: "ell".to_string(),
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"hello".to_string()));
+    }
+
+    #[test]
+    fn rejects_when_substring_is_missing() {
+        let validator = ContainsValidation {
+            substring: "ell".to_string(),
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"world".to_string()));
+    }
+}

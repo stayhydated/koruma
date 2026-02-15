@@ -56,3 +56,28 @@ impl<T: PartialEq + std::fmt::Debug + std::fmt::Display + Clone> std::fmt::Displ
         write!(f, "value does not match expected value")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::MatchesValidation;
+
+    #[test]
+    fn accepts_when_values_match() {
+        let validator = MatchesValidation {
+            other: "secret".to_string(),
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"secret".to_string()));
+    }
+
+    #[test]
+    fn rejects_when_values_do_not_match() {
+        let validator = MatchesValidation {
+            other: "secret".to_string(),
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"SECRET".to_string()));
+    }
+}

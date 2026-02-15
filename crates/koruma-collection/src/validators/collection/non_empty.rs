@@ -55,3 +55,26 @@ impl<T: HasLen + Clone> std::fmt::Display for NonEmptyValidation<T> {
         write!(f, "value must not be empty")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::NonEmptyValidation;
+
+    #[test]
+    fn accepts_non_empty_values() {
+        let validator = NonEmptyValidation {
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"x".to_string()));
+    }
+
+    #[test]
+    fn rejects_empty_values() {
+        let validator = NonEmptyValidation {
+            actual: String::new(),
+        };
+        assert!(!validator.validate(&"".to_string()));
+    }
+}

@@ -21,7 +21,11 @@ koruma-derive = { optional = true, workspace = true }
 default = [ "derive" ]
 derive = [ "dep:koruma-derive" ]
 fluent = [ "koruma-derive?/fluent" ]
-showcase = [ "dep:inventory", "koruma-core/showcase", "koruma-derive?/showcase" ]
+internal-showcase = [
+  "dep:inventory",
+  "koruma-core/internal-showcase",
+  "koruma-derive?/internal-showcase",
+]
 
 [package.metadata.docs.rs]
 features = [ "derive", "fluent" ]

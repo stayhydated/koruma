@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a string is a valid phone number.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Phone Number",
     description = "Validates that the input is a valid phone number",
     module = "format",

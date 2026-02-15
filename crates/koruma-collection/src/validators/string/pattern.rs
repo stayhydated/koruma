@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a string matches a regular expression pattern.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Regex Pattern",
     description = "Validates that the input matches a regex pattern (uses ^[a-zA-Z0-9_]+$)",
     module = "string",

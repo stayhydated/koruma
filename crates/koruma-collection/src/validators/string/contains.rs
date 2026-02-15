@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a string contains a specified substring.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Contains 'test'",
     description = "Validates that the input contains the substring 'test'",
     module = "string",

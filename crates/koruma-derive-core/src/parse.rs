@@ -713,7 +713,7 @@ pub fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
 /// The `create` closure takes a `&str` and returns the validator instance.
 /// Optional `input_type` can be "text" (default) or "numeric".
 /// Optional `module` can be "string", "format", "numeric", "collection", or "general".
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 #[derive(Clone, Debug)]
 pub struct ShowcaseAttr {
     pub name: syn::LitStr,
@@ -723,7 +723,7 @@ pub struct ShowcaseAttr {
     pub module: Option<syn::LitStr>,
 }
 
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 impl Parse for ShowcaseAttr {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut name: Option<syn::LitStr> = None;
@@ -780,7 +780,7 @@ impl Parse for ShowcaseAttr {
 }
 
 /// Find and parse showcase attribute from struct
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 pub fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
     for attr in &input.attrs {
         if attr.path().is_ident("showcase")

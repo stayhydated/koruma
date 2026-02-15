@@ -13,7 +13,7 @@ readme = "README.md"
 
 [features]
 default = [  ]
-showcase = [ "dep:anyhow", "dep:inventory" ]
+internal-showcase = [ "dep:anyhow", "dep:inventory" ]
 
 [dependencies]
 anyhow = { optional = true, workspace = true }

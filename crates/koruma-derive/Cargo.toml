@@ -13,7 +13,7 @@ readme = "README.md"
 
 [features]
 fluent = [  ]
-showcase = [ "koruma-derive-core/showcase" ]
+internal-showcase = [ "koruma-derive-core/internal-showcase" ]
 
 [lib]
 proc-macro = true

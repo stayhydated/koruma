@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a string contains only alphanumeric characters.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Alphanumeric",
     description = "Validates that the input contains only alphanumeric characters",
     module = "string",

@@ -10,8 +10,8 @@ publish = false
 anyhow = { workspace = true }
 es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
-koruma = { features = [ "showcase", "derive" ], workspace = true }
-koruma-collection = { features = [ "showcase" ], workspace = true }
+koruma = { features = [ "internal-showcase", "derive" ], workspace = true }
+koruma-collection = { features = [ "internal-showcase" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 ratatui = { workspace = true }
 rust-embed = { workspace = true }

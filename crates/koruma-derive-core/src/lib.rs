@@ -38,7 +38,7 @@ pub use parse::{
     find_value_field, parse_field, parse_struct_options,
 };
 
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 pub use parse::{ShowcaseAttr, find_showcase_attr};
 
 // Re-export utility functions

@@ -1,5 +1,5 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{find_value_field, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
@@ -17,7 +17,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let has_generics = !input.generics.params.is_empty();
 
     // Parse showcase attribute if present (only when feature enabled)
-    #[cfg(feature = "showcase")]
+    #[cfg(feature = "internal-showcase")]
     let showcase_attr = find_showcase_attr(&input);
 
     // Find the field marked with #[koruma(value)]
@@ -142,7 +142,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     };
 
     // Generate showcase registration if the attribute is present
-    #[cfg(feature = "showcase")]
+    #[cfg(feature = "internal-showcase")]
     let showcase_registration = if let Some(showcase) = showcase_attr {
         let name = &showcase.name;
         let description = &showcase.description;
@@ -187,7 +187,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
         quote! {
             // DynValidator is implemented by validators that have Validate + Display impls
-            #[cfg(feature = "showcase")]
+            #[cfg(feature = "internal-showcase")]
             impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics
             #combined_where
             {
@@ -229,7 +229,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         quote! {}
     };
 
-    #[cfg(not(feature = "showcase"))]
+    #[cfg(not(feature = "internal-showcase"))]
     let showcase_registration = quote! {};
 
     Ok(quote! {

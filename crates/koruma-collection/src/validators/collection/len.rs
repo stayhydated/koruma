@@ -21,7 +21,7 @@ use super::HasLen;
 ///
 /// Works with any type that implements `HasLen + Clone`.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Length",
     description = "Validates string length is between 1 and 10",
     module = "collection",

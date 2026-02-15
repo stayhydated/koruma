@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a string starts with a specified prefix.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Prefix 'hello'",
     description = "Validates that the input starts with 'hello'",
     module = "string",

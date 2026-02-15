@@ -19,7 +19,7 @@ use super::Numeric;
 ///
 /// Validates that a numeric value is non-positive (<= 0).
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Non-Positive Number",
     description = "Validates that the input is a non-positive number (<= 0)",
     input_type = Numeric,

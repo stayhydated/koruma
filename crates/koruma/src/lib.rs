@@ -17,9 +17,9 @@ pub use koruma_derive::{Koruma, KorumaAllDisplay, validator};
 pub use koruma_derive::KorumaAllFluent;
 
 #[doc(hidden)]
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 pub use koruma_core::showcase;
 
 #[doc(hidden)]
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 pub use inventory;

@@ -13,7 +13,7 @@ readme = "README.md"
 
 [features]
 default = [  ]
-showcase = [  ]
+internal-showcase = [  ]
 
 [dependencies]
 quote = { workspace = true }

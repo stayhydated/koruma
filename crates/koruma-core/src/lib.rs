@@ -61,7 +61,7 @@ pub trait NewtypeValidation: ValidateExt {}
 /// `#[showcase(...)]` attributes are automatically registered for
 /// programmatic discovery by showcase consumers (for example, UIs, examples, or tooling).
 /// discovery for showcase purposes.
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 pub mod showcase {
     /// Trait for validators that can be presented by showcase consumers.
     ///

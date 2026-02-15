@@ -23,7 +23,7 @@ use super::HasLen;
 ///
 /// Works with any type that implements `HasLen + Clone`.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "NonEmpty",
     description = "Validates that the input is not empty",
     module = "collection",

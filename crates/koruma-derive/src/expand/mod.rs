@@ -23,10 +23,10 @@ pub(crate) use codegen::{
 };
 
 // Re-export parsing types from koruma-derive-core
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::ShowcaseAttr;
-#[cfg(feature = "showcase")]
+#[cfg(feature = "internal-showcase")]
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]

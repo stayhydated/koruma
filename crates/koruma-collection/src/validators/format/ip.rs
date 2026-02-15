@@ -37,7 +37,7 @@ impl std::fmt::Display for IpKind {
 ///
 /// Validates that a string is a valid IP address.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "IP Address",
     description = "Validates that the input is a valid IP address (v4 or v6)",
     module = "format",

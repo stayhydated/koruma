@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a numeric value is within specified bounds.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Range [0, 100]",
     description = "Validates that the input is a number between 0 and 100",
     input_type = Numeric,

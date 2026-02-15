@@ -18,7 +18,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a value matches another value.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Matches Value",
     description = "Validates that the input matches 'expected'",
     module = "string",

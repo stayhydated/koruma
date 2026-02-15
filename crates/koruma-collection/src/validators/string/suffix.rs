@@ -17,7 +17,7 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a string ends with a specified suffix.
 #[validator]
-#[cfg_attr(feature = "showcase", showcase(
+#[cfg_attr(feature = "internal-showcase", showcase(
     name = "Suffix '.rs'",
     description = "Validates that the input ends with '.rs'",
     module = "string",

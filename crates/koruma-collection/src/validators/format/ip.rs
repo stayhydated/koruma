@@ -75,7 +75,7 @@ impl<T: AsRef<str>> Validate<T> for IpValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for IpValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "not a valid {} address", self.kind)
+        write!(f, "Not a valid {} address.", self.kind)
     }
 }
 

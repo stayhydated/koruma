@@ -51,7 +51,7 @@ impl<T: AsRef<str>> Validate<T> for SuffixValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for SuffixValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "value does not end with \"{}\"", self.suffix)
+        write!(f, "Must end with '{}'.", self.suffix)
     }
 }
 

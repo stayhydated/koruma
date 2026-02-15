@@ -47,7 +47,7 @@ impl<T: AsRef<str>> Validate<T> for CreditCardValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for CreditCardValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "not a valid credit card number")
+        write!(f, "Not a valid credit card number.")
     }
 }
 

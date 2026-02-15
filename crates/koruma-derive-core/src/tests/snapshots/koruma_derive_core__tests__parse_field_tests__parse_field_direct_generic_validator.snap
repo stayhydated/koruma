@@ -4,13 +4,13 @@ expression: parse_field_info(&field)
 ---
 Some(
     FieldInfo {
-        name: Ident(
-            score,
-        ),
+        name: Ident {
+            sym: score,
+        },
         member: Member::Named(
-            Ident(
-                score,
-            ),
+            Ident {
+                sym: score,
+            },
         ),
         ty: Type::Path {
             qself: None,
@@ -18,9 +18,9 @@ Some(
                 leading_colon: None,
                 segments: [
                     PathSegment {
-                        ident: Ident(
-                            f64,
-                        ),
+                        ident: Ident {
+                            sym: f64,
+                        },
                         arguments: PathArguments::None,
                     },
                 ],
@@ -33,9 +33,9 @@ Some(
                         leading_colon: None,
                         segments: [
                             PathSegment {
-                                ident: Ident(
-                                    GenericRange,
-                                ),
+                                ident: Ident {
+                                    sym: GenericRange,
+                                },
                                 arguments: PathArguments::None,
                             },
                         ],
@@ -44,9 +44,9 @@ Some(
                     explicit_type: None,
                     args: [
                         (
-                            Ident(
-                                min,
-                            ),
+                            Ident {
+                                sym: min,
+                            },
                             Expr::Lit {
                                 attrs: [],
                                 lit: Lit::Float {
@@ -55,9 +55,9 @@ Some(
                             },
                         ),
                         (
-                            Ident(
-                                max,
-                            ),
+                            Ident {
+                                sym: max,
+                            },
                             Expr::Lit {
                                 attrs: [],
                                 lit: Lit::Float {

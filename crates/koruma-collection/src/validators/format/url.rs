@@ -47,7 +47,7 @@ impl<T: AsRef<str>> Validate<T> for UrlValidation<T> {
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for UrlValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "not a valid URL")
+        write!(f, "Not a valid URL.")
     }
 }
 

@@ -59,10 +59,8 @@ impl<T: HasLen + Clone> std::fmt::Display for LenValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "length {} is not within bounds [{}, {}]",
-            self.actual.len(),
-            self.min,
-            self.max
+            "The length must be between {} and {}.",
+            self.min, self.max
         )
     }
 }

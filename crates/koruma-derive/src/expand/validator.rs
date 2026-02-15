@@ -47,18 +47,19 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     input.attrs.retain(|attr| !attr.path().is_ident("showcase"));
 
     // Remove #[koruma(value)] from the field so bon doesn't see it
-    if let Fields::Named(ref mut fields) = input.fields {
-        for field in &mut fields.named {
-            field.attrs.retain(|attr| {
-                if attr.path().is_ident("koruma")
-                    && let Ok(ident) = attr.parse_args::<Ident>()
-                {
-                    return ident != "value";
-                }
+    let Fields::Named(ref mut fields) = input.fields else {
+        unreachable!("find_value_field only returns Some for named fields");
+    };
+    for field in &mut fields.named {
+        field.attrs.retain(|attr| {
+            if attr.path().is_ident("koruma")
+                && let Ok(ident) = attr.parse_args::<Ident>()
+            {
+                return ident != "value";
+            }
 
-                true
-            });
-        }
+            true
+        });
     }
 
     // Generate the module name that bon creates (snake_case of struct name + _builder)
@@ -179,11 +180,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         // Add Self: Display bound
         where_predicates.push(quote! { Self: ::std::fmt::Display });
 
-        let combined_where = if where_predicates.is_empty() {
-            quote! {}
-        } else {
-            quote! { where #(#where_predicates),* }
-        };
+        let combined_where = quote! { where #(#where_predicates),* };
 
         quote! {
             // DynValidator is implemented by validators that have Validate + Display impls

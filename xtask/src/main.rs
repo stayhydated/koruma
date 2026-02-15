@@ -147,7 +147,7 @@ fn run_sync_display_ftl_with_roots(
         collect_display_info(file, &parsed, &mut displays)?;
     }
 
-    let templates = collect_ftl_templates(&ftl_root)?;
+    let templates = collect_ftl_templates(ftl_root)?;
 
     let mut missing_display = Vec::<String>::new();
     let mut missing_message = Vec::<String>::new();
@@ -229,14 +229,13 @@ fn run_sync_display_ftl_with_roots(
                     })?;
 
             let write_call = build_write_call(&format_literal, &args);
+            let span_context = format!(
+                "Failed to map write! span for {} in {}",
+                type_name,
+                file.display()
+            );
             let (start, end) = span_to_byte_range(target.display.write_span, &line_starts, &source)
-                .with_context(|| {
-                    format!(
-                        "Failed to map write! span for {} in {}",
-                        type_name,
-                        file.display()
-                    )
-                })?;
+                .context(span_context)?;
 
             if write_call_changed(&source[start..end], &write_call) {
                 replacements.push(Replacement {
@@ -509,9 +508,10 @@ fn parse_display_impl(item_impl: &ItemImpl) -> Result<Option<ParsedDisplay>> {
         return Ok(None);
     }
 
-    let Some(format_expr) = args.iter().nth(1) else {
-        return Ok(None);
-    };
+    let format_expr = args
+        .iter()
+        .nth(1)
+        .expect("write! argument count checked above");
 
     let Expr::Lit(ExprLit {
         lit: Lit::Str(format_lit),
@@ -1033,6 +1033,21 @@ example_validation = Value { $min } and { $actual }.
         input.chars().filter(|c| !c.is_whitespace()).collect()
     }
 
+    fn nth_message_pattern<'a>(
+        resource: &'a ast::Resource<String>,
+        index: usize,
+    ) -> &'a ast::Pattern<String> {
+        resource
+            .body
+            .iter()
+            .filter_map(|entry| match entry {
+                ast::Entry::Message(message) => message.value.as_ref(),
+                _ => None,
+            })
+            .nth(index)
+            .expect("expected message with value pattern")
+    }
+
     #[test]
     fn sync_args_into_sync_options() {
         let options: SyncOptions = SyncArgs {
@@ -1400,15 +1415,13 @@ impl std::fmt::Display for IncludedValidation {
     #[test]
     fn template_and_expression_helpers_cover_remaining_branches() {
         let ftl = r#"
+-term = skip
 simple = Value { $actual }.
 unsupported = { "literal" }
 "#;
         let resource = parser::parse(ftl.to_string()).expect("valid ftl");
 
-        let simple_pattern = match &resource.body[0] {
-            ast::Entry::Message(message) => message.value.as_ref().expect("pattern"),
-            _ => panic!("expected message"),
-        };
+        let simple_pattern = nth_message_pattern(&resource, 0);
         let simple_template = template_from_pattern(simple_pattern).expect("simple template");
         assert_eq!(
             simple_template,
@@ -1419,10 +1432,7 @@ unsupported = { "literal" }
             ]
         );
 
-        let unsupported_pattern = match &resource.body[1] {
-            ast::Entry::Message(message) => message.value.as_ref().expect("pattern"),
-            _ => panic!("expected message"),
-        };
+        let unsupported_pattern = nth_message_pattern(&resource, 1);
         assert!(template_from_pattern(unsupported_pattern).is_err());
 
         let inline_expr: ast::Expression<String> =
@@ -1470,12 +1480,16 @@ unsupported = { "literal" }
         assert!(line_col_to_offset(LineColumn { line: 0, column: 0 }, &starts).is_err());
         assert!(line_col_to_offset(LineColumn { line: 9, column: 0 }, &starts).is_err());
 
-        let source_with_span = "fn demo() {\n    write!(f, \"message\");\n}\n";
+        let source_with_span = "struct Marker;\nfn demo() {\n    write!(f, \"message\");\n}\n";
         let parsed_file: File = syn::parse_file(source_with_span).expect("valid rust file");
-        let stmt_span = match &parsed_file.items[0] {
-            Item::Fn(item_fn) => item_fn.block.stmts[0].span(),
-            _ => panic!("expected function item"),
-        };
+        let stmt_span = parsed_file
+            .items
+            .iter()
+            .find_map(|item| match item {
+                Item::Fn(item_fn) => Some(item_fn.block.stmts[0].span()),
+                _ => None,
+            })
+            .expect("expected function item");
         let valid_range = span_to_byte_range(
             stmt_span,
             &line_start_offsets(source_with_span),
@@ -1537,11 +1551,7 @@ ip_validation =
     } address.
 "#;
         let resource = parser::parse(ftl.to_string()).expect("valid ftl");
-        let message = match &resource.body[0] {
-            ast::Entry::Message(message) => message,
-            _ => panic!("expected message"),
-        };
-        let pattern = message.value.as_ref().expect("pattern exists");
+        let pattern = nth_message_pattern(&resource, 0);
 
         let template = template_from_pattern(pattern).expect("template conversion works");
         assert_eq!(
@@ -1552,6 +1562,302 @@ ip_validation =
                 TemplatePart::Text(" address.".to_string()),
             ]
         );
+    }
+
+    #[test]
+    fn workspace_wrapper_and_root_paths_are_reachable() {
+        let root = workspace_root();
+        assert!(root.ends_with("koruma"));
+        let _ = run_sync_display_ftl(SyncOptions {
+            check: true,
+            verbose: false,
+        });
+    }
+
+    #[test]
+    fn sync_display_ftl_warns_for_missing_display_and_missing_message() {
+        let tmp = TempDir::new("sync_missing_display_message");
+        let validators_root = tmp.path().join("validators");
+        let ftl_root = tmp.path().join("ftl");
+        let validator_file = validators_root.join("sample.rs");
+        let ftl_file = ftl_root.join("sample.ftl");
+        write_file(
+            &validator_file,
+            r#"
+#[fluent(namespace = "sample")]
+pub struct MissingDisplayValidation {
+    #[koruma(value)]
+    pub actual: String,
+}
+
+#[fluent(namespace = "sample")]
+pub struct MissingMessageValidation {
+    #[koruma(value)]
+    pub actual: String,
+}
+
+impl std::fmt::Display for MissingMessageValidation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Bad {}", self.actual)
+    }
+}
+"#,
+        );
+        write_file(&ftl_file, "another_validation = Value { $actual }.");
+
+        run_sync_display_ftl_with_roots(
+            &validators_root,
+            &ftl_root,
+            SyncOptions {
+                check: false,
+                verbose: false,
+            },
+        )
+        .expect("sync should tolerate missing display/message with warnings");
+    }
+
+    #[test]
+    fn sync_display_ftl_surfaces_template_conversion_context() {
+        let tmp = TempDir::new("sync_template_context");
+        let validators_root = tmp.path().join("validators");
+        let ftl_root = tmp.path().join("ftl");
+        let validator_file = validators_root.join("sample.rs");
+        let ftl_file = ftl_root.join("sample.ftl");
+        write_file(&validator_file, fixture_validator_source());
+        write_file(&ftl_file, "example_validation = Unknown { $missing }.");
+
+        let err = run_sync_display_ftl_with_roots(
+            &validators_root,
+            &ftl_root,
+            SyncOptions {
+                check: false,
+                verbose: false,
+            },
+        )
+        .expect_err("placeholder resolution should fail");
+        assert!(
+            err.to_string()
+                .contains("Failed to convert FTL template for ExampleValidation")
+        );
+    }
+
+    #[test]
+    fn collect_validator_and_display_info_cover_additional_paths() {
+        let source = r#"
+#[fluent(namespace = "demo")]
+pub struct TupleValidation(i32);
+
+#[fluent(namespace = "demo")]
+pub struct DisplayedValidation {
+    pub actual: i32,
+}
+
+impl DisplayedValidation {
+    fn helper(&self) {}
+}
+
+impl std::fmt::Display for DisplayedValidation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.actual)
+    }
+}
+"#;
+        let parsed = syn::parse_file(source).expect("valid rust");
+
+        let mut validators = BTreeMap::new();
+        collect_validator_info(Path::new("demo.rs"), &parsed, &mut validators);
+        let tuple = validators
+            .get("TupleValidation")
+            .expect("tuple validator should be collected");
+        assert!(tuple.fields.is_empty());
+
+        let mut displays = BTreeMap::new();
+        collect_display_info(Path::new("demo.rs"), &parsed, &mut displays).expect("display parse");
+        assert!(displays.contains_key("DisplayedValidation"));
+    }
+
+    #[test]
+    fn collect_ftl_templates_covers_additional_branches() {
+        let parse_err_tmp = TempDir::new("ftl_parse_error");
+        write_file(
+            &parse_err_tmp.path().join("broken.ftl"),
+            "broken = { $value",
+        );
+        let parse_err = collect_ftl_templates(parse_err_tmp.path()).expect_err("invalid ftl");
+        assert!(parse_err.to_string().contains("Failed to parse FTL AST"));
+
+        let unsupported_tmp = TempDir::new("ftl_unsupported");
+        write_file(
+            &unsupported_tmp.path().join("sample.ftl"),
+            r#"
+-term = keep
+no_value =
+    .attr = still ignored
+unsupported = { "literal" }
+"#,
+        );
+        let unsupported =
+            collect_ftl_templates(unsupported_tmp.path()).expect_err("unsupported pattern");
+        assert!(
+            unsupported
+                .to_string()
+                .contains("Unsupported message pattern")
+        );
+
+        let skip_tmp = TempDir::new("ftl_skip_non_ftl");
+        write_file(&skip_tmp.path().join("ignore.txt"), "ignore");
+        write_file(
+            &skip_tmp.path().join("sample.ftl"),
+            "sample_validation = ok",
+        );
+        #[cfg(unix)]
+        {
+            use std::ffi::OsString;
+            use std::os::unix::ffi::OsStringExt as _;
+            let non_utf8_stem = OsString::from_vec(vec![0x66, 0x80, 0x6f, 0x2e, 0x66, 0x74, 0x6c]);
+            write_file(&skip_tmp.path().join(non_utf8_stem), "msg = value");
+        }
+        let skipped = collect_ftl_templates(skip_tmp.path()).expect("skip paths should succeed");
+        assert_eq!(skipped.len(), 1);
+    }
+
+    #[test]
+    fn extract_namespace_helpers_cover_none_paths() {
+        let from_cfg_attr: syn::ItemStruct = syn::parse_quote! {
+            #[doc = "x"]
+            #[cfg_attr(feature = "fluent", derive(Clone), fluent(namespace = "cfg-space"))]
+            struct CfgNamespace;
+        };
+        assert_eq!(
+            extract_namespace(&from_cfg_attr.attrs),
+            Some("cfg-space".to_string())
+        );
+
+        let meta_list: syn::MetaList = syn::parse_quote! {
+            fluent(flag, module = "x", namespace = 1)
+        };
+        assert_eq!(extract_namespace_from_fluent_meta(&meta_list), None);
+
+        let simple_cfg_attr: syn::ItemStruct = syn::parse_quote! {
+            #[cfg_attr(test, fluent(namespace = "simple-cfg"))]
+            struct SimpleCfg;
+        };
+        assert_eq!(
+            extract_namespace(&simple_cfg_attr.attrs),
+            Some("simple-cfg".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_display_impl_and_type_helpers_cover_remaining_paths() {
+        let no_fmt: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for NoFmtValidation {
+                fn not_fmt(&self) {}
+            }
+        };
+        assert!(
+            parse_display_impl(&no_fmt)
+                .expect("parse should succeed")
+                .is_none()
+        );
+
+        let fmt_without_write: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for NoWriteValidation {
+                fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    Ok(())
+                }
+            }
+        };
+        assert!(
+            parse_display_impl(&fmt_without_write)
+                .expect("parse should succeed")
+                .is_none()
+        );
+
+        let too_few_args: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for TooFewArgsValidation {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    write!(f)
+                }
+            }
+        };
+        assert!(
+            parse_display_impl(&too_few_args)
+                .expect("parse should succeed")
+                .is_none()
+        );
+
+        let non_string_format: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for NonStringFormatValidation {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    let fmt_lit = "{}";
+                    write!(f, fmt_lit, self.value)
+                }
+            }
+        };
+        assert!(
+            parse_display_impl(&non_string_format)
+                .expect("parse should succeed")
+                .is_none()
+        );
+
+        let ref_ty: Type = syn::parse_quote!(&ExampleValidation);
+        assert_eq!(
+            extract_type_ident(&ref_ty),
+            Some("ExampleValidation".to_string())
+        );
+        let paren_ty: Type = syn::parse_quote!((ExampleValidation));
+        assert_eq!(
+            extract_type_ident(&paren_ty),
+            Some("ExampleValidation".to_string())
+        );
+        let tuple_ty: Type = syn::parse_quote!((i32, i32));
+        assert_eq!(extract_type_ident(&tuple_ty), None);
+    }
+
+    #[test]
+    fn write_macro_search_and_change_fallback_cover_remaining_paths() {
+        let only_write_macro_stmt: Stmt = syn::parse_quote! { write!(f, "x"); };
+        assert!(find_write_macro_in_stmt(&only_write_macro_stmt).is_some());
+
+        let no_write_block: Block = syn::parse_quote!({
+            println!("not write");
+            let _ = 1;
+        });
+        assert!(find_write_macro_in_block(&no_write_block).is_none());
+
+        let non_write_expr: Expr = syn::parse_quote!(println!("x"));
+        assert!(find_write_macro_in_expr(&non_write_expr).is_none());
+
+        let block_expr: Expr = syn::parse_quote!({ write!(f, "x") });
+        assert!(find_write_macro_in_expr(&block_expr).is_some());
+
+        let grouped_expr = Expr::Group(syn::ExprGroup {
+            attrs: Vec::new(),
+            group_token: syn::token::Group::default(),
+            expr: Box::new(syn::parse_quote!(write!(f, "x"))),
+        });
+        assert!(find_write_macro_in_expr(&grouped_expr).is_some());
+
+        assert!(!write_call_changed("{", "{"));
+        assert!(write_call_changed("{", "}"));
+    }
+
+    #[test]
+    fn span_to_byte_range_invalid_range_branch_is_covered() {
+        let one_line_source = "struct Marker;fn demo(){write!(f, \"m\");}\n";
+        let parsed_file: File = syn::parse_file(one_line_source).expect("valid rust");
+        let stmt_span = parsed_file
+            .items
+            .iter()
+            .find_map(|item| match item {
+                Item::Fn(item_fn) => Some(item_fn.block.stmts[0].span()),
+                _ => None,
+            })
+            .expect("expected function item");
+
+        let err = span_to_byte_range(stmt_span, &[0], "x").expect_err("invalid range expected");
+        assert!(err.to_string().contains("Invalid byte range"));
     }
 
     #[test]

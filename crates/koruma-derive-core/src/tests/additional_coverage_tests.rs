@@ -231,6 +231,88 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
     assert_eq!(plain_with_each.element_validators.len(), 2);
 }
 
+#[test]
+fn parser_edge_cases_cover_remaining_parse_lines() {
+    // Old syntax branch: no turbofish `::` but an immediate `<...>` segment.
+    let old_syntax_no_colon: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation < _ >");
+    assert!(
+        old_syntax_no_colon
+            .err()
+            .expect("expected parse error")
+            .to_string()
+            .contains("turbofish")
+    );
+
+    // Parenthesized path arguments branch.
+    let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("Fn(i32)");
+    assert!(parenthesized_path.is_err());
+
+    // `newtype, each(...), ::Path` exercises comma continuation and non-ident validator path
+    // in the newtype parser loop.
+    let newtype_with_each_and_path: KorumaAttr =
+        syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
+            .expect("newtype attr with `each` and absolute path should parse");
+    assert!(newtype_with_each_and_path.is_newtype);
+    assert_eq!(newtype_with_each_and_path.element_validators.len(), 1);
+    assert_eq!(newtype_with_each_and_path.field_validators.len(), 1);
+
+    // `newtype` followed by a path without a comma currently falls back to regular parsing.
+    let newtype_without_comma_falls_through: KorumaAttr =
+        syn::parse_str("newtype::demo::FieldValidation")
+            .expect("fallback parser should still parse remaining validator path");
+    assert!(!newtype_without_comma_falls_through.is_newtype);
+    assert_eq!(
+        newtype_without_comma_falls_through.field_validators.len(),
+        1
+    );
+
+    // Non-ident path in the non-newtype parser loop.
+    let absolute_path_only: KorumaAttr =
+        syn::parse_str("::demo::FieldValidation").expect("absolute validator path should parse");
+    assert!(!absolute_path_only.is_newtype);
+    assert_eq!(absolute_path_only.field_validators.len(), 1);
+
+    let newtype_each_trailing_comma: KorumaAttr =
+        syn::parse_str("newtype, each(::demo::ElemValidation),")
+            .expect("newtype each with trailing comma should parse");
+    assert!(newtype_each_trailing_comma.is_newtype);
+    assert_eq!(newtype_each_trailing_comma.element_validators.len(), 1);
+    assert!(newtype_each_trailing_comma.field_validators.is_empty());
+}
+
+#[test]
+fn field_info_has_validators_covers_element_only_branch() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(each(PositiveValidation))]
+        values: Vec<i32>
+    };
+    let info = parse_field_info(&field);
+    assert!(info.validation.field_validators.is_empty());
+    assert!(!info.validation.element_validators.is_empty());
+    assert!(info.has_validators());
+}
+
+#[test]
+fn utility_functions_cover_remaining_line_paths() {
+    let ty_with_lifetime: syn::Type = syn::parse_quote!(Borrowed<'static>);
+    assert!(first_generic_arg(&ty_with_lifetime).is_none());
+    assert!(!contains_infer_type(&ty_with_lifetime));
+
+    let ty_ref: syn::Type = syn::parse_quote!(&str);
+    assert!(!contains_infer_type(&ty_ref));
+
+    let option_concrete: syn::Type = syn::parse_quote!(Option<u32>);
+    assert!(!is_option_infer_type(&option_concrete));
+
+    let ty_with_lifetime_and_infer: syn::Type = syn::parse_quote!(Wrapper<'static, _>);
+    let infer_target: syn::Type = syn::parse_quote!(usize);
+    let substituted = substitute_infer_type(&ty_with_lifetime_and_infer, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "Wrapper < 'static , usize >"
+    );
+}
+
 #[cfg(feature = "internal-showcase")]
 #[test]
 fn showcase_attr_errors_are_reported() {

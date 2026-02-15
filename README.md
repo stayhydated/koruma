@@ -228,7 +228,3 @@ if let Err(err) = Email::try_new("".to_string()) {
     }
 }
 ```
-
-## Examples
-
-- [user-defined validators](examples/user-defined) (custom validators, display/fluent, nested, and newtype patterns)

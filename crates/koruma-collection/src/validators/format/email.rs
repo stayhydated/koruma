@@ -39,54 +39,7 @@ pub struct EmailValidation<T: AsRef<str>> {
 
 impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        let s = value.as_ref();
-        // Basic email validation - check for @ symbol and proper format
-        if s.is_empty() {
-            return false;
-        }
-
-        let parts: Vec<&str> = s.split('@').collect();
-        if parts.len() != 2 {
-            return false;
-        }
-
-        let (user, domain) = (parts[0], parts[1]);
-
-        if user.is_empty() || domain.is_empty() {
-            return false;
-        }
-
-        // Check user length
-        if user.len() > 64 {
-            return false;
-        }
-
-        // Check domain length
-        if domain.len() > 255 {
-            return false;
-        }
-
-        // Validate user part - alphanumeric and some special characters
-        let user_regex = regex::Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+\z").unwrap();
-        if !user_regex.is_match(user) {
-            return false;
-        }
-
-        // Validate domain part
-        let domain_regex = regex::Regex::new(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").unwrap();
-        if !domain_regex.is_match(domain) {
-            // Check if it's an IP address in brackets
-            if !domain.starts_with('[') || !domain.ends_with(']') {
-                return false;
-            }
-
-            let ip_part = &domain[1..domain.len() - 1];
-            if ip_part.parse::<std::net::IpAddr>().is_err() {
-                return false;
-            }
-        }
-
-        true
+        email_address::EmailAddress::is_valid(value.as_ref())
     }
 }
 
@@ -94,5 +47,32 @@ impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
 impl<T: AsRef<str>> std::fmt::Display for EmailValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "not a valid email address")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use koruma::Validate as _;
+
+    use super::EmailValidation;
+
+    #[test]
+    fn accepts_valid_email() {
+        let validator = EmailValidation {
+            actual: String::new(),
+        };
+
+        assert!(validator.validate(&"user@example.com".to_string()));
+    }
+
+    #[test]
+    fn rejects_invalid_email() {
+        let validator = EmailValidation {
+            actual: String::new(),
+        };
+
+        assert!(!validator.validate(&"invalid@@example.com".to_string()));
+        assert!(!validator.validate(&"missing-domain@".to_string()));
+        assert!(!validator.validate(&"".to_string()));
     }
 }

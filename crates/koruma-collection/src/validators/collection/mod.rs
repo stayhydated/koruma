@@ -75,7 +75,7 @@ impl<T, const N: usize> HasLen for [T; N] {
 #[cfg(feature = "smallvec")]
 impl<T, const N: usize> HasLen for smallvec::SmallVec<[T; N]> {
     fn len(&self) -> usize {
-        N
+        self.len()
     }
 }
 
@@ -84,3 +84,24 @@ mod non_empty;
 
 pub use len::LenValidation;
 pub use non_empty::NonEmptyValidation;
+
+#[cfg(test)]
+mod tests {
+    use super::HasLen;
+
+    #[test]
+    fn array_len_matches_size() {
+        let values = [1_u8, 2, 3];
+        assert_eq!(HasLen::len(&values), 3);
+    }
+
+    #[cfg(feature = "smallvec")]
+    #[test]
+    fn smallvec_len_uses_runtime_length() {
+        let mut values = smallvec::SmallVec::<[u8; 4]>::new();
+        values.push(10);
+        values.push(20);
+
+        assert_eq!(HasLen::len(&values), 2);
+    }
+}

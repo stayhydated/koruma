@@ -1,0 +1,124 @@
+---
+const projectName = "koruma-collection";
+const projectCrate = "https://crates.io/crates/koruma-collection";
+const crowdinUrl = "https://crowdin.com/project/koruma-collection";
+const githubUrl = "https://github.com/stayhydated/koruma";
+const fluentUrl = "https://projectfluent.org/";
+---
+
+<div class="relative contribute-section bg-bg-elevated border border-primary-dim rounded-lg p-6 m-4 shadow-lg overflow-hidden">
+  <div class="text-center relative z-10">
+    <h3 class="text-2xl font-bold mb-4 text-primary">
+      Help Translate
+      <a href={projectCrate}
+         target="_blank"
+         rel="noopener noreferrer"
+         class="font-bold text-secondary no-underline hover:underline transition-colors relative z-10 inline-block">{projectName}</a>
+    </h3>
+
+    <p class="text-text text-lg mb-6 leading-relaxed">
+      <a href={projectCrate}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="font-bold text-primary no-underline hover:underline transition-colors relative z-10 inline-block">{projectName}</a> uses{' '}
+      <a
+        href={fluentUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-primary hover:text-primary hover:underline transition-all duration-300 font-semibold hover:glow-primary relative z-10 inline-block"
+      >
+        Project Fluent
+      </a>! If your language isn't there yet, you can help us add it by contributing translations on our{' '}
+      <a
+        href={crowdinUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-accent hover:text-accent underline hover:no-underline transition-all duration-300 font-semibold hover:glow-accent inline-block relative z-10"
+      >
+        Crowdin project
+      </a> or directly on{' '}
+      <a href={githubUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-accent hover:text-accent underline hover:no-underline transition-all duration-300 font-semibold hover:glow-accent inline-block relative z-10">
+        GitHub
+      </a>.
+    </p>
+  </div>
+
+  <div class="absolute top-3 left-3 w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse"></div>
+  <div class="absolute top-3 right-3 w-2 h-2 bg-secondary rounded-full opacity-60 animate-pulse delay-1000"></div>
+  <div class="absolute bottom-3 left-3 w-2 h-2 bg-accent rounded-full opacity-60 animate-pulse delay-500"></div>
+  <div class="absolute bottom-3 right-3 w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse delay-1500"></div>
+
+  <div class="absolute inset-0 bg-linear-to-br from-primary/3 via-transparent to-secondary/3 pointer-events-none"></div>
+</div>
+
+<style>
+  .contribute-section {
+    background: linear-gradient(135deg,
+      rgba(0, 240, 255, 0.05) 0%,
+      rgba(255, 0, 160, 0.05) 50%,
+      rgba(160, 255, 0, 0.05) 100%);
+    animation: border-glow 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+  }
+
+  .contribute-section:hover {
+    border-color: var(--color-primary);
+    box-shadow:
+      0 0 15px var(--color-primary-glow),
+      0 0 30px var(--color-primary-glow),
+      inset 0 0 15px rgba(0, 240, 255, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .contribute-section:hover .glow-primary {
+    text-shadow:
+      0 0 10px var(--color-primary),
+      0 0 20px var(--color-primary),
+      0 0 30px var(--color-primary);
+  }
+
+  .glow-primary {
+    text-shadow:
+      0 0 5px var(--color-primary-glow),
+      0 0 10px var(--color-primary-glow),
+      0 0 20px var(--color-primary);
+  }
+
+  .glow-accent {
+    text-shadow:
+      0 0 5px var(--color-accent-glow),
+      0 0 10px var(--color-accent-glow),
+      0 0 20px var(--color-accent);
+  }
+
+  @keyframes border-glow {
+    0%, 100% {
+      border-color: var(--color-primary-dim);
+      box-shadow: 0 0 5px var(--color-primary-glow);
+    }
+    50% {
+      border-color: var(--color-primary);
+      box-shadow:
+        0 0 10px var(--color-primary-glow),
+        0 0 20px var(--color-primary-glow);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .contribute-section {
+      margin: 1rem;
+      padding: 1.5rem;
+    }
+
+    .contribute-section h3 {
+      font-size: 1.5rem;
+    }
+
+    .contribute-section p {
+      font-size: 1rem;
+    }
+  }
+</style>

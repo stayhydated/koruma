@@ -6,50 +6,44 @@ const githubUrl = "https://github.com/stayhydated/koruma";
 const fluentUrl = "https://projectfluent.org/";
 ---
 
-<div class="relative contribute-section bg-bg-elevated border border-primary-dim rounded-lg p-6 m-4 shadow-lg overflow-hidden">
+<div class="relative contribute-section bg-bg-elevated border border-primary-dim rounded-lg p-6 shadow-lg overflow-hidden">
   <div class="text-center relative z-10">
     <h3 class="text-2xl font-bold mb-4 text-primary">
       Help Translate
       <a href={projectCrate}
          target="_blank"
          rel="noopener noreferrer"
-         class="font-bold text-secondary no-underline hover:underline transition-colors relative z-10 inline-block">{projectName}</a>
+         class="font-bold text-secondary no-underline hover:underline transition-colors relative z-10">{projectName}</a>
     </h3>
 
     <p class="text-text text-lg mb-6 leading-relaxed">
       <a href={projectCrate}
           target="_blank"
           rel="noopener noreferrer"
-          class="font-bold text-primary no-underline hover:underline transition-colors relative z-10 inline-block">{projectName}</a> has a {' '}
+          class="font-bold text-primary no-underline hover:underline transition-colors relative z-10">{projectName}</a> has a{" "}
       <a
         href={fluentUrl}
         target="_blank"
         rel="noopener noreferrer"
-        class="text-primary hover:text-primary hover:underline transition-all duration-300 font-semibold hover:glow-primary relative z-10 inline-block"
-      >
-        Project Fluent
-      </a> feature! If your language isn't there or fully translated, you can help us add it by contributing translations on our{' '}
+        class="text-primary hover:text-primary hover:underline transition-all duration-300 font-semibold hover:glow-primary relative z-10"
+      >Project Fluent</a> feature! If your language isn't there or fully translated, you can help us add it by contributing translations on our{" "}
       <a
         href={crowdinUrl}
         target="_blank"
         rel="noopener noreferrer"
-        class="text-accent hover:text-accent underline hover:no-underline transition-all duration-300 font-semibold hover:glow-accent inline-block relative z-10"
-      >
-        Crowdin project
-      </a> or directly on{' '}
+        class="text-accent hover:text-accent underline hover:no-underline transition-all duration-300 font-semibold hover:glow-accent relative z-10"
+      >Crowdin project</a> or directly on{" "}
       <a href={githubUrl}
         target="_blank"
         rel="noopener noreferrer"
-        class="text-accent hover:text-accent underline hover:no-underline transition-all duration-300 font-semibold hover:glow-accent inline-block relative z-10">
-        GitHub
-      </a>.
+        class="text-accent hover:text-accent underline hover:no-underline transition-all duration-300 font-semibold hover:glow-accent relative z-10">GitHub</a>.
     </p>
   </div>
 
-  <div class="absolute top-3 left-3 w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse"></div>
-  <div class="absolute top-3 right-3 w-2 h-2 bg-secondary rounded-full opacity-60 animate-pulse delay-1000"></div>
-  <div class="absolute bottom-3 left-3 w-2 h-2 bg-accent rounded-full opacity-60 animate-pulse delay-500"></div>
-  <div class="absolute bottom-3 right-3 w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse delay-1500"></div>
+  <div class="contribute-orb absolute top-3 left-3 w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse"></div>
+  <div class="contribute-orb absolute top-3 right-3 w-2 h-2 bg-secondary rounded-full opacity-60 animate-pulse delay-1000"></div>
+  <div class="contribute-orb absolute bottom-3 left-3 w-2 h-2 bg-accent rounded-full opacity-60 animate-pulse delay-500"></div>
+  <div class="contribute-orb absolute bottom-3 right-3 w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse delay-1500"></div>
 
   <div class="absolute inset-0 bg-linear-to-br from-primary/3 via-transparent to-secondary/3 pointer-events-none"></div>
 </div>
@@ -60,8 +54,16 @@ const fluentUrl = "https://projectfluent.org/";
       rgba(0, 240, 255, 0.05) 0%,
       rgba(255, 0, 160, 0.05) 50%,
       rgba(160, 255, 0, 0.05) 100%);
+    width: min(100%, 48rem);
+    margin: 1rem auto;
+    box-sizing: border-box;
     animation: border-glow 3s ease-in-out infinite;
     transition: all 0.3s ease;
+  }
+
+  .contribute-section h3,
+  .contribute-section p {
+    overflow-wrap: anywhere;
   }
 
   .contribute-section:hover {
@@ -109,16 +111,30 @@ const fluentUrl = "https://projectfluent.org/";
 
   @media (max-width: 640px) {
     .contribute-section {
-      margin: 1rem;
-      padding: 1.5rem;
+      width: calc(100% - 1.5rem);
+      margin: 0.75rem auto;
+      padding: 1rem;
+      animation: none;
     }
 
     .contribute-section h3 {
-      font-size: 1.5rem;
+      font-size: 1.25rem;
+      line-height: 1.35;
     }
 
     .contribute-section p {
       font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .contribute-orb {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contribute-section {
+      animation: none;
     }
   }
 </style>

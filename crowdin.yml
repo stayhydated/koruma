@@ -1,3 +1,9 @@
 files:
   - source: /crates/koruma-collection/i18n/en/**/*.ftl
     translation: /crates/koruma-collection/i18n/%locale%/koruma-collection/%original_file_name%
+
+  - source: /crates/koruma-collection/i18n/en/**/*.ftl
+    translation: /crates/koruma-collection/i18n/%two_letters_code%/koruma-collection/%original_file_name%
+
+  - source: /crates/koruma-collection/i18n/en/**/*.ftl
+    translation: /crates/koruma-collection/i18n/%three_letters_code%/koruma-collection/%original_file_name%

@@ -1,5 +1,5 @@
 [package]
-name = "koruma-user-defined-example"
+name = "readme"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

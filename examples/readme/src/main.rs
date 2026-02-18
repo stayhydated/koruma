@@ -1,6 +1,6 @@
 use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
-use koruma_user_defined_example::{
+use readme::{
     Account, AccountSettings, Address, Customer, Email, Item, LoginForm, SignupForm, User,
     Username, i18n,
 };

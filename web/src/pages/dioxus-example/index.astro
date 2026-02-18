@@ -1,0 +1,31 @@
+---
+import DioxusLoader from "@/components/DioxusLoader.astro";
+import WasmExampleLayout from "@/layouts/WasmExampleLayout.astro";
+import ContributeToCollection from "@/components/ContributeToCollection.astro";
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<WasmExampleLayout title="Dioxus Collection Example - Koruma">
+  <ContributeToCollection />
+  <DioxusLoader moduleUrl={`${baseUrl}/dioxus-example/dioxus-example.js`} />
+</WasmExampleLayout>
+
+<style>
+  :global(body.h-full) {
+    margin: 0;
+    width: 100%;
+    min-height: 100vh;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    align-content: stretch;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background-color: #000;
+    box-sizing: border-box;
+    padding-top: 4rem;
+  }
+</style>

@@ -7,24 +7,24 @@ license = "Unlicense"
 publish = false
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = [ "cdylib", "rlib" ]
 
 [dependencies]
 console_error_panic_hook = { workspace = true }
-dioxus = { workspace = true, features = ["web"] }
+dioxus = { features = [ "web" ], workspace = true }
 dioxus-web = { workspace = true }
-es-fluent = { features = ["derive"], workspace = true }
+es-fluent = { features = [ "derive" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
-koruma = { features = ["internal-showcase", "derive"], workspace = true }
-koruma-collection = { features = ["internal-showcase"], workspace = true }
+koruma = { features = [ "internal-showcase", "derive" ], workspace = true }
+koruma-collection = { features = [ "internal-showcase" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 rust-embed = { workspace = true }
-strum = { features = ["derive"], workspace = true }
+strum = { features = [ "derive" ], workspace = true }
 unic-langid = { workspace = true }
 wasm-bindgen = { workspace = true }
 
 [build-dependencies]
-es-fluent = { features = ["build"], workspace = true }
+es-fluent = { features = [ "build" ], workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = ["es-fluent", "rust-embed"]
+ignored = [ "es-fluent", "rust-embed" ]

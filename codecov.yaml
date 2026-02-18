@@ -2,36 +2,37 @@ codecov:
   require_ci_to_pass: true
 
 # https://docs.codecov.com/docs/components
-components:
-  - name: "koruma"
-    paths:
-      - crates/koruma
-    description: "Public facade crate, re-exports core traits and derive macros, defines feature gates."
+component_management:
+  individual_components:
+    - component_id: koruma
+      name: "koruma"
+      paths:
+        - crates/koruma/**
 
-  - name: "koruma-core"
-    paths:
-      - crates/koruma-core
-    description: "Core traits and optional showcase registry types."
+    - component_id: koruma-core
+      name: "koruma-core"
+      paths:
+        - crates/koruma-core/**
 
-  - name: "koruma-derive"
-    paths:
-      - crates/koruma-derive
-    description: "Proc-macros for validators, error structs, and helper derives."
+    - component_id: koruma-derive
+      name: "koruma-derive"
+      paths:
+        - crates/koruma-derive/**
 
-  - name: "koruma-derive-core"
-    paths:
-      - crates/koruma-derive-core
-    description: "Attribute parsing and utilities shared by derive macros."
+    - component_id: koruma-derive-core
+      name: "koruma-derive-core"
+      paths:
+        - crates/koruma-derive-core/**
 
-  - name: "koruma-collection"
-    paths:
-      - crates/koruma-collection
-    description: "Built-in validators with optional fluent/i18n resources."
+    - component_id: koruma-collection
+      name: "koruma-collection"
+      paths:
+        - crates/koruma-collection/**
 
-  - name: "xtask"
-    paths:
-      - xtask
-    description: "Development task automation helpers."
+    - component_id: xtask
+      name: "xtask"
+      paths:
+        - xtask/**
 
 coverage:
   precision: 2

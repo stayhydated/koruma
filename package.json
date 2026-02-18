@@ -7,7 +7,7 @@
   "scripts": {
     "build": "turbo build",
     "build:wasm": "bun run build:wasm:collection",
-    "build:wasm:collection": "cd examples/collection-web && CARGO_TARGET_DIR=../../target/wasm wasm-pack build --release --target web --out-dir pkg && cp pkg/*.js pkg/*.wasm ../../web/public/collection-example/",
+    "build:wasm:collection": "cd examples/collection-web && wasm-pack build --release --target web --out-dir ../../web/public/collection-example --out-name collection-example",
     "build:web": "turbo run build --filter=web",
     "dev": "turbo dev",
     "fmt": "oxfmt",

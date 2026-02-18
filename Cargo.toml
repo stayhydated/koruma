@@ -1,4 +1,4 @@
-g[workspace]
+[workspace]
 default-members = [ "examples/collection-native" ]
 members = [
   "crates/koruma",

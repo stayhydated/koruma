@@ -1,14 +1,14 @@
 ---
+import DioxusLoader from "@/components/DioxusLoader.astro";
 import WasmExampleLayout from "@/layouts/WasmExampleLayout.astro";
-import RatzillaLoader from "@/components/RatzillaLoader.astro";
 import ContributeToCollection from "@/components/ContributeToCollection.astro";
 
 const baseUrl = import.meta.env.BASE_URL;
 ---
 
-<WasmExampleLayout title="Collection Example - Koruma">
+<WasmExampleLayout title="Dioxus Collection Example - Koruma">
   <ContributeToCollection />
-  <RatzillaLoader moduleUrl={`${baseUrl}/collection-example/collection-example.js`} />
+  <DioxusLoader moduleUrl={`${baseUrl}/dioxus-example/dioxus-example.js`} />
 </WasmExampleLayout>
 
 <style>

@@ -7,6 +7,7 @@ members = [
   "crates/koruma-derive",
   "crates/koruma-derive-core",
   "examples/collection-core",
+  "examples/collection-dioxus",
   "examples/collection-native",
   "examples/collection-web",
   "examples/user-defined",
@@ -32,6 +33,9 @@ clap = "4.5"
 console_error_panic_hook = "0.1"
 crossterm = "0.29"
 derive-getters = "0.5.0"
+dioxus = "0.7"
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
+dioxus-web = "0.7"
 email_address = "0.2"
 es-fluent = "0.13"
 es-fluent-lang = "0.13"

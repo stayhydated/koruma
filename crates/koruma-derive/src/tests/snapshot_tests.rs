@@ -260,6 +260,32 @@ fn test_koruma_expansion_try_new() {
 }
 
 #[test]
+fn test_koruma_expansion_try_new_tuple_struct() {
+    // Tuple struct with #[koruma(try_new)] generates a try_new constructor with tuple initialization
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(try_new)]
+        pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_new_newtype_tuple_struct() {
+    // Tuple struct with both #[koruma(try_new, newtype)] - the main feature being tested
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(try_new, newtype)]
+        pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
 fn test_koruma_all_display_expansion() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayItem {

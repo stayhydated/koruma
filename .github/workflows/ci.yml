@@ -21,7 +21,7 @@ jobs:
           path: .
           all: true
           ignore: |
-            koruma-user-defined-example
+            readme
 
   sync-display-ftl:
     runs-on: ubuntu-latest

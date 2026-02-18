@@ -229,3 +229,35 @@ if let Err(err) = Email::try_new("".to_string()) {
     }
 }
 ```
+
+### Unnamed newtype (tuple struct)
+
+The same pattern works with tuple structs:
+
+```rs
+use koruma::{Koruma, KorumaAllDisplay, Validate};
+
+#[derive(Clone, Koruma, KorumaAllDisplay)]
+#[koruma(try_new, newtype)]
+pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+
+#[derive(Koruma, KorumaAllDisplay)]
+pub struct LoginForm {
+    #[koruma(newtype)]
+    pub username: Username,
+}
+
+let login = LoginForm {
+    username: Username("".to_string()),
+};
+let err = login.validate().unwrap_err();
+
+if let Some(username_err) = err.username().non_empty_string_validation() {
+    println!("username failed: {}", username_err);
+}
+
+// Access tuple field via .0
+if let Ok(username) = Username::try_new("alice".to_string()) {
+    println!("username created: {}", username.0);
+}
+```

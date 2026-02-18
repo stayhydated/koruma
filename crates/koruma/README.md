@@ -178,7 +178,7 @@ for failed in err.id().all() {
 }
 ```
 
-### 5. Newtype pattern (`#[koruma(try_new, newtype)]`)
+## Newtype pattern (`#[koruma(try_new, newtype)]`)
 
 Use `#[koruma(try_new, newtype)]` when you want a checked constructor (`try_new`) and
 transparent newtype error access. You can still layer `derive_more` traits on top for wrapper
@@ -227,5 +227,36 @@ if let Err(err) = Email::try_new("".to_string()) {
     for failed in err.all() {
         println!("email::try_new validator: {}", failed);
     }
+}
+```
+
+### Unnamed newtype
+
+The same pattern works with tuple structs:
+
+```rs
+use koruma::{Koruma, KorumaAllDisplay, Validate};
+
+#[derive(Clone, Koruma, KorumaAllDisplay)]
+#[koruma(try_new, newtype)]
+pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+
+#[derive(Koruma, KorumaAllDisplay)]
+pub struct LoginForm {
+    #[koruma(newtype)]
+    pub username: Username,
+}
+
+let login = LoginForm {
+    username: Username("".to_string()),
+};
+let err = login.validate().unwrap_err();
+
+if let Some(username_err) = err.username().non_empty_string_validation() {
+    println!("username failed: {}", username_err);
+}
+
+if let Ok(username) = Username::try_new("alice".to_string()) {
+    println!("username created: {}", username.0);
 }
 ```

@@ -126,3 +126,18 @@ pub struct SignupForm {
     #[koruma(newtype)]
     pub email: Email,
 }
+
+/// An unnamed (tuple) newtype wrapper around String, representing a username.
+/// Uses `#[koruma(try_new, newtype)]` with a tuple struct.
+/// The field is accessed as `Username::try_new(value).unwrap().0` (tuple index 0).
+#[derive(Clone, Koruma, koruma::KorumaAllFluent)]
+#[koruma(try_new, newtype)]
+pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+
+/// A struct using the Username unnamed newtype.
+/// Works identically to named newtypes - errors delegate transparently.
+#[derive(Koruma, koruma::KorumaAllFluent)]
+pub struct LoginForm {
+    #[koruma(newtype)]
+    pub username: Username,
+}

@@ -1,4 +1,4 @@
-# koruma-collection ([online demo](https://stayhydated.github.io/koruma/collection-example/))
+# koruma-collection ([online demos](https://stayhydated.github.io/koruma/))
 
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)

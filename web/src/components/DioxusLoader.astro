@@ -1,0 +1,71 @@
+---
+interface Props {
+  moduleUrl: string;
+  loadingText?: string;
+  errorText?: string;
+}
+
+const {
+  moduleUrl,
+  loadingText = "Loading...",
+  errorText = "Failed to load.",
+} = Astro.props;
+---
+
+<div class="dioxus-loader" data-state="loading">
+  <div class="dioxus-loader__status" data-state="loading" aria-live="polite">
+    {loadingText}
+  </div>
+  <div class="dioxus-loader__status" data-state="error" role="alert" aria-live="assertive">
+    {errorText}
+  </div>
+</div>
+
+<script is:inline define:vars={{ moduleUrl }}>
+  const root = document.currentScript?.previousElementSibling;
+  const setState = (state) => {
+    if (!root) {
+      return;
+    }
+    root.dataset.state = state;
+  };
+
+  (async () => {
+    try {
+      const module = await import(moduleUrl);
+      if (typeof module.default === "function") {
+        await module.default();
+      }
+      setState("ready");
+    } catch (error) {
+      console.error(error);
+      setState("error");
+    }
+  })();
+</script>
+
+<style>
+  .dioxus-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100vw;
+    margin: 0 auto;
+    text-align: center;
+    color: var(--color-text);
+  }
+
+  .dioxus-loader__status {
+    display: none;
+  }
+
+  .dioxus-loader[data-state="loading"] .dioxus-loader__status[data-state="loading"],
+  .dioxus-loader[data-state="error"] .dioxus-loader__status[data-state="error"] {
+    display: block;
+  }
+
+  .dioxus-loader[data-state="ready"] {
+    display: none;
+  }
+</style>

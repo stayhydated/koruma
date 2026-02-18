@@ -90,29 +90,46 @@ pub fn App() -> Element {
 
     let status_class = match &current_validator {
         Some(Ok(v)) if v.is_valid() => {
-            "w-full bg-black border rounded px-4 py-3 text-green-400 border-green-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+            "w-full bg-black border rounded px-4 py-3 focus:outline-none focus:ring-2"
+        },
+        Some(Ok(_)) => "w-full bg-black border rounded px-4 py-3 focus:outline-none focus:ring-2",
+        Some(Err(_)) => "w-full bg-black border rounded px-4 py-3 focus:outline-none focus:ring-2",
+        None => "w-full bg-black border rounded px-4 py-3 focus:outline-none focus:ring-2",
+    };
+
+    let status_style = match &current_validator {
+        Some(Ok(v)) if v.is_valid() => {
+            "color: #a0ff00; border-color: #a0ff00; box-shadow: 0 0 10px rgba(160, 255, 0, 0.3), inset 0 0 5px rgba(160, 255, 0, 0.2); --tw-ring-color: rgba(0, 240, 255, 0.5);"
         },
         Some(Ok(_)) => {
-            "w-full bg-black border rounded px-4 py-3 text-red-400 border-red-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+            "color: #ff00a0; border-color: #ff00a0; box-shadow: 0 0 10px rgba(255, 0, 160, 0.3), inset 0 0 5px rgba(255, 0, 160, 0.2); --tw-ring-color: rgba(0, 240, 255, 0.5);"
         },
         Some(Err(_)) => {
-            "w-full bg-black border rounded px-4 py-3 text-yellow-400 border-yellow-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
+            "color: #a0ff00; border-color: #a0ff00; box-shadow: 0 0 10px rgba(160, 255, 0, 0.3), inset 0 0 5px rgba(160, 255, 0, 0.2); --tw-ring-color: rgba(0, 240, 255, 0.5);"
         },
-        None => {
-            "w-full bg-black border rounded px-4 py-3 text-gray-400 border-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/50"
-        },
+        None => "color: #555555; border-color: #555555; --tw-ring-color: rgba(0, 240, 255, 0.5);",
     };
 
     let status_emoji = match &current_validator {
-        Some(Ok(v)) if v.is_valid() => "✅",
-        Some(Ok(_)) => "❌",
-        Some(Err(_)) => "⚠️",
+        Some(Ok(v)) if v.is_valid() => "✓",
+        Some(Ok(_)) => "✗",
+        Some(Err(_)) => "!",
         None => "",
     };
 
     let result_class = match &current_validator {
-        Some(Ok(v)) if v.is_valid() => "border rounded p-4 text-green-400 border-green-400",
-        Some(Ok(_)) => "border rounded p-4 text-pink-400 border-pink-400",
+        Some(Ok(v)) if v.is_valid() => "border rounded p-4",
+        Some(Ok(_)) => "border rounded p-4",
+        _ => "",
+    };
+
+    let result_style = match &current_validator {
+        Some(Ok(v)) if v.is_valid() => {
+            "color: #a0ff00; border-color: #a0ff00; box-shadow: 0 0 10px rgba(160, 255, 0, 0.3), inset 0 0 5px rgba(160, 255, 0, 0.2);"
+        },
+        Some(Ok(_)) => {
+            "color: #ff00a0; border-color: #ff00a0; box-shadow: 0 0 10px rgba(255, 0, 160, 0.3), inset 0 0 5px rgba(255, 0, 160, 0.2);"
+        },
         _ => "",
     };
 
@@ -132,15 +149,12 @@ pub fn App() -> Element {
     };
 
     rsx! {
-        div { class: "min-h-screen bg-black text-gray-200 p-8 font-sans",
+        div { class: "min-h-screen bg-black p-8 font-sans",
+            style { {include_str!("styles.css")} }
             div { class: "max-w-4xl mx-auto space-y-6",
-                h1 { class: "text-3xl font-bold text-cyan-400 mb-8 text-center",
-                    "Koruma Collection Showcase"
-                }
-
                 div { class: "grid grid-cols-2 gap-4",
                     div { class: "space-y-2",
-                        label { class: "text-sm text-cyan-400", "Module" }
+                        label { class: "text-sm", style: "color: #00f0ff;", "Module" }
                         Select::<String> {
                             placeholder: "Select module...",
                             default_value: selected_module().name().to_string(),
@@ -157,19 +171,20 @@ pub fn App() -> Element {
                             },
                             SelectTrigger {
                                 aria_label: "Module selector",
-                                class: "w-full bg-black border border-cyan-400/50 text-cyan-400 rounded px-3 py-2",
+                                class: "w-full bg-black border rounded px-3 py-2",
+                                style: "color: #00f0ff; border-color: rgba(0, 240, 255, 0.5);",
                                 SelectValue {}
                             }
                             SelectList {
                                 aria_label: "Module list",
-                                class: "bg-black border border-cyan-400/50 rounded shadow-lg",
+                                class: "bg-black border rounded shadow-lg select-list-primary",
                                 for (idx, module) in available_modules.iter().enumerate() {
                                     SelectOption::<String> {
                                         index: idx,
                                         value: module.name().to_string(),
-                                        class: "px-3 py-2 hover:bg-cyan-400/10 cursor-pointer text-gray-200",
-                                        {module.name()}
-                                        SelectItemIndicator { "✓" }
+                                        class: "select-option-primary",
+                                        span { style: "color: #e0e0e0;", {module.name()} }
+                                        SelectItemIndicator { span { style: "color: #00f0ff;", "✓" } }
                                     }
                                 }
                             }
@@ -177,7 +192,7 @@ pub fn App() -> Element {
                     }
 
                     div { class: "space-y-2",
-                        label { class: "text-sm text-cyan-400", "Validator" }
+                        label { class: "text-sm", style: "color: #00f0ff;", "Validator" }
                         Select::<String> {
                             placeholder: "Select validator...",
                             default_value: selected_validator_name().unwrap_or_default(),
@@ -187,22 +202,23 @@ pub fn App() -> Element {
                             },
                             SelectTrigger {
                                 aria_label: "Validator selector",
-                                class: "w-full bg-black border border-yellow-400/50 text-yellow-400 rounded px-3 py-2",
+                                class: "w-full bg-black border rounded px-3 py-2",
+                                style: "color: #a0ff00; border-color: rgba(160, 255, 0, 0.5);",
                                 SelectValue {}
                             }
                             SelectList {
                                 aria_label: "Validator list",
-                                class: "bg-black border border-yellow-400/50 rounded shadow-lg max-h-60 overflow-y-auto",
+                                class: "bg-black border rounded shadow-lg max-h-60 overflow-y-auto select-list-accent",
                                 for (idx, validator) in current_validators.iter().enumerate() {
                                     SelectOption::<String> {
                                         index: idx,
                                         value: validator.name.to_string(),
-                                        class: "px-3 py-2 hover:bg-yellow-400/10 cursor-pointer text-gray-200",
+                                        class: "select-option-accent",
                                         div { class: "flex flex-col",
-                                            span { class: "font-medium", {validator.name} }
-                                            span { class: "text-xs text-gray-500", {validator.description} }
+                                            span { class: "font-medium", style: "color: #e0e0e0;", {validator.name} }
+                                            span { class: "text-xs", style: "color: #555555;", {validator.description} }
                                         }
-                                        SelectItemIndicator { "✓" }
+                                        SelectItemIndicator { span { style: "color: #a0ff00;", "✓" } }
                                     }
                                 }
                             }
@@ -211,11 +227,12 @@ pub fn App() -> Element {
                 }
 
                 div { class: "space-y-2",
-                    label { class: "text-sm text-cyan-400", "Input" }
+                    label { class: "text-sm", style: "color: #00f0ff;", "Input" }
                     div { class: "relative",
                         input {
                             r#type: "text",
                             class: status_class,
+                            style: status_style,
                             value: input(),
                             oninput: move |e| input.set(e.value()),
                             placeholder: "Enter value to validate..."
@@ -227,29 +244,38 @@ pub fn App() -> Element {
                 if current_validator.is_some() {
                     if matches!(&current_validator, Some(Ok(_))) {
                         div { class: "space-y-4",
-                            div { class: result_class,
-                                label { class: "text-sm text-cyan-400 block mb-2", "Display Output" }
-                                p { class: "text-lg", {display_msg} }
+                            div {
+                                class: result_class,
+                                style: result_style,
+                                label { class: "text-sm block mb-2", style: "color: #00f0ff;", "Display Output" }
+                                p { class: "text-lg", style: "color: inherit;", {display_msg} }
                             }
 
-                            div { class: "border rounded p-4 border-blue-400 text-blue-400",
-                                label { class: "text-sm text-cyan-400 block mb-2", "Fluent Output" }
+                            div {
+                                class: "border rounded p-4",
+                                style: "color: #00f0ff; border-color: rgba(0, 240, 255, 0.5); box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 5px rgba(0, 240, 255, 0.2);",
+                                label { class: "text-sm block mb-2", style: "color: #00f0ff;", "Fluent Output" }
                                 p { class: "text-lg", {fluent_msg} }
                             }
                         }
                     } else if matches!(&current_validator, Some(Err(_))) {
-                        div { class: "border border-yellow-400 rounded p-4 text-yellow-400",
-                            label { class: "text-sm text-cyan-400 block mb-2", "Parse Error" }
+                        div {
+                            class: "border rounded p-4",
+                            style: "color: #a0ff00; border-color: #a0ff00; box-shadow: 0 0 10px rgba(160, 255, 0, 0.3), inset 0 0 5px rgba(160, 255, 0, 0.2);",
+                            label { class: "text-sm block mb-2", style: "color: #00f0ff;", "Parse Error" }
                             p { class: "text-lg", {error_msg} }
                         }
                     }
                 } else {
-                    div { class: "border border-gray-600 rounded p-4 text-gray-500 text-center",
+                    div {
+                        class: "border rounded p-4 text-center",
+                        style: "color: #555555; border-color: #1a1a1a;",
                         "No validator selected"
                     }
                 }
 
-                div { class: "flex justify-between items-center pt-6 border-t border-gray-800",
+                div { class: "flex justify-between items-center pt-6 border-t",
+                    style: "border-color: #1a1a1a;",
                     Select::<String> {
                         placeholder: "Language...",
                         default_value: current_language().to_fluent_string(),
@@ -265,19 +291,20 @@ pub fn App() -> Element {
                         },
                         SelectTrigger {
                             aria_label: "Language selector",
-                            class: "bg-black border border-purple-400/50 text-purple-400 rounded px-3 py-1 text-sm",
+                            class: "bg-black border rounded px-3 py-1 text-sm",
+                            style: "color: #ff00a0; border-color: rgba(255, 0, 160, 0.5);",
                             SelectValue {}
                         }
                         SelectList {
                             aria_label: "Language list",
-                            class: "bg-black border border-purple-400/50 rounded shadow-lg",
+                            class: "bg-black border rounded shadow-lg select-list-secondary",
                             for (idx, lang) in Languages::iter().enumerate() {
                                 SelectOption::<String> {
                                     index: idx,
                                     value: lang.to_fluent_string(),
-                                    class: "px-3 py-2 hover:bg-purple-400/10 cursor-pointer text-gray-200",
-                                    {lang.to_fluent_string()}
-                                    SelectItemIndicator { "✓" }
+                                    class: "select-option-secondary",
+                                    span { style: "color: #e0e0e0;", {lang.to_fluent_string()} }
+                                    SelectItemIndicator { span { style: "color: #ff00a0;", "✓" } }
                                 }
                             }
                         }
@@ -285,7 +312,7 @@ pub fn App() -> Element {
 
                     a {
                         href: "/koruma/",
-                        class: "text-cyan-400 hover:text-cyan-300 text-sm transition-colors",
+                        class: "text-sm transition-colors link-primary",
                         "← Back to Examples"
                     }
                 }

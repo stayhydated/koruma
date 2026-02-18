@@ -2335,7 +2335,6 @@ version = "0.6.0"
 dependencies = [
  "console_error_panic_hook",
  "dioxus",
- "dioxus-web",
  "es-fluent",
  "es-fluent-manager-embedded",
  "koruma",

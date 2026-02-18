@@ -78,7 +78,6 @@ pub fn App() -> Element {
             style { {include_str!("styles.css")} }
             div { class: "max-w-4xl mx-auto space-y-8",
                 div { class: "flex justify-between items-center mb-8",
-                    h1 { class: "text-2xl font-bold", style: "color: #00f0ff;", "Koruma Validators" }
                     div { class: "flex items-center gap-4",
                         select {
                             class: "bg-black border rounded px-3 py-1 text-sm",

@@ -102,16 +102,17 @@ pub fn App() -> Element {
                 }
 
                 for module in available_modules.iter() {
-                    div { class: "space-y-4",
+                    div { class: "space-y-4 mb-8",
                         h1 {
                             class: "text-xl font-bold pb-2 border-b",
                             style: "color: #00f0ff; border-color: rgba(0, 240, 255, 0.3);",
                             {module.name()}
                         }
 
-                        for validator in filter_validators_by_module(&all_validators, *module) {
-                            {
-                                let name = validator.name;
+                        div { class: "mt-4 space-y-4",
+                            for validator in filter_validators_by_module(&all_validators, *module) {
+                                {
+                                    let name = validator.name;
                                 let description = validator.description;
                                 let input_val = inputs.read().get(name).cloned().unwrap_or_default();
                                 let current_validator = (validator.create_validator)(&input_val);
@@ -162,10 +163,11 @@ pub fn App() -> Element {
                                                         p { style: "color: {text_color};", {display_msg} }
                                                         if !fluent_msg.is_empty() {
                                                             p { class: "text-xs opacity-75", {fluent_msg} }
-                                                        }
-                                                    }
-                                                }
-                                            }
+                            }
+                        }
+                    }
+                }
+            }
                                         }
                                     }
                                 }

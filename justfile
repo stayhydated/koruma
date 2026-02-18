@@ -25,3 +25,5 @@ test-publish:
 test-docs:
     cargo clean --doc
     cargo doc --workspace --all-features --no-deps --open
+
+ci: fmt check clippy test cov

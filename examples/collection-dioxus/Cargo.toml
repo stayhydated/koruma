@@ -10,7 +10,6 @@ publish = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-dioxus-primitives = { workspace = true }
 console_error_panic_hook = { workspace = true }
 dioxus = { workspace = true, features = ["web"] }
 dioxus-web = { workspace = true }

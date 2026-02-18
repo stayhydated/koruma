@@ -55,48 +55,6 @@ input:focus {
   outline: none;
 }
 
-.select-list-primary {
-  border-color: rgba(0, 240, 255, 0.5);
-}
-
-.select-list-accent {
-  border-color: rgba(160, 255, 0, 0.5);
-}
-
-.select-list-secondary {
-  border-color: rgba(255, 0, 160, 0.5);
-}
-
-.select-option-primary {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  color: var(--color-text);
-}
-
-.select-option-primary:hover {
-  background-color: rgba(0, 240, 255, 0.1);
-}
-
-.select-option-accent {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  color: var(--color-text);
-}
-
-.select-option-accent:hover {
-  background-color: rgba(160, 255, 0, 0.1);
-}
-
-.select-option-secondary {
-  padding: 0.5rem 0.75rem;
-  cursor: pointer;
-  color: var(--color-text);
-}
-
-.select-option-secondary:hover {
-  background-color: rgba(255, 0, 160, 0.1);
-}
-
 .link-primary {
   color: var(--color-primary);
   transition: color 0.2s ease;

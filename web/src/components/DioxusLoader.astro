@@ -24,6 +24,7 @@ const {
 </div>
 
 <script is:inline define:vars={{ moduleUrl }}>
+// @ts-nocheck - Variables are injected by Astro's define:vars
   const root = document.currentScript?.previousElementSibling;
   const setState = (state) => {
     if (!root) {

@@ -11,13 +11,15 @@ const {
   errorText = "Failed to load.",
 } = Astro.props;
 ---
-
-<div class="dioxus-loader" data-state="loading">
-  <div class="dioxus-loader__status" data-state="loading" aria-live="polite">
-    {loadingText}
-  </div>
-  <div class="dioxus-loader__status" data-state="error" role="alert" aria-live="assertive">
-    {errorText}
+<div>
+  <div id="main"></div>
+  <div class="dioxus-loader" data-state="loading">
+    <div class="dioxus-loader__status" data-state="loading" aria-live="polite">
+      {loadingText}
+    </div>
+    <div class="dioxus-loader__status" data-state="error" role="alert" aria-live="assertive">
+      {errorText}
+    </div>
   </div>
 </div>
 

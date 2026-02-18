@@ -69,11 +69,6 @@ pub fn App() -> Element {
     let mut inputs = use_signal(HashMap::<&'static str, String>::new);
     let mut current_language = use_signal(Languages::default);
 
-    use_resource(move || async move {
-        i18n::init();
-        let _ = i18n::change_locale(current_language());
-    });
-
     koruma_collection::__link_showcase_validators();
     let all_validators = validators();
     let available_modules = ValidatorModule::available_modules(&all_validators);
@@ -187,5 +182,7 @@ pub fn App() -> Element {
 #[wasm_bindgen::prelude::wasm_bindgen(start)]
 pub fn start() {
     console_error_panic_hook::set_once();
+    i18n::init();
+    let _ = i18n::change_locale(Languages::default());
     dioxus::launch(App);
 }

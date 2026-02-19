@@ -130,3 +130,21 @@ fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
         "expected newtype field-count error, got: {err}"
     );
 }
+
+#[test]
+fn test_koruma_error_on_tuple_newtype_with_multiple_fields() {
+    // Tuple struct with newtype must have exactly one field
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        pub struct BadTupleNewtype(pub i32, pub i32);
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("newtype structs must have exactly one validated field"),
+        "expected newtype field-count error, got: {err}"
+    );
+}

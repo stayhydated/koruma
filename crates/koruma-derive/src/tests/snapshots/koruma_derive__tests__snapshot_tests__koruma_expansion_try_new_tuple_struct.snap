@@ -1,0 +1,103 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 272
+expression: rendered
+---
+#[doc = concat!(
+    "Validators for the `", "_0", "` field of [`", "Username", "`]: [`",
+    "NonEmptyStringValidation", "`]."
+)]
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum Username0KorumaValidator {
+    NonEmptyStringValidation(NonEmptyStringValidation),
+}
+#[doc = concat!(
+    "Validation errors for the `", "_0", "` field of [`", "Username",
+    "`].\n\nValidators: [`", "NonEmptyStringValidation", "`]."
+)]
+#[derive(Clone, Debug, Default)]
+pub struct Username0KorumaValidationError {
+    non_empty_string_validation: Option<NonEmptyStringValidation>,
+}
+impl Username0KorumaValidationError {
+    #[doc = concat!(
+        "Returns the failed [`", "NonEmptyStringValidation", "`] validator, if any."
+    )]
+    pub fn non_empty_string_validation(&self) -> Option<&NonEmptyStringValidation> {
+        self.non_empty_string_validation.as_ref()
+    }
+    #[doc = concat!("Returns all failed validators for `", "_0", "`.")]
+    pub fn all(&self) -> Vec<Username0KorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.non_empty_string_validation {
+            result.push(Username0KorumaValidator::NonEmptyStringValidation(v.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.non_empty_string_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for [`", "Username",
+    "`].\n\nContains per-field error structs for ", "field: `_0`", "."
+)]
+#[derive(Clone, Debug, Default)]
+pub struct UsernameKorumaValidationError {
+    _0: Username0KorumaValidationError,
+}
+impl UsernameKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "_0", "` field of [`", "Username", "`]."
+    )]
+    pub fn _0(&self) -> &Username0KorumaValidationError {
+        &self._0
+    }
+}
+impl koruma::ValidationError for UsernameKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self._0.is_empty()
+    }
+}
+impl Username {
+    #[doc = concat!(
+        "Creates a new `", "Username",
+        "` instance and validates it.\n\nReturns `Ok(instance)` if all validations pass, or `Err(error)` with the validation failures."
+    )]
+    pub fn try_new(_0: String) -> Result<Self, UsernameKorumaValidationError> {
+        let instance = Self(_0);
+        instance.validate()?;
+        Ok(instance)
+    }
+    #[doc = concat!(
+        "Validates all fields of `", "Username",
+        "` and returns an error struct containing all validation failures."
+    )]
+    pub fn validate(&self) -> Result<(), UsernameKorumaValidationError> {
+        let mut error = UsernameKorumaValidationError {
+            _0: Username0KorumaValidationError {
+                non_empty_string_validation: None,
+            },
+        };
+        let mut has_error = false;
+        let __field_value = &self.0;
+        let validator = NonEmptyStringValidation::builder()
+            .with_value(__field_value.clone())
+            .build();
+        if !validator.validate(__field_value) {
+            error._0.non_empty_string_validation = Some(validator);
+            has_error = true;
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl koruma::ValidateExt for Username {
+    type Error = UsernameKorumaValidationError;
+    fn validate(&self) -> Result<(), UsernameKorumaValidationError> {
+        Username::validate(self)
+    }
+}

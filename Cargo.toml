@@ -10,7 +10,7 @@ members = [
   "examples/collection-dioxus",
   "examples/collection-native",
   "examples/collection-web",
-  "examples/user-defined",
+  "examples/readme",
   "examples/shared-lib",
   "xtask",
 ]

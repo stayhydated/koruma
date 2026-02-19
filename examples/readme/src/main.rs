@@ -1,7 +1,8 @@
 use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
-use koruma_user_defined_example::{
-    Account, AccountSettings, Address, Customer, Email, Item, SignupForm, User, i18n,
+use readme::{
+    Account, AccountSettings, Address, Customer, Email, Item, LoginForm, SignupForm, User,
+    Username, i18n,
 };
 use strum::IntoEnumIterator as _;
 
@@ -303,6 +304,54 @@ pub fn main() {
                 }
             },
         }
+
+        // Unnamed (tuple struct) newtype test
+        println!("\n--- Unnamed (Tuple Struct) Newtype ---\n");
+
+        let login = LoginForm {
+            username: Username("".to_string()),
+        };
+
+        match login.validate() {
+            Ok(()) => println!("Login form is valid!"),
+            Err(errors) => {
+                if let Some(username_err) = errors.username().non_empty_string_validation() {
+                    println!(
+                        "  - username (unnamed newtype): {}",
+                        username_err.to_fluent_string()
+                    );
+                }
+
+                println!("  - all failed validators (via all()):");
+                for err in errors.username().all() {
+                    println!("    - username: {}", err.to_fluent_string());
+                }
+            },
+        }
+
+        match Username::try_new("".to_string()) {
+            Ok(_) => println!("  - Username::try_new unexpectedly passed"),
+            Err(username_errs) => {
+                if let Some(err) = username_errs.non_empty_string_validation() {
+                    println!("  - Username::try_new: {}", err.to_fluent_string());
+                }
+
+                println!("  - all failed validators from Username::try_new:");
+                for err in username_errs.all() {
+                    println!("    - {}", err.to_fluent_string());
+                }
+            },
+        }
+
+        // Successful Username creation
+        match Username::try_new("alice".to_string()) {
+            Ok(username) => println!(
+                "  - Username::try_new succeeded: username.0 = {}",
+                username.0
+            ),
+            Err(_) => println!("  - Username::try_new unexpectedly failed"),
+        }
+
         println!();
     }
 }

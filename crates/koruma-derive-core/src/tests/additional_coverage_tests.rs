@@ -168,6 +168,22 @@ fn utility_functions_cover_non_happy_paths() {
     let substituted = substitute_infer_type(&explicit_with_infer, &infer_target);
     assert_eq!(quote::quote!(#substituted).to_string(), "Vec < String >");
 
+    // Type with lifetime only (no type args) - exercises the for loop without Type match
+    let ty_with_lifetime_only: syn::Type = syn::parse_quote!(Borrowed<'a>);
+    let substituted_lifetime = substitute_infer_type(&ty_with_lifetime_only, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted_lifetime).to_string(),
+        "Borrowed < 'a >"
+    );
+
+    // Nested path with type args - exercises all branches
+    let nested_path: syn::Type = syn::parse_quote!(std::collections::HashMap<_, _>);
+    let substituted_nested = substitute_infer_type(&nested_path, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted_nested).to_string(),
+        "std :: collections :: HashMap < String , String >"
+    );
+
     let const_generic: syn::Type = syn::parse_quote!(ArrayLike<1>);
     assert!(first_generic_arg(&const_generic).is_none());
     assert!(!contains_infer_type(&const_generic));
@@ -234,13 +250,21 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
 #[test]
 fn parser_edge_cases_cover_remaining_parse_lines() {
     // Old syntax branch: no turbofish `::` but an immediate `<...>` segment.
+    // With spaces, syn parses path first, then leftover tokens cause error.
     let old_syntax_no_colon: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation < _ >");
+    let err = old_syntax_no_colon.err().expect("expected parse error");
+    let err_str = err.to_string();
     assert!(
-        old_syntax_no_colon
-            .err()
-            .expect("expected parse error")
-            .to_string()
-            .contains("turbofish")
+        err_str.contains("turbofish") || err_str.contains("unexpected"),
+        "expected turbofish or unexpected token error, got: {err_str}"
+    );
+
+    // Without spaces, syn parses `<_>` as generic args, and we detect missing `::`
+    let old_syntax_no_space: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation<_>");
+    let err2 = old_syntax_no_space.err().expect("expected parse error");
+    assert!(
+        err2.to_string().contains("turbofish"),
+        "expected turbofish error, got: {err2}"
     );
 
     // Parenthesized path arguments branch.
@@ -303,6 +327,13 @@ fn utility_functions_cover_remaining_line_paths() {
 
     let option_concrete: syn::Type = syn::parse_quote!(Option<u32>);
     assert!(!is_option_infer_type(&option_concrete));
+
+    let option_infer: syn::Type = syn::parse_quote!(Option<_>);
+    assert!(is_option_infer_type(&option_infer));
+
+    // Option with lifetime arg only - exercises the for loop without Type match
+    let option_lifetime: syn::Type = syn::parse_quote!(Option<'static>);
+    assert!(!is_option_infer_type(&option_lifetime));
 
     let ty_with_lifetime_and_infer: syn::Type = syn::parse_quote!(Wrapper<'static, _>);
     let infer_target: syn::Type = syn::parse_quote!(usize);

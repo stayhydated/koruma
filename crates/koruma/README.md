@@ -18,11 +18,14 @@
 koruma = { version = "*" }
 ```
 
-## koruma-collection ([online demos](https://stayhydated.github.io/koruma/))
+## koruma-collection
 
 [![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
 [![Crowdin](https://badges.crowdin.net/koruma-collection/localized.svg)](https://crowdin.com/project/koruma-collection)
+
+- [tui demo](https://stayhydated.github.io/koruma/collection-example/)
+- [dioxus demo](https://stayhydated.github.io/koruma/dioxus-example/)
 
 A curated set of validators built on top of `koruma`, organized by domain:
 string, format, numeric, collection, and general-purpose validators.

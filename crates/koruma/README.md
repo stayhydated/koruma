@@ -57,26 +57,39 @@ impl<T: PartialOrd + Copy + fmt::Display> Validate<T> for NumberRangeValidation<
 
 impl<T: PartialOrd + Copy + fmt::Display + Clone> fmt::Display for NumberRangeValidation<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} is not in [{}, {}]", self.actual, self.min, self.max)
+        write!(
+            f,
+            "yo number {} aint in [{}, {}]",
+            self.actual, self.min, self.max
+        )
     }
 }
 
 #[validator]
 #[derive(Clone, Debug)]
-pub struct NonEmptyStringValidation {
+pub struct StringLengthValidation {
+    min: usize,
+    max: usize,
     #[koruma(value)]
     pub input: String,
 }
 
-impl Validate<String> for NonEmptyStringValidation {
+impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        !value.is_empty()
+        let len = value.len();
+        len >= self.min && len <= self.max
     }
 }
 
-impl fmt::Display for NonEmptyStringValidation {
+impl fmt::Display for StringLengthValidation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "string must not be empty")
+        write!(
+            f,
+            "String length {} must be between {} and {} characters",
+            self.input.len(),
+            self.min,
+            self.max
+        )
     }
 }
 ```
@@ -87,44 +100,48 @@ impl fmt::Display for NonEmptyStringValidation {
 use koruma::{Koruma, KorumaAllDisplay, Validate};
 
 #[derive(Koruma, KorumaAllDisplay)]
-pub struct SignupInput {
-    #[koruma(NumberRangeValidation::<_>(min = 18, max = 120))]
+pub struct Item {
+    #[koruma(NumberRangeValidation::<_>(min = 0, max = 100))]
     pub age: i32,
 
-    #[koruma(NonEmptyStringValidation)]
-    pub username: String,
+    #[koruma(StringLengthValidation(min = 1, max = 67))]
+    pub name: String,
 
     // No #[koruma(...)] attribute -> not validated
     pub internal_id: u64,
 }
 
-let input = SignupInput {
-    age: 10,
-    username: "".to_string(),
-    internal_id: 42,
+let item = Item {
+    age: 150,
+    name: "".to_string(),
+    internal_id: 1,
 };
 
-let err = input.validate().unwrap_err();
+match item.validate() {
+    Ok(()) => println!("Item is valid!"),
+    Err(errors) => {
+        if let Some(age_err) = errors.age().number_range_validation() {
+            println!("age failed: {}", age_err);
+        }
 
-if let Some(age_err) = err.age().number_range_validation() {
-    println!("age failed: {}", age_err);
-}
-
-if let Some(name_err) = err.username().non_empty_string_validation() {
-    println!("username failed: {}", name_err);
+        if let Some(name_err) = errors.name().string_length_validation() {
+            println!("name failed: {}", name_err);
+        }
+    },
 }
 ```
 
 ### 3. Use `all()` getter (`KorumaAllDisplay`)
 
 ```rs
-// Continue from `err` above:
-for failed in err.age().all() {
-    println!("age validator: {}", failed);
-}
+if let Err(errors) = item.validate() {
+    for failed in errors.age().all() {
+        println!("age validator: {}", failed);
+    }
 
-for failed in err.username().all() {
-    println!("username validator: {}", failed);
+    for failed in errors.name().all() {
+        println!("name validator: {}", failed);
+    }
 }
 ```
 
@@ -160,21 +177,49 @@ impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + Partia
     }
 }
 
+#[validator]
+#[derive(Clone, Debug, EsFluent)]
+pub struct NonEmptyStringValidation {
+    #[koruma(value)]
+    pub input: String,
+}
+
+impl Validate<String> for NonEmptyStringValidation {
+    fn validate(&self, value: &String) -> bool {
+        !value.is_empty()
+    }
+}
+
 #[derive(Koruma, KorumaAllFluent)]
-pub struct FluentUser {
+pub struct User {
     #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
+
+    #[koruma(NonEmptyStringValidation)]
+    pub username: String,
 }
 
-let user = FluentUser { id: 3 };
-let err = user.validate().unwrap_err();
+let user = User {
+    id: 3,
+    username: "".to_string(),
+};
 
-if let Some(id_err) = err.id().is_even_number_validation() {
-    println!("{}", id_err.to_fluent_string());
-}
+if let Err(errors) = user.validate() {
+    if let Some(id_err) = errors.id().is_even_number_validation() {
+        println!("{}", id_err.to_fluent_string());
+    }
 
-for failed in err.id().all() {
-    println!("{}", failed.to_fluent_string());
+    if let Some(username_err) = errors.username().non_empty_string_validation() {
+        println!("{}", username_err.to_fluent_string());
+    }
+
+    for failed in errors.id().all() {
+        println!("{}", failed.to_fluent_string());
+    }
+
+    for failed in errors.username().all() {
+        println!("{}", failed.to_fluent_string());
+    }
 }
 ```
 
@@ -185,16 +230,17 @@ transparent newtype error access. You can still layer `derive_more` traits on to
 ergonomics.
 
 ```rs
-use koruma::{Koruma, KorumaAllDisplay, Validate};
+use es_fluent::ToFluentString as _;
+use koruma::{Koruma, KorumaAllFluent, Validate};
 
-#[derive(Clone, Koruma, KorumaAllDisplay)]
+#[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
 pub struct Email {
     #[koruma(NonEmptyStringValidation)]
     pub value: String,
 }
 
-#[derive(Koruma, KorumaAllDisplay)]
+#[derive(Koruma, KorumaAllFluent)]
 pub struct SignupForm {
     #[koruma(NonEmptyStringValidation)]
     pub username: String,
@@ -204,44 +250,48 @@ pub struct SignupForm {
 }
 
 let form = SignupForm {
-    username: "alice".to_string(),
+    username: "".to_string(),
     email: Email {
         value: "".to_string(),
     },
 };
-let err = form.validate().unwrap_err();
+if let Err(errors) = form.validate() {
+    if let Some(username_err) = errors.username().non_empty_string_validation() {
+        println!("username failed: {}", username_err.to_fluent_string());
+    }
+    if let Some(email_err) = errors.email().non_empty_string_validation() {
+        println!("email failed: {}", email_err.to_fluent_string());
+    }
 
-if let Some(email_err) = err.email().non_empty_string_validation() {
-    println!("email failed: {}", email_err);
-}
-
-for failed in err.email().all() {
-    println!("email validator: {}", failed);
+    for failed in errors.email().all() {
+        println!("email validator: {}", failed.to_fluent_string());
+    }
 }
 
 // Constructor-time validation path
-if let Err(err) = Email::try_new("".to_string()) {
-    if let Some(email_err) = err.non_empty_string_validation() {
-        println!("email::try_new failed: {}", email_err);
+if let Err(errors) = Email::try_new("".to_string()) {
+    if let Some(email_err) = errors.non_empty_string_validation() {
+        println!("email::try_new failed: {}", email_err.to_fluent_string());
     }
-    for failed in err.all() {
-        println!("email::try_new validator: {}", failed);
+    for failed in errors.all() {
+        println!("email::try_new validator: {}", failed.to_fluent_string());
     }
 }
 ```
 
-### Unnamed newtype
+### Unnamed newtype (tuple struct)
 
 The same pattern works with tuple structs:
 
 ```rs
-use koruma::{Koruma, KorumaAllDisplay, Validate};
+use es_fluent::ToFluentString as _;
+use koruma::{Koruma, KorumaAllFluent, Validate};
 
-#[derive(Clone, Koruma, KorumaAllDisplay)]
+#[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
 pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
 
-#[derive(Koruma, KorumaAllDisplay)]
+#[derive(Koruma, KorumaAllFluent)]
 pub struct LoginForm {
     #[koruma(newtype)]
     pub username: Username,
@@ -250,10 +300,10 @@ pub struct LoginForm {
 let login = LoginForm {
     username: Username("".to_string()),
 };
-let err = login.validate().unwrap_err();
-
-if let Some(username_err) = err.username().non_empty_string_validation() {
-    println!("username failed: {}", username_err);
+if let Err(errors) = login.validate() {
+    if let Some(username_err) = errors.username().non_empty_string_validation() {
+        println!("username failed: {}", username_err.to_fluent_string());
+    }
 }
 
 if let Ok(username) = Username::try_new("alice".to_string()) {

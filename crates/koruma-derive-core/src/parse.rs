@@ -384,7 +384,7 @@ impl Parse for KorumaAttr {
 /// #[derive(Koruma)]
 /// struct Email(String);
 ///
-/// // Generate TryFrom impl for newtypes (implies try_new + newtype)
+/// // TryFrom impl for newtypes - converts inner type to validated wrapper
 /// #[koruma(newtype(try_from))]
 /// #[derive(Koruma)]
 /// struct Email(String);

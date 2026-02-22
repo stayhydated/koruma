@@ -228,7 +228,12 @@ if let Err(errors) = user.validate() {
 
 ## Newtype pattern (`#[koruma(try_new, newtype(try_from))]`)
 
-Use `#[koruma(try_new, newtype(try_from))]` when you want a checked constructor (`try_new`), a `TryFrom` implementation (`newtype(try_from)`) and transparent newtype error access (`newtype`). You can still layer `derive_more` traits on top for wrapper ergonomics.
+Use `#[koruma(try_new, newtype(try_from))]` when you need:
+- `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
+- `newtype(try_from)` - a `TryFrom<Inner>` impl for `From`/`try_from` calls
+- `newtype` - transparent error access via `Deref` to the inner field's error
+
+You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 
 ```rs
 use es_fluent::ToFluentString as _;

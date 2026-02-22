@@ -229,6 +229,7 @@ if let Err(errors) = user.validate() {
 ## Newtype pattern (`#[koruma(try_new, newtype(try_from))]`)
 
 Use `#[koruma(try_new, newtype(try_from))]` when you need:
+
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
 - `newtype(try_from)` - a `TryFrom<Inner>` impl for `From`/`try_from` calls
 - `newtype` - transparent error access via `Deref` to the inner field's error

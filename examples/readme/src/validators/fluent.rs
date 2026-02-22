@@ -53,3 +53,21 @@ impl<T: Copy + std::fmt::Display + PartialOrd + Default> Validate<T>
         *value > T::default()
     }
 }
+
+#[validator]
+#[derive(Clone, Debug, EsFluent)]
+pub struct Only67Validation<
+    T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
+> {
+    #[koruma(value)]
+    #[fluent(value(|x: &T| x.to_string()))]
+    pub actual: T,
+}
+
+impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq> Validate<T>
+    for Only67Validation<T>
+{
+    fn validate(&self, value: &T) -> bool {
+        *value == T::from(67u8)
+    }
+}

@@ -1,8 +1,8 @@
 use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
 use readme::{
-    Account, AccountSettings, Address, Customer, Email, Item, LoginForm, SignupForm, User,
-    Username, i18n,
+    Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8, SignupForm,
+    User, Username, i18n,
 };
 use strum::IntoEnumIterator as _;
 
@@ -353,5 +353,30 @@ pub fn main() {
         }
 
         println!();
+    }
+
+    // =========================================================================
+    // TryFrom integration (newtype(try_from))
+    // =========================================================================
+    println!("TryFrom Integration (#[koruma(newtype(try_from))]) \n");
+
+    match Only67u8::try_from(69) {
+        Ok(n) => println!("  - Only67u8::try_from(69) unexpectedly passed: {}!", n.0),
+        Err(errors) => {
+            println!("  - Only67u8::try_from(69) failed:");
+            for failed in errors.all() {
+                println!("    - {}", failed.to_fluent_string());
+            }
+        },
+    }
+
+    match Only67u8::try_from(67) {
+        Ok(n) => println!("  - Only67u8::try_from(67) succeeded: {}!", n.0),
+        Err(errors) => {
+            println!("  - Only67u8::try_from(67) unexpectedly failed:");
+            for failed in errors.all() {
+                println!("    - {}", failed.to_fluent_string());
+            }
+        },
     }
 }

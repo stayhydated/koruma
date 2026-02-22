@@ -42,6 +42,20 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
     }
 
+    // try_from requires newtype (set via newtype(try_from))
+    if struct_options.try_from {
+        let total_fields = fields.len();
+        if total_fields != 1 {
+            return Err(syn::Error::new_spanned(
+                &input,
+                format!(
+                    "newtype(try_from) requires exactly one field, found {}",
+                    total_fields
+                ),
+            ));
+        }
+    }
+
     // Validate newtype option - must have exactly one validated field
     if struct_options.newtype && field_infos.len() != 1 {
         return Err(syn::Error::new_spanned(
@@ -1359,6 +1373,40 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         quote! {}
     };
 
+    // Generate TryFrom<Inner> impl for newtype structs with try_from
+    let try_from_impl = if struct_options.try_from {
+        let field_info = &field_infos[0];
+        let inner_ty = &field_info.ty;
+
+        // Handle generics
+        let generics = &input.generics;
+        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+        // Construct the struct instance based on field type (named vs unnamed)
+        let struct_init = match &field_info.member {
+            syn::Member::Named(ident) => {
+                quote! { Self { #ident: value } }
+            },
+            syn::Member::Unnamed(_) => {
+                quote! { Self(value) }
+            },
+        };
+
+        quote! {
+            impl #impl_generics TryFrom<#inner_ty> for #struct_name #ty_generics #where_clause {
+                type Error = #error_struct_name;
+
+                fn try_from(value: #inner_ty) -> Result<Self, Self::Error> {
+                    let instance = #struct_init;
+                    instance.validate()?;
+                    Ok(instance)
+                }
+            }
+        }
+    } else {
+        quote! {}
+    };
+
     // Generate Deref impl for newtype error structs
     let newtype_deref_impl = if struct_options.newtype {
         let field_info = &field_infos[0];
@@ -1470,5 +1518,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
 
         #newtype_marker_impl
+
+        #try_from_impl
     })
 }

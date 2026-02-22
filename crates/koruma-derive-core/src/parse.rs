@@ -383,6 +383,11 @@ impl Parse for KorumaAttr {
 /// #[koruma(try_new, newtype)]
 /// #[derive(Koruma)]
 /// struct Email(String);
+///
+/// // Generate TryFrom impl for newtypes (implies try_new + newtype)
+/// #[koruma(newtype(try_from))]
+/// #[derive(Koruma)]
+/// struct Email(String);
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct StructOptions {
@@ -392,6 +397,40 @@ pub struct StructOptions {
     /// Generates an `.all()` method on the error struct that aggregates
     /// all validators from the single field.
     pub newtype: bool,
+    /// Generate a `TryFrom<Inner>` impl for newtype structs.
+    /// Set via `newtype(try_from)`. Implies `newtype`. Does NOT imply `try_new`.
+    pub try_from: bool,
+}
+
+/// Options for the `newtype(...)` attribute.
+#[derive(Clone, Debug, Default)]
+pub struct NewtypeOptions {
+    pub try_from: bool,
+}
+
+impl Parse for NewtypeOptions {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut options = NewtypeOptions::default();
+
+        while !input.is_empty() {
+            let ident: Ident = input.parse()?;
+            match ident.to_string().as_str() {
+                "try_from" => options.try_from = true,
+                other => {
+                    return Err(Error::new(
+                        ident.span(),
+                        format!("unknown newtype option: `{}`. Expected `try_from`", other),
+                    ));
+                },
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(options)
+    }
 }
 
 impl Parse for StructOptions {
@@ -402,7 +441,16 @@ impl Parse for StructOptions {
             let ident: Ident = input.parse()?;
             match ident.to_string().as_str() {
                 "try_new" => options.try_new = true,
-                "newtype" => options.newtype = true,
+                "newtype" => {
+                    options.newtype = true;
+                    // Check for nested options: newtype(try_from)
+                    if input.peek(syn::token::Paren) {
+                        let content;
+                        syn::parenthesized!(content in input);
+                        let newtype_opts: NewtypeOptions = content.parse()?;
+                        options.try_from = newtype_opts.try_from;
+                    }
+                },
                 other => {
                     return Err(Error::new(
                         ident.span(),

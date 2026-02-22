@@ -3,7 +3,8 @@ pub mod validators;
 
 use crate::{
     validators::fluent::{
-        IsEvenNumberValidation, NonEmptyStringValidation, PositiveNumberValidation,
+        IsEvenNumberValidation, NonEmptyStringValidation, Only67Validation,
+        PositiveNumberValidation,
     },
     validators::normal::{NumberRangeValidation, StringLengthValidation, ZipCodeValidation},
 };
@@ -141,3 +142,7 @@ pub struct LoginForm {
     #[koruma(newtype)]
     pub username: Username,
 }
+
+#[derive(Clone, Koruma, koruma::KorumaAllFluent)]
+#[koruma(newtype(try_from))]
+pub struct Only67u8(#[koruma(Only67Validation::<_>)] pub u8);

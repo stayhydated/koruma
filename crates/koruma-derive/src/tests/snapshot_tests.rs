@@ -608,3 +608,102 @@ fn test_koruma_all_fluent_rejects_non_struct() {
     };
     assert!(expand_koruma_all_fluent(input).is_err());
 }
+
+#[test]
+fn test_koruma_expansion_try_from_tuple_struct() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct Email(#[koruma(NonEmptyStringValidation)] pub String);
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_from_named_field_struct() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct Username {
+            #[koruma(NonEmptyStringValidation)]
+            pub value: String,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_from_generic() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct Wrapper<T>(#[koruma(GenericRange::<_>(min = 0, max = 100))] pub T);
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_from_generic_with_bounds() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct BoundedWrapper<T: Clone>(#[koruma(GenericRange::<_>(min = 0, max = 100))] pub T);
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_from_generic_with_where_clause() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct WhereWrapper<T>(#[koruma(GenericRange::<_>(min = 0, max = 100))] pub T) where T: Default;
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_from_option_field() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct OptionalWrapper {
+            #[koruma(newtype, RequiredValidation::<Option<_>>)]
+            pub inner: Option<InnerValue>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert_snapshot!(rendered);
+}
+
+#[test]
+fn test_koruma_expansion_try_from_requires_single_field() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub struct MultiField {
+            #[koruma(NonEmptyStringValidation)]
+            pub a: String,
+            #[koruma(skip)]
+            pub b: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("newtype(try_from) requires exactly one field")
+    );
+}

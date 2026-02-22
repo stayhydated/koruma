@@ -226,11 +226,9 @@ if let Err(errors) = user.validate() {
 }
 ```
 
-## Newtype pattern (`#[koruma(try_new, newtype)]`)
+## Newtype pattern (`#[koruma(try_new, newtype(try_from))]`)
 
-Use `#[koruma(try_new, newtype)]` when you want a checked constructor (`try_new`) and
-transparent newtype error access. You can still layer `derive_more` traits on top for wrapper
-ergonomics.
+Use `#[koruma(try_new, newtype(try_from))]` when you want a checked constructor (`try_new`), a `TryFrom` implementation (`newtype(try_from)`) and transparent newtype error access (`newtype`). You can still layer `derive_more` traits on top for wrapper ergonomics.
 
 ```rs
 use es_fluent::ToFluentString as _;
@@ -311,5 +309,28 @@ if let Err(errors) = login.validate() {
 
 if let Ok(username) = Username::try_new("alice".to_string()) {
     println!("username created: {}", username.0);
+}
+```
+
+### TryFrom integration (`#[koruma(newtype(try_from))]`)
+
+Add `try_from` inside `newtype(...)` to generate a `TryFrom<Inner>` impl:
+
+```rs
+use std::convert::TryFrom;
+use es_fluent::ToFluentString as _;
+use koruma::{Koruma, KorumaAllFluent, Validate};
+
+#[derive(Clone, Koruma, koruma::KorumaAllFluent)]
+#[koruma(newtype(try_from))]
+pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
+
+match Only67u8::try_from(69) {
+    Ok(n) => println!("{}!", n.0),
+    Err(errors) => {
+        for failed in errors.all() {
+            println!("validation failed: {}", failed.to_fluent_string());
+        }
+    }
 }
 ```

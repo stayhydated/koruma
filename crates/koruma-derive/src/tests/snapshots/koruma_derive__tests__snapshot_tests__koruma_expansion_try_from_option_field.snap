@@ -1,0 +1,141 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: rendered
+---
+#[doc = concat!(
+    "Validators for the `", "inner", "` field of [`", "OptionalWrapper", "`]: [`",
+    "RequiredValidation", "`] (plus inner validation)."
+)]
+#[derive(Clone, Debug)]
+#[allow(dead_code)]
+pub enum OptionalWrapperInnerKorumaValidator {
+    RequiredValidation(RequiredValidation<Option<InnerValue>>),
+    Inner(<InnerValue as koruma::ValidateExt>::Error),
+}
+#[doc = concat!(
+    "Validation errors for the `", "inner", "` field of [`", "OptionalWrapper",
+    "`].\n\nValidators: [`", "RequiredValidation", "`]."
+)]
+#[derive(Clone, Debug, Default)]
+pub struct OptionalWrapperInnerKorumaValidationError {
+    required_validation: Option<RequiredValidation<Option<InnerValue>>>,
+    inner: <InnerValue as koruma::ValidateExt>::Error,
+}
+impl OptionalWrapperInnerKorumaValidationError {
+    #[doc = concat!(
+        "Returns the failed `", "RequiredValidation", "` validator, if any."
+    )]
+    pub fn required_validation(
+        &self,
+    ) -> Option<&RequiredValidation<Option<InnerValue>>> {
+        self.required_validation.as_ref()
+    }
+    #[doc = concat!("Returns the inner validation error for `", "inner", "`.")]
+    pub fn inner(&self) -> &<InnerValue as koruma::ValidateExt>::Error {
+        &self.inner
+    }
+    #[doc = concat!(
+        "Returns all failed validators for `", "inner",
+        "` including inner newtype validation errors."
+    )]
+    pub fn all(&self) -> Vec<OptionalWrapperInnerKorumaValidator> {
+        let mut result = Vec::new();
+        if let Some(v) = &self.required_validation {
+            result
+                .push(
+                    OptionalWrapperInnerKorumaValidator::RequiredValidation(v.clone()),
+                );
+        }
+        if !self.inner.is_empty() {
+            result.push(OptionalWrapperInnerKorumaValidator::Inner(self.inner.clone()));
+        }
+        result
+    }
+    pub fn is_empty(&self) -> bool {
+        self.required_validation.is_none() && self.inner.is_empty()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for [`", "OptionalWrapper",
+    "`].\n\nContains per-field error structs for ", "field: `inner`", "."
+)]
+#[derive(Clone, Debug, Default)]
+pub struct OptionalWrapperKorumaValidationError {
+    inner: OptionalWrapperInnerKorumaValidationError,
+}
+impl OptionalWrapperKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "inner", "` field of [`",
+        "OptionalWrapper", "`]."
+    )]
+    pub fn inner(&self) -> &OptionalWrapperInnerKorumaValidationError {
+        &self.inner
+    }
+}
+impl core::ops::Deref for OptionalWrapperKorumaValidationError {
+    type Target = OptionalWrapperInnerKorumaValidationError;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl koruma::ValidationError for OptionalWrapperKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+}
+impl OptionalWrapper {
+    #[doc = concat!(
+        "Validates all fields of `", "OptionalWrapper",
+        "` and returns an error struct containing all validation failures."
+    )]
+    pub fn validate(&self) -> Result<(), OptionalWrapperKorumaValidationError> {
+        let mut error = OptionalWrapperKorumaValidationError {
+            inner: OptionalWrapperInnerKorumaValidationError {
+                required_validation: None,
+                inner: <InnerValue as koruma::ValidateExt>::Error::default(),
+            },
+        };
+        let mut has_error = false;
+        fn __koruma_assert_validate_inner_required_validation_newtype_field<
+            V: koruma::Validate<T>,
+            T,
+        >(v: &V, t: &T) -> bool {
+            v.validate(t)
+        }
+        let validator = RequiredValidation::<Option<InnerValue>>::builder()
+            .with_value(self.inner.clone())
+            .build();
+        if !__koruma_assert_validate_inner_required_validation_newtype_field(
+            &validator,
+            &self.inner,
+        ) {
+            error.inner.required_validation = Some(validator);
+            has_error = true;
+        }
+        if let Some(ref __newtype_value) = self.inner {
+            if let Err(newtype_err) = __newtype_value.validate() {
+                error.inner.inner = newtype_err;
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl koruma::ValidateExt for OptionalWrapper {
+    type Error = OptionalWrapperKorumaValidationError;
+    fn validate(&self) -> Result<(), OptionalWrapperKorumaValidationError> {
+        OptionalWrapper::validate(self)
+    }
+}
+impl koruma::NewtypeValidation for OptionalWrapper {}
+impl TryFrom<Option<InnerValue>> for OptionalWrapper {
+    type Error = OptionalWrapperKorumaValidationError;
+    fn try_from(value: Option<InnerValue>) -> Result<Self, Self::Error> {
+        let instance = Self { inner: value };
+        instance.validate()?;
+        Ok(instance)
+    }
+}

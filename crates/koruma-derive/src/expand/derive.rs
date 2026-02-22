@@ -1376,8 +1376,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     // Generate TryFrom<Inner> impl for newtype structs with try_from
     let try_from_impl = if struct_options.try_from {
         let field_info = &field_infos[0];
-        let field_ty = &field_info.ty;
-        let inner_ty = field_ty;
+        let inner_ty = &field_info.ty;
 
         // Handle generics
         let generics = &input.generics;

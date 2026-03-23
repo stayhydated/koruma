@@ -13,7 +13,3 @@ node_modules/
 # Astro
 dist/
 .astro/
-
-# WASM build outputs
-web/public/collection-example/*
-!web/public/collection-example/.gitkeep

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::io;
 use std::rc::Rc;
 
-use koruma_collection_example_core::{App, KeyCode, init_i18n};
+use collection_ratatui_core::{App, KeyCode, init_i18n};
 use ratatui::Terminal;
 use ratzilla::event::KeyCode as RatzillaKeyCode;
 use ratzilla::{DomBackend, WebRenderer};

@@ -1,7 +1,7 @@
 use std::io;
 
+use collection_ratatui_core::{App, KeyCode, init_i18n};
 use crossterm::event::{self, Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyEventKind};
-use koruma_collection_example_core::{App, KeyCode, init_i18n};
 use ratatui::DefaultTerminal;
 
 fn main() -> io::Result<()> {

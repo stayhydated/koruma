@@ -1,5 +1,5 @@
 [package]
-name = "koruma-collection-example-web"
+name = "collection-ratatui-web"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -10,8 +10,8 @@ publish = false
 crate-type = [ "cdylib", "rlib" ]
 
 [dependencies]
+collection-ratatui-core = { path = "../collection-ratatui-core" }
 console_error_panic_hook = { workspace = true }
-koruma-collection-example-core = { path = "../collection-core" }
 ratatui = { workspace = true }
 ratzilla = { workspace = true }
 wasm-bindgen = { workspace = true }

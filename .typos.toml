@@ -2,3 +2,6 @@
 
 [files]
 extend-exclude = [ "*.ftl" ]
+
+[default.extend-words]
+ratatui = "ratatui"

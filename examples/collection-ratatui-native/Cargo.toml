@@ -1,5 +1,5 @@
 [package]
-name = "koruma-collection-example-native"
+name = "collection-ratatui-native"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -7,6 +7,6 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
+collection-ratatui-core = { path = "../collection-ratatui-core" }
 crossterm = { workspace = true }
-koruma-collection-example-core = { path = "../collection-core" }
 ratatui = { features = [ "crossterm" ], workspace = true }

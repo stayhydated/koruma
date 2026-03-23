@@ -1,5 +1,5 @@
 [package]
-name = "koruma-collection-example-core"
+name = "collection-ratatui-core"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

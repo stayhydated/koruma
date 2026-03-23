@@ -1,15 +1,15 @@
 [workspace]
-default-members = [ "examples/collection-native" ]
+default-members = [ "examples/collection-ratatui-native" ]
 members = [
   "crates/koruma",
   "crates/koruma-collection",
   "crates/koruma-core",
   "crates/koruma-derive",
   "crates/koruma-derive-core",
-  "examples/collection-core",
-  "examples/collection-dioxus",
-  "examples/collection-native",
-  "examples/collection-web",
+  "examples/collection-ratatui-core",
+  "examples/collection-ratatui-native",
+  "examples/collection-ratatui-web",
+  "examples/collection-dioxus-web",
   "examples/readme",
   "examples/shared-lib",
   "xtask",

@@ -1,5 +1,5 @@
 [package]
-name = "koruma-collection-example-dioxus"
+name = "collection-dioxus-web"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

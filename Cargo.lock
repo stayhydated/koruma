@@ -462,6 +462,59 @@ dependencies = [
 ]
 
 [[package]]
+name = "collection-dioxus-web"
+version = "0.7.1"
+dependencies = [
+ "console_error_panic_hook",
+ "dioxus",
+ "es-fluent",
+ "es-fluent-manager-embedded",
+ "koruma",
+ "koruma-collection",
+ "koruma-shared-lib",
+ "rust-embed",
+ "strum",
+ "unic-langid",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "collection-ratatui-core"
+version = "0.7.1"
+dependencies = [
+ "anyhow",
+ "es-fluent",
+ "es-fluent-manager-embedded",
+ "koruma",
+ "koruma-collection",
+ "koruma-shared-lib",
+ "ratatui",
+ "rust-embed",
+ "strum",
+ "unic-langid",
+]
+
+[[package]]
+name = "collection-ratatui-native"
+version = "0.7.1"
+dependencies = [
+ "collection-ratatui-core",
+ "crossterm",
+ "ratatui",
+]
+
+[[package]]
+name = "collection-ratatui-web"
+version = "0.7.1"
+dependencies = [
+ "collection-ratatui-core",
+ "console_error_panic_hook",
+ "ratatui",
+ "ratzilla",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2311,59 +2364,6 @@ dependencies = [
  "rust-embed",
  "smallvec",
  "url",
-]
-
-[[package]]
-name = "koruma-collection-example-core"
-version = "0.7.1"
-dependencies = [
- "anyhow",
- "es-fluent",
- "es-fluent-manager-embedded",
- "koruma",
- "koruma-collection",
- "koruma-shared-lib",
- "ratatui",
- "rust-embed",
- "strum",
- "unic-langid",
-]
-
-[[package]]
-name = "koruma-collection-example-dioxus"
-version = "0.7.1"
-dependencies = [
- "console_error_panic_hook",
- "dioxus",
- "es-fluent",
- "es-fluent-manager-embedded",
- "koruma",
- "koruma-collection",
- "koruma-shared-lib",
- "rust-embed",
- "strum",
- "unic-langid",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "koruma-collection-example-native"
-version = "0.7.1"
-dependencies = [
- "crossterm",
- "koruma-collection-example-core",
- "ratatui",
-]
-
-[[package]]
-name = "koruma-collection-example-web"
-version = "0.7.1"
-dependencies = [
- "console_error_panic_hook",
- "koruma-collection-example-core",
- "ratatui",
- "ratzilla",
- "wasm-bindgen",
 ]
 
 [[package]]

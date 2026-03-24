@@ -1,7 +1,7 @@
 # koruma
 
 [![Build Status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
+[![Codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
 [![Docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 
@@ -24,7 +24,7 @@ koruma = { version = "*" }
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
 [![Crowdin](https://badges.crowdin.net/koruma-collection/localized.svg)](https://crowdin.com/project/koruma-collection)
 
-- [demos](https://stayhydated.github.io/koruma/demos)
+- [Demos](https://stayhydated.github.io/koruma/demos)
 
 A curated set of validators built on top of `koruma`, organized by domain:
 string, format, numeric, collection, and general-purpose validators.

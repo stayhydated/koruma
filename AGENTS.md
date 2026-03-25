@@ -8,23 +8,24 @@
 
 ## Architecture Documentation Index
 
-| Crate                    | Link to Architecture Doc                                       | Purpose                                                                               |
-| ------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Core**                 |                                                                |                                                                                       |
-| `koruma`                 | [Architecture](crates/koruma/docs/ARCHITECTURE.md)             | Public facade crate, re-exports core traits and derive macros, defines feature gates. |
-| `koruma-core`            | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)        | Core traits and optional showcase registry types.                                     |
-| **Derive & Parsing**     |                                                                |                                                                                       |
-| `koruma-derive-core`     | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros.                              |
-| `koruma-derive`          | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                        |
-| **Validator Collection** |                                                                |                                                                                       |
-| `koruma-collection`      | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                              |
-| **Examples**             |                                                                |                                                                                       |
-| `examples/collection-*`  |                                                                | Interactive TUI showcasing validators via the `internal-showcase` feature.            |
-| `examples/user-defined`  |                                                                | Examples. To keep in sync with the root README.md.                                    |
-| `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                   |
-| `examples/i18n`          |                                                                | Shared Fluent translation assets for examples.                                        |
-| **Web**                  |                                                                |                                                                                       |
-| `web`                    |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos.        |
+| Crate                    | Link to Architecture Doc                                       | Purpose                                                                                      |
+| ------------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Core**                 |                                                                |                                                                                              |
+| `koruma`                 | [Architecture](crates/koruma/docs/ARCHITECTURE.md)             | Public facade crate, re-exports core traits and derive macros, defines feature gates.        |
+| `koruma-core`            | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)        | Core traits and optional showcase registry types.                                            |
+| **Derive & Parsing**     |                                                                |                                                                                              |
+| `koruma-derive-core`     | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros.                                     |
+| `koruma-derive`          | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                               |
+| **Validator Collection** |                                                                |                                                                                              |
+| `koruma-collection`      | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                                     |
+| **Examples**             |                                                                |                                                                                              |
+| `examples/collection-*`  |                                                                | Interactive TUI showcasing validators via the `internal-showcase` feature.                   |
+| `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                          |
+| `examples/i18n`          |                                                                | Shared Fluent translation assets for examples.                                               |
+| `examples/readme`        |                                                                | Examples. To keep in sync with the root README.md and `book`                                 |
+| **Web**                  |                                                                |                                                                                              |
+| `web`                    |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos and the mdBook |
+| `book`                   |                                                                | mdBook that shows usage of the user-facing crates                                            |
 
 ## Crate Descriptions
 

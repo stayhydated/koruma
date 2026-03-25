@@ -1,12 +1,17 @@
 # Newtype Pattern & TryFrom
 
-For single-value domain types, `koruma` supports a newtype pattern that performs validation at
-construction time. Add `#[koruma(try_new, newtype(try_from))]` to generate a checked constructor
-and, when requested, a `TryFrom<Inner>` implementation.
+Use `#[koruma(try_new, newtype(try_from))]` when you need:
+
+- `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
+- `newtype(try_from)` - a `TryFrom<Inner>` impl for `From`/`try_from` calls
+- `newtype` - transparent error access via `Deref` to the inner field's error
+
+You can layer `derive_more` traits on top for additional wrapper ergonomics (for example, `Deref`
+to inner value).
 
 ```rust
 use es_fluent::ToFluentString as _;
-use koruma::{Koruma, KorumaAllFluent};
+use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
@@ -56,6 +61,57 @@ if let Err(errors) = Email::try_new("".to_string()) {
 }
 ```
 
-Use this pattern when you want invalid values to be impossible to construct accidentally. For
-container structs, `#[koruma(newtype)]` lets outer validation reuse the inner newtype's validator
-set and typed error accessors.
+## Unnamed newtype (tuple struct)
+
+The same pattern works with tuple structs:
+
+```rust
+use es_fluent::ToFluentString as _;
+use koruma::{Koruma, KorumaAllFluent, Validate};
+
+#[derive(Clone, Koruma, KorumaAllFluent)]
+#[koruma(try_new, newtype)]
+pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+
+#[derive(Koruma, KorumaAllFluent)]
+pub struct LoginForm {
+    #[koruma(newtype)]
+    pub username: Username,
+}
+
+let login = LoginForm {
+    username: Username("".to_string()),
+};
+if let Err(errors) = login.validate() {
+    if let Some(username_err) = errors.username().non_empty_string_validation() {
+        println!("username failed: {}", username_err.to_fluent_string());
+    }
+}
+
+if let Ok(username) = Username::try_new("alice".to_string()) {
+    println!("username created: {}", username.0);
+}
+```
+
+## TryFrom integration (`#[koruma(newtype(try_from))]`)
+
+Add `try_from` inside `newtype(...)` to generate a `TryFrom<Inner>` impl:
+
+```rust
+use std::convert::TryFrom;
+use es_fluent::ToFluentString as _;
+use koruma::{Koruma, KorumaAllFluent, Validate};
+
+#[derive(Clone, Koruma, koruma::KorumaAllFluent)]
+#[koruma(newtype(try_from))]
+pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
+
+match Only67u8::try_from(69) {
+    Ok(n) => println!("{}!", n.0),
+    Err(errors) => {
+        for failed in errors.all() {
+            println!("validation failed: {}", failed.to_fluent_string());
+        }
+    }
+}
+```

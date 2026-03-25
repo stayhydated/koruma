@@ -27,3 +27,6 @@ test-docs:
     cargo doc --workspace --all-features --no-deps --open
 
 ci: fmt check clippy test cov
+
+book:
+    mdbook serve book

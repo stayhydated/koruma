@@ -1,7 +1,11 @@
 [book]
-authors = ["stayhydated"]
-description = "Koruma - validation framework for Rust"
 title = "Koruma Documentation"
+authors = ["stayhydated"]
+language = "en"
+src = "src"
+
+[rust]
+edition = "2024"
 
 [build]
 

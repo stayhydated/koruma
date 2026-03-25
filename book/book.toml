@@ -1,0 +1,9 @@
+[book]
+authors = ["Koruma Team"]
+description = "Koruma - validation framework for Rust"
+title = "Koruma Documentation"
+
+[build]
+
+[preprocessor.admonish]
+optional = true

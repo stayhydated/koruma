@@ -24,6 +24,14 @@ export function Navigation() {
               Demos
             </NavigationMenu.Link>
           </NavigationMenu.Item>
+          <NavigationMenu.Item>
+            <NavigationMenu.Link
+              href={`${baseUrl}/docs`}
+              className="text-text hover:text-primary hover:bg-bg-hover block rounded-md px-4 py-2 no-underline transition-colors"
+            >
+              Docs
+            </NavigationMenu.Link>
+          </NavigationMenu.Item>
         </NavigationMenu.List>
       </NavigationMenu.Root>
     </nav>

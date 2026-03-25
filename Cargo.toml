@@ -67,6 +67,8 @@ syn-cfg-attr = "0.1"
 unic-langid = "0.9"
 url = "2.5"
 wasm-bindgen = "0.2"
+mdbook = "0.4"
+mdbook-admonish = "1.0"
 
 [profile.dev]
 codegen-units = 16

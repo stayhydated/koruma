@@ -39,6 +39,8 @@ struct Cli {
 enum Command {
     /// Sync source of truth: EN FTL -> Rust std::fmt::Display messages.
     SyncDisplayFtl(SyncArgs),
+    /// Build mdBook documentation to web/public/book
+    BuildBook,
 }
 
 #[derive(Args, Clone, Debug, Default)]
@@ -110,10 +112,34 @@ fn main() -> Result<()> {
 
     let options: SyncOptions = match cli.command {
         Some(Command::SyncDisplayFtl(sync)) => sync.into(),
+        Some(Command::BuildBook) => return run_build_book(),
         None => cli.sync.into(),
     };
 
     run_sync_display_ftl(options)
+}
+
+fn run_build_book() -> Result<()> {
+    let workspace_root = workspace_root();
+    let book_dir = workspace_root.join("book");
+    let output_dir = workspace_root.join("web").join("public").join("book");
+
+    println!("Building mdBook to {}", output_dir.display());
+
+    let mut cmd = std::process::Command::new("mdbook");
+    cmd.arg("build")
+        .current_dir(&book_dir)
+        .arg("--dest-dir")
+        .arg(&output_dir);
+
+    let status = cmd.status()?;
+
+    if !status.success() {
+        bail!("mdbook build failed with status {}", status);
+    }
+
+    println!("mdBook built successfully");
+    Ok(())
 }
 
 fn run_sync_display_ftl(options: SyncOptions) -> Result<()> {

@@ -138,6 +138,9 @@ fn run_build_book() -> Result<()> {
         bail!("mdbook build failed with status {}", status);
     }
 
+    let gitignore_path = output_dir.join(".gitignore");
+    fs::write(&gitignore_path, "*")?;
+
     println!("mdBook built successfully");
     Ok(())
 }

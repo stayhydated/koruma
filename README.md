@@ -155,7 +155,7 @@ koruma = { version = "*", features = ["derive", "fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
 
-Assumes your i18n manager is initialized and a locale is selected.
+Assuming your i18n manager is initialized and a locale is selected:
 
 ```rs
 use es_fluent::{EsFluent, ToFluentString as _};

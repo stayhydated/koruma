@@ -1,7 +1,8 @@
 # koruma
 
 [![Build Status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
+[![Codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
+[![llms.txt](https://img.shields.io/badge/docs-llms--full.txt-blue)](https://stayhydated.github.io/koruma/llms.txt)
 [![Docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 
@@ -24,8 +25,7 @@ koruma = { version = "*" }
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
 [![Crowdin](https://badges.crowdin.net/koruma-collection/localized.svg)](https://crowdin.com/project/koruma-collection)
 
-- [tui demo](https://stayhydated.github.io/koruma/collection-example/)
-- [dioxus demo](https://stayhydated.github.io/koruma/dioxus-example/)
+- [Demos](https://stayhydated.github.io/koruma/demos)
 
 A curated set of validators built on top of `koruma`, organized by domain:
 string, format, numeric, collection, and general-purpose validators.
@@ -156,7 +156,7 @@ koruma = { version = "*", features = ["derive", "fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
 
-Assumes your i18n manager is initialized and a locale is selected.
+Assuming your i18n manager is initialized and a locale is selected:
 
 ```rs
 use es_fluent::{EsFluent, ToFluentString as _};

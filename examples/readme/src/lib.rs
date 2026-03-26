@@ -9,6 +9,7 @@ use crate::{
     validators::normal::{NumberRangeValidation, StringLengthValidation, ZipCodeValidation},
 };
 use koruma::{Koruma, Validate};
+use koruma_collection::{collection, general, numeric, string};
 
 // #[derive(Koruma)]
 // struct Order {
@@ -146,3 +147,18 @@ pub struct LoginForm {
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
 pub struct Only67u8(#[koruma(Only67Validation::<_>)] pub u8);
+
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct SignupInput {
+    #[koruma(collection::NonEmptyValidation::<_>)]
+    pub username: String,
+
+    #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
+    pub handle: String,
+
+    #[koruma(numeric::RangeValidation::<_>(min = 13_u8, max = 120_u8))]
+    pub age: u8,
+
+    #[koruma(general::RequiredValidation::<Option<_>>)]
+    pub display_name: Option<String>,
+}

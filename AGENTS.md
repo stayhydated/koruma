@@ -58,10 +58,10 @@
 
 **Docs**
 
-- Dependency installation snippets live in the root `README.md`. Crate READMEs should link to it instead of duplicating versioned dependency declarations.
 - User-facing feature documentation must be example-first. Do not add prose-only guidance for behavior changes when a runnable Rust snippet can demonstrate it.
 - `examples/readme` is the canonical source of truth for usage examples.
 - Keep example behavior and API shape synchronized across `examples/readme` (executable examples), root `README.md` (copied/adapted snippets), and `book/src/*.md` (mdBook narrative + snippets).
+- Keep `crates/koruma-collection/README.md` and the `book/src/koruma_collection.md` chapter synchronized when validator inventory, feature flags, or usage guidance changes.
 - When updating one of those three surfaces, update the other relevant surfaces in the same change set unless there is a documented reason not to.
 
 **Rust**

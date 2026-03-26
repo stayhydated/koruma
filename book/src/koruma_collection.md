@@ -1,11 +1,5 @@
 # koruma-collection
 
-[![Docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
-[![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
-[![Crowdin](https://badges.crowdin.net/koruma-collection/localized.svg)](https://crowdin.com/project/koruma-collection)
-
-- [Demos](https://stayhydated.github.io/koruma/demos)
-
 A curated set of validators built on top of `koruma`, organized by domain.
 
 ## Installation
@@ -13,6 +7,12 @@ A curated set of validators built on top of `koruma`, organized by domain.
 ```toml
 [dependencies]
 koruma-collection = { version = "*", features = ["full"] }
+```
+
+## Modules at a glance
+
+```rust
+use koruma_collection::{collection, format, general, numeric, string};
 ```
 
 ## Feature flags

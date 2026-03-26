@@ -32,6 +32,14 @@ export function Navigation() {
               Docs
             </NavigationMenu.Link>
           </NavigationMenu.Item>
+          <NavigationMenu.Item>
+            <NavigationMenu.Link
+              href={`${baseUrl}/llms.txt`}
+              className="text-text hover:text-primary hover:bg-bg-hover block rounded-md px-4 py-2 no-underline transition-colors"
+            >
+              llms.txt
+            </NavigationMenu.Link>
+          </NavigationMenu.Item>
         </NavigationMenu.List>
       </NavigationMenu.Root>
     </nav>

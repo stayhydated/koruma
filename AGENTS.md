@@ -18,6 +18,8 @@
 | `koruma-derive`          | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                               |
 | **Validator Collection** |                                                                |                                                                                              |
 | `koruma-collection`      | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                                     |
+| **Automation**           |                                                                |                                                                                              |
+| `xtask`                  | [Architecture](xtask/docs/ARCHITECTURE.md)                     | Rust task runner                                                                             |
 | **Examples**             |                                                                |                                                                                              |
 | `examples/collection-*`  |                                                                | Interactive TUI showcasing validators via the `internal-showcase` feature.                   |
 | `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                          |

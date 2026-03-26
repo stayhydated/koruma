@@ -1,7 +1,7 @@
 /* OLED-Neon Theme Enhancements */
 
 /* Hide theme picker - we only use oled-neon */
-#theme-toggle,
+[id="mdbook-theme-toggle"],
 .theme-popup {
   display: none !important;
 }

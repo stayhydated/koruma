@@ -15,6 +15,12 @@ A curated set of validators built on top of `koruma`, organized by domain.
 koruma-collection = { version = "*", features = ["full"] }
 ```
 
+## Modules at a glance
+
+```rust
+use koruma_collection::{collection, format, general, numeric, string};
+```
+
 ## Feature flags
 
 - `fmt` (default): `Display` messages for validators.

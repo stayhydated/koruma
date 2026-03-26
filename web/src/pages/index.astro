@@ -1,9 +1,12 @@
 ---
 import Layout from "@/layouts/Layout.astro";
 import Readme from "../../../README.md";
+import { displayNameFromBaseUrl } from "@/util";
+
+const displayName = displayNameFromBaseUrl();
 ---
 
-<Layout title="koruma">
+<Layout title={displayName}>
   <div class="mx-auto px-8 py-12 prose prose-invert prose-cyan max-w-none">
     <Readme />
   </div>

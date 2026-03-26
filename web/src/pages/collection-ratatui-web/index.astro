@@ -2,11 +2,13 @@
 import WasmExampleLayout from "@/layouts/WasmExampleLayout.astro";
 import RatzillaLoader from "@/components/RatzillaLoader.astro";
 import ContributeToCollection from "@/components/ContributeToCollection.astro";
+import { displayNameFromBaseUrl } from "@/util";
 
 const baseUrl = import.meta.env.BASE_URL;
+const displayName = displayNameFromBaseUrl();
 ---
 
-<WasmExampleLayout title="Ratatui Collection Example - Koruma">
+<WasmExampleLayout title={`Ratatui Collection Example - ${displayName}`}>
   <ContributeToCollection />
   <RatzillaLoader moduleUrl={`${baseUrl}/collection-ratatui-web/collection-ratatui-web.js`} />
 </WasmExampleLayout>

@@ -38,7 +38,7 @@ jobs:
         uses: rui314/setup-mold@v1
 
       - name: Check Display/FTL sync
-        run: cargo sync-display-ftl-check
+        run: cargo xtask sync-display-ftl --check
 
   test:
     runs-on: ubuntu-latest

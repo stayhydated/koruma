@@ -30,3 +30,7 @@ ci: fmt check clippy test cov
 
 book:
     mdbook serve book
+
+web:
+    bun run build
+    bun run dev

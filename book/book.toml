@@ -14,3 +14,6 @@ optional = true
 
 [output.html]
 additional-css = ["theme/oled-neon.css"]
+
+[output.html.playground]
+runnable = false

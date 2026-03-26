@@ -23,7 +23,7 @@ use template::{
 use types::{DisplayInfo, Replacement, SyncTarget, ValidatorInfo};
 
 pub fn run(options: SyncArgs) -> Result<()> {
-    let workspace_root = workspace_root();
+    let workspace_root = workspace_root()?;
     let validators_root = workspace_root.join("crates/koruma-collection/src/validators");
     let ftl_root = workspace_root.join("crates/koruma-collection/i18n/en/koruma-collection");
 
@@ -838,7 +838,7 @@ ip_validation =
     fn workspace_wrapper_and_root_paths_are_reachable() {
         use crate::util::workspace_root;
 
-        let root = workspace_root();
+        let root = workspace_root().unwrap();
         assert!(root.ends_with("koruma"));
         let _ = run(SyncArgs {
             check: true,

@@ -2,12 +2,11 @@ mod cli;
 mod commands;
 mod util;
 
-use anyhow::Result;
 use clap::Parser;
 
 use cli::{Cli, Command};
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {

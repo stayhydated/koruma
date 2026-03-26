@@ -11,3 +11,6 @@ edition = "2024"
 
 [preprocessor.admonish]
 optional = true
+
+[output.html]
+additional-css = ["theme/oled-neon.css"]

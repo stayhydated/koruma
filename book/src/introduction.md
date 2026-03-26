@@ -4,7 +4,7 @@
 Instead of hiding validation logic behind opaque attributes, it lets you define reusable validator
 structs, attach them to fields, and derive strongly typed error accessors.
 
-This book is a practical guide to the workflow shown in the project README:
+This book is a comprehensive guide to understanding and applying the `koruma` validation workflow from the ground up:
 
 - define validators with `#[validator]`,
 - attach them with `#[koruma(...)]`,
@@ -12,4 +12,4 @@ This book is a practical guide to the workflow shown in the project README:
 - and inspect failures through generated typed error accessors.
 
 The next chapter walks through the basic setup and the overall flow before going deeper into
-custom validators, error handling, localisation, and newtypes.
+custom validators, error handling, localisation, nested validation, and newtypes.

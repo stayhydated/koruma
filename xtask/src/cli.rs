@@ -1,11 +1,5 @@
 use clap::{Args, Parser, Subcommand};
 
-#[derive(Clone, Debug)]
-pub struct SyncOptions {
-    pub check: bool,
-    pub verbose: bool,
-}
-
 #[derive(Debug, Parser)]
 #[command(
     name = "xtask",
@@ -36,13 +30,4 @@ pub struct SyncArgs {
     /// Print each updated Display impl.
     #[arg(long)]
     pub verbose: bool,
-}
-
-impl From<SyncArgs> for SyncOptions {
-    fn from(value: SyncArgs) -> Self {
-        Self {
-            check: value.check,
-            verbose: value.verbose,
-        }
-    }
 }

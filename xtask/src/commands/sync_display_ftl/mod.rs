@@ -12,7 +12,7 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 
-use crate::cli::SyncOptions;
+use crate::cli::SyncArgs;
 use crate::util::workspace_root;
 use collect::{collect_display_info, collect_rs_files, collect_validator_info};
 use ftl::collect_ftl_templates;
@@ -22,7 +22,7 @@ use template::{
 };
 use types::{DisplayInfo, Replacement, SyncTarget, ValidatorInfo};
 
-pub fn run(options: SyncOptions) -> Result<()> {
+pub fn run(options: SyncArgs) -> Result<()> {
     let workspace_root = workspace_root();
     let validators_root = workspace_root.join("crates/koruma-collection/src/validators");
     let ftl_root = workspace_root.join("crates/koruma-collection/i18n/en/koruma-collection");
@@ -30,7 +30,7 @@ pub fn run(options: SyncOptions) -> Result<()> {
     run_with_roots(&validators_root, &ftl_root, options)
 }
 
-pub fn run_with_roots(validators_root: &Path, ftl_root: &Path, options: SyncOptions) -> Result<()> {
+pub fn run_with_roots(validators_root: &Path, ftl_root: &Path, options: SyncArgs) -> Result<()> {
     let mut validator_files = Vec::new();
     collect_rs_files(validators_root, &mut validator_files)
         .with_context(|| format!("Failed to scan {}", validators_root.display()))?;
@@ -197,7 +197,7 @@ mod tests {
     use proc_macro2::{LineColumn, Span};
     use syn::{Block, Expr, Item, ItemImpl, Member, Stmt, Type, spanned::Spanned as _};
 
-    use crate::cli::{SyncArgs, SyncOptions};
+    use crate::cli::SyncArgs;
 
     use super::collect::{collect_display_info, collect_rs_files, collect_validator_info};
     use super::ftl::collect_ftl_templates;
@@ -302,7 +302,7 @@ example_validation = Value { $min } and { $actual }.
 
     #[test]
     fn sync_args_into_sync_options() {
-        let options: SyncOptions = SyncArgs {
+        let options: SyncArgs = SyncArgs {
             check: true,
             verbose: true,
         }
@@ -318,7 +318,7 @@ example_validation = Value { $min } and { $actual }.
         let err = run_with_roots(
             &validators_root,
             &ftl_root,
-            SyncOptions {
+            SyncArgs {
                 check: true,
                 verbose: false,
             },
@@ -335,7 +335,7 @@ example_validation = Value { $min } and { $actual }.
         run_with_roots(
             &validators_root,
             &ftl_root,
-            SyncOptions {
+            SyncArgs {
                 check: false,
                 verbose: true,
             },
@@ -348,7 +348,7 @@ example_validation = Value { $min } and { $actual }.
         run_with_roots(
             &validators_root,
             &ftl_root,
-            SyncOptions {
+            SyncArgs {
                 check: true,
                 verbose: false,
             },
@@ -840,7 +840,7 @@ ip_validation =
 
         let root = workspace_root();
         assert!(root.ends_with("koruma"));
-        let _ = run(SyncOptions {
+        let _ = run(SyncArgs {
             check: true,
             verbose: false,
         });
@@ -880,7 +880,7 @@ impl std::fmt::Display for MissingMessageValidation {
         run_with_roots(
             &validators_root,
             &ftl_root,
-            SyncOptions {
+            SyncArgs {
                 check: false,
                 verbose: false,
             },
@@ -901,7 +901,7 @@ impl std::fmt::Display for MissingMessageValidation {
         let err = run_with_roots(
             &validators_root,
             &ftl_root,
-            SyncOptions {
+            SyncArgs {
                 check: false,
                 verbose: false,
             },

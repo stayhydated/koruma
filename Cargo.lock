@@ -3196,6 +3196,7 @@ dependencies = [
  "es-fluent",
  "es-fluent-manager-embedded",
  "koruma",
+ "koruma-collection",
  "koruma-shared-lib",
  "rust-embed",
  "strum",

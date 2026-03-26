@@ -2,7 +2,7 @@ use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
 use readme::{
     Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8, SignupForm,
-    User, Username, i18n,
+    SignupInput, User, Username, i18n,
 };
 use strum::IntoEnumIterator as _;
 
@@ -378,5 +378,26 @@ pub fn main() {
                 println!("    - {}", failed.to_fluent_string());
             }
         },
+    }
+
+    let input = SignupInput {
+        username: "".to_string(),
+        handle: "bad-handle".to_string(),
+        age: 8,
+        display_name: None,
+    };
+
+    if let Err(errors) = input.validate() {
+        if let Some(err) = errors.username().non_empty_validation() {
+            println!("username: {err}");
+        }
+
+        if let Some(err) = errors.handle().ascii_validation() {
+            println!("handle(ascii): {err}");
+        }
+
+        for err in errors.handle().all() {
+            println!("handle(any): {err}");
+        }
     }
 }

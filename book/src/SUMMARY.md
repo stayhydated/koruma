@@ -2,6 +2,7 @@
 
 - [Introduction](introduction.md)
 - [Getting Started](getting_started.md)
+- [`koruma-collection`](koruma_collection.md)
 - [Declaring Validators](declare_validators.md)
 - [Using Validators](using_validators.md)
 - [Multiple Validators & Error Handling](error_handling.md)

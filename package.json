@@ -6,12 +6,12 @@
   ],
   "scripts": {
     "build": "turbo build",
+    "build:book": "cargo run -p xtask -- build-book",
+    "build:llms-txt": "cargo run -p xtask -- build-llms-txt",
     "build:wasm": "bun run build:wasm:collection && bun run build:wasm:dioxus",
     "build:wasm:collection": "cd examples/collection-ratatui-web && wasm-pack build --release --target web --out-dir ../../web/public/collection-ratatui-web --out-name collection-ratatui-web",
     "build:wasm:dioxus": "cd examples/collection-dioxus-web && wasm-pack build --release --target web --out-dir ../../web/public/collection-dioxus-web --out-name collection-dioxus-web",
     "build:web": "turbo run build --filter=web",
-    "build:book": "cargo run -p xtask -- build-book",
-    "build:llms-txt": "cargo run -p xtask -- build-llms-txt",
     "dev": "turbo dev",
     "fmt": "oxfmt",
     "lint": "oxlint"

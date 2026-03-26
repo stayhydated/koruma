@@ -22,7 +22,7 @@
 | `examples/collection-*`  |                                                                | Interactive TUI showcasing validators via the `internal-showcase` feature.                   |
 | `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                          |
 | `examples/i18n`          |                                                                | Shared Fluent translation assets for examples.                                               |
-| `examples/readme`        |                                                                | Canonical executable docs examples. Keep in sync with root `README.md` and `book`           |
+| `examples/readme`        |                                                                | Canonical executable docs examples. Keep in sync with root `README.md` and `book`            |
 | **Web**                  |                                                                |                                                                                              |
 | `web`                    |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos and the mdBook |
 | `book`                   |                                                                | mdBook that shows usage of the user-facing crates                                            |

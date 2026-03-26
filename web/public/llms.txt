@@ -330,7 +330,7 @@ messages.
 
 # Nested Validation
 
-When your data model contains structs inside other structs, you can use the `#[koruma(nested)]` attribute to validate them hierarchically. 
+When your data model contains structs inside other structs, you can use the `#[koruma(nested)]` attribute to validate them hierarchically.
 
 This attribute tells `koruma` to call `validate()` on the nested field and include its errors in the parent's error type if any occur. This allows the parent struct's `Errors` struct to provide strongly typed access not just to its own fields, but also to the nested struct's fields.
 
@@ -344,7 +344,7 @@ pub struct Address {
 
     #[koruma(StringLengthValidation(min = 1, max = 50))]
     pub city: String,
-    
+
     // Imagine ZipCodeValidation is defined somewhere
     #[koruma(ZipCodeValidation)]
     pub zip_code: String,

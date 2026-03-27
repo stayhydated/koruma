@@ -6,7 +6,8 @@ mod tests;
 
 use proc_macro::TokenStream;
 use proc_macro_error2::{abort, proc_macro_error};
-use syn::{DeriveInput, ItemStruct, parse_macro_input};
+use syn::spanned::Spanned;
+use syn::{DeriveInput, Fields, Item, parse_macro_input};
 
 #[cfg(feature = "fluent")]
 use expand::expand_koruma_all_fluent;
@@ -67,7 +68,30 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
         abort!(attr2, "koruma::validator does not accept arguments");
     }
 
-    let input = parse_macro_input!(item as ItemStruct);
+    let item = parse_macro_input!(item as Item);
+    let input = match item {
+        Item::Struct(input) => input,
+        other => {
+            let err = syn::Error::new(
+                other.span(),
+                "koruma::validator can only be applied to structs",
+            );
+            return TokenStream::from(err.to_compile_error());
+        },
+    };
+
+    let has_any_fields = match &input.fields {
+        Fields::Named(fields) => !fields.named.is_empty(),
+        Fields::Unnamed(fields) => !fields.unnamed.is_empty(),
+        Fields::Unit => false,
+    };
+    if !has_any_fields {
+        let err = syn::Error::new(
+            input.ident.span(),
+            "koruma::validator requires at least one field",
+        );
+        return TokenStream::from(err.to_compile_error());
+    };
 
     match expand_validator(input) {
         Ok(tokens) => TokenStream::from(tokens),

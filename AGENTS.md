@@ -18,6 +18,8 @@
 | `koruma-derive`          | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                               |
 | **Validator Collection** |                                                                |                                                                                              |
 | `koruma-collection`      | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                                     |
+| **Automation**           |                                                                |                                                                                              |
+| `xtask`                  | [Architecture](xtask/docs/ARCHITECTURE.md)                     | Rust task runner                                                                             |
 | **Examples**             |                                                                |                                                                                              |
 | `examples/collection-*`  |                                                                | Interactive TUI showcasing validators via the `internal-showcase` feature.                   |
 | `examples/shared-lib`    |                                                                | Workspace example sharing validators across crates.                                          |
@@ -58,7 +60,7 @@
 
 **Docs**
 
-- User-facing feature documentation must be example-first. Do not add prose-only guidance for behavior changes when a runnable Rust snippet can demonstrate it.
+- User-facing feature documentation must be example-first. Do not add prose-only guidance for behavior changes when a Rust snippet can demonstrate it.
 - `examples/readme` is the canonical source of truth for usage examples.
 - Keep example behavior and API shape synchronized across `examples/readme` (executable examples), root `README.md` (copied/adapted snippets), and `book/src/*.md` (mdBook narrative + snippets).
 - Keep `crates/koruma-collection/README.md` and the `book/src/koruma_collection.md` chapter synchronized when validator inventory, feature flags, or usage guidance changes.

@@ -1,11 +1,11 @@
 use std::fs;
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 
 use crate::util::workspace_root;
 
-pub fn run() -> Result<()> {
-    let workspace_root = workspace_root();
+pub fn run() -> anyhow::Result<()> {
+    let workspace_root = workspace_root()?;
     let book_src_dir = workspace_root.join("book").join("src");
     let output_path = workspace_root.join("web").join("public").join("llms.txt");
 

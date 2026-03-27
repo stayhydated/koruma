@@ -102,7 +102,7 @@ use std::convert::TryFrom;
 use es_fluent::ToFluentString as _;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
-#[derive(Clone, Koruma, koruma::KorumaAllFluent)]
+#[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(newtype(try_from))]
 pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
 

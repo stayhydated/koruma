@@ -1,11 +1,11 @@
 use std::fs;
 
-use anyhow::{Result, bail};
+use anyhow::bail;
 
 use crate::util::workspace_root;
 
-pub fn run() -> Result<()> {
-    let workspace_root = workspace_root();
+pub fn run() -> anyhow::Result<()> {
+    let workspace_root = workspace_root()?;
     let book_dir = workspace_root.join("book");
     let output_dir = workspace_root.join("web").join("public").join("book");
 

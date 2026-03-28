@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::Context;
+use mdbook::book::SummaryItem;
 
 use crate::util::workspace_root;
 
@@ -22,22 +23,22 @@ pub fn run_with_paths(book_src_dir: &Path, output_path: &Path) -> anyhow::Result
     let summary_path = book_src_dir.join("SUMMARY.md");
     let summary_content = fs::read_to_string(&summary_path)
         .with_context(|| format!("Failed to read SUMMARY.md from {}", summary_path.display()))?;
+    let markdown_paths = extract_markdown_paths(&summary_content)
+        .with_context(|| format!("Failed to parse SUMMARY.md from {}", summary_path.display()))?;
 
     let mut output = String::new();
 
-    for line in summary_content.lines() {
-        if let Some(md_file) = extract_markdown_path(line) {
-            let file_path = book_src_dir.join(&md_file);
+    for md_file in markdown_paths {
+        let file_path = book_src_dir.join(&md_file);
 
-            if file_path.exists() {
-                let content = fs::read_to_string(&file_path)
-                    .with_context(|| format!("Failed to read {}", file_path.display()))?;
+        if file_path.exists() {
+            let content = fs::read_to_string(&file_path)
+                .with_context(|| format!("Failed to read {}", file_path.display()))?;
 
-                output.push_str(&content);
-                output.push_str("\n\n---\n\n");
-            } else {
-                eprintln!("Warning: File not found: {}", file_path.display());
-            }
+            output.push_str(&content);
+            output.push_str("\n\n---\n\n");
+        } else {
+            eprintln!("Warning: File not found: {}", file_path.display());
         }
     }
 
@@ -53,21 +54,26 @@ pub fn run_with_paths(book_src_dir: &Path, output_path: &Path) -> anyhow::Result
     Ok(())
 }
 
-fn extract_markdown_path(line: &str) -> Option<String> {
-    // Parse lines like "- [Title](file.md)" or "  - [Title](file.md)"
-    let trimmed = line.trim();
-    if !trimmed.starts_with('-') {
-        return None;
+fn extract_markdown_paths(summary_content: &str) -> anyhow::Result<Vec<String>> {
+    let summary = mdbook::book::parse_summary(summary_content)?;
+    let mut markdown_paths = Vec::new();
+
+    collect_markdown_paths(&summary.prefix_chapters, &mut markdown_paths);
+    collect_markdown_paths(&summary.numbered_chapters, &mut markdown_paths);
+    collect_markdown_paths(&summary.suffix_chapters, &mut markdown_paths);
+
+    Ok(markdown_paths)
+}
+
+fn collect_markdown_paths(items: &[SummaryItem], markdown_paths: &mut Vec<String>) {
+    for item in items {
+        if let SummaryItem::Link(link) = item {
+            if let Some(location) = &link.location {
+                markdown_paths.push(location.to_string_lossy().into_owned());
+            }
+            collect_markdown_paths(&link.nested_items, markdown_paths);
+        }
     }
-
-    let start = trimmed.find('(')?;
-    let end = trimmed.find(')')?;
-
-    if start >= end {
-        return None;
-    }
-
-    Some(trimmed[start + 1..end].to_string())
 }
 
 #[cfg(test)]
@@ -78,7 +84,7 @@ mod tests {
         time::{SystemTime, UNIX_EPOCH},
     };
 
-    use super::{extract_markdown_path, run_from_workspace_root, run_with_paths};
+    use super::{extract_markdown_paths, run_from_workspace_root, run_with_paths};
 
     #[derive(Debug)]
     struct TempDir {
@@ -116,50 +122,6 @@ mod tests {
             fs::create_dir_all(parent).expect("failed to create parent directory");
         }
         fs::write(path, content).expect("failed to write file");
-    }
-
-    #[test]
-    fn extract_markdown_path_parses_simple_link() {
-        let line = "- [Introduction](intro.md)";
-        assert_eq!(extract_markdown_path(line), Some("intro.md".to_string()));
-    }
-
-    #[test]
-    fn extract_markdown_path_parses_indented_link() {
-        let line = "  - [Getting Started](getting_started.md)";
-        assert_eq!(
-            extract_markdown_path(line),
-            Some("getting_started.md".to_string())
-        );
-    }
-
-    #[test]
-    fn extract_markdown_path_parses_nested_path() {
-        let line = "    - [Deep Topic](subdir/topic.md)";
-        assert_eq!(
-            extract_markdown_path(line),
-            Some("subdir/topic.md".to_string())
-        );
-    }
-
-    #[test]
-    fn extract_markdown_path_ignores_non_list_lines() {
-        assert_eq!(extract_markdown_path("# Summary"), None);
-        assert_eq!(extract_markdown_path(""), None);
-        assert_eq!(extract_markdown_path("Some text"), None);
-    }
-
-    #[test]
-    fn extract_markdown_path_ignores_malformed_links() {
-        assert_eq!(extract_markdown_path("- [No link]"), None);
-        assert_eq!(extract_markdown_path("- Missing parens"), None);
-        assert_eq!(extract_markdown_path("- [Broken])("), None);
-    }
-
-    #[test]
-    fn extract_markdown_path_returns_empty_for_empty_parens() {
-        // Empty parens produce empty string (handled by file-not-found logic in run)
-        assert_eq!(extract_markdown_path("- [Title]()"), Some("".to_string()));
     }
 
     #[test]
@@ -286,6 +248,66 @@ mod tests {
                 .to_string()
                 .contains("Failed to write llms.txt"),
             "error should come from write context"
+        );
+    }
+
+    #[test]
+    fn extract_markdown_paths_parses_simple_link() {
+        let summary = "# Summary\n\n- [Introduction](intro.md)\n";
+        assert_eq!(
+            extract_markdown_paths(summary).expect("summary should parse"),
+            vec!["intro.md".to_string()]
+        );
+    }
+
+    #[test]
+    fn extract_markdown_paths_parses_nested_links() {
+        let summary = "# Summary\n\n- [Parent](parent.md)\n  - [Child](child.md)\n";
+        assert_eq!(
+            extract_markdown_paths(summary).expect("summary should parse"),
+            vec!["parent.md".to_string(), "child.md".to_string()]
+        );
+    }
+
+    #[test]
+    fn extract_markdown_paths_parses_prefix_numbered_and_suffix_chapters() {
+        let summary = "[Intro](intro.md)\n\n- [Chapter](chapter.md)\n\n[Outro](outro.md)\n";
+        assert_eq!(
+            extract_markdown_paths(summary).expect("summary should parse"),
+            vec![
+                "intro.md".to_string(),
+                "chapter.md".to_string(),
+                "outro.md".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn extract_markdown_paths_returns_empty_when_no_links_exist() {
+        let summary = "# Summary\n\n## Part\n";
+        assert!(
+            extract_markdown_paths(summary)
+                .expect("summary should parse")
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn extract_markdown_paths_fails_for_malformed_summary() {
+        let summary = "# Summary\n\n- [No link]\n";
+        assert!(
+            extract_markdown_paths(summary).is_err(),
+            "malformed summary should fail to parse"
+        );
+    }
+
+    #[test]
+    fn extract_markdown_paths_skips_draft_chapters() {
+        let summary = "# Summary\n\n- [Draft]()\n";
+        assert!(
+            extract_markdown_paths(summary)
+                .expect("summary should parse")
+                .is_empty()
         );
     }
 }

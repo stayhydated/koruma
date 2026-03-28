@@ -88,7 +88,7 @@ pub fn run_with_paths(
 fn build_llms_txt(chapters: &[ChapterInfo]) -> String {
     let mut output = String::new();
     output.push_str(LLMS_HEADER);
-    output.push_str("## Docs\n\n");
+    output.push_str("\n## Docs\n\n");
 
     for chapter in chapters {
         let url = format!("{}/book/{}", BASE_URL, chapter.path);
@@ -101,7 +101,7 @@ fn build_llms_txt(chapters: &[ChapterInfo]) -> String {
 fn build_llms_full_txt(chapters: &[ChapterInfo]) -> String {
     let mut output = String::new();
     output.push_str(LLMS_HEADER);
-    output.push_str("## Docs\n\n");
+    output.push_str("\n## Docs\n\n");
 
     for chapter in chapters {
         output.push_str(&chapter.content);

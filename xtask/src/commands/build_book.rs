@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use mdbook::MDBook;
+use mdbook_driver::MDBook;
 
 use crate::util::workspace_root;
 

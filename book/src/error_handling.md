@@ -22,4 +22,4 @@ only the first one. The order of execution follows the order in which validators
 `#[koruma(...)]` attribute, and all configured validators are evaluated.
 
 You can customise error rendering by implementing `Display` for validators, or localise errors with
-`es-fluent` and `KorumaAllFluent`, which is covered in the next chapter.
+[es-fluent](https://github.com/stayhydated/es-fluent) and `KorumaAllFluent`, which is covered in the next chapter.

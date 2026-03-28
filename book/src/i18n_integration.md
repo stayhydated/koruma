@@ -1,13 +1,19 @@
-# i18n Integration with es-fluent
+# i18n Integration with [es-fluent](https://github.com/stayhydated/es-fluent)
 
-`koruma` can integrate with `es-fluent` to localise validation errors. Enable the `fluent` feature
-and add the matching `es-fluent` dependency:
+`koruma` can integrate with [es-fluent](https://github.com/stayhydated/es-fluent) to localise validation errors. Enable the `fluent` feature
+and add the matching [es-fluent](https://github.com/stayhydated/es-fluent) dependency:
 
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
+
+This setup assumes:
+
+- `koruma` is built with `derive` + `fluent`.
+- your `es-fluent` manager is initialized.
+- a locale is selected before rendering messages.
 
 Validators intended for localisation derive `EsFluent`. When the validated value needs custom
 conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAllFluent` on the

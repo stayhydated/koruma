@@ -72,4 +72,4 @@ match customer.validate() {
 3. If `address.validate()` fails, the resulting errors are wrapped inside `customer`'s overall `Errors` struct.
 4. You access the nested errors using the corresponding accessor (`errors.address()`), which returns an `Option<AddressErrors>`. If there are any errors in the `address`, this returns `Some`, containing the exact error tree of the nested type.
 
-This nested pattern seamlessly integrates with all `koruma` features including `es-fluent` localisation and `newtype` validation.
+This nested pattern seamlessly integrates with all `koruma` features including [es-fluent](https://github.com/stayhydated/es-fluent) localisation and `newtype` validation.

@@ -2,7 +2,12 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["^build", "//#build:wasm", "//#build:book", "//#build:llms-txt"],
+      "dependsOn": [
+        "^build",
+        "//#build:wasm",
+        "//#build:book",
+        "//#build:llms-txt"
+      ],
       "outputs": ["dist/**", ".astro/**"]
     },
     "//#build:wasm": {
@@ -11,10 +16,14 @@
         "Cargo.toml",
         "Cargo.lock",
         "crates/**",
-        "examples/collection-core/**",
-        "examples/collection-web/**"
+        "examples/collection-dioxus-web",
+        "examples/collection-ratatui-core",
+        "examples/collection-ratatui-web"
       ],
-      "outputs": ["web/public/collection-example/**"]
+      "outputs": [
+        "web/public/collection-dioxus-web/**",
+        "web/public/collection-ratatui-web/**"
+      ]
     },
     "//#build:book": {
       "cache": true,

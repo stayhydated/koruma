@@ -1,7 +1,7 @@
-# i18n Integration with es-fluent
+# i18n Integration with [es-fluent](https://github.com/stayhydated/es-fluent)
 
-`koruma` can integrate with `es-fluent` to localise validation errors. Enable the `fluent` feature
-and add the matching `es-fluent` dependency:
+`koruma` can integrate with [es-fluent](https://github.com/stayhydated/es-fluent) to localise validation errors. Enable the `fluent` feature
+and add the matching [es-fluent](https://github.com/stayhydated/es-fluent) dependency:
 
 ```toml
 [dependencies]

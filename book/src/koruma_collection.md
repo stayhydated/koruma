@@ -19,7 +19,7 @@ use koruma_collection::{collection, format, general, numeric, string};
 
 - `fmt` (default): `Display` messages for validators.
 - `full`: enables optional validator dependencies (`url`, `credit-card`, `phone-number`, `email`, `regex`, `smallvec`).
-- `fluent`: enables i18n integration with `es-fluent`.
+- `fluent`: enables i18n integration with [es-fluent](https://github.com/stayhydated/es-fluent).
 - `full-fluent`: `full` + `fluent`.
 
 Validator-specific optional flags:

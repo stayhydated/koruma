@@ -80,7 +80,7 @@
 
 ## Skills
 
-| Item      | Link to llms.txt                                 | Purpose |
-| --------- | ------------------------------------------------ | ------- |
-| **Crate** |                                                  |         |
-| es-fluent | https://stayhydated.github.io/es-fluent/llms.txt | i18n    |
+| Item      | Link to llms.txt                                 | Link to llms-full.txt                                 | Purpose |
+| --------- | ------------------------------------------------ | ----------------------------------------------------- | ------- |
+| **Crate** |                                                  |                                                       |         |
+| es-fluent | https://stayhydated.github.io/es-fluent/llms.txt | https://stayhydated.github.io/es-fluent/llms-full.txt | i18n    |

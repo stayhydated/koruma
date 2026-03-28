@@ -190,12 +190,12 @@ mod tests {
         collections::{BTreeMap, HashMap},
         fs,
         path::{Path, PathBuf},
-        time::{SystemTime, UNIX_EPOCH},
     };
 
     use fluent_syntax::{ast, parser};
     use proc_macro2::{LineColumn, Span};
     use syn::{Block, Expr, Item, ItemImpl, Member, Stmt, Type, spanned::Spanned as _};
+    use tempfile::TempDir;
 
     use crate::cli::SyncArgs;
 
@@ -208,37 +208,6 @@ mod tests {
     };
     use super::types::{DisplayInfo, FormatChunk, Replacement, TemplatePart, ValidatorInfo};
     use super::{run, run_with_roots};
-
-    #[derive(Debug)]
-    struct TempDir {
-        path: PathBuf,
-    }
-
-    impl TempDir {
-        fn new(prefix: &str) -> Self {
-            let nanos = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time should be after unix epoch")
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!(
-                "koruma_xtask_{prefix}_{}_{}",
-                std::process::id(),
-                nanos
-            ));
-            fs::create_dir_all(&path).expect("failed to create temp directory");
-            Self { path }
-        }
-
-        fn path(&self) -> &Path {
-            &self.path
-        }
-    }
-
-    impl Drop for TempDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
 
     fn write_file(path: &Path, content: &str) {
         if let Some(parent) = path.parent() {
@@ -271,7 +240,7 @@ example_validation = Value { $min } and { $actual }.
     }
 
     fn create_sync_fixture() -> (TempDir, PathBuf, PathBuf, PathBuf) {
-        let tmp = TempDir::new("sync_display_ftl");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let validators_root = tmp.path().join("validators");
         let ftl_root = tmp.path().join("ftl");
         let validator_file = validators_root.join("sample.rs");
@@ -358,7 +327,7 @@ example_validation = Value { $min } and { $actual }.
 
     #[test]
     fn collect_rs_files_walks_directories() {
-        let tmp = TempDir::new("collect_rs_files");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         write_file(&tmp.path().join("root.rs"), "fn root() {}");
         write_file(&tmp.path().join("nested/inner.rs"), "fn inner() {}");
         write_file(&tmp.path().join("nested/ignore.txt"), "ignore");
@@ -848,7 +817,7 @@ ip_validation =
 
     #[test]
     fn sync_display_ftl_warns_for_missing_display_and_missing_message() {
-        let tmp = TempDir::new("sync_missing_display_message");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let validators_root = tmp.path().join("validators");
         let ftl_root = tmp.path().join("ftl");
         let validator_file = validators_root.join("sample.rs");
@@ -890,7 +859,7 @@ impl std::fmt::Display for MissingMessageValidation {
 
     #[test]
     fn sync_display_ftl_surfaces_template_conversion_context() {
-        let tmp = TempDir::new("sync_template_context");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let validators_root = tmp.path().join("validators");
         let ftl_root = tmp.path().join("ftl");
         let validator_file = validators_root.join("sample.rs");
@@ -950,7 +919,7 @@ impl std::fmt::Display for DisplayedValidation {
 
     #[test]
     fn collect_ftl_templates_covers_additional_branches() {
-        let parse_err_tmp = TempDir::new("ftl_parse_error");
+        let parse_err_tmp = tempfile::tempdir().expect("failed to create temp directory");
         write_file(
             &parse_err_tmp.path().join("broken.ftl"),
             "broken = { $value",
@@ -958,7 +927,7 @@ impl std::fmt::Display for DisplayedValidation {
         let parse_err = collect_ftl_templates(parse_err_tmp.path()).expect_err("invalid ftl");
         assert!(parse_err.to_string().contains("Failed to parse FTL AST"));
 
-        let unsupported_tmp = TempDir::new("ftl_unsupported");
+        let unsupported_tmp = tempfile::tempdir().expect("failed to create temp directory");
         write_file(
             &unsupported_tmp.path().join("sample.ftl"),
             r#"
@@ -976,7 +945,7 @@ unsupported = { "literal" }
                 .contains("Unsupported message pattern")
         );
 
-        let skip_tmp = TempDir::new("ftl_skip_non_ftl");
+        let skip_tmp = tempfile::tempdir().expect("failed to create temp directory");
         write_file(&skip_tmp.path().join("ignore.txt"), "ignore");
         write_file(
             &skip_tmp.path().join("sample.ftl"),

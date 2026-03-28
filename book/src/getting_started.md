@@ -1,11 +1,17 @@
 # Getting Started
 
-Add `koruma` with the derive support enabled:
+Add `koruma` to your dependencies:
 
 ```toml
 [dependencies]
-koruma = { version = "*", features = ["derive"] }
+koruma = { version = "*" }
 ```
+
+## Feature flags
+
+- `derive` (default): enables derive/attribute macros (`Koruma`, `KorumaAllDisplay`, `#[validator]`).
+- `fluent`: enables localized error support for `KorumaAllFluent` (use with `es-fluent`).
+- `internal-showcase`: enables internal validator showcase registry hooks used by workspace demos.
 
 A typical `koruma` workflow looks like this:
 

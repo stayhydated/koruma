@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`koruma` is the public facade crate. It re-exports the core traits from `koruma-core`, the derive macros from `koruma-derive`, and the `bon` builder API as `koruma::bon`. It also owns feature gates that enable optional fluent/i18n and showcase support.
+`koruma` is the public facade crate. It re-exports the core traits from `koruma-core`, the derive macros from `koruma-derive`, and the `bon` builder API as `koruma::bon`. It also owns feature gates that enable optional i18n with [Project Fluent](https://projectfluent.org/). and showcase support.
 
 ## Key entry points
 

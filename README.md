@@ -11,7 +11,7 @@
 
 1. **Type Safety**: Strongly typed validation error structs generated at compile time.
 1. **Ergonomics**: Derive macros and validator attributes that minimize boilerplate.
-1. **Developer Experience**: Optional constructors, nested/newtype validation, and fluent/i18n.
+1. **Developer Experience**: Optional constructors, nested/newtype validation, and i18n with [Project Fluent](https://projectfluent.org/).
 
 ## Installation
 
@@ -19,6 +19,11 @@
 [dependencies]
 koruma = { version = "*" }
 ```
+
+## Feature flags
+
+- `derive` (default): enables derive/attribute macros (`Koruma`, `KorumaAllDisplay`, `#[validator]`).
+- `fluent`: enables localized error support for `KorumaAllFluent` (use with `es-fluent`).
 
 ## koruma-collection
 
@@ -149,7 +154,7 @@ if let Err(errors) = item.validate() {
 }
 ```
 
-### 4. Use `all()` getter with Fluent/i18n (`KorumaAllFluent`)
+### 4. Use `all()` getter with localized messages (`KorumaAllFluent`)
 
 ```toml
 [dependencies]
@@ -157,7 +162,11 @@ koruma = { version = "*", features = ["derive", "fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
 
-Assuming your i18n manager is initialized and a locale is selected:
+This setup assumes:
+
+- `koruma` is built with `derive` + `fluent`.
+- your `es-fluent` manager is initialized.
+- a locale is selected before rendering messages.
 
 ```rs
 use es_fluent::{EsFluent, ToFluentString as _};

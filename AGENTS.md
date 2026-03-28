@@ -8,26 +8,26 @@
 
 ## Architecture Documentation Index
 
-| Folder                      | Link to Architecture Doc                                       | Purpose                                                                                      |
-| --------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Core**                    |                                                                |                                                                                              |
-| `crates/koruma`             | [Architecture](crates/koruma/docs/ARCHITECTURE.md)             | Public facade crate, re-exports core traits and derive macros, defines feature gates.        |
-| `crates/koruma-core`        | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)        | Core traits and optional showcase registry types.                                            |
-| **Derive & Parsing**        |                                                                |                                                                                              |
-| `crates/koruma-derive-core` | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros.                                     |
-| `crates/koruma-derive`      | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                               |
-| **Validator Collection**    |                                                                |                                                                                              |
-| `crates/koruma-collection`  | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional fluent/i18n resources.                                     |
-| **Automation**              |                                                                |                                                                                              |
-| `xtask`                     | [Architecture](xtask/docs/ARCHITECTURE.md)                     | Rust task runner                                                                             |
-| **Examples**                |                                                                |                                                                                              |
-| `examples/collection-*`     |                                                                | Interactive TUI/UI showcasing validators via the `internal-showcase` feature.                |
-| `examples/shared-lib`       |                                                                | Workspace example sharing validators across crates.                                          |
-| `examples/i18n`             |                                                                | Shared Fluent translation assets for examples.                                               |
-| `examples/readme`           |                                                                | Canonical executable docs examples. Keep in sync with root `README.md` and `book`            |
-| **Web**                     |                                                                |                                                                                              |
-| `web`                       |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos and the mdBook |
-| `book`                      |                                                                | mdBook that shows usage of the user-facing crates                                            |
+| Folder                      | Link to Architecture Doc                                       | Purpose                                                                                             |
+| --------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Core**                    |                                                                |                                                                                                     |
+| `crates/koruma`             | [Architecture](crates/koruma/docs/ARCHITECTURE.md)             | Public facade crate, re-exports core traits and derive macros, defines feature gates.               |
+| `crates/koruma-core`        | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)        | Core traits and optional showcase registry types.                                                   |
+| **Derive & Parsing**        |                                                                |                                                                                                     |
+| `crates/koruma-derive-core` | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros.                                            |
+| `crates/koruma-derive`      | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                                      |
+| **Validator Collection**    |                                                                |                                                                                                     |
+| `crates/koruma-collection`  | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional i18n with [Project Fluent](https://projectfluent.org/) resources. |
+| **Automation**              |                                                                |                                                                                                     |
+| `xtask`                     | [Architecture](xtask/docs/ARCHITECTURE.md)                     | Rust task runner                                                                                    |
+| **Examples**                |                                                                |                                                                                                     |
+| `examples/collection-*`     |                                                                | Interactive TUI/UI showcasing validators via the `internal-showcase` feature.                       |
+| `examples/shared-lib`       |                                                                | Workspace example sharing validators across crates.                                                 |
+| `examples/i18n`             |                                                                | Shared Fluent translation assets for examples.                                                      |
+| `examples/readme`           |                                                                | Canonical executable docs examples. Keep in sync with root `README.md` and `book`                   |
+| **Web**                     |                                                                |                                                                                                     |
+| `web`                       |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos and the mdBook        |
+| `book`                      |                                                                | mdBook that shows usage of the user-facing crates                                                   |
 
 ## Crate Descriptions
 
@@ -43,7 +43,7 @@
 
 ### Validator Collection
 
-- **`koruma-collection`**: Built-in validators (string, format, numeric, collection, general) with optional fluent/i18n assets.
+- **`koruma-collection`**: Built-in validators (string, format, numeric, collection, general) with optional i18n assets with [Project Fluent](https://projectfluent.org/).
 
 ### Examples
 

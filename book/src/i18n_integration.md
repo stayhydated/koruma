@@ -9,6 +9,12 @@ koruma = { version = "*", features = ["derive", "fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
 
+This setup assumes:
+
+- `koruma` is built with `derive` + `fluent`.
+- your `es-fluent` manager is initialized.
+- a locale is selected before rendering messages.
+
 Validators intended for localisation derive `EsFluent`. When the validated value needs custom
 conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAllFluent` on the
 consumer type.

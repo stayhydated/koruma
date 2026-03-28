@@ -19,12 +19,18 @@ custom validators, error handling, localisation, nested validation, and newtypes
 
 # Getting Started
 
-Add `koruma` with the derive support enabled:
+Add `koruma` to your dependencies:
 
 ```toml
 [dependencies]
-koruma = { version = "*", features = ["derive"] }
+koruma = { version = "*" }
 ```
+
+## Feature flags
+
+- `derive` (default): enables derive/attribute macros (`Koruma`, `KorumaAllDisplay`, `#[validator]`).
+- `fluent`: enables localized error support for `KorumaAllFluent` (use with `es-fluent`).
+- `internal-showcase`: enables internal validator showcase registry hooks used by workspace demos.
 
 A typical `koruma` workflow looks like this:
 
@@ -252,6 +258,12 @@ and add the matching [es-fluent](https://github.com/stayhydated/es-fluent) depen
 koruma = { version = "*", features = ["derive", "fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
+
+This setup assumes:
+
+- `koruma` is built with `derive` + `fluent`.
+- your `es-fluent` manager is initialized.
+- a locale is selected before rendering messages.
 
 Validators intended for localisation derive `EsFluent`. When the validated value needs custom
 conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAllFluent` on the

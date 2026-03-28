@@ -1,8 +1,9 @@
 # koruma
 
 [![Build Status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
-[![llms.txt](https://img.shields.io/badge/docs-llms--full.txt-blue)](https://stayhydated.github.io/koruma/llms.txt)
+[![Codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg?token=34CV04UOU1)](https://codecov.io/github/stayhydated/koruma)
+[![mdBook](https://img.shields.io/badge/docs-mdBook-black)](https://stayhydated.github.io/koruma/docs/)
+[![llms.txt](https://img.shields.io/badge/docs-llms.txt-blue)](https://stayhydated.github.io/koruma/llms.txt)
 [![Docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 

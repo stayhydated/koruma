@@ -2,8 +2,8 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::Context;
-use mdbook_driver::book::BookItem;
 use mdbook_driver::MDBook;
+use mdbook_driver::book::BookItem;
 
 use crate::util::workspace_root;
 
@@ -50,44 +50,9 @@ pub fn run_with_paths(book_root: &Path, output_path: &Path) -> anyhow::Result<()
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        path::{Path, PathBuf},
-        time::{SystemTime, UNIX_EPOCH},
-    };
+    use std::{fs, path::Path};
 
     use super::{run_from_workspace_root, run_with_paths};
-
-    #[derive(Debug)]
-    struct TempDir {
-        path: PathBuf,
-    }
-
-    impl TempDir {
-        fn new(prefix: &str) -> Self {
-            let nanos = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("system time should be after unix epoch")
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!(
-                "koruma_xtask_{prefix}_{}_{}",
-                std::process::id(),
-                nanos
-            ));
-            fs::create_dir_all(&path).expect("failed to create temp directory");
-            Self { path }
-        }
-
-        fn path(&self) -> &Path {
-            &self.path
-        }
-    }
-
-    impl Drop for TempDir {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.path);
-        }
-    }
 
     fn write_file(path: &Path, content: &str) {
         if let Some(parent) = path.parent() {
@@ -105,7 +70,7 @@ title = "Test Book"
 
     #[test]
     fn run_with_paths_concatenates_files_with_separators() {
-        let tmp = TempDir::new("build_llms_txt");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let book_root = tmp.path().join("book");
         let book_src = book_root.join("src");
         let output_path = tmp.path().join("web").join("public").join("llms.txt");
@@ -137,7 +102,7 @@ title = "Test Book"
 
     #[test]
     fn run_with_paths_skips_draft_chapters() {
-        let tmp = TempDir::new("build_llms_txt_draft");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let book_root = tmp.path().join("book");
         let book_src = book_root.join("src");
         let output_path = tmp.path().join("output").join("llms.txt");
@@ -168,7 +133,7 @@ title = "Test Book"
 
     #[test]
     fn run_with_paths_fails_for_missing_book() {
-        let tmp = TempDir::new("build_llms_txt_no_book");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let book_root = tmp.path().join("book");
         let output_path = tmp.path().join("output").join("llms.txt");
 
@@ -180,7 +145,7 @@ title = "Test Book"
 
     #[test]
     fn run_with_paths_creates_output_directory() {
-        let tmp = TempDir::new("build_llms_txt_create_dir");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let book_root = tmp.path().join("book");
         let book_src = book_root.join("src");
         let output_path = tmp.path().join("nested").join("deep").join("llms.txt");
@@ -198,7 +163,7 @@ title = "Test Book"
 
     #[test]
     fn run_from_workspace_root_uses_default_workspace_paths() {
-        let tmp = TempDir::new("build_llms_txt_workspace_root");
+        let tmp = tempfile::tempdir().expect("failed to create temp directory");
         let workspace_root = tmp.path().join("workspace");
         let book_root = workspace_root.join("book");
         let book_src = book_root.join("src");

@@ -3,7 +3,8 @@
 Validators are regular Rust types that describe a validation rule. To define one, annotate the
 struct with `#[validator]` and implement `Validate<T>` for the input type you want to check. The
 `#[koruma(value)]` attribute marks the field that stores the actual input value used for error
-reporting.
+reporting, and `#[validator]` generates a getter with the same name. Keep that field private and
+use the generated getter for external reads.
 
 For example, a generic range validator:
 
@@ -17,7 +18,7 @@ pub struct NumberRangeValidation<T: PartialOrd + Copy + fmt::Display + Clone> {
     min: T,
     max: T,
     #[koruma(value)]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialOrd + Copy + fmt::Display> Validate<T> for NumberRangeValidation<T> {
@@ -49,7 +50,7 @@ pub struct StringLengthValidation {
     min: usize,
     max: usize,
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for StringLengthValidation {
@@ -74,4 +75,5 @@ impl fmt::Display for StringLengthValidation {
 
 The core pattern stays the same: define any configuration fields you need, mark the validated value
 with `#[koruma(value)]`, implement `Validate<T>`, and optionally implement `Display` for friendly
-error messages.
+error messages. External callers can read the captured value through the generated getter
+(`validator.actual()`, `validator.input()`, and so on).

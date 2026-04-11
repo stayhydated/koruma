@@ -39,7 +39,7 @@ pub struct MatchesValidation<T: PartialEq + std::fmt::Display + Clone> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialEq + std::fmt::Display + Clone> Validate<T> for MatchesValidation<T> {

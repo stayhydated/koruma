@@ -4,7 +4,7 @@ use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{find_value_field, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Fields, GenericParam, Ident, ItemStruct, parse_quote};
+use syn::{Fields, GenericParam, Ident, ItemStruct, Visibility, parse_quote};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
@@ -51,6 +51,18 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         unreachable!("find_value_field only returns Some for named fields");
     };
     for field in &mut fields.named {
+        if field.ident.as_ref() == Some(&value_field_name)
+            && !matches!(field.vis, Visibility::Inherited)
+        {
+            return Err(syn::Error::new_spanned(
+                &field.vis,
+                format!(
+                    "`#[koruma(value)]` field `{}` must be private; use the generated getter instead",
+                    value_field_name
+                ),
+            ));
+        }
+
         field.attrs.retain(|attr| {
             if attr.path().is_ident("koruma")
                 && let Ok(ident) = attr.parse_args::<Ident>()
@@ -69,6 +81,21 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let value_pascal = value_field_name.to_string().to_upper_camel_case();
     let value_assoc_type = format_ident!("{}", value_pascal);
     let set_value_type = format_ident!("Set{}", value_pascal);
+    let value_field_name_str = value_field_name.to_string();
+    let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
+
+    let value_getter_impl = quote! {
+        impl #impl_generics #struct_name #type_generics #where_clause {
+            #[doc = concat!(
+                "Returns the stored `",
+                #value_field_name_str,
+                "` value captured by `#[koruma(value)]`."
+            )]
+            pub fn #value_field_name(&self) -> &#value_field_type {
+                &self.#value_field_name
+            }
+        }
+    };
 
     let with_value_impl = if has_generics {
         // For generic validators, the builder is Builder<T, S> (type param first, then state)
@@ -238,6 +265,8 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     Ok(quote! {
         #input
+
+        #value_getter_impl
 
         #with_value_impl
 

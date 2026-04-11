@@ -38,7 +38,7 @@ pub struct PatternValidation<T: AsRef<str>> {
     /// The string being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {

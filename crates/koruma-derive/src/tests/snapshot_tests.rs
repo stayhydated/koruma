@@ -26,7 +26,7 @@ fn test_validator_expansion_simple() {
             min: i32,
             max: i32,
             #[koruma(value)]
-            pub actual: Option<i32>,
+            actual: Option<i32>,
         }
     };
 
@@ -42,7 +42,7 @@ fn test_validator_expansion_generic() {
             pub min: T,
             pub max: T,
             #[koruma(value)]
-            pub actual: Option<T>,
+            actual: Option<T>,
         }
     };
 
@@ -126,7 +126,7 @@ fn test_validator_expansion_non_option_value() {
         pub struct DirectValueValidation {
             min: i32,
             #[koruma(value)]
-            pub actual: i32,
+            actual: i32,
         }
     };
 
@@ -514,7 +514,7 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
             pub marker: &'a str,
             pub extra: U,
             #[koruma(value)]
-            pub actual: Option<T>,
+            actual: Option<T>,
         }
     };
 

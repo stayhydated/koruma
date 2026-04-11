@@ -30,7 +30,7 @@ pub struct IsEvenNumberValidation<
 > {
     #[koruma(value)]
     #[fluent(value(|x: &T| x.to_string()))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq> Validate<T>
@@ -45,7 +45,7 @@ impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + Partia
 #[derive(Clone, Debug, EsFluent)]
 pub struct NonEmptyStringValidation {
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for NonEmptyStringValidation {

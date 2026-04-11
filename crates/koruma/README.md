@@ -56,7 +56,7 @@ pub struct NumberRangeValidation<T: PartialOrd + Copy + fmt::Display + Clone> {
     min: T,
     max: T,
     #[koruma(value)]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialOrd + Copy + fmt::Display> Validate<T> for NumberRangeValidation<T> {
@@ -81,7 +81,7 @@ pub struct StringLengthValidation {
     min: usize,
     max: usize,
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for StringLengthValidation {
@@ -103,6 +103,10 @@ impl fmt::Display for StringLengthValidation {
     }
 }
 ```
+
+`#[validator]` generates `with_value(...)` on the builder and a getter on the validator type with
+the same name as the `#[koruma(value)]` field. That field is expected to stay private; use the
+generated getter for reads.
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
@@ -180,7 +184,7 @@ pub struct IsEvenNumberValidation<
 > {
     #[koruma(value)]
     #[fluent(value(|x: &T| x.to_string()))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq> Validate<T>
@@ -195,7 +199,7 @@ impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + Partia
 #[derive(Clone, Debug, EsFluent)]
 pub struct NonEmptyStringValidation {
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for NonEmptyStringValidation {

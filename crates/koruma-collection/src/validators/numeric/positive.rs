@@ -38,7 +38,7 @@ pub struct PositiveValidation<T: Numeric> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Numeric> Validate<T> for PositiveValidation<T> {

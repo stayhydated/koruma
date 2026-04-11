@@ -10,7 +10,7 @@ pub struct NumberRangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clon
     min: T,
     max: T,
     #[koruma(value)]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for NumberRangeValidation<T> {
@@ -39,7 +39,7 @@ pub struct StringLengthValidation {
     min: usize,
     max: usize,
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for StringLengthValidation {
@@ -67,7 +67,7 @@ impl fmt::Display for StringLengthValidation {
 #[derive(Clone, Debug)]
 pub struct ZipCodeValidation {
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for ZipCodeValidation {

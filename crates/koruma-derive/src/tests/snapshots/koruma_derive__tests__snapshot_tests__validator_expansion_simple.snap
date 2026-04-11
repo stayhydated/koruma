@@ -8,7 +8,15 @@ expression: pretty_print(expanded)
 pub struct NumberRangeValidation {
     min: i32,
     max: i32,
-    pub actual: Option<i32>,
+    actual: Option<i32>,
+}
+impl NumberRangeValidation {
+    #[doc = concat!(
+        "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
+    )]
+    pub fn actual(&self) -> &Option<i32> {
+        &self.actual
+    }
 }
 impl<S: number_range_validation_builder::State> NumberRangeValidationBuilder<S>
 where

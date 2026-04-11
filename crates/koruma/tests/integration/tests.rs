@@ -35,7 +35,7 @@ fn test_invalid_age_with_value() {
 
     // The error contains the actual value that failed
     let age_err = err.age().number_range_validation().unwrap();
-    assert_eq!(age_err.actual, 150);
+    assert_eq!(*age_err.actual(), 150);
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn test_invalid_name_with_value() {
 
     // The error contains the actual value that failed
     let name_err = err.name().string_length_validation().unwrap();
-    assert_eq!(name_err.input, "".to_string());
+    assert_eq!(name_err.input().as_str(), "");
 }
 
 #[test]
@@ -68,10 +68,14 @@ fn test_multiple_field_errors() {
     assert!(err.name().string_length_validation().is_some());
 
     // Both errors contain their respective values
-    assert_eq!(err.age().number_range_validation().unwrap().actual, -5);
+    assert_eq!(*err.age().number_range_validation().unwrap().actual(), -5);
     assert_eq!(
-        err.name().string_length_validation().unwrap().input,
-        "".to_string()
+        err.name()
+            .string_length_validation()
+            .unwrap()
+            .input()
+            .as_str(),
+        ""
     );
 
     // Both errors are collected, not just the first one
@@ -88,7 +92,7 @@ fn test_generic_validator_i32() {
 
     assert!(validator.validate(&50));
     assert!(!validator.validate(&150));
-    assert_eq!(validator.actual, 50);
+    assert_eq!(*validator.actual(), 50);
 }
 
 #[test]
@@ -101,7 +105,7 @@ fn test_generic_validator_f64() {
 
     assert!(validator.validate(&0.5));
     assert!(!validator.validate(&1.5));
-    assert_eq!(validator.actual, 0.5);
+    assert_eq!(*validator.actual(), 0.5);
 }
 
 #[test]
@@ -127,7 +131,7 @@ fn test_generic_item_invalid_score() {
 
     // The error contains the actual value
     let score_err = err.score().generic_range_validation().unwrap();
-    assert_eq!(score_err.actual, 150.0);
+    assert_eq!(*score_err.actual(), 150.0);
 }
 
 #[test]
@@ -143,7 +147,7 @@ fn test_generic_item_invalid_points() {
 
     // The error contains the actual value
     let points_err = err.points().generic_range_validation().unwrap();
-    assert_eq!(points_err.actual, 2000);
+    assert_eq!(*points_err.actual(), 2000);
 }
 
 // Tests for multiple validators per field
@@ -181,8 +185,11 @@ fn test_multi_validator_both_fail() {
     assert!(err.value().even_number_validation().is_some());
 
     // Check the actual values
-    assert_eq!(err.value().number_range_validation().unwrap().actual, 151);
-    assert_eq!(err.value().even_number_validation().unwrap().actual, 151);
+    assert_eq!(
+        *err.value().number_range_validation().unwrap().actual(),
+        151
+    );
+    assert_eq!(*err.value().even_number_validation().unwrap().actual(), 151);
 }
 
 #[test]
@@ -245,8 +252,11 @@ fn test_multi_attr_both_fail() {
     assert!(err.value().even_number_validation().is_some());
 
     // Check the actual values
-    assert_eq!(err.value().number_range_validation().unwrap().actual, 151);
-    assert_eq!(err.value().even_number_validation().unwrap().actual, 151);
+    assert_eq!(
+        *err.value().number_range_validation().unwrap().actual(),
+        151
+    );
+    assert_eq!(*err.value().even_number_validation().unwrap().actual(), 151);
 }
 
 #[test]
@@ -287,7 +297,7 @@ fn test_each_single_invalid() {
     let element_err = &score_errors[0].1;
     assert!(element_err.generic_range_validation().is_some());
     assert_eq!(
-        element_err.generic_range_validation().unwrap().actual,
+        *element_err.generic_range_validation().unwrap().actual(),
         150.0
     );
 }
@@ -348,12 +358,12 @@ fn test_optional_field_some_invalid() {
     // Bio should fail
     assert!(err.bio().string_length_validation().is_some());
     let bio_err = err.bio().string_length_validation().unwrap();
-    assert_eq!(bio_err.input, "".to_string()); // Direct value, no Option!
+    assert_eq!(bio_err.input().as_str(), ""); // Direct value, no Option!
 
     // Age should fail
     assert!(err.age().number_range_validation().is_some());
     let age_err = err.age().number_range_validation().unwrap();
-    assert_eq!(age_err.actual, 200); // Direct value, no Option!
+    assert_eq!(*age_err.actual(), 200); // Direct value, no Option!
 }
 
 #[test]

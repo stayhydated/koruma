@@ -25,7 +25,7 @@ pub struct RequiredValidation<T> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: Option<T>,
+    actual: Option<T>,
 }
 
 impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {

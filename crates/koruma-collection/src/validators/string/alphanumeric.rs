@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(AlphanumericValidation::<_>)]
+///     #[koruma(AlphanumericValidation<_>)]
 ///     username: String,
 /// }
 /// ```
@@ -34,7 +34,7 @@ pub struct AlphanumericValidation<T: AsRef<str>> {
     /// The string being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: AsRef<str>> Validate<T> for AlphanumericValidation<T> {

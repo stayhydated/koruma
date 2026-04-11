@@ -20,6 +20,24 @@ fn test_validator_error_missing_value_field() {
 }
 
 #[test]
+fn test_validator_error_public_value_field() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            min: i32,
+            max: i32,
+            #[koruma(value)]
+            pub actual: i32,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(err.to_string().contains("must be private"));
+    assert!(err.to_string().contains("generated getter"));
+}
+
+#[test]
 fn test_koruma_success_no_validated_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct EmptyStruct {

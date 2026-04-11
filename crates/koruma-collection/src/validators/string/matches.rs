@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 /// #[derive(Koruma)]
 /// struct User {
 ///     password: String,
-///     #[koruma(MatchesValidation::<_>(other = password))]
+///     #[koruma(MatchesValidation<_>(other = password))]
 ///     confirm_password: String,
 /// }
 /// ```
@@ -39,7 +39,7 @@ pub struct MatchesValidation<T: PartialEq + std::fmt::Display + Clone> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialEq + std::fmt::Display + Clone> Validate<T> for MatchesValidation<T> {

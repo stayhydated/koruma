@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Temperature {
-///     #[koruma(NegativeValidation::<_>)]
+///     #[koruma(NegativeValidation<_>)]
 ///     celsius: f64,
 /// }
 /// ```
@@ -38,7 +38,7 @@ pub struct NegativeValidation<T: Numeric> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Numeric> Validate<T> for NegativeValidation<T> {

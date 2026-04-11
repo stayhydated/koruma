@@ -56,7 +56,7 @@ pub struct NumberRangeValidation<T: PartialOrd + Copy + fmt::Display + Clone> {
     min: T,
     max: T,
     #[koruma(value)]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialOrd + Copy + fmt::Display> Validate<T> for NumberRangeValidation<T> {
@@ -81,7 +81,7 @@ pub struct StringLengthValidation {
     min: usize,
     max: usize,
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for StringLengthValidation {
@@ -104,6 +104,10 @@ impl fmt::Display for StringLengthValidation {
 }
 ```
 
+`#[validator]` generates `with_value(...)` on the builder and a getter on the validator type with
+the same name as the `#[koruma(value)]` field. That field is expected to stay private; use the
+generated getter for reads.
+
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
 ```rs
@@ -111,7 +115,7 @@ use koruma::{Koruma, KorumaAllDisplay, Validate};
 
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::<_>(min = 0, max = 100))]
+    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -180,7 +184,7 @@ pub struct IsEvenNumberValidation<
 > {
     #[koruma(value)]
     #[fluent(value(|x: &T| x.to_string()))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq> Validate<T>
@@ -195,7 +199,7 @@ impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + Partia
 #[derive(Clone, Debug, EsFluent)]
 pub struct NonEmptyStringValidation {
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for NonEmptyStringValidation {
@@ -206,7 +210,7 @@ impl Validate<String> for NonEmptyStringValidation {
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation::<_>)]
+    #[koruma(IsEvenNumberValidation<_>)]
     pub id: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -340,7 +344,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
+pub struct Only67u8(#[koruma(Only67Validation<_>)] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),

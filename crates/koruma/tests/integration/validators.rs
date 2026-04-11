@@ -9,7 +9,7 @@ pub struct NumberRangeValidation {
     min: i32,
     max: i32,
     #[koruma(value)]
-    pub actual: i32,
+    actual: i32,
 }
 
 impl Validate<i32> for NumberRangeValidation {
@@ -30,7 +30,7 @@ pub struct GenericRangeValidation<T> {
     pub min: T,
     pub max: T,
     #[koruma(value)]
-    pub actual: T,
+    actual: T,
 }
 
 // Use a blanket impl with trait bounds instead of a macro
@@ -47,7 +47,7 @@ pub struct StringLengthValidation {
     min: usize,
     max: usize,
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for StringLengthValidation {
@@ -66,7 +66,7 @@ impl Validate<String> for StringLengthValidation {
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct EvenNumberValidation {
     #[koruma(value)]
-    pub actual: i32,
+    actual: i32,
 }
 
 impl Validate<i32> for EvenNumberValidation {
@@ -88,7 +88,7 @@ pub struct VecLenValidation<T> {
     pub max: usize,
     /// The Vec being validated
     #[koruma(value)]
-    pub actual: Vec<T>,
+    actual: Vec<T>,
 }
 
 impl<T> Validate<Vec<T>> for VecLenValidation<T> {
@@ -116,7 +116,7 @@ impl<T> VecLenValidation<T> {
 pub struct RequiredValidation<T> {
     #[koruma(value)]
     #[allow(dead_code)]
-    pub actual: Option<T>,
+    actual: Option<T>,
 }
 
 impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {

@@ -14,7 +14,8 @@
 ## Validator pattern
 
 - Each validator is a struct annotated with `#[koruma::validator]`.
-- One field is marked `#[koruma(value)]` to store the validated value.
+- One field is marked `#[koruma(value)]` to store the validated value, with a generated getter on
+  the validator type for external access.
 - Each validator implements `Validate<T>`; optional `Display` impls live behind `fmt`.
 - Optional `#[showcase(...)]` metadata registers validators when `internal-showcase` is enabled.
 

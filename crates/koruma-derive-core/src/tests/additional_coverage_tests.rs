@@ -21,22 +21,22 @@ fn validator_attr_helpers_and_error_paths() {
     let with_args: ValidatorAttr = syn::parse_quote!(RangeValidation(min = 0, max = 10));
     assert!(with_args.has_args());
 
-    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>);
+    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation<_>);
     assert!(infer.uses_type_inference());
     assert!(!infer.has_explicit_type());
 
-    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>);
+    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation<i32>);
     assert!(!explicit.uses_type_inference());
     assert!(explicit.has_explicit_type());
 
-    let old_syntax: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<_>");
-    assert!(old_syntax.is_err());
+    let shorthand: ValidatorAttr = syn::parse_quote!(GenericValidation<_>);
+    assert!(shorthand.uses_type_inference());
 
-    let old_syntax_with_spaces: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation < _ >");
-    assert!(old_syntax_with_spaces.is_err());
+    let shorthand_with_spaces: ValidatorAttr = syn::parse_str("GenericValidation < _ >")
+        .expect("expected shorthand generic syntax to parse");
+    assert!(shorthand_with_spaces.uses_type_inference());
 
-    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<i32, u32>");
+    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<i32, u32>");
     assert!(
         too_many_types
             .err()
@@ -45,13 +45,22 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("exactly one type argument")
     );
 
-    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<1>");
+    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<1>");
     assert!(
         non_type_generic
             .err()
             .expect("expected parse error")
             .to_string()
             .contains("expects a type argument")
+    );
+
+    let turbofish: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<_>");
+    assert!(
+        turbofish
+            .err()
+            .expect("expected turbofish syntax to be rejected")
+            .to_string()
+            .contains("use angle bracket syntax `<...>`")
     );
 
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("std::ops::Fn(i32)");
@@ -129,14 +138,27 @@ fn field_info_and_parse_field_result_helpers() {
     assert!(skip_result.is_skip());
     assert!(skip_result.valid().is_none());
 
-    let error_field: syn::Field = syn::parse_quote! {
+    let generic_field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation<_>)]
         broken: i32
     };
-    let error_result = parse_field(&error_field, 0);
-    assert!(error_result.is_error());
-    assert!(parse_field(&error_field, 0).error().is_some());
-    assert!(parse_field(&error_field, 0).valid().is_none());
+    let generic_result = parse_field(&generic_field, 0);
+    assert!(generic_result.is_valid());
+    let generic_info = generic_result.valid().expect("expected parsed field info");
+    assert!(generic_info.validation.field_validators[0].infer_type);
+
+    let explicit_field: syn::Field = syn::parse_quote! {
+        #[koruma(RangeValidation<i32>(min = 0, max = 10))]
+        constrained: i32
+    };
+    let explicit_result = parse_field(&explicit_field, 0);
+    assert!(explicit_result.is_valid());
+    let explicit_info = explicit_result.valid().expect("expected parsed field info");
+    assert!(
+        explicit_info.validation.field_validators[0]
+            .explicit_type
+            .is_some()
+    );
 
     let valid_result_for_error = parse_field(&field, 0);
     assert!(valid_result_for_error.error().is_none());
@@ -249,23 +271,13 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
 
 #[test]
 fn parser_edge_cases_cover_remaining_parse_lines() {
-    // Old syntax branch: no turbofish `::` but an immediate `<...>` segment.
-    // With spaces, syn parses path first, then leftover tokens cause error.
-    let old_syntax_no_colon: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation < _ >");
-    let err = old_syntax_no_colon.err().expect("expected parse error");
-    let err_str = err.to_string();
-    assert!(
-        err_str.contains("turbofish") || err_str.contains("unexpected"),
-        "expected turbofish or unexpected token error, got: {err_str}"
-    );
+    let shorthand_with_spaces: ValidatorAttr =
+        syn::parse_str("RangeValidation < _ >").expect("expected shorthand syntax to parse");
+    assert!(shorthand_with_spaces.infer_type);
 
-    // Without spaces, syn parses `<_>` as generic args, and we detect missing `::`
-    let old_syntax_no_space: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation<_>");
-    let err2 = old_syntax_no_space.err().expect("expected parse error");
-    assert!(
-        err2.to_string().contains("turbofish"),
-        "expected turbofish error, got: {err2}"
-    );
+    let shorthand_no_space: ValidatorAttr =
+        syn::parse_str("RangeValidation<_>").expect("expected shorthand syntax to parse");
+    assert!(shorthand_no_space.infer_type);
 
     // Parenthesized path arguments branch.
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("Fn(i32)");

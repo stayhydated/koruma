@@ -27,12 +27,12 @@ pub fn main() {
                 // Use Display trait for simple string message
                 println!("  - age: {}", age_err);
                 // Or access the actual value directly
-                println!("    (actual value was: {})", age_err.actual);
+                println!("    (actual value was: {})", age_err.actual());
             }
 
             if let Some(name_err) = errors.name().string_length_validation() {
                 println!("  - name: {}", name_err);
-                println!("    (input was: {:?})", name_err.input);
+                println!("    (input was: {:?})", name_err.input());
             }
 
             println!("  - all failed validators (via all()):");

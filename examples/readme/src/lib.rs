@@ -13,13 +13,13 @@ use koruma_collection::{collection, general, numeric, string};
 
 // #[derive(Koruma)]
 // struct Order {
-//     #[koruma(LenValidation::<_>(min = 1, max = 5))]
+//     #[koruma(LenValidation<_>(min = 1, max = 5))]
 //     items: Vec<String>,
 // }
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(validators::normal::NumberRangeValidation::<_>(min = 0, max = 100))]
+    #[koruma(validators::normal::NumberRangeValidation<_>(min = 0, max = 100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -32,7 +32,7 @@ pub struct Item {
 /// Example struct using EsFluent-based validators.
 #[derive(Koruma)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation::<_>)]
+    #[koruma(IsEvenNumberValidation<_>)]
     pub id: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -64,7 +64,7 @@ pub struct Customer {
     #[koruma(StringLengthValidation(min = 1, max = 100))]
     pub name: String,
 
-    #[koruma(NumberRangeValidation::<_>(min = 18, max = 120))]
+    #[koruma(NumberRangeValidation<_>(min = 18, max = 120))]
     pub age: i32,
 
     /// Nested struct - validation cascades automatically
@@ -80,7 +80,7 @@ pub struct Customer {
 /// Uses EsFluent-based validators for i18n support.
 #[derive(Clone, Koruma)]
 pub struct AccountSettings {
-    #[koruma(PositiveNumberValidation::<_>)]
+    #[koruma(PositiveNumberValidation<_>)]
     pub max_login_attempts: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -91,7 +91,7 @@ pub struct AccountSettings {
 /// Demonstrates `#[koruma(nested)]` for EsFluent-based error messages.
 #[derive(Koruma)]
 pub struct Account {
-    #[koruma(IsEvenNumberValidation::<_>)]
+    #[koruma(IsEvenNumberValidation<_>)]
     pub id: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -146,19 +146,19 @@ pub struct LoginForm {
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation::<_>)] pub u8);
+pub struct Only67u8(#[koruma(Only67Validation<_>)] pub u8);
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct SignupInput {
-    #[koruma(collection::NonEmptyValidation::<_>)]
+    #[koruma(collection::NonEmptyValidation<_>)]
     pub username: String,
 
-    #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
+    #[koruma(string::AsciiValidation<_>, string::AlphanumericValidation<_>)]
     pub handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>(min = 13_u8, max = 120_u8))]
+    #[koruma(numeric::RangeValidation<_>(min = 13_u8, max = 120_u8))]
     pub age: u8,
 
-    #[koruma(general::RequiredValidation::<Option<_>>)]
+    #[koruma(general::RequiredValidation<Option<_>>)]
     pub display_name: Option<String>,
 }

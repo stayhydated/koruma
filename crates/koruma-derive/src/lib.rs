@@ -19,6 +19,8 @@ use expand::{expand_koruma, expand_koruma_all_display, expand_validator};
 /// - Adds `#[derive(bon::Builder)]` to the struct
 /// - Generates a `with_value` method on the builder that delegates to the field
 ///   marked with `#[koruma(value)]`
+/// - Generates a getter on the validator type with the same name as the
+///   `#[koruma(value)]` field
 ///
 /// # Example (non-generic)
 ///
@@ -147,7 +149,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllDisplay)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
@@ -182,7 +184,7 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///

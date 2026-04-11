@@ -463,7 +463,7 @@ dependencies = [
 
 [[package]]
 name = "collection-dioxus-web"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "console_error_panic_hook",
  "dioxus",
@@ -480,7 +480,7 @@ dependencies = [
 
 [[package]]
 name = "collection-ratatui-core"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "es-fluent",
@@ -496,7 +496,7 @@ dependencies = [
 
 [[package]]
 name = "collection-ratatui-native"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "collection-ratatui-core",
  "crossterm",
@@ -505,7 +505,7 @@ dependencies = [
 
 [[package]]
 name = "collection-ratatui-web"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "collection-ratatui-core",
  "console_error_panic_hook",
@@ -2484,7 +2484,7 @@ dependencies = [
 
 [[package]]
 name = "koruma"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "bon",
  "inventory",
@@ -2494,7 +2494,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-collection"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "card-validate",
@@ -2511,7 +2511,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-core"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "inventory",
@@ -2519,7 +2519,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "heck",
  "insta",
@@ -2533,7 +2533,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive-core"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "insta",
  "quote",
@@ -2543,7 +2543,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-shared-lib"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "es-fluent",
  "es-fluent-lang",
@@ -3608,7 +3608,7 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
 name = "readme"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-embedded",
@@ -5418,7 +5418,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.7.2"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "clap",

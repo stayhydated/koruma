@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Score {
-///     #[koruma(RangeValidation::<_>(min = 0, max = 100))]
+///     #[koruma(RangeValidation<_>(min = 0, max = 100))]
 ///     value: u32,
 /// }
 /// ```
@@ -52,7 +52,7 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T> {

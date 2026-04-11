@@ -8,7 +8,15 @@ expression: pretty_print(expanded)
 pub struct GenericRangeValidation<T> {
     pub min: T,
     pub max: T,
-    pub actual: Option<T>,
+    actual: Option<T>,
+}
+impl<T> GenericRangeValidation<T> {
+    #[doc = concat!(
+        "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
+    )]
+    pub fn actual(&self) -> &Option<T> {
+        &self.actual
+    }
 }
 impl<T, S: generic_range_validation_builder::State> GenericRangeValidationBuilder<T, S>
 where

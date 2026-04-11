@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Order {
-///     #[koruma(PositiveValidation::<_>)]
+///     #[koruma(PositiveValidation<_>)]
 ///     quantity: i32,
 /// }
 /// ```
@@ -38,7 +38,7 @@ pub struct PositiveValidation<T: Numeric> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Numeric> Validate<T> for PositiveValidation<T> {

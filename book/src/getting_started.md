@@ -31,7 +31,7 @@ use std::fmt;
 #[derive(Clone, Debug)]
 pub struct NonEmptyStringValidation {
     #[koruma(value)]
-    pub input: String,
+    input: String,
 }
 
 impl Validate<String> for NonEmptyStringValidation {
@@ -62,6 +62,9 @@ if let Err(errors) = user.validate() {
     }
 }
 ```
+
+If you want to inspect the captured input on a validator error, call the generated getter that
+matches the `#[koruma(value)]` field name.
 
 The following chapters expand this pattern and show how to build richer validators and more useful
 error reporting.

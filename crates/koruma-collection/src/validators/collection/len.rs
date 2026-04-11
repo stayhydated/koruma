@@ -12,7 +12,7 @@ use super::HasLen;
 ///
 /// #[derive(Koruma)]
 /// struct Order {
-///     #[koruma(LenValidation::<_>(min = 1, max = 5))]
+///     #[koruma(LenValidation<_>(min = 1, max = 5))]
 ///     items: Vec<String>,
 /// }
 /// ```
@@ -44,7 +44,7 @@ pub struct LenValidation<T: HasLen> {
     /// The collection being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {

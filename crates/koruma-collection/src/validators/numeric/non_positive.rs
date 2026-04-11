@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Debit {
-///     #[koruma(NonPositiveValidation::<_>)]
+///     #[koruma(NonPositiveValidation<_>)]
 ///     amount: f64,
 /// }
 /// ```
@@ -38,7 +38,7 @@ pub struct NonPositiveValidation<T: Numeric> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: Numeric> Validate<T> for NonPositiveValidation<T> {

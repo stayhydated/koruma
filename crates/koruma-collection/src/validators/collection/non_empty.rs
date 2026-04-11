@@ -14,7 +14,7 @@ use super::HasLen;
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(NonEmptyValidation::<_>)]
+///     #[koruma(NonEmptyValidation<_>)]
 ///     name: String,
 /// }
 /// ```
@@ -40,7 +40,7 @@ pub struct NonEmptyValidation<T: HasLen> {
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    pub actual: T,
+    actual: T,
 }
 
 impl<T: HasLen + Clone> Validate<T> for NonEmptyValidation<T> {

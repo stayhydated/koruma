@@ -7,7 +7,7 @@
 ## Modules
 
 - `crates/koruma-derive-core/src/parse.rs`: parsing logic and data types for validators, field options, struct options, and showcase metadata.
-- `crates/koruma-derive-core/src/utils.rs`: type helpers (Option/Vec inference, turbofish substitution).
+- `crates/koruma-derive-core/src/utils.rs`: type helpers (Option/Vec inference and placeholder substitution).
 - `crates/koruma-derive-core/src/tests`: snapshot coverage for parsing behavior.
 
 ## Data model
@@ -24,7 +24,7 @@
 - `parse_field` merges multiple `#[koruma(...)]` attributes, handles `skip`, `nested`, `newtype`, and `each(...)`, and detects duplicate validators.
 - `parse_struct_options` reads struct-level `#[koruma(...)]` options (`try_new`, `newtype`).
 - `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
-- Turbofish syntax (`Validator::<_>`) drives type inference and substitution.
+- Generic validator bindings use shorthand angle brackets (`Validator<_>`) for type inference and substitution.
 - `find_value_field` locates `#[koruma(value)]` for validator structs.
 - `find_showcase_attr` (feature `internal-showcase`) parses showcase metadata on validators.
 

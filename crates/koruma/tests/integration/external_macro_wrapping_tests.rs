@@ -17,7 +17,7 @@ pub struct Age {
 /// This works correctly in Koruma today
 #[derive(Koruma)]
 pub struct ExplicitOptionForm {
-    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    #[koruma(newtype, RequiredValidation<Option<_>>)]
     pub age: Option<Age>,
 }
 

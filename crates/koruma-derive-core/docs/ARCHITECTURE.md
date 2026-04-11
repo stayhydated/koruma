@@ -24,7 +24,7 @@
 - `parse_field` merges multiple `#[koruma(...)]` attributes, handles `skip`, `nested`, `newtype`, and `each(...)`, and detects duplicate validators.
 - `parse_struct_options` reads struct-level `#[koruma(...)]` options (`try_new`, `newtype`).
 - `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
-- Generic validator bindings can use either shorthand (`Validator<_>`) or turbofish (`Validator::<_>`) syntax for type inference and substitution.
+- Generic validator bindings use shorthand angle brackets (`Validator<_>`) for type inference and substitution.
 - `find_value_field` locates `#[koruma(value)]` for validator structs.
 - `find_showcase_attr` (feature `internal-showcase`) parses showcase metadata on validators.
 

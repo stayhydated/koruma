@@ -36,7 +36,7 @@ fn validator_attr_helpers_and_error_paths() {
         .expect("expected shorthand generic syntax to parse");
     assert!(shorthand_with_spaces.uses_type_inference());
 
-    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<i32, u32>");
+    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<i32, u32>");
     assert!(
         too_many_types
             .err()
@@ -45,13 +45,22 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("exactly one type argument")
     );
 
-    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<1>");
+    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<1>");
     assert!(
         non_type_generic
             .err()
             .expect("expected parse error")
             .to_string()
             .contains("expects a type argument")
+    );
+
+    let turbofish: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<_>");
+    assert!(
+        turbofish
+            .err()
+            .expect("expected turbofish syntax to be rejected")
+            .to_string()
+            .contains("use angle bracket syntax `<...>`")
     );
 
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("std::ops::Fn(i32)");

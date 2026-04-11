@@ -14,14 +14,12 @@ use syn::{
 use syn_cfg_attr::AttributeHelpers;
 
 /// Represents a single parsed validator: `ValidatorName(arg = value, ...)`,
-/// `ValidatorName<_>(arg = value, ...)`, `ValidatorName::<_>(arg = value, ...)`,
-/// `ValidatorName<SomeType>(arg = value, ...)`, or
-/// `ValidatorName::<SomeType>(arg = value, ...)`.
+/// `ValidatorName<_>(arg = value, ...)`, or `ValidatorName<SomeType>(arg = value, ...)`.
 /// Also supports fully-qualified paths like `module::path::ValidatorName<_>`.
 ///
-/// Supports both angle bracket syntax (`<>`) and turbofish syntax (`::<>`) for
-/// type parameters, which keeps the attribute surface compact while still
-/// naturally handling nested generics like `Validator<Option<Vec<T>>>`.
+/// Uses angle bracket syntax (`<>`) for type parameters, which keeps the
+/// attribute surface compact while still naturally handling nested generics
+/// like `Validator<Option<Vec<T>>>`.
 ///
 /// # Examples
 ///
@@ -43,8 +41,8 @@ pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
     /// Examples: `StringLengthValidation`, `validators::normal::NumberRangeValidation`
     pub validator: Path,
-    /// Whether the validator uses generic placeholder syntax like `<_>` or `::<_>`
-    /// for type inference from the field type.
+    /// Whether the validator uses generic placeholder syntax like `<_>` for type
+    /// inference from the field type.
     /// When true, the field type is used (unwrapping Option if present).
     pub infer_type: bool,
     /// Explicit type parameter if specified (e.g., `<f64>`, `<Vec<_>>`)
@@ -72,7 +70,7 @@ impl ValidatorAttr {
         !self.args.is_empty()
     }
 
-    /// Returns whether this validator uses type inference (`<_>` or `::<_>` syntax).
+    /// Returns whether this validator uses type inference (`<_>` syntax).
     pub fn uses_type_inference(&self) -> bool {
         self.infer_type
     }
@@ -85,18 +83,28 @@ impl ValidatorAttr {
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Parse validator path first; syn captures turbofish as arguments on the final
-        // segment, while bare `<...>` generic args remain in the token stream.
+        // Parse validator path first; bare `<...>` generic args remain in the token
+        // stream, while turbofish `::<...>` is captured on the final path segment.
         let mut validator: Path = input.parse()?;
+        let validator_span = validator.span();
+        let last_segment = validator
+            .segments
+            .last_mut()
+            .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
 
-        // Support `Validator<_>` in addition to `Validator::<_>`.
+        if let PathArguments::AngleBracketed(angle_args) = &last_segment.arguments
+            && angle_args.colon2_token.is_some()
+        {
+            return Err(Error::new(
+                angle_args.span(),
+                "use angle bracket syntax `<...>` instead of turbofish `::<...>` in `#[koruma(...)]`",
+            ));
+        }
+
+        // Support `Validator<_>` by attaching the parsed generic args to the last
+        // path segment before extracting them into `ValidatorAttr`.
         if input.peek(Token![<]) {
             let angle_args: syn::AngleBracketedGenericArguments = input.parse()?;
-            let validator_span = validator.span();
-            let last_segment = validator
-                .segments
-                .last_mut()
-                .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
 
             if !matches!(last_segment.arguments, PathArguments::None) {
                 return Err(Error::new(
@@ -108,12 +116,11 @@ impl Parse for ValidatorAttr {
             last_segment.arguments = PathArguments::AngleBracketed(angle_args);
         }
 
-        // Check for generic syntax: `<_>`, `::<_>`, `<SomeType>`, or `::<SomeType>`.
+        // Check for generic syntax: `<_>` or `<SomeType>`.
         // `<_>` means "use the field type" (unwrapping Option if present).
         // `<Option<_>>` means "use the full Option type" (without unwrapping).
         // `<Vec<_>>` means "substitute _ with the inner type from the field".
         let (infer_type, explicit_type) = {
-            let validator_span = validator.span();
             let last_segment = validator
                 .segments
                 .last_mut()

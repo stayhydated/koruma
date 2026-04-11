@@ -136,7 +136,7 @@ fn test_parse_field_with_single_validator() {
 #[test]
 fn test_parse_field_with_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange::<_>(min = 0.0, max = 1.0))]
+        #[koruma(GenericRange<_>(min = 0.0, max = 1.0))]
         pub score: f64
     };
 

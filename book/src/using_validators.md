@@ -9,7 +9,7 @@ use koruma::{Koruma, KorumaAllDisplay};
 
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::<_>(min = 0, max = 100))]
+    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -38,7 +38,7 @@ match item.validate() {
 }
 ```
 
-Use `TypeName::<_>(...)` when the validator is generic and Rust can infer the missing type
+Use `TypeName<_>(...)` when the validator is generic and Rust can infer the missing type
 parameter. If a field has no `#[koruma(...)]` attribute, `koruma` does not validate it.
 
 For fields with more than one validator, `koruma` generates accessors for each validator as well as

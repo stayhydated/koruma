@@ -13,12 +13,15 @@ use syn::{
 
 use syn_cfg_attr::AttributeHelpers;
 
-/// Represents a single parsed validator: `ValidatorName(arg = value, ...)` or
-/// `ValidatorName::<_>(arg = value, ...)` or `ValidatorName::<SomeType>(arg = value, ...)`
-/// Also supports fully-qualified paths like `module::path::ValidatorName::<_>`.
+/// Represents a single parsed validator: `ValidatorName(arg = value, ...)`,
+/// `ValidatorName<_>(arg = value, ...)`, `ValidatorName::<_>(arg = value, ...)`,
+/// `ValidatorName<SomeType>(arg = value, ...)`, or
+/// `ValidatorName::<SomeType>(arg = value, ...)`.
+/// Also supports fully-qualified paths like `module::path::ValidatorName<_>`.
 ///
-/// Uses turbofish syntax (`::<>`) for type parameters, which simplifies parsing
-/// and naturally handles nested generics like `Validator::<Option<Vec<T>>>`.
+/// Supports both angle bracket syntax (`<>`) and turbofish syntax (`::<>`) for
+/// type parameters, which keeps the attribute surface compact while still
+/// naturally handling nested generics like `Validator<Option<Vec<T>>>`.
 ///
 /// # Examples
 ///
@@ -27,32 +30,32 @@ use syn_cfg_attr::AttributeHelpers;
 /// #[koruma(NonEmptyValidation)]
 ///
 /// // Validator with type inference
-/// #[koruma(RangeValidation::<_>(min = 0, max = 100))]
+/// #[koruma(RangeValidation<_>(min = 0, max = 100))]
 ///
 /// // Validator with explicit type
-/// #[koruma(RangeValidation::<i32>(min = 0, max = 100))]
+/// #[koruma(RangeValidation<i32>(min = 0, max = 100))]
 ///
 /// // Full path
-/// #[koruma(validators::numeric::RangeValidation::<_>(min = 0))]
+/// #[koruma(validators::numeric::RangeValidation<_>(min = 0))]
 /// ```
 #[derive(Clone, Debug)]
 pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
     /// Examples: `StringLengthValidation`, `validators::normal::NumberRangeValidation`
     pub validator: Path,
-    /// Whether the validator uses `::<_>` syntax for type inference from field type.
+    /// Whether the validator uses generic placeholder syntax like `<_>` or `::<_>`
+    /// for type inference from the field type.
     /// When true, the field type is used (unwrapping Option if present).
     pub infer_type: bool,
-    /// Explicit type parameter if specified (e.g., `::<f64>`, `::<Vec<_>>`)
+    /// Explicit type parameter if specified (e.g., `<f64>`, `<Vec<_>>`)
     /// If this contains `_`, it will be substituted with the inner type from the field.
-    /// Use `::<Option<_>>` to get the full Option type without unwrapping.
+    /// Use `<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<Type>,
     /// Key-value argument pairs passed to the validator.
     pub args: Vec<(Ident, Expr)>,
 }
 
 impl ValidatorAttr {
-    const USE_TURBO_SYNTAX_MSG: &'static str = "use turbofish syntax `::<_>` to infer the type";
     /// Returns the simple name of the validator (the last segment of the path).
     /// Used for generating field names and enum variants.
     pub fn name(&self) -> &Ident {
@@ -69,7 +72,7 @@ impl ValidatorAttr {
         !self.args.is_empty()
     }
 
-    /// Returns whether this validator uses type inference (`::<_>` syntax).
+    /// Returns whether this validator uses type inference (`<_>` or `::<_>` syntax).
     pub fn uses_type_inference(&self) -> bool {
         self.infer_type
     }
@@ -82,13 +85,33 @@ impl ValidatorAttr {
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Parse validator path first; syn captures turbofish as arguments on the final segment.
+        // Parse validator path first; syn captures turbofish as arguments on the final
+        // segment, while bare `<...>` generic args remain in the token stream.
         let mut validator: Path = input.parse()?;
 
-        // Check for turbofish generic syntax: ::<_> or ::<SomeType>
-        // ::<_> means "use the field type" (unwrapping Option if present)
-        // ::<Option<_>> means "use the full Option type" (without unwrapping)
-        // ::<Vec<_>> means "substitute _ with the inner type from the field"
+        // Support `Validator<_>` in addition to `Validator::<_>`.
+        if input.peek(Token![<]) {
+            let angle_args: syn::AngleBracketedGenericArguments = input.parse()?;
+            let validator_span = validator.span();
+            let last_segment = validator
+                .segments
+                .last_mut()
+                .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
+
+            if !matches!(last_segment.arguments, PathArguments::None) {
+                return Err(Error::new(
+                    angle_args.span(),
+                    "validator type syntax can only appear once",
+                ));
+            }
+
+            last_segment.arguments = PathArguments::AngleBracketed(angle_args);
+        }
+
+        // Check for generic syntax: `<_>`, `::<_>`, `<SomeType>`, or `::<SomeType>`.
+        // `<_>` means "use the field type" (unwrapping Option if present).
+        // `<Option<_>>` means "use the full Option type" (without unwrapping).
+        // `<Vec<_>>` means "substitute _ with the inner type from the field".
         let (infer_type, explicit_type) = {
             let validator_span = validator.span();
             let last_segment = validator
@@ -99,18 +122,8 @@ impl Parse for ValidatorAttr {
             // Strip generic args from stored validator path and parse them into fields.
             let args = std::mem::replace(&mut last_segment.arguments, PathArguments::None);
             match args {
-                PathArguments::None => {
-                    // User used old syntax without ::, give helpful error.
-                    if input.peek(Token![<]) {
-                        return Err(Error::new(input.span(), Self::USE_TURBO_SYNTAX_MSG));
-                    }
-                    (false, None)
-                },
+                PathArguments::None => (false, None),
                 PathArguments::AngleBracketed(mut angle_args) => {
-                    if angle_args.colon2_token.is_none() {
-                        return Err(Error::new(angle_args.span(), Self::USE_TURBO_SYNTAX_MSG));
-                    }
-
                     if angle_args.args.len() != 1 {
                         return Err(Error::new(
                             angle_args.span(),

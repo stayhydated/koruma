@@ -23,10 +23,10 @@ pub struct Item {
 /// The type parameter is inferred from the field type using `<_>` syntax!
 #[derive(Koruma)]
 pub struct GenericItem {
-    #[koruma(GenericRangeValidation::<_>(min = -10.0, max = 100.0))]
+    #[koruma(GenericRangeValidation<_>(min = -10.0, max = 100.0))]
     pub score: f64,
 
-    #[koruma(GenericRangeValidation::<_>(min = 0, max = 1000))]
+    #[koruma(GenericRangeValidation<_>(min = 0, max = 1000))]
     pub points: u32,
 }
 
@@ -52,7 +52,7 @@ pub struct MultiAttrItem {
 #[derive(Koruma)]
 pub struct Order {
     // Each score in the list must be in range 0-100
-    #[koruma(each(GenericRangeValidation::<_>(min = 0.0, max = 100.0)))]
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
     pub scores: Vec<f64>,
 }
 
@@ -79,7 +79,7 @@ pub struct OrderWithLenCheck {
     // Vec must have 1-5 elements, AND each score must be in range 0-100
     // Note: VecLenValidation<T> expects T to be the inner type (f64), not Vec<f64>.
     // Use explicit type when the validator's generic param differs from the field type.
-    #[koruma(VecLenValidation::<f64>(min = 1, max = 5), each(GenericRangeValidation::<_>(min = 0.0, max = 100.0)))]
+    #[koruma(VecLenValidation<f64>(min = 1, max = 5), each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
     pub scores: Vec<f64>,
 }
 
@@ -173,14 +173,14 @@ pub struct ContainsNewtype {
 /// This tests the new functionality where newtype fields can have additional validators.
 #[derive(Koruma)]
 pub struct ContainsRequiredNewtype {
-    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    #[koruma(newtype, RequiredValidation<Option<_>>)]
     pub age: Option<PositiveNumber>,
 }
 
 /// Example struct containing an optional newtype field with multiple validators.
 #[derive(Koruma)]
 pub struct ContainsNewtypeWithValidators {
-    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    #[koruma(newtype, RequiredValidation<Option<_>>)]
     pub age: Option<PositiveNumber>,
     #[allow(dead_code)]
     pub name: String,

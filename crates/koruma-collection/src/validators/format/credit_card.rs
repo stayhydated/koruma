@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Payment {
-///     #[koruma(CreditCardValidation::<_>)]
+///     #[koruma(CreditCardValidation<_>)]
 ///     card_number: String,
 /// }
 /// ```

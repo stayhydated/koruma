@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(PatternValidation::<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
+///     #[koruma(PatternValidation<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
 ///     username: String,
 /// }
 /// ```

@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(AsciiValidation::<_>)]
+///     #[koruma(AsciiValidation<_>)]
 ///     username: String,
 /// }
 /// ```

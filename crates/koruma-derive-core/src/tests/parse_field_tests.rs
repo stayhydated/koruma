@@ -142,7 +142,7 @@ fn test_parse_field_direct_multiple_validators() {
 #[test]
 fn test_parse_field_direct_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange::<_>(min = 0.0, max = 1.0))]
+        #[koruma(GenericRange<_>(min = 0.0, max = 1.0))]
         pub score: f64
     };
 
@@ -216,7 +216,7 @@ fn test_parse_field_cfg_attr_multiple_validators() {
 #[test]
 fn test_parse_field_cfg_attr_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(GenericRange::<_>(min = 0.0, max = 1.0)))]
+        #[cfg_attr(feature = "validation", koruma(GenericRange<_>(min = 0.0, max = 1.0)))]
         pub score: f64
     };
 

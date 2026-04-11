@@ -147,7 +147,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllDisplay)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
@@ -182,7 +182,7 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///

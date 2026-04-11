@@ -111,7 +111,7 @@ use koruma::{Koruma, KorumaAllDisplay, Validate};
 
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::<_>(min = 0, max = 100))]
+    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -206,7 +206,7 @@ impl Validate<String> for NonEmptyStringValidation {
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation::<_>)]
+    #[koruma(IsEvenNumberValidation<_>)]
     pub id: i32,
 
     #[koruma(NonEmptyStringValidation)]
@@ -340,7 +340,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
+pub struct Only67u8(#[koruma(Only67Validation<_>)] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),

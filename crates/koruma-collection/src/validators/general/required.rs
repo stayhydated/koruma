@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 /// #[derive(Koruma)]
 /// struct User {
 ///     // <Option<_>> substitutes `_` with the inner type (String), giving Option<String>
-///     #[koruma(RequiredValidation::<Option<_>>)]
+///     #[koruma(RequiredValidation<Option<_>>)]
 ///     name: Option<String>,
 /// }
 /// ```

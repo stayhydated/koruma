@@ -106,7 +106,7 @@ pub fn contains_infer_type(ty: &Type) -> bool {
 /// Check if a type is `Option<_>` (Option wrapping an infer placeholder).
 ///
 /// This is used when a validator explicitly wants the full Option type,
-/// like `RequiredValidation::<Option<_>>`.
+/// like `RequiredValidation<Option<_>>`.
 ///
 /// # Examples
 ///

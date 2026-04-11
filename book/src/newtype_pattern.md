@@ -104,7 +104,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
+pub struct Only67u8(#[koruma(Only67Validation<_>)] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),

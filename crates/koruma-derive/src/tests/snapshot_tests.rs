@@ -80,7 +80,7 @@ fn test_koruma_expansion_multiple_validators() {
 fn test_koruma_expansion_generic_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct GenericItem {
-            #[koruma(GenericRangeValidation::<_>(min = 0.0, max = 100.0))]
+            #[koruma(GenericRangeValidation<_>(min = 0.0, max = 100.0))]
             pub score: f64,
         }
     };
@@ -93,7 +93,7 @@ fn test_koruma_expansion_generic_validator() {
 fn test_koruma_expansion_each() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Order {
-            #[koruma(each(GenericRangeValidation::<_>(min = 0.0, max = 100.0)))]
+            #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
             pub scores: Vec<f64>,
         }
     };
@@ -204,7 +204,7 @@ fn test_koruma_expansion_optional_with_generic() {
     // Optional field with generic validator
     let input: DeriveInput = syn::parse_quote! {
         pub struct Item {
-            #[koruma(GenericRange::<_>(min = 0, max = 100))]
+            #[koruma(GenericRange<_>(min = 0, max = 100))]
             pub score: Option<i32>,
         }
     };
@@ -217,10 +217,10 @@ fn test_koruma_expansion_optional_with_generic() {
 fn test_koruma_expansion_combined_field_and_element_validators() {
     // Combined: field-level validator (for Vec) + element validators (for each element)
     // Note: VecLenValidation<T> expects T to be the inner type, so we use explicit <i32>
-    // instead of ::<_> (which would give Vec<i32>).
+    // instead of <_> (which would give Vec<i32>).
     let input: DeriveInput = syn::parse_quote! {
         pub struct OrderWithLenCheck {
-            #[koruma(VecLenValidation::<i32>(min = 1, max = 10), each(RangeValidation::<_>(min = 0, max = 100)))]
+            #[koruma(VecLenValidation<i32>(min = 1, max = 10), each(RangeValidation<_>(min = 0, max = 100)))]
             pub scores: Vec<i32>,
         }
     };
@@ -234,7 +234,7 @@ fn test_koruma_expansion_only_element_validators() {
     // Only element validators (no field-level validators) - backwards compatible with existing each()
     let input: DeriveInput = syn::parse_quote! {
         pub struct Scores {
-            #[koruma(each(RangeValidation::<_>(min = 0, max = 100)))]
+            #[koruma(each(RangeValidation<_>(min = 0, max = 100)))]
             pub values: Vec<i32>,
         }
     };
@@ -363,7 +363,7 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
 fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct RichNewtypeField {
-            #[koruma(newtype, RequiredValidation::<Option<_>>, GenericRange::<_>(min = 0, max = 10), PlainValidation(min = 1))]
+            #[koruma(newtype, RequiredValidation<Option<_>>, GenericRange<_>(min = 0, max = 10), PlainValidation(min = 1))]
             pub wrapped: Option<WrappedValue>,
         }
     };
@@ -379,7 +379,7 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
 fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalMixedValidators {
-            #[koruma(RequiredValidation::<Option<_>>, GenericRange::<_>(min = 0, max = 10))]
+            #[koruma(RequiredValidation<Option<_>>, GenericRange<_>(min = 0, max = 10))]
             pub value: Option<i32>,
         }
     };
@@ -394,7 +394,7 @@ fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
 fn test_koruma_expansion_non_optional_field_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalMixedValidators {
-            #[koruma(RequiredValidation::<Option<_>>, GenericRange::<_>(min = 0, max = 10))]
+            #[koruma(RequiredValidation<Option<_>>, GenericRange<_>(min = 0, max = 10))]
             pub value: i32,
         }
     };
@@ -408,7 +408,7 @@ fn test_koruma_expansion_non_optional_field_with_full_and_unwrapped_validators()
 fn test_koruma_expansion_non_optional_field_with_only_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalFullOnlyValidator {
-            #[koruma(RequiredValidation::<Option<_>>)]
+            #[koruma(RequiredValidation<Option<_>>)]
             pub value: i32,
         }
     };
@@ -436,7 +436,7 @@ fn test_koruma_expansion_empty_koruma_attr_still_expands() {
 fn test_koruma_expansion_vec_option_each_with_explicit_infer_type() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct VecOptionElementValidators {
-            #[koruma(each(GenericRange::<Vec<_>>(min = 0, max = 10)))]
+            #[koruma(each(GenericRange<Vec<_>>(min = 0, max = 10)))]
             pub values: Vec<Option<i32>>,
         }
     };
@@ -640,7 +640,7 @@ fn test_koruma_expansion_try_from_named_field_struct() {
 fn test_koruma_expansion_try_from_generic() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype(try_from))]
-        pub struct Wrapper<T>(#[koruma(GenericRange::<_>(min = 0, max = 100))] pub T);
+        pub struct Wrapper<T>(#[koruma(GenericRange<_>(min = 0, max = 100))] pub T);
     };
 
     let expanded = expand_koruma(input).unwrap();
@@ -652,7 +652,7 @@ fn test_koruma_expansion_try_from_generic() {
 fn test_koruma_expansion_try_from_generic_with_bounds() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype(try_from))]
-        pub struct BoundedWrapper<T: Clone>(#[koruma(GenericRange::<_>(min = 0, max = 100))] pub T);
+        pub struct BoundedWrapper<T: Clone>(#[koruma(GenericRange<_>(min = 0, max = 100))] pub T);
     };
 
     let expanded = expand_koruma(input).unwrap();
@@ -664,7 +664,7 @@ fn test_koruma_expansion_try_from_generic_with_bounds() {
 fn test_koruma_expansion_try_from_generic_with_where_clause() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype(try_from))]
-        pub struct WhereWrapper<T>(#[koruma(GenericRange::<_>(min = 0, max = 100))] pub T) where T: Default;
+        pub struct WhereWrapper<T>(#[koruma(GenericRange<_>(min = 0, max = 100))] pub T) where T: Default;
     };
 
     let expanded = expand_koruma(input).unwrap();
@@ -677,7 +677,7 @@ fn test_koruma_expansion_try_from_option_field() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype(try_from))]
         pub struct OptionalWrapper {
-            #[koruma(newtype, RequiredValidation::<Option<_>>)]
+            #[koruma(newtype, RequiredValidation<Option<_>>)]
             pub inner: Option<InnerValue>,
         }
     };

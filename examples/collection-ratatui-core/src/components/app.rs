@@ -326,46 +326,46 @@ impl App {
 
     pub fn render(&self, frame: &mut Frame) {
         let area = frame.area();
-
-        let constraints = vec![
-            Constraint::Min(0),
-            Constraint::Length(3),
-            Constraint::Length(1),
-            Constraint::Length(3),
-            Constraint::Length(1),
-            Constraint::Length(3),
-            Constraint::Length(1),
-            Constraint::Length(3),
-            Constraint::Length(1),
-            Constraint::Length(3),
-            Constraint::Length(1),
-            Constraint::Length(3),
-            Constraint::Length(1),
-            Constraint::Length(2),
-            Constraint::Min(0),
-        ];
-
-        let vertical = Layout::vertical(constraints).split(area);
-
-        let horizontal = Layout::horizontal([
+        let content_area = Layout::horizontal([
             Constraint::Min(0),
             Constraint::Percentage(70),
             Constraint::Min(0),
-        ]);
+        ])
+        .split(area)[1];
 
-        let module_area = horizontal.split(vertical[1])[1];
-        let validator_area = horizontal.split(vertical[3])[1];
-        let input_area = horizontal.split(vertical[5])[1];
-        let display_area = horizontal.split(vertical[7])[1];
-        let fluent_area = horizontal.split(vertical[9])[1];
-        let help_area = horizontal.split(vertical[13])[1];
+        if area.height >= 16 {
+            let vertical = Layout::vertical([
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Min(3),
+                Constraint::Min(3),
+                Constraint::Length(1),
+            ])
+            .split(content_area);
 
-        self.render_module_selector(frame, module_area);
-        self.render_validator_selector(frame, validator_area);
-        self.render_input(frame, input_area);
-        self.render_display_output(frame, display_area);
-        self.render_fluent_output(frame, fluent_area);
-        self.render_help(frame, help_area);
+            self.render_module_selector(frame, vertical[0]);
+            self.render_validator_selector(frame, vertical[1]);
+            self.render_input(frame, vertical[2]);
+            self.render_display_output(frame, vertical[3]);
+            self.render_fluent_output(frame, vertical[4]);
+            self.render_help(frame, vertical[5]);
+        } else {
+            let vertical = Layout::vertical([
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Min(3),
+                Constraint::Length(1),
+            ])
+            .split(content_area);
+
+            self.render_module_selector(frame, vertical[0]);
+            self.render_validator_selector(frame, vertical[1]);
+            self.render_input(frame, vertical[2]);
+            self.render_display_output(frame, vertical[3]);
+            self.render_help(frame, vertical[4]);
+        }
 
         if self.show_module_dialog {
             self.render_module_dialog(frame, area);

@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - crowdin.yml
-      - crates/koruma-collection/i18n/en/**/*.ftl
+      - crates/koruma-collection/i18n/**/*.ftl
   workflow_dispatch:
 
 permissions:
@@ -18,12 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Upload sources to Crowdin
+      - name: Upload sources and translations to Crowdin
         uses: crowdin/github-action@v2
         with:
           config: crowdin.yml
           upload_sources: true
-          upload_translations: false
+          upload_translations: true
           download_translations: false
           push_sources: false
           push_translations: false

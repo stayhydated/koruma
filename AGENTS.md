@@ -1,86 +1,190 @@
-# Project Overview
+# AGENTS.md
 
-`koruma` is a per-field validation framework written in Rust, focused on:
+This file is the working guide for contributors and coding agents in the `koruma` workspace.
 
-1. **Type Safety**: Strongly typed validation error structs generated at compile time.
-1. **Ergonomics**: Derive macros and validator attributes that minimize boilerplate.
-1. **Developer Experience**: Optional constructors, nested/newtype validation, and fluent/i18n hooks.
+Use it to answer three questions quickly:
 
-## Architecture Documentation Index
+1. Where does this documentation belong?
+2. Which crates are the default entry points vs integration points vs internals?
+3. What other surfaces must be updated in the same change?
 
-| Folder                      | Link to Architecture Doc                                       | Purpose                                                                                             |
-| --------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Core**                    |                                                                |                                                                                                     |
-| `crates/koruma`             | [Architecture](crates/koruma/docs/ARCHITECTURE.md)             | Public facade crate, re-exports core traits and derive macros, defines feature gates.               |
-| `crates/koruma-core`        | [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)        | Core traits and optional showcase registry types.                                                   |
-| **Derive & Parsing**        |                                                                |                                                                                                     |
-| `crates/koruma-derive-core` | [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md) | Attribute parsing and utilities shared by derive macros.                                            |
-| `crates/koruma-derive`      | [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)      | Proc-macros for validators, error structs, and helper derives.                                      |
-| **Validator Collection**    |                                                                |                                                                                                     |
-| `crates/koruma-collection`  | [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)  | Built-in validators with optional i18n with [Project Fluent](https://projectfluent.org/) resources. |
-| **Automation**              |                                                                |                                                                                                     |
-| `xtask`                     | [Architecture](xtask/docs/ARCHITECTURE.md)                     | Rust task runner                                                                                    |
-| **Examples**                |                                                                |                                                                                                     |
-| `examples/collection-*`     |                                                                | Interactive TUI/UI showcasing validators via the `internal-showcase` feature.                       |
-| `examples/shared-lib`       |                                                                | Workspace example sharing validators across crates.                                                 |
-| `examples/i18n`             |                                                                | Shared Fluent translation assets for examples.                                                      |
-| `examples/readme`           |                                                                | Canonical executable docs examples. Keep in sync with root `README.md` and `book`                   |
-| **Web**                     |                                                                |                                                                                                     |
-| `web`                       |                                                                | Astro-based site for GitHub Pages. Hosts WASM-compiled examples as live demos and the mdBook        |
-| `book`                      |                                                                | mdBook that shows usage of the user-facing crates                                                   |
+## Project summary
 
-## Crate Descriptions
+`koruma` is a Rust validation ecosystem centered on per-field validation.
 
-### Core Layers
+Its priorities are:
 
-- **`koruma`**: User-facing facade crate. Re-exports core traits, derive macros, and the `bon` builder API.
-- **`koruma-core`**: Core validation traits plus optional showcase registry types.
+1. **Type safety**: keep validators, derived error types, and validation flows strongly typed.
+2. **Ergonomics**: make validator definitions and field annotations concise.
+3. **Developer experience**: support optional constructors, nested/newtype validation, built-in validators, and i18n.
 
-### Derive & Parsing
+For most application code, start with `crates/koruma`.
 
-- **`koruma-derive-core`**: Parses `#[koruma(...)]` attributes into a stable data model for macros and tooling.
-- **`koruma-derive`**: Proc-macros for `#[derive(Koruma)]`, `KorumaAllDisplay`, `KorumaAllFluent`, and `#[koruma::validator]`.
+Reach for `crates/koruma-collection` when you want built-in validators instead of defining your own.
 
-### Validator Collection
+## Audience labels
 
-- **`koruma-collection`**: Built-in validators (string, format, numeric, collection, general) with optional i18n assets with [Project Fluent](https://projectfluent.org/).
+These labels describe the crate or surface itself, not the documentation file you are editing:
 
-### Examples
+- **User-facing**: normal entry points for application developers.
+- **Public integration**: public crates meant for extensions, tooling, or deeper customization, but not usually the default starting point.
+- **Internal**: workspace plumbing, implementation detail, demos, and maintenance tooling.
 
-- **`examples/collection-*`**: Interactive TUI listing showcase-registered validators.
-- **`examples/readme`**: Canonical executable source for user-facing examples used by docs.
-- **`examples/shared-lib`**: Shared library example for cross-crate validation types.
-- **`examples/i18n`**: Fluent locale files used by examples.
+## Documentation rules
 
-### Web
+### User-facing documentation
 
-- **`web`**: An Astro-based static site for GitHub Pages. Hosts WASM-compiled examples with live interactive demos. The site is built via the `gh-pages.yml` workflow which compiles Rust examples to WASM and deploys them.
+These surfaces are user-facing:
 
-## Development
+- every `README.md` in the workspace,
+- the root `README.md`,
+- crate-level `README.md` files,
+- the mdBook under `book/`,
+- the public site under `web/`.
 
-**Docs**
+Even for public-integration or internal crates, a `README.md` should explain:
 
-- User-facing feature documentation must be example-first. Do not add prose-only guidance for behavior changes when a Rust snippet can demonstrate it.
+- who the crate is for,
+- what it does,
+- what most users should use instead.
+
+### Internal documentation
+
+Only `docs/ARCHITECTURE.md` files are internal documentation.
+
+Use them for:
+
+- macro expansion and parsing details,
+- subsystem boundaries,
+- data flow,
+- design rationale,
+- internal relationships.
+
+Do not put implementation detail into READMEs or the book.
+
+## Synchronization rules
+
+When changing a public workflow, feature flag story, validator inventory, validator message shape, or user-visible API shape:
+
+1. Update `examples/readme` when relevant.
+2. Update the affected user-facing `README.md` files.
+3. Update the matching `book/src/*.md` pages.
+4. Keep these surfaces aligned in the same change unless there is a documented reason not to.
+
+Additional rules:
+
+- User-facing documentation should be example-first.
+- Prefer a Rust snippet over prose-only explanations when showing behavior changes.
 - `examples/readme` is the canonical source of truth for usage examples.
-- Keep example behavior and API shape synchronized across `examples/readme` (executable examples), root `README.md` (copied/adapted snippets), and `book/src/*.md` (mdBook narrative + snippets).
-- Keep `crates/koruma-collection/README.md` and the `book/src/koruma_collection.md` chapter synchronized when validator inventory, feature flags, or usage guidance changes.
-- When updating one of those three surfaces, update the other relevant surfaces in the same change set unless there is a documented reason not to.
+- Keep `crates/koruma-collection/README.md` and `book/src/koruma_collection.md` synchronized when validator inventory, feature flags, or usage guidance changes.
 
-**Rust**
+## Workspace map
 
-- Use `cargo` for building, testing, and running Rust code. In this workspace, keep dependency versions in the workspace root `Cargo.toml` and use `workspace = true` in member crates. Each crate is responsible for selecting the correct dependency `features` in its own `Cargo.toml`.
-- Reserve `path` dependencies for the root `Cargo.toml` and for examples (e.g., example-to-example helpers). Non-example crates should reference other workspace crates using `workspace = true` rather than explicit paths.
-- Use [insta](https://insta.rs/) for snapshot tests where appropriate, rather than complex assertion-based unit tests.
-- Prefer raw multiline strings (or `quote! { ... }` in macro contexts) over escaped single-line literals when embedding Rust code in tests.
+### Main user-facing entry points
 
-**JavaScript**
+- `crates/koruma`
+  Audience: **User-facing**
+  Docs: [Architecture](crates/koruma/docs/ARCHITECTURE.md)
+  Role: workspace facade, default entry point, and home of the public feature gates. Re-exports core traits, derive macros, and the `bon` builder API.
+
+- `crates/koruma-collection`
+  Audience: **User-facing**
+  Docs: [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)
+  Role: curated validator library organized by domain (`string`, `format`, `numeric`, `collection`, `general`) with optional Fluent-based i18n.
+
+### Public integration crates
+
+- `crates/koruma-core`
+  Audience: **Public integration**
+  Docs: [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)
+  Role: foundational validation traits, validation error interfaces, nested/newtype support, and optional showcase registry types. Most application users should start with `koruma` instead.
+
+- `crates/koruma-derive`
+  Audience: **Public integration**
+  Docs: [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)
+  Role: proc-macro crate for `#[derive(Koruma)]`, `KorumaAllDisplay`, `KorumaAllFluent`, and `#[koruma::validator]`. Most users should depend on `koruma` instead of this crate directly.
+
+- `crates/koruma-derive-core`
+  Audience: **Public integration**
+  Docs: [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md)
+  Role: parsing layer for `#[koruma(...)]` metadata shared by derive macros and tooling. Most application users should not depend on it directly.
+
+### Internal tooling
+
+- `xtask`
+  Audience: **Internal**
+  Docs: [Architecture](xtask/docs/ARCHITECTURE.md)
+  Role: workspace maintenance tooling.
+
+  Key commands:
+
+  - `sync-display-ftl`: syncs English FTL message templates with `Display` implementations in `koruma-collection` validators.
+  - `build-book`: builds the mdBook into `web/public/book`.
+  - `build-llms-txt`: concatenates mdBook sources into `web/public/llms.txt`.
+
+### Examples and web surfaces
+
+- `examples/readme`
+  Canonical executable documentation examples. Keep this aligned with the root `README.md` and the book.
+
+- `examples/shared-lib`
+  Shared example library used by the documentation example and showcase demos.
+
+- `examples/i18n`
+  Shared Fluent translation assets used by the examples.
+
+- `examples/collection-ratatui-core`
+  Shared ratatui showcase logic used by the native and web demos.
+
+- `examples/collection-ratatui-native`
+  Native ratatui showcase app for browsing registered validators.
+
+- `examples/collection-ratatui-web`
+  WebAssembly ratatui showcase app.
+
+- `examples/collection-dioxus-web`
+  Dioxus-based web showcase app.
+
+- `web`
+  Audience: **User-facing**
+  Role: Astro-based GitHub Pages site hosting demos and the mdBook.
+
+- `book`
+  Audience: **User-facing**
+  Role: mdBook for public workflows, validator usage, nested/newtype patterns, i18n integration, and `koruma-collection`.
+
+## Working rules by change type
+
+### When editing docs
+
+- Keep READMEs and the book user-facing.
+- Move parsing internals, macro expansion details, and subsystem design into `docs/ARCHITECTURE.md`.
+- Prefer examples over prose-only explanations.
+- Sync `examples/readme`, relevant READMEs, and book pages in the same change.
+- For validator catalog or feature-flag changes, update both `crates/koruma-collection/README.md` and `book/src/koruma_collection.md`.
+
+### When editing Rust crates
+
+- Use `cargo` for build, test, and run tasks.
+- Keep dependency versions in the workspace root `Cargo.toml`.
+- Use `workspace = true` in member crates.
+- Let each crate choose its own dependency features in its own `Cargo.toml`.
+- Use `path` dependencies only in the root `Cargo.toml` and in examples.
+- Non-example crates should reference workspace crates with `workspace = true`, not explicit paths.
+
+### When editing validators or validator messages
+
+- Add validators under `crates/koruma-collection/src/validators/` and re-export them from the appropriate module.
+- Add or update localized messages under `crates/koruma-collection/i18n/` when Fluent support is in use.
+- Keep English FTL message templates and `Display` implementations aligned.
+- Keep showcase metadata and showcase demos aligned when `internal-showcase` behavior changes.
+
+### When writing tests
+
+- Prefer [insta](https://insta.rs/) for snapshot tests when it fits better than assertion-heavy unit tests.
+- Prefer raw multiline strings, or `quote! { ... }` in macro contexts, over escaped single-line literals for embedded Rust code.
+
+### When editing JavaScript or web tooling
 
 - Use [bun](https://bun.com/) for dependency management.
-- [turborepo](https://turborepo.org/) is used as the build system.
-
-## Skills
-
-| Item      | Link to llms.txt                                 | Link to llms-full.txt                                 | Purpose |
-| --------- | ------------------------------------------------ | ----------------------------------------------------- | ------- |
-| **Crate** |                                                  |                                                       |         |
-| es-fluent | https://stayhydated.github.io/es-fluent/llms.txt | https://stayhydated.github.io/es-fluent/llms-full.txt | i18n    |
+- Use [turborepo](https://turborepo.org/) as the build system.

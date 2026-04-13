@@ -1,0 +1,39 @@
+name: crowdin-sync
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: crowdin-sync
+  cancel-in-progress: true
+
+jobs:
+  sync-translations:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download translations from Crowdin
+        uses: crowdin/github-action@v2
+        with:
+          upload_sources: false
+          upload_translations: false
+          download_translations: true
+          push_sources: false
+          localization_branch_name: l10n_crowdin_translations
+          commit_message: "chore(i18n): sync Crowdin translations"
+          create_pull_request: true
+          pull_request_title: "chore(i18n): sync Crowdin translations"
+          pull_request_body: "Automated translation sync from Crowdin."
+          pull_request_base_branch_name: master
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
+          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

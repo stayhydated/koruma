@@ -1,7 +1,10 @@
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env: CROWDIN_PERSONAL_TOKEN
+base_path: .
+
 preserve_hierarchy: true
 
 files:
   - source: /crates/koruma-collection/i18n/en/**/*.ftl
     translation: /crates/koruma-collection/i18n/%locale%/koruma-collection/%original_file_name%
     skip_untranslated_strings: true
-    skip_untranslated_files: true

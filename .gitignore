@@ -5,6 +5,7 @@ target/
 .ruff_cache
 .ropeproject
 *.snap.new
+.env
 
 # Node/Bun
 node_modules/

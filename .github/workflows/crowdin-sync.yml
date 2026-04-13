@@ -23,6 +23,7 @@ jobs:
       - name: Download translations from Crowdin
         uses: crowdin/github-action@v2
         with:
+          config: crowdin.yml
           upload_sources: false
           upload_translations: false
           download_translations: true
@@ -33,7 +34,7 @@ jobs:
           pull_request_title: "chore(i18n): sync Crowdin translations"
           pull_request_body: "Automated translation sync from Crowdin."
           pull_request_base_branch_name: master
+          project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
+          token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
-          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

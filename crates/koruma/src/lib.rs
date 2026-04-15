@@ -7,7 +7,8 @@ pub mod bon {
 }
 
 pub use koruma_core::{
-    BuilderWithValue, NewtypeValidation, Validate, ValidateExt, ValidationError,
+    BuilderWithValue, BuilderWithValueRef, NewtypeValidation, Validate, ValidateExt,
+    ValidationError,
 };
 
 #[cfg(feature = "derive")]

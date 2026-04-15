@@ -18,14 +18,27 @@ use koruma::{Validate, validator};
 ///
 /// Validates that a value is present (not None for Option types).
 #[validator]
-#[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "general"))]
 pub struct RequiredValidation<T> {
-    /// The value being validated (stored for error context)
-    #[koruma(value)]
+    /// Presence-only validation does not need to retain the input in errors.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
+}
+
+impl<T> Clone for RequiredValidation<T> {
+    fn clone(&self) -> Self {
+        Self { actual: None }
+    }
+}
+
+impl<T> std::fmt::Debug for RequiredValidation<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RequiredValidation")
+            .field("actual", &"<skipped>")
+            .finish()
+    }
 }
 
 impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {

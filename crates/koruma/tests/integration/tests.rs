@@ -5,8 +5,9 @@ use koruma::{Validate, ValidationError};
 use super::fixtures::{
     Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
     ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
-    MultiAttrItem, MultiValidatorItem, OptionalBorrowedOrder, OptionalOrder, Order,
-    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, StaticSecretConfirmation, UserProfile,
+    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
+    StaticSecretConfirmation, UserProfile,
 };
 use super::validators::GenericRangeValidation;
 
@@ -241,6 +242,25 @@ fn test_multi_attr_odd() {
 
     assert!(err.value().number_range_validation().is_none()); // 51 is in range
     assert!(err.value().even_number_validation().is_some());
+}
+
+#[test]
+fn test_required_validation_supports_non_clone_option_payload() {
+    let valid = PresenceOnlyNonClone {
+        token: Some(NonCloneSecret {
+            raw: "secret".to_string(),
+        }),
+    };
+    assert!(valid.validate().is_ok());
+    assert_eq!(
+        valid.token.as_ref().map(|secret| secret.raw.as_str()),
+        Some("secret")
+    );
+
+    let missing = PresenceOnlyNonClone { token: None };
+    let err = missing.validate().unwrap_err();
+    let validation = err.token().required_validation().unwrap();
+    assert!(validation.actual().is_none());
 }
 
 #[test]

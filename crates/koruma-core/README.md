@@ -10,6 +10,6 @@ Core traits and types for the `koruma` validation ecosystem. Most users should d
 
 - `Validate<T>`: implemented by validator structs.
 - `ValidationError`: implemented by generated error structs.
-- `BuilderWithValue<T>`: implemented by `#[koruma::validator]` builders for `with_value()`.
+- `BuilderWithValue<T>`: helper trait for owned-value builder APIs.
 - `ValidateExt`: used for nested/newtype validation.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.

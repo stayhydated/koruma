@@ -105,8 +105,10 @@ impl OptionalWrapper {
         >(v: &V, t: &T) -> bool {
             v.validate(t)
         }
-        let validator = RequiredValidation::<Option<InnerValue>>::builder()
-            .with_value(self.inner.clone())
+        let validator = koruma::BuilderWithValueRef::with_value_ref(
+                RequiredValidation::<Option<InnerValue>>::builder(),
+                &self.inner,
+            )
             .build();
         if !__koruma_assert_validate_inner_required_validation_newtype_field(
             &validator,

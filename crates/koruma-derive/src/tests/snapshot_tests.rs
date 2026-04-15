@@ -135,6 +135,20 @@ fn test_validator_expansion_non_option_value() {
 }
 
 #[test]
+fn test_validator_expansion_skip_capture() {
+    let input: ItemStruct = syn::parse_quote! {
+        #[derive(Clone, Debug)]
+        pub struct PresenceOnlyValidation<T> {
+            #[koruma(value, skip_capture)]
+            actual: Option<T>,
+        }
+    };
+
+    let expanded = expand_validator(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
 fn test_koruma_expansion_validator_no_args() {
     // Validator with no arguments (like EvenNumberValidation)
     let input: DeriveInput = syn::parse_quote! {
@@ -390,8 +404,8 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("__koruma_assert_validate_wrapped_required_validation_newtype_field"));
-    assert!(compact.contains(".with_value(__newtype_value.clone())"));
-    assert!(compact.contains("letvalidator=PlainValidation::builder()"));
+    assert!(compact.contains("koruma::BuilderWithValueRef::with_value_ref("));
+    assert!(compact.contains("PlainValidation::builder().min(1)"));
 }
 
 #[test]

@@ -85,10 +85,10 @@ impl<T> Wrapper<T> {
         ) -> bool {
             v.validate(t)
         }
-        let validator = GenericRange::<T>::builder()
-            .min(0)
-            .max(100)
-            .with_value(__field_value.clone())
+        let validator = koruma::BuilderWithValueRef::with_value_ref(
+                GenericRange::<T>::builder().min(0).max(100),
+                __field_value,
+            )
             .build();
         if !__koruma_assert_validate__0_generic_range_field(&validator, __field_value) {
             error._0.generic_range = Some(validator);

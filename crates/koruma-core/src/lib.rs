@@ -25,10 +25,22 @@ pub trait ValidationError {
 
 /// Trait for validator builders that can receive the value being validated.
 ///
-/// This is auto-implemented by `#[koruma::validator]` to delegate to the
-/// field marked with `#[koruma(value)]`.
+/// This trait is useful for simple owned-value builder APIs.
 pub trait BuilderWithValue<T> {
     fn with_value(self, value: T) -> Self;
+}
+
+/// Hidden trait used by derived validation code to pass borrowed values into
+/// validator builders.
+///
+/// Validators that capture the input clone from the borrowed value inside the
+/// builder impl. Validators marked with `#[koruma(value, skip_capture)]` can
+/// ignore the borrowed input and keep their default value instead.
+#[doc(hidden)]
+pub trait BuilderWithValueRef<T> {
+    type Output;
+
+    fn with_value_ref(self, value: &T) -> Self::Output;
 }
 
 /// Trait for structs that derive `Koruma` and have a `validate()` method.

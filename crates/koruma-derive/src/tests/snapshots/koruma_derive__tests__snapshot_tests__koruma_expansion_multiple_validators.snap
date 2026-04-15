@@ -98,17 +98,19 @@ impl MultiValidatorItem {
         };
         let mut has_error = false;
         let __field_value = &self.value;
-        let validator = NumberRangeValidation::builder()
-            .min(0)
-            .max(100)
-            .with_value(__field_value.clone())
+        let validator = koruma::BuilderWithValueRef::with_value_ref(
+                NumberRangeValidation::builder().min(0).max(100),
+                __field_value,
+            )
             .build();
         if !validator.validate(__field_value) {
             error.value.number_range_validation = Some(validator);
             has_error = true;
         }
-        let validator = EvenNumberValidation::builder()
-            .with_value(__field_value.clone())
+        let validator = koruma::BuilderWithValueRef::with_value_ref(
+                EvenNumberValidation::builder(),
+                __field_value,
+            )
             .build();
         if !validator.validate(__field_value) {
             error.value.even_number_validation = Some(validator);

@@ -127,6 +127,19 @@ pub struct UserProfile {
     pub age: Option<i32>,
 }
 
+/// Example payload without Clone to exercise skip-capture validators.
+pub struct NonCloneSecret {
+    pub raw: String,
+}
+
+/// Example struct showing that RequiredValidation can validate Option<NonClone>
+/// without forcing clone capture in the derive expansion.
+#[derive(Koruma)]
+pub struct PresenceOnlyNonClone {
+    #[koruma(RequiredValidation<Option<_>>)]
+    pub token: Option<NonCloneSecret>,
+}
+
 /// Example struct demonstrating COMBINED collection-level AND per-element validation.
 /// The Vec length is validated, AND each element is also validated.
 #[derive(Koruma)]

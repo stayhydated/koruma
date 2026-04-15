@@ -1134,10 +1134,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                 fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
                                     v.validate(t)
                                 }
-                                let validator = #validator::<#validator_ty>::builder()
-                                    #(#builder_calls)*
-                                    .with_value(#value_expr.clone())
-                                    .build();
+                                let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                    #validator::<#validator_ty>::builder()
+                                        #(#builder_calls)*,
+                                    #ref_expr,
+                                )
+                                .build();
                                 if !#assert_fn(&validator, #ref_expr) {
                                     error.#field_name.#validator_snake = Some(validator);
                                     has_error = true;
@@ -1145,10 +1147,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             }
                         } else {
                             quote! {
-                                let validator = #validator::builder()
-                                    #(#builder_calls)*
-                                    .with_value(#value_expr.clone())
-                                    .build();
+                                let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                    #validator::builder()
+                                        #(#builder_calls)*,
+                                    #ref_expr,
+                                )
+                                .build();
                                 if !validator.validate(#ref_expr) {
                                     error.#field_name.#validator_snake = Some(validator);
                                     has_error = true;
@@ -1284,10 +1288,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
                                 v.validate(t)
                             }
-                            let validator = #validator::<#validator_ty>::builder()
-                                #(#builder_calls)*
-                                .with_value(#value_expr.clone())
-                                .build();
+                            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                #validator::<#validator_ty>::builder()
+                                    #(#builder_calls)*,
+                                #ref_expr,
+                            )
+                            .build();
                             if !#assert_fn(&validator, #ref_expr) {
                                 error.#field_name.#validator_snake = Some(validator);
                                 has_error = true;
@@ -1295,10 +1301,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         }
                     } else {
                         quote! {
-                            let validator = #validator::builder()
-                                #(#builder_calls)*
-                                .with_value(#value_expr.clone())
-                                .build();
+                            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                #validator::builder()
+                                    #(#builder_calls)*,
+                                #ref_expr,
+                            )
+                            .build();
                             if !validator.validate(#ref_expr) {
                                 error.#field_name.#validator_snake = Some(validator);
                                 has_error = true;
@@ -1307,9 +1315,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     }
                 };
 
-            // Generate checks for full-type validators (use field directly, no reference)
-            // Note: we pass the field expression without &, the closure adds .clone() for with_value
-            // and &... for validate()
+            // Generate checks for full-type validators (use field directly, no reference).
+            // The helper turns this into a borrowed value for both builder capture and validate().
             let full_type_checks: Vec<TokenStream2> = full_type_validators
                 .iter()
                 .map(|v| generate_validator_check(v, quote! { self.#field_member }, true))
@@ -1374,10 +1381,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                 fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
                                     v.validate(t)
                                 }
-                                let validator = #validator::<#validator_ty>::builder()
-                                    #(#builder_calls)*
-                                    .with_value(__item_value.clone())
-                                    .build();
+                                let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                    #validator::<#validator_ty>::builder()
+                                        #(#builder_calls)*,
+                                    __item_value,
+                                )
+                                .build();
                                 if !#assert_fn(&validator, __item_value) {
                                     element_error.#validator_snake = Some(validator);
                                     element_has_error = true;
@@ -1385,10 +1394,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             }
                         } else {
                             quote! {
-                                let validator = #validator::builder()
-                                    #(#builder_calls)*
-                                    .with_value(__item_value.clone())
-                                    .build();
+                                let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                    #validator::builder()
+                                        #(#builder_calls)*,
+                                    __item_value,
+                                )
+                                .build();
                                 if !validator.validate(__item_value) {
                                     element_error.#validator_snake = Some(validator);
                                     element_has_error = true;

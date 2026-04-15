@@ -3,8 +3,9 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    FieldInfo, ParseFieldResult, ValidationInfo, ValidatorAttr, find_value_field,
-    find_value_field_strict, parse_field, parse_struct_options,
+    FieldInfo, ParseFieldResult, ValidationInfo, ValidatorAttr, ValueFieldCapture,
+    find_value_field, find_value_field_info_strict, find_value_field_strict, parse_field,
+    parse_struct_options,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -111,6 +112,14 @@ fn find_value_field_name(input: &syn::ItemStruct) -> Option<String> {
 fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<Option<String>, String> {
     find_value_field_strict(input)
         .map(|value| value.map(|(name, _)| name.to_string()))
+        .map_err(|err| err.to_string())
+}
+
+fn find_value_field_capture_strict(
+    input: &syn::ItemStruct,
+) -> Result<Option<ValueFieldCapture>, String> {
+    find_value_field_info_strict(input)
+        .map(|value| value.map(|info| info.capture))
         .map_err(|err| err.to_string())
 }
 
@@ -487,10 +496,9 @@ fn test_find_value_field_strict_rejects_unknown_marker() {
     };
 
     let err = find_value_field_strict(&input).unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("validator fields only support `#[koruma(value)]`")
-    );
+    assert!(err.to_string().contains(
+        "validator fields only support `#[koruma(value)]` and `#[koruma(skip_capture)]`"
+    ));
 }
 
 #[test]
@@ -506,6 +514,71 @@ fn test_find_value_field_strict_still_returns_name() {
     assert_eq!(
         find_value_field_name_strict(&input).unwrap(),
         Some("actual".to_string())
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_supports_skip_capture() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            min: i32,
+            #[koruma(value, skip_capture)]
+            actual: Option<i32>,
+        }
+    };
+
+    assert_eq!(
+        find_value_field_capture_strict(&input).unwrap(),
+        Some(ValueFieldCapture::Skip)
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_supports_split_skip_capture_attrs() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(skip_capture)]
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    assert_eq!(
+        find_value_field_capture_strict(&input).unwrap(),
+        Some(ValueFieldCapture::Skip)
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_rejects_duplicate_skip_capture_markers() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(value, skip_capture)]
+            #[koruma(skip_capture)]
+            actual: Option<i32>,
+        }
+    };
+
+    let err = find_value_field_info_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("field `actual` has multiple `#[koruma(skip_capture)]` markers")
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_rejects_skip_capture_without_value() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(skip_capture)]
+            actual: Option<i32>,
+        }
+    };
+
+    let err = find_value_field_info_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("uses `#[koruma(skip_capture)]` but is missing `#[koruma(value)]`")
     );
 }
 

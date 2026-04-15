@@ -113,11 +113,24 @@ impl<T> VecLenValidation<T> {
 /// A validation rule that checks if a value is present (not None).
 /// Works with Option<T> types.
 #[validator]
-#[derive(Clone, Debug)]
 pub struct RequiredValidation<T> {
-    #[koruma(value)]
+    #[koruma(value, skip_capture)]
     #[allow(dead_code)]
     actual: Option<T>,
+}
+
+impl<T> Clone for RequiredValidation<T> {
+    fn clone(&self) -> Self {
+        Self { actual: None }
+    }
+}
+
+impl<T> fmt::Debug for RequiredValidation<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RequiredValidation")
+            .field("actual", &"<skipped>")
+            .finish()
+    }
 }
 
 impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {

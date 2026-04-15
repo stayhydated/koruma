@@ -845,64 +845,115 @@ fn validator_field_markers(attr: &ExpandedAttr) -> Result<Punctuated<Ident, Toke
         .map(|markers| markers.0)
 }
 
-/// Find the field marked with `#[koruma(value)]` and return its name and type.
+/// Describes whether the `#[koruma(value)]` field should capture the input
+/// value in derived validation errors.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValueFieldCapture {
+    /// Store the validated value in the generated validator instance.
+    Capture,
+    /// Skip storing the validated value and leave the field at its default.
+    Skip,
+}
+
+/// Parsed information about the field marked with `#[koruma(value)]`.
+#[derive(Clone, Debug)]
+pub struct ValueFieldInfo {
+    pub name: Ident,
+    pub ty: Type,
+    pub capture: ValueFieldCapture,
+}
+
+/// Find the field marked with `#[koruma(value)]` and return its parsed info.
 ///
 /// This strict variant validates that validator structs use exactly one
 /// `#[koruma(value)]` marker and that validator-field `#[koruma(...)]`
-/// attributes only contain the `value` marker.
-pub fn find_value_field_strict(input: &ItemStruct) -> Result<Option<(Ident, Type)>> {
+/// attributes only contain the `value` and `skip_capture` markers.
+pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFieldInfo>> {
     let Fields::Named(ref fields) = input.fields else {
         return Ok(None);
     };
 
-    let mut found: Option<(Ident, Type)> = None;
+    let mut found: Option<ValueFieldInfo> = None;
 
     for field in &fields.named {
         let Some(field_name) = field.ident.clone() else {
             continue;
         };
         let mut field_has_value = false;
+        let mut field_skip_capture = false;
 
         for attr in field.attrs.to_vec().find_attribute("koruma") {
             let markers = validator_field_markers(&attr)?;
             if markers.is_empty() {
                 return Err(Error::new_spanned(
                     attr.path(),
-                    "validator fields only support `#[koruma(value)]`",
+                    "validator fields only support `#[koruma(value)]` and `#[koruma(skip_capture)]`",
                 ));
             }
 
             for marker in markers {
-                if marker != "value" {
-                    return Err(Error::new(
-                        marker.span(),
-                        "validator fields only support `#[koruma(value)]`",
-                    ));
+                if marker == "value" {
+                    if field_has_value {
+                        return Err(Error::new(
+                            marker.span(),
+                            format!("field `{field_name}` has multiple `#[koruma(value)]` markers"),
+                        ));
+                    }
+
+                    field_has_value = true;
+                    continue;
                 }
 
-                if field_has_value {
-                    return Err(Error::new(
-                        marker.span(),
-                        format!("field `{field_name}` has multiple `#[koruma(value)]` markers"),
-                    ));
+                if marker == "skip_capture" {
+                    if field_skip_capture {
+                        return Err(Error::new(
+                            marker.span(),
+                            format!(
+                                "field `{field_name}` has multiple `#[koruma(skip_capture)]` markers"
+                            ),
+                        ));
+                    }
+
+                    field_skip_capture = true;
+                    continue;
                 }
 
-                field_has_value = true;
+                return Err(Error::new(
+                    marker.span(),
+                    "validator fields only support `#[koruma(value)]` and `#[koruma(skip_capture)]`",
+                ));
             }
         }
 
+        if field_skip_capture && !field_has_value {
+            return Err(Error::new(
+                field_name.span(),
+                format!(
+                    "field `{field_name}` uses `#[koruma(skip_capture)]` but is missing `#[koruma(value)]`"
+                ),
+            ));
+        }
+
         if field_has_value {
-            if let Some((existing, _)) = &found {
+            if let Some(existing) = &found {
                 return Err(Error::new(
                     field_name.span(),
                     format!(
                         "koruma::validator requires exactly one `#[koruma(value)]` field, found both `{}` and `{}`",
-                        existing, field_name
+                        existing.name, field_name
                     ),
                 ));
             }
 
-            found = Some((field_name, field.ty.clone()));
+            found = Some(ValueFieldInfo {
+                name: field_name,
+                ty: field.ty.clone(),
+                capture: if field_skip_capture {
+                    ValueFieldCapture::Skip
+                } else {
+                    ValueFieldCapture::Capture
+                },
+            });
         }
     }
 
@@ -911,10 +962,24 @@ pub fn find_value_field_strict(input: &ItemStruct) -> Result<Option<(Ident, Type
 
 /// Find the field marked with `#[koruma(value)]` and return its name and type.
 ///
+/// This strict variant validates that validator structs use exactly one
+/// `#[koruma(value)]` marker and that validator-field `#[koruma(...)]`
+/// attributes only contain the `value` and `skip_capture` markers.
+pub fn find_value_field_strict(input: &ItemStruct) -> Result<Option<(Ident, Type)>> {
+    Ok(find_value_field_info_strict(input)?.map(|info| (info.name, info.ty)))
+}
+
+/// Find the field marked with `#[koruma(value)]` and return its name and type.
+///
 /// This is used by the `#[koruma::validator]` attribute macro to find which
 /// field should receive the value being validated.
 pub fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
     find_value_field_strict(input).ok().flatten()
+}
+
+/// Find the field marked with `#[koruma(value)]` and return its parsed info.
+pub fn find_value_field_info(input: &ItemStruct) -> Option<ValueFieldInfo> {
+    find_value_field_info_strict(input).ok().flatten()
 }
 
 /// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`

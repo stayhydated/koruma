@@ -108,6 +108,21 @@ impl fmt::Display for StringLengthValidation {
 the same name as the `#[koruma(value)]` field. That field is expected to stay private; use the
 generated getter for reads.
 
+If a validator does not need to retain the failing input, you can opt out of capture on an
+`Option<T>` value field:
+
+```rs
+#[validator]
+pub struct RequiredValidation<T> {
+    #[koruma(value, skip_capture)]
+    actual: Option<T>,
+}
+```
+
+`skip_capture` keeps the stored field at its default `None` during derived validation, which avoids
+clone requirements for presence-only validators. If your validator still derives traits like
+`Clone` or `Debug` through that field, use a manual impl like `general::RequiredValidation`.
+
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
 ```rs

@@ -100,7 +100,9 @@ values (`char`s), not UTF-8 bytes.
 | `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation<Option<_>>)]` | always  |
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
-`collection::NonEmptyValidation<_>` when you need an emptiness check.
+`collection::NonEmptyValidation<_>` when you need an emptiness check. It uses
+`#[koruma(value, skip_capture)]` internally, so `Option<NonCloneType>` fields do not need `Clone`
+just to report a missing-value error.
 
 ## Example
 

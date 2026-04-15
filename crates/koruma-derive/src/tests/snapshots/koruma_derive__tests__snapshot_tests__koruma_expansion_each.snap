@@ -110,10 +110,10 @@ impl Order {
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = GenericRangeValidation::<f64>::builder()
-                .min(0.0)
-                .max(100.0)
-                .with_value(__item_value.clone())
+            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                    GenericRangeValidation::<f64>::builder().min(0.0).max(100.0),
+                    __item_value,
+                )
                 .build();
             if !__koruma_assert_validate_scores_generic_range_validation_element(
                 &validator,

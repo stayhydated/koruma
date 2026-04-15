@@ -92,6 +92,24 @@ fn test_validator_error_on_duplicate_value_marker_same_field() {
 }
 
 #[test]
+fn test_validator_error_skip_capture_requires_option_value_field() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(value, skip_capture)]
+            actual: String,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`#[koruma(value, skip_capture)]` currently requires an `Option<T>` field")
+    );
+}
+
+#[test]
 fn test_koruma_success_no_validated_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct EmptyStruct {

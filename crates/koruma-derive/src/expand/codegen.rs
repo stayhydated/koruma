@@ -2,9 +2,139 @@ use koruma_derive_core::{
     ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type,
     option_inner_type, substitute_infer_type_from_source, vec_inner_type,
 };
-use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
-use syn::{Expr, Ident, Type};
+use proc_macro2::{TokenStream as TokenStream2, TokenTree};
+use quote::{ToTokens, quote};
+use std::collections::BTreeSet;
+use syn::{Expr, GenericParam, Generics, Ident, Type};
+
+pub(crate) struct HelperGenerics {
+    pub definition: Generics,
+    pub impl_generics: TokenStream2,
+    pub ty_generics: TokenStream2,
+    pub where_clause: TokenStream2,
+}
+
+impl HelperGenerics {
+    pub fn type_path(&self, ident: &Ident) -> TokenStream2 {
+        let ty_generics = &self.ty_generics;
+        quote! { #ident #ty_generics }
+    }
+}
+
+fn generic_param_key(param: &GenericParam) -> String {
+    match param {
+        GenericParam::Lifetime(param) => param.lifetime.to_token_stream().to_string(),
+        GenericParam::Type(param) => param.ident.to_string(),
+        GenericParam::Const(param) => param.ident.to_string(),
+    }
+}
+
+fn collect_matching_generic_names(
+    tokens: &TokenStream2,
+    param_names: &BTreeSet<String>,
+) -> BTreeSet<String> {
+    fn walk(tokens: TokenStream2, param_names: &BTreeSet<String>, used: &mut BTreeSet<String>) {
+        let mut iter = tokens.into_iter().peekable();
+        while let Some(token) = iter.next() {
+            match token {
+                TokenTree::Ident(ident) => {
+                    let key = ident.to_string();
+                    if param_names.contains(&key) {
+                        used.insert(key);
+                    }
+                },
+                TokenTree::Punct(punct) if punct.as_char() == '\'' => {
+                    if let Some(TokenTree::Ident(ident)) = iter.peek() {
+                        let key = format!("'{}", ident);
+                        if param_names.contains(&key) {
+                            used.insert(key);
+                        }
+                    }
+                },
+                TokenTree::Group(group) => walk(group.stream(), param_names, used),
+                _ => {},
+            }
+        }
+    }
+
+    let mut used = BTreeSet::new();
+    walk(tokens.clone(), param_names, &mut used);
+    used
+}
+
+pub(crate) fn helper_generics_for_usages(
+    source_generics: &Generics,
+    usages: &[TokenStream2],
+) -> HelperGenerics {
+    let param_names: BTreeSet<String> = source_generics
+        .params
+        .iter()
+        .map(generic_param_key)
+        .collect();
+    let mut used: BTreeSet<String> = usages
+        .iter()
+        .flat_map(|usage| collect_matching_generic_names(usage, &param_names))
+        .collect();
+
+    if let Some(where_clause) = &source_generics.where_clause {
+        loop {
+            let mut changed = false;
+            for predicate in &where_clause.predicates {
+                let predicate_tokens = quote! { #predicate };
+                let predicate_names =
+                    collect_matching_generic_names(&predicate_tokens, &param_names);
+                if !predicate_names.is_empty() && !predicate_names.is_disjoint(&used) {
+                    for name in predicate_names {
+                        changed |= used.insert(name);
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+    }
+
+    let mut definition = Generics::default();
+    definition.params = source_generics
+        .params
+        .iter()
+        .filter(|param| used.contains(&generic_param_key(param)))
+        .cloned()
+        .collect();
+
+    if let Some(where_clause) = &source_generics.where_clause {
+        let predicates: syn::punctuated::Punctuated<_, syn::token::Comma> = where_clause
+            .predicates
+            .iter()
+            .filter(|predicate| {
+                let predicate_tokens = quote! { #predicate };
+                !collect_matching_generic_names(&predicate_tokens, &param_names).is_disjoint(&used)
+            })
+            .cloned()
+            .collect();
+
+        if !predicates.is_empty() {
+            definition.where_clause = Some(syn::WhereClause {
+                where_token: where_clause.where_token,
+                predicates,
+            });
+        }
+    }
+
+    let definition_for_impl = definition.clone();
+    let (impl_generics, ty_generics, where_clause) = definition_for_impl.split_for_impl();
+    let where_clause = where_clause
+        .map(|clause| quote! { #clause })
+        .unwrap_or_default();
+
+    HelperGenerics {
+        definition,
+        impl_generics: quote! { #impl_generics },
+        ty_generics: quote! { #ty_generics },
+        where_clause,
+    }
+}
 
 /// Check if a validator wants the full field type (not unwrapped from Option).
 /// This is true for `<Option<_>>` syntax.

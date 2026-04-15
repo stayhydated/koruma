@@ -156,6 +156,19 @@ pub struct Order {
 }
 ```
 
+Borrowed fields work too when the validator accepts the borrowed item type:
+
+```rs
+use koruma::Koruma;
+use koruma_collection::string::PatternValidation;
+
+#[derive(Koruma)]
+pub struct BorrowedUser<'a> {
+    #[koruma(PatternValidation<_>(pattern = r"^user:[a-z]+$"))]
+    pub username: &'a str,
+}
+```
+
 ### 3. Use `all()` getter (`KorumaAllDisplay`)
 
 ```rs

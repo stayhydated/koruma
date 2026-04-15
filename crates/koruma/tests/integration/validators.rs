@@ -1,6 +1,7 @@
 //! Validator implementations for integration tests.
 
 use koruma::{Validate, validator};
+use std::fmt;
 
 /// A validation rule that checks if a number is within a specified range.
 #[validator]
@@ -152,5 +153,26 @@ pub struct MatchesStaticStrValidation {
 impl Validate<String> for MatchesStaticStrValidation {
     fn validate(&self, value: &String) -> bool {
         value == self.expected
+    }
+}
+
+/// A validation rule that checks whether a string starts with a prefix.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct StartsWithValidation<T: AsRef<str>> {
+    pub prefix: &'static str,
+    #[koruma(value)]
+    actual: T,
+}
+
+impl<T: AsRef<str>> Validate<T> for StartsWithValidation<T> {
+    fn validate(&self, value: &T) -> bool {
+        value.as_ref().starts_with(self.prefix)
+    }
+}
+
+impl<T: AsRef<str>> fmt::Display for StartsWithValidation<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Must start with '{}'", self.prefix)
     }
 }

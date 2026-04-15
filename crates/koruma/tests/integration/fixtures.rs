@@ -2,8 +2,8 @@ use koruma::{Koruma, Validate};
 
 use super::validators::{
     EvenNumberValidation, GenericRangeValidation, MatchesStaticStrValidation,
-    MatchesStringValidation, NumberRangeValidation, RequiredValidation, StringLengthValidation,
-    VecLenValidation,
+    MatchesStringValidation, NumberRangeValidation, RequiredValidation, StartsWithValidation,
+    StringLengthValidation, VecLenValidation,
 };
 
 const STATIC_CONFIRM_SECRET: &str = "shared-secret";
@@ -79,6 +79,20 @@ pub struct BorrowedOrder<'a> {
 pub struct OptionalBorrowedOrder<'a> {
     #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
     pub scores: Option<&'a [f64]>,
+}
+
+/// Example struct demonstrating borrowed direct-field validation.
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedUsername<'a> {
+    #[koruma(StartsWithValidation<_>(prefix = "user:"))]
+    pub username: &'a str,
+}
+
+/// Example struct demonstrating borrowed string element validation with `each`.
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedTags<'a> {
+    #[koruma(each(StartsWithValidation<_>(prefix = "tag:")))]
+    pub tags: &'a [&'a str],
 }
 
 /// Example struct demonstrating cross-field shorthand in validator args.

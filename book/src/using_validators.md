@@ -52,6 +52,19 @@ pub struct Order {
 }
 ```
 
+Borrowed fields work too when the validator accepts the borrowed item type:
+
+```rust
+use koruma::Koruma;
+use koruma_collection::string::PatternValidation;
+
+#[derive(Koruma)]
+pub struct BorrowedUser<'a> {
+    #[koruma(PatternValidation<_>(pattern = r"^user:[a-z]+$"))]
+    pub username: &'a str,
+}
+```
+
 For fields with more than one validator, `koruma` generates accessors for each validator as well as
 an `all()` iterator when you derive `KorumaAllDisplay` or `KorumaAllFluent`. The next chapter
 covers that multi-validator case in more detail.

@@ -8,7 +8,7 @@ expression: rendered
 )]
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
-pub enum Wrapper0KorumaValidator {
+pub enum Wrapper0KorumaValidator<T> {
     GenericRange(GenericRange<T>),
 }
 #[doc = concat!(
@@ -16,16 +16,16 @@ pub enum Wrapper0KorumaValidator {
     "`].\n\nValidators: [`", "GenericRange", "`]."
 )]
 #[derive(Clone, Debug, Default)]
-pub struct Wrapper0KorumaValidationError {
+pub struct Wrapper0KorumaValidationError<T> {
     generic_range: Option<GenericRange<T>>,
 }
-impl Wrapper0KorumaValidationError {
+impl<T> Wrapper0KorumaValidationError<T> {
     #[doc = concat!("Returns the failed [`", "GenericRange", "`] validator, if any.")]
     pub fn generic_range(&self) -> Option<&GenericRange<T>> {
         self.generic_range.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "_0", "`.")]
-    pub fn all(&self) -> Vec<Wrapper0KorumaValidator> {
+    pub fn all(&self) -> Vec<Wrapper0KorumaValidator<T>> {
         let mut result = Vec::new();
         if let Some(v) = &self.generic_range {
             result.push(Wrapper0KorumaValidator::GenericRange(v.clone()));
@@ -44,24 +44,24 @@ impl Wrapper0KorumaValidationError {
     "`].\n\nContains per-field error structs for ", "field: `_0`", "."
 )]
 #[derive(Clone, Debug, Default)]
-pub struct WrapperKorumaValidationError {
-    _0: Wrapper0KorumaValidationError,
+pub struct WrapperKorumaValidationError<T> {
+    _0: Wrapper0KorumaValidationError<T>,
 }
-impl WrapperKorumaValidationError {
+impl<T> WrapperKorumaValidationError<T> {
     #[doc = concat!(
         "Returns validation errors for the `", "_0", "` field of [`", "Wrapper", "`]."
     )]
-    pub fn _0(&self) -> &Wrapper0KorumaValidationError {
+    pub fn _0(&self) -> &Wrapper0KorumaValidationError<T> {
         &self._0
     }
 }
-impl core::ops::Deref for WrapperKorumaValidationError {
-    type Target = Wrapper0KorumaValidationError;
+impl<T> core::ops::Deref for WrapperKorumaValidationError<T> {
+    type Target = Wrapper0KorumaValidationError<T>;
     fn deref(&self) -> &Self::Target {
         &self._0
     }
 }
-impl koruma::ValidationError for WrapperKorumaValidationError {
+impl<T> koruma::ValidationError for WrapperKorumaValidationError<T> {
     fn is_empty(&self) -> bool {
         self._0.is_empty()
     }
@@ -71,7 +71,7 @@ impl<T> Wrapper<T> {
         "Validates all fields of `", "Wrapper",
         "` and returns an error struct containing all validation failures."
     )]
-    pub fn validate(&self) -> Result<(), WrapperKorumaValidationError> {
+    pub fn validate(&self) -> Result<(), WrapperKorumaValidationError<T>> {
         let mut error = WrapperKorumaValidationError {
             _0: Wrapper0KorumaValidationError {
                 generic_range: None,
@@ -98,14 +98,14 @@ impl<T> Wrapper<T> {
     }
 }
 impl<T> koruma::ValidateExt for Wrapper<T> {
-    type Error = WrapperKorumaValidationError;
-    fn validate(&self) -> Result<(), WrapperKorumaValidationError> {
+    type Error = WrapperKorumaValidationError<T>;
+    fn validate(&self) -> Result<(), WrapperKorumaValidationError<T>> {
         Self::validate(self)
     }
 }
 impl<T> koruma::NewtypeValidation for Wrapper<T> {}
 impl<T> TryFrom<T> for Wrapper<T> {
-    type Error = WrapperKorumaValidationError;
+    type Error = WrapperKorumaValidationError<T>;
     fn try_from(value: T) -> Result<Self, Self::Error> {
         let instance = Self(value);
         instance.validate()?;

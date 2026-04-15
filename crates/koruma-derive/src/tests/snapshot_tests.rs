@@ -480,6 +480,24 @@ fn test_koruma_expansion_slice_each_uses_element_type() {
 }
 
 #[test]
+fn test_koruma_expansion_borrowed_field_carries_lifetimes() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct BorrowedField<'a> {
+            #[koruma(StartsWithValidation<_>(prefix = "user:"))]
+            pub name: &'a str,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains(
+        "pubstructBorrowedFieldNameKorumaValidationError<'a>{starts_with_validation:Option<StartsWithValidation<&'astr>>"
+    ));
+    assert!(compact.contains("pubstructBorrowedFieldKorumaValidationError<'a>{"));
+    assert!(compact.contains("StartsWithValidation::<&'astr>::builder()"));
+}
+
+#[test]
 fn test_koruma_expansion_multi_generic_explicit_type_infers_per_slot() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MultiGenericInference {
@@ -559,6 +577,29 @@ fn test_koruma_all_display_handles_skipped_fields() {
 }
 
 #[test]
+fn test_koruma_all_display_borrowed_types_carry_lifetimes() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DisplayBorrowed<'a> {
+            #[koruma(StartsWithValidation<_>(prefix = "user:"))]
+            pub value: &'a str,
+            #[koruma(each(StartsWithValidation<_>(prefix = "tag:")))]
+            pub values: &'a [&'a str],
+        }
+    };
+
+    let expanded = expand_koruma_all_display(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(
+        compact.contains("impl<'a>::std::fmt::DisplayforDisplayBorrowedValueKorumaValidator<'a>")
+    );
+    assert!(
+        compact.contains(
+            "impl<'a>::std::fmt::DisplayforDisplayBorrowedValuesElementKorumaValidator<'a>"
+        )
+    );
+}
+
+#[test]
 fn test_koruma_all_display_all_fields_skipped() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayAllSkipped {
@@ -626,6 +667,30 @@ fn test_koruma_all_fluent_expansion() {
             "impl ::es_fluent::ToFluentString for FluentItemValuesElementKorumaValidator"
         )
     );
+}
+
+#[cfg(feature = "fluent")]
+#[test]
+fn test_koruma_all_fluent_borrowed_types_carry_lifetimes() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct FluentBorrowed<'a> {
+            #[koruma(StartsWithValidation<_>(prefix = "user:"))]
+            pub value: &'a str,
+            #[koruma(each(StartsWithValidation<_>(prefix = "tag:")))]
+            pub values: &'a [&'a str],
+        }
+    };
+
+    let expanded = expand_koruma_all_fluent(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(
+        compact.contains(
+            "impl<'a>::es_fluent::ToFluentStringforFluentBorrowedValueKorumaValidator<'a>"
+        )
+    );
+    assert!(compact.contains(
+        "impl<'a>::es_fluent::ToFluentStringforFluentBorrowedValuesElementKorumaValidator<'a>"
+    ));
 }
 
 #[cfg(feature = "fluent")]

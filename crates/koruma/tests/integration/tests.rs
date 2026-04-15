@@ -3,10 +3,10 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, BorrowedOrder, Company, ContainsNewtype, Customer,
-    CustomerWithOptionalAddress, Employee, GenericItem, Item, MultiAttrItem, MultiValidatorItem,
-    OptionalBorrowedOrder, OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation,
-    PositiveNumber, StaticSecretConfirmation, UserProfile,
+    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
+    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
+    MultiAttrItem, MultiValidatorItem, OptionalBorrowedOrder, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, StaticSecretConfirmation, UserProfile,
 };
 use super::validators::GenericRangeValidation;
 
@@ -380,6 +380,55 @@ fn test_each_borrowed_slice_invalid() {
 fn test_each_optional_borrowed_slice_none_skips_validation() {
     let order = OptionalBorrowedOrder { scores: None };
     assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_borrowed_direct_field_valid() {
+    let user = BorrowedUsername {
+        username: "user:alice",
+    };
+    assert!(user.validate().is_ok());
+}
+
+#[test]
+fn test_borrowed_direct_field_invalid() {
+    let user = BorrowedUsername { username: "guest" };
+
+    let err = user.validate().unwrap_err();
+    let validator = err
+        .username()
+        .starts_with_validation()
+        .expect("expected username prefix validation error");
+
+    assert_eq!(*validator.actual(), "guest");
+    assert_eq!(
+        err.username().all()[0].to_string(),
+        "Must start with 'user:'"
+    );
+}
+
+#[test]
+fn test_each_borrowed_str_items_invalid() {
+    let tags = ["tag:one", "bad"];
+    let value = BorrowedTags { tags: &tags };
+
+    let err = value.validate().unwrap_err();
+    let tag_errors = err.tags().element_errors();
+
+    assert_eq!(tag_errors.len(), 1);
+    assert_eq!(tag_errors[0].0, 1);
+    assert_eq!(
+        *tag_errors[0]
+            .1
+            .starts_with_validation()
+            .expect("expected failing borrowed element validator")
+            .actual(),
+        "bad"
+    );
+    assert_eq!(
+        tag_errors[0].1.all()[0].to_string(),
+        "Must start with 'tag:'"
+    );
 }
 
 #[test]

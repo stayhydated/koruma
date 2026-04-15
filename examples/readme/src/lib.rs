@@ -24,6 +24,12 @@ pub struct BorrowedOrder<'a> {
 }
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedUsername<'a> {
+    #[koruma(validators::normal::StartsWithValidation<_>(prefix = "user:"))]
+    pub username: &'a str,
+}
+
+#[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
     #[koruma(validators::normal::NumberRangeValidation<_>(min = 0, max = 100))]
     pub age: i32,

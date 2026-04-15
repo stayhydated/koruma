@@ -37,7 +37,7 @@ impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
 #[cfg(feature = "fmt")]
 impl<T> std::fmt::Display for RequiredValidation<Option<T>> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "This field is required and must not be empty.")
+        write!(f, "This field is required.")
     }
 }
 
@@ -57,5 +57,12 @@ mod tests {
     fn rejects_none_values() {
         let validator = RequiredValidation::<Option<String>> { actual: None };
         assert!(!validator.validate(&None));
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_mentions_presence_not_emptiness() {
+        let validator = RequiredValidation::<Option<String>> { actual: None };
+        assert_eq!(validator.to_string(), "This field is required.");
     }
 }

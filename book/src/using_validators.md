@@ -65,6 +65,9 @@ pub struct BorrowedUser<'a> {
 }
 ```
 
+Invalid `PatternValidation` regex strings fail validation instead of panicking, so bad runtime
+configuration stays on the normal validation path.
+
 For fields with more than one validator, `koruma` generates accessors for each validator as well as
 an `all()` iterator when you derive `KorumaAllDisplay` or `KorumaAllFluent`. The next chapter
 covers that multi-validator case in more detail.

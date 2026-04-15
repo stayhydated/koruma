@@ -32,9 +32,9 @@ use koruma::{Validate, validator};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
-pub struct MatchesValidation<T: PartialEq + std::fmt::Display + Clone> {
+pub struct MatchesValidation<T: PartialEq> {
     /// The value to match against
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub other: T,
     /// The value being validated (stored for error context)
     #[koruma(value)]
@@ -42,18 +42,16 @@ pub struct MatchesValidation<T: PartialEq + std::fmt::Display + Clone> {
     actual: T,
 }
 
-impl<T: PartialEq + std::fmt::Display + Clone> Validate<T> for MatchesValidation<T> {
+impl<T: PartialEq> Validate<T> for MatchesValidation<T> {
     fn validate(&self, value: &T) -> bool {
         value == &self.other
     }
 }
 
 #[cfg(feature = "fmt")]
-impl<T: PartialEq + std::fmt::Debug + std::fmt::Display + Clone> std::fmt::Display
-    for MatchesValidation<T>
-{
+impl<T: PartialEq> std::fmt::Display for MatchesValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Does not match the expected value '{}'.", self.other)
+        write!(f, "Does not match the expected value.")
     }
 }
 
@@ -79,5 +77,17 @@ mod tests {
             actual: String::new(),
         };
         assert!(!validator.validate(&"SECRET".to_string()));
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_does_not_echo_the_other_value() {
+        let validator = MatchesValidation {
+            other: "super-secret".to_string(),
+            actual: String::new(),
+        };
+
+        assert_eq!(validator.to_string(), "Does not match the expected value.");
+        assert!(!validator.to_string().contains("super-secret"));
     }
 }

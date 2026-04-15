@@ -34,11 +34,12 @@ use koruma::{Validate, validator};
 pub struct PatternValidation<T: AsRef<str>> {
     /// The regex pattern to match against
     #[builder(into)]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
     pub pattern: String,
     /// Compiled regex cached at construction time.
-    #[builder(skip = regex::Regex::new(&pattern).expect("invalid regex pattern for PatternValidation"))]
+    #[builder(skip = regex::Regex::new(&pattern).ok())]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    compiled: regex::Regex,
+    compiled: Option<regex::Regex>,
     /// The string being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
@@ -47,14 +48,16 @@ pub struct PatternValidation<T: AsRef<str>> {
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        self.compiled.is_match(value.as_ref())
+        self.compiled
+            .as_ref()
+            .is_some_and(|compiled| compiled.is_match(value.as_ref()))
     }
 }
 
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PatternValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Does not match the required pattern '{}'.", self.pattern)
+        write!(f, "Does not match the required pattern.")
     }
 }
 
@@ -83,13 +86,27 @@ mod tests {
     }
 
     #[test]
-    fn invalid_pattern_fails_fast_during_construction() {
-        let result = std::panic::catch_unwind(|| {
-            PatternValidation::builder()
-                .pattern("(")
-                .with_value(String::new())
-                .build()
-        });
-        assert!(result.is_err());
+    fn invalid_pattern_fails_validation_instead_of_panicking() {
+        let validator = PatternValidation::builder()
+            .pattern("(")
+            .with_value(String::new())
+            .build();
+
+        assert!(!validator.validate(&"12345".to_string()));
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_does_not_echo_the_pattern() {
+        let validator = PatternValidation::builder()
+            .pattern(r"^\d+$")
+            .with_value(String::new())
+            .build();
+
+        assert_eq!(
+            validator.to_string(),
+            "Does not match the required pattern."
+        );
+        assert!(!validator.to_string().contains(r"^\d+$"));
     }
 }

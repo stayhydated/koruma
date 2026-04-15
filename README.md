@@ -169,6 +169,9 @@ pub struct BorrowedUser<'a> {
 }
 ```
 
+Invalid `PatternValidation` regex strings fail validation instead of panicking, so bad runtime
+configuration stays on the normal validation path.
+
 Borrowed fields work too when the validator accepts the borrowed item type:
 
 ```rs

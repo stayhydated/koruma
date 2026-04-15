@@ -12,11 +12,11 @@ contains_validation = 必须包含子串 '{ $substring }'。
 
 ## MatchesValidation
 
-matches_validation = 与期望值 '{ $other }' 不匹配。
+matches_validation = 与期望值不匹配。
 
 ## PatternValidation
 
-pattern_validation = 不匹配所需的模式 '{ $pattern }'。
+pattern_validation = 不匹配所需的模式。
 
 ## PrefixValidation
 

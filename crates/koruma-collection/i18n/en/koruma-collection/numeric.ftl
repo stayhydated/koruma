@@ -16,4 +16,4 @@ positive_validation = Must be positive.
 
 ## RangeValidation
 
-range_validation = Must be between { $min } and { $max }.
+range_validation = Must be in the range { $left_delimiter }{ $min }, { $max }{ $right_delimiter }.

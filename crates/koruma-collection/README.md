@@ -51,6 +51,10 @@ Validator-specific optional flags:
 | `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation<_>(prefix = "usr_"))]`               | always  |
 | `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation<_>(suffix = ".rs"))]`                | always  |
 
+`MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
+compared value or regex pattern. Invalid `PatternValidation` regex strings fail validation instead
+of panicking.
+
 ### Format validators (`koruma_collection::format`)
 
 | Validator                  | Rule                         | Example attribute                                               | Feature        |
@@ -74,6 +78,9 @@ Validator-specific optional flags:
 Primitive integers and floats implement `numeric::Numeric` out of the box. Custom numeric-like
 types can opt in by implementing `numeric::Numeric::zero()`.
 
+`RangeValidation` messages use interval notation such as `[min, max]` or `(min, max]` so exclusive
+bounds are reflected directly in the rendered error.
+
 ### Collection validators (`koruma_collection::collection`)
 
 | Validator               | Rule                           | Example attribute                                            | Feature |
@@ -91,6 +98,9 @@ values (`char`s), not UTF-8 bytes.
 | Validator                       | Rule                  | Example attribute                                   | Feature |
 | ------------------------------- | --------------------- | --------------------------------------------------- | ------- |
 | `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation<Option<_>>)]` | always  |
+
+`RequiredValidation` reports missing values, not empty strings or empty collections. Use
+`collection::NonEmptyValidation<_>` when you need an emptiness check.
 
 ## Example
 

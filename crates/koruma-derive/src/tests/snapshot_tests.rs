@@ -465,6 +465,20 @@ fn test_koruma_expansion_option_vec_each_uses_inner_collection() {
 }
 
 #[test]
+fn test_koruma_expansion_multi_generic_explicit_type_infers_per_slot() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct MultiGenericInference {
+            #[koruma(MultiGenericValidation<std::collections::HashMap<_, _>>)]
+            pub values: std::collections::HashMap<String, i32>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("MultiGenericValidation<std::collections::HashMap<String,i32>>"));
+}
+
+#[test]
 fn test_koruma_expansion_field_arg_ident_transforms_to_self_clone() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MatchesValidationInput {

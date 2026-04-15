@@ -1,6 +1,6 @@
 use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, first_generic_arg,
-    is_option_infer_type, option_inner_type, substitute_infer_type, vec_inner_type,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type,
+    option_inner_type, substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -20,13 +20,77 @@ pub(crate) fn each_collection_type(field_ty: &Type) -> &Type {
     option_inner_type(field_ty).unwrap_or(field_ty)
 }
 
+pub(crate) fn validate_each_collection_type(field_ty: &Type) -> Result<(), syn::Error> {
+    let collection_ty = each_collection_type(field_ty);
+    if vec_inner_type(collection_ty).is_some() {
+        return Ok(());
+    }
+
+    let rendered = quote! { #collection_ty }.to_string();
+    Err(syn::Error::new_spanned(
+        field_ty,
+        format!(
+            "`each(...)` currently only supports `Vec<T>` fields (or `Option<Vec<T>>`), found `{rendered}`"
+        ),
+    ))
+}
+
 /// Returns the raw element type used by `each(...)`.
 ///
 /// For `Vec<Option<T>>` this returns `Option<T>`.
 /// For `Option<Vec<T>>` this returns `T`.
+///
+/// This helper assumes `validate_each_collection_type()` already accepted the field.
 pub(crate) fn each_element_type(field_ty: &Type) -> &Type {
     let collection_ty = each_collection_type(field_ty);
-    vec_inner_type(collection_ty).unwrap_or(collection_ty)
+    vec_inner_type(collection_ty)
+        .expect("each(...) should be pre-validated to only run on Vec<T> fields")
+}
+
+pub(crate) fn validator_infer_source_type<'a>(
+    v: &ValidatorAttr,
+    field_ty: &'a Type,
+    validate_each: bool,
+) -> &'a Type {
+    let raw_source = if validate_each {
+        each_element_type(field_ty)
+    } else {
+        field_ty
+    };
+
+    if validator_wants_full_type(v) {
+        raw_source
+    } else {
+        option_inner_type(raw_source).unwrap_or(raw_source)
+    }
+}
+
+pub(crate) fn resolve_explicit_infer_type(
+    v: &ValidatorAttr,
+    field_ty: &Type,
+    validate_each: bool,
+) -> Result<Option<Type>, syn::Error> {
+    let Some(explicit_ty) = v.explicit_type.as_ref() else {
+        return Ok(None);
+    };
+
+    if !contains_infer_type(explicit_ty) {
+        return Ok(None);
+    }
+
+    let infer_source = validator_infer_source_type(v, field_ty, validate_each);
+    substitute_infer_type_from_source(explicit_ty, infer_source)
+        .map(Some)
+        .ok_or_else(|| {
+            let rendered_explicit = quote! { #explicit_ty }.to_string();
+            let rendered_source = quote! { #infer_source }.to_string();
+            syn::Error::new_spanned(
+                explicit_ty,
+                format!(
+                    "cannot infer `_` in `{rendered_explicit}` from `{rendered_source}`; use concrete type arguments or a matching generic shape"
+                ),
+            )
+        })
 }
 
 /// Transform a validator arg value for use in generated code.
@@ -46,7 +110,7 @@ pub(crate) fn transform_arg_value(arg_value: &Expr, field_names: &[Ident]) -> To
 ///
 /// Type inference behavior:
 /// - `<_>`: uses the full field type (unwrapping Option if present)
-/// - `<Vec<_>>`: substitutes `_` with the inner type from the field
+/// - Explicit types containing `_`: infer from the field/element type using generic shape matching
 /// - `<SomeType>`: uses the explicit type directly
 /// - For `each` validation on `Vec<T>`: uses T
 /// - For optional fields `Option<T>`: uses T (validation is skipped if None)
@@ -60,16 +124,9 @@ pub(crate) fn validator_type_for_field(
     // If explicit type is provided, check if it contains `_` for substitution
     if let Some(ref explicit_ty) = v.explicit_type {
         if contains_infer_type(explicit_ty) {
-            // Substitute `_` with the inner type from the field or element.
-            // e.g., Vec<_> on field Vec<String> → Vec<String>
-            // e.g., HashSet<_> on field HashSet<i32> → HashSet<i32>
-            let infer_source = if validate_each {
-                each_element_type(field_ty)
-            } else {
-                field_ty
-            };
-            let inner_ty = first_generic_arg(infer_source).unwrap_or(infer_source);
-            let substituted = substitute_infer_type(explicit_ty, inner_ty);
+            let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
+                .expect("explicit infer types should be pre-validated")
+                .expect("explicit infer types should resolve to a concrete type");
             return quote! { #validator<#substituted> };
         }
         return quote! { #validator<#explicit_ty> };

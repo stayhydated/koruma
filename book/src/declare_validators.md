@@ -55,7 +55,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         len >= self.min && len <= self.max
     }
 }
@@ -65,7 +65,7 @@ impl fmt::Display for StringLengthValidation {
         write!(
             f,
             "string length {} must be between {} and {} characters",
-            self.input.len(),
+            self.input.chars().count(),
             self.min,
             self.max
         )

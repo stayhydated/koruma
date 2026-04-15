@@ -35,6 +35,10 @@ pub struct PatternValidation<T: AsRef<str>> {
     /// The regex pattern to match against
     #[builder(into)]
     pub pattern: String,
+    /// Compiled regex cached at construction time.
+    #[builder(skip = regex::Regex::new(&pattern).expect("invalid regex pattern for PatternValidation"))]
+    #[cfg_attr(feature = "fluent", fluent(skip))]
+    compiled: regex::Regex,
     /// The string being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
@@ -43,11 +47,7 @@ pub struct PatternValidation<T: AsRef<str>> {
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        let s = value.as_ref();
-        match regex::Regex::new(&self.pattern) {
-            Ok(re) => re.is_match(s),
-            Err(_) => false, // Invalid regex pattern
-        }
+        self.compiled.is_match(value.as_ref())
     }
 }
 
@@ -66,28 +66,30 @@ mod tests {
 
     #[test]
     fn accepts_when_pattern_matches() {
-        let validator = PatternValidation {
-            pattern: r"^\d+$".to_string(),
-            actual: String::new(),
-        };
+        let validator = PatternValidation::builder()
+            .pattern(r"^\d+$")
+            .with_value(String::new())
+            .build();
         assert!(validator.validate(&"12345".to_string()));
     }
 
     #[test]
     fn rejects_when_pattern_does_not_match() {
-        let validator = PatternValidation {
-            pattern: r"^\d+$".to_string(),
-            actual: String::new(),
-        };
+        let validator = PatternValidation::builder()
+            .pattern(r"^\d+$")
+            .with_value(String::new())
+            .build();
         assert!(!validator.validate(&"123a".to_string()));
     }
 
     #[test]
-    fn rejects_invalid_pattern() {
-        let validator = PatternValidation {
-            pattern: "(".to_string(),
-            actual: String::new(),
-        };
-        assert!(!validator.validate(&"123".to_string()));
+    fn invalid_pattern_fails_fast_during_construction() {
+        let result = std::panic::catch_unwind(|| {
+            PatternValidation::builder()
+                .pattern("(")
+                .with_value(String::new())
+                .build()
+        });
+        assert!(result.is_err());
     }
 }

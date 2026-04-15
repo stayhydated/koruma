@@ -1,7 +1,8 @@
 use crate::{
     FieldInfo, KorumaAttr, ParseFieldResult, ValidatorAttr, contains_infer_type,
     expr_as_simple_ident, find_value_field, first_generic_arg, is_option_infer_type,
-    option_inner_type, parse_field, substitute_infer_type, type_to_ident, vec_inner_type,
+    option_inner_type, parse_field, substitute_infer_type, substitute_infer_type_from_source,
+    type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -204,6 +205,31 @@ fn utility_functions_cover_non_happy_paths() {
     assert_eq!(
         quote::quote!(#substituted_nested).to_string(),
         "std :: collections :: HashMap < String , String >"
+    );
+
+    let inferred_map = substitute_infer_type_from_source(
+        &nested_path,
+        &syn::parse_quote!(std::collections::HashMap<String, i32>),
+    )
+    .expect("expected matching multi-generic source inference");
+    assert_eq!(
+        quote::quote!(#inferred_map).to_string(),
+        "std :: collections :: HashMap < String , i32 >"
+    );
+
+    let wrapped_vec = substitute_infer_type_from_source(
+        &syn::parse_quote!(Vec<_>),
+        &syn::parse_quote!(Option<String>),
+    )
+    .expect("expected single-slot wrapper inference");
+    assert_eq!(quote::quote!(#wrapped_vec).to_string(), "Vec < String >");
+
+    assert!(
+        substitute_infer_type_from_source(
+            &syn::parse_quote!(std::collections::HashMap<_, _>),
+            &syn::parse_quote!(Option<std::collections::HashMap<String, i32>>),
+        )
+        .is_none()
     );
 
     let const_generic: syn::Type = syn::parse_quote!(ArrayLike<1>);

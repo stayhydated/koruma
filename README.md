@@ -86,7 +86,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         len >= self.min && len <= self.max
     }
 }
@@ -96,7 +96,7 @@ impl fmt::Display for StringLengthValidation {
         write!(
             f,
             "String length {} must be between {} and {} characters",
-            self.input.len(),
+            self.input.chars().count(),
             self.min,
             self.max
         )
@@ -142,6 +142,17 @@ match item.validate() {
             println!("name failed: {}", name_err);
         }
     },
+}
+```
+
+For per-element validation, `each(...)` currently supports `Vec<T>` fields (and
+`Option<Vec<T>>`):
+
+```rs
+#[derive(Koruma)]
+pub struct Order {
+    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub line_item_scores: Vec<i32>,
 }
 ```
 

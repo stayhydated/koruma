@@ -1,11 +1,11 @@
 use crate::expand::codegen::{
-    each_element_type, effective_validation_type, transform_arg_value, validator_type_for_field,
-    validator_wants_full_type,
+    each_element_type, effective_validation_type, resolve_explicit_infer_type, transform_arg_value,
+    validate_each_collection_type, validator_type_for_field, validator_wants_full_type,
 };
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
-    FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type, first_generic_arg,
-    is_option_type, option_inner_type, parse_field, parse_struct_options, substitute_infer_type,
+    FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type, is_option_type,
+    option_inner_type, parse_field, parse_struct_options,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -38,6 +38,20 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             ParseFieldResult::Valid(info) => field_infos.push(*info),
             ParseFieldResult::Skip => {},
             ParseFieldResult::Error(e) => return Err(e),
+        }
+    }
+
+    for field_info in &field_infos {
+        if field_info.has_element_validators() {
+            validate_each_collection_type(&field_info.ty)?;
+        }
+
+        for validator in &field_info.validation.field_validators {
+            resolve_explicit_infer_type(validator, &field_info.ty, false)?;
+        }
+
+        for validator in &field_info.validation.element_validators {
+            resolve_explicit_infer_type(validator, &field_info.ty, true)?;
         }
     }
 
@@ -959,9 +973,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             || v.explicit_type.as_ref().is_some_and(contains_infer_type);
 
                         if uses_infer {
-                            let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
-                                let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
-                                let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                            let validator_ty = if v.explicit_type.is_some() {
+                                let substituted = resolve_explicit_infer_type(v, field_ty, false)
+                                    .expect("explicit infer types should be pre-validated")
+                                    .expect(
+                                        "explicit infer types should resolve to a concrete type",
+                                    );
                                 quote! { #substituted }
                             } else {
                                 quote! { #effective_ty }
@@ -1101,10 +1118,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
 
                     if uses_infer {
-                        let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
-                            // For Option<_>, first_generic_arg gets the inner type.
-                            let inner_ty = first_generic_arg(field_ty).unwrap_or(field_ty);
-                            let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                        let validator_ty = if v.explicit_type.is_some() {
+                            let substituted = resolve_explicit_infer_type(v, field_ty, false)
+                                .expect("explicit infer types should be pre-validated")
+                                .expect("explicit infer types should resolve to a concrete type");
                             quote! { #substituted }
                         } else {
                             quote! { #effective_ty }
@@ -1189,9 +1206,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                         if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type)
                         {
-                            let validator_ty = if let Some(ref explicit_ty) = v.explicit_type {
-                                let inner_ty = first_generic_arg(element_ty).unwrap_or(element_ty);
-                                let substituted = substitute_infer_type(explicit_ty, inner_ty);
+                            let validator_ty = if v.explicit_type.is_some() {
+                                let substituted = resolve_explicit_infer_type(v, field_ty, true)
+                                    .expect("explicit infer types should be pre-validated")
+                                    .expect(
+                                        "explicit infer types should resolve to a concrete type",
+                                    );
                                 quote! { #substituted }
                             } else {
                                 quote! { #effective_element_ty }

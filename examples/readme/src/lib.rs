@@ -11,11 +11,11 @@ use crate::{
 use koruma::{Koruma, Validate};
 use koruma_collection::{collection, general, numeric, string};
 
-// #[derive(Koruma)]
-// struct Order {
-//     #[koruma(LenValidation<_>(min = 1, max = 5))]
-//     items: Vec<String>,
-// }
+#[derive(Koruma)]
+pub struct Order {
+    #[koruma(each(validators::normal::NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub quantities: Vec<i32>,
+}
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {

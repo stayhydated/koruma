@@ -44,5 +44,6 @@ pub use parse::{ShowcaseAttr, find_showcase_attr};
 // Re-export utility functions
 pub use utils::{
     contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-    is_option_type, option_inner_type, substitute_infer_type, type_to_ident, vec_inner_type,
+    is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
+    type_to_ident, vec_inner_type,
 };

@@ -41,6 +41,17 @@ match item.validate() {
 Use `TypeName<_>(...)` when the validator is generic and Rust can infer the missing type
 parameter. If a field has no `#[koruma(...)]` attribute, `koruma` does not validate it.
 
+For per-element validation, `each(...)` currently supports `Vec<T>` fields (and
+`Option<Vec<T>>`):
+
+```rust
+#[derive(Koruma)]
+pub struct Order {
+    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub line_item_scores: Vec<i32>,
+}
+```
+
 For fields with more than one validator, `koruma` generates accessors for each validator as well as
 an `all()` iterator when you derive `KorumaAllDisplay` or `KorumaAllFluent`. The next chapter
 covers that multi-validator case in more detail.

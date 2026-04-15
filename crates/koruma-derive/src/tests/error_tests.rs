@@ -128,6 +128,25 @@ fn test_koruma_error_on_duplicate_element_validator() {
 }
 
 #[test]
+fn test_koruma_error_on_each_non_vec_collection() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct NonVecEach {
+            #[koruma(each(RangeValidation(min = 0, max = 100)))]
+            pub values: std::collections::HashSet<i32>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`each(...)` currently only supports `Vec<T>`"),
+        "expected Vec-only each(...) error, got: {err}",
+    );
+}
+
+#[test]
 fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]

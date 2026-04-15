@@ -18,7 +18,8 @@ pub use validator::expand_validator;
 // Re-exports for tests and internal usage
 #[allow(unused_imports)]
 pub(crate) use codegen::{
-    effective_validation_type, transform_arg_value, validator_type_for_field,
+    effective_validation_type, resolve_explicit_infer_type, transform_arg_value,
+    validate_each_collection_type, validator_infer_source_type, validator_type_for_field,
     validator_wants_full_type,
 };
 
@@ -39,5 +40,6 @@ pub(crate) use koruma_derive_core::{
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
     contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-    is_option_type, option_inner_type, substitute_infer_type, vec_inner_type,
+    is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
+    vec_inner_type,
 };

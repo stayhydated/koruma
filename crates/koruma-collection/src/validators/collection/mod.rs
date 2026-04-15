@@ -50,13 +50,13 @@ impl<T> HasLen for std::collections::BTreeSet<T> {
 
 impl HasLen for String {
     fn len(&self) -> usize {
-        self.len()
+        self.chars().count()
     }
 }
 
 impl HasLen for str {
     fn len(&self) -> usize {
-        self.len()
+        self.chars().count()
     }
 }
 
@@ -101,6 +101,12 @@ mod tests {
     fn array_len_matches_size() {
         let values = [1_u8, 2, 3];
         assert_eq!(HasLen::len(&values), 3);
+    }
+
+    #[test]
+    fn string_len_counts_unicode_scalar_values() {
+        assert_eq!(HasLen::len("a😀é"), 3);
+        assert_eq!(HasLen::len(&"a😀é".to_string()), 3);
     }
 
     #[cfg(feature = "smallvec")]

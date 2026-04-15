@@ -40,6 +40,109 @@ pub fn substitute_infer_type(ty: &Type, infer_ty: &Type) -> Type {
     }
 }
 
+fn type_generic_args(ty: &Type) -> Vec<&Type> {
+    let Type::Path(type_path) = ty else {
+        return Vec::new();
+    };
+    let Some(segment) = type_path.path.segments.last() else {
+        return Vec::new();
+    };
+
+    let PathArguments::AngleBracketed(args) = &segment.arguments else {
+        return Vec::new();
+    };
+
+    args.args
+        .iter()
+        .filter_map(|arg| match arg {
+            GenericArgument::Type(ty) => Some(ty),
+            _ => None,
+        })
+        .collect()
+}
+
+fn matching_source_type_args<'a>(explicit_ty: &Type, source_ty: &'a Type) -> Option<Vec<&'a Type>> {
+    let Type::Path(explicit_path) = explicit_ty else {
+        return None;
+    };
+    let Type::Path(source_path) = source_ty else {
+        return None;
+    };
+
+    let explicit_segment = explicit_path.path.segments.last()?;
+    let source_segment = source_path.path.segments.last()?;
+
+    if explicit_segment.ident != source_segment.ident {
+        return None;
+    }
+
+    let explicit_args = type_generic_args(explicit_ty);
+    let source_args = type_generic_args(source_ty);
+
+    if explicit_args.len() != source_args.len() {
+        return None;
+    }
+
+    Some(source_args)
+}
+
+fn substitute_infer_type_from_source_inner(ty: &Type, source_ty: &Type) -> Option<Type> {
+    match ty {
+        Type::Infer(_) => Some(source_ty.clone()),
+        Type::Path(type_path) => {
+            let explicit_args = type_generic_args(ty);
+            let mut new_path = type_path.clone();
+            let structural_source_args = matching_source_type_args(ty, source_ty);
+
+            let fallback_source =
+                match (explicit_args.len(), type_generic_args(source_ty).as_slice()) {
+                    (1, [only]) => Some(*only),
+                    (1, []) => Some(source_ty),
+                    _ => None,
+                };
+
+            let mut source_index = 0usize;
+            for segment in &mut new_path.path.segments {
+                if let PathArguments::AngleBracketed(args) = &mut segment.arguments {
+                    for arg in &mut args.args {
+                        if let GenericArgument::Type(inner_ty) = arg {
+                            let child_source = structural_source_args
+                                .as_ref()
+                                .and_then(|args| args.get(source_index).copied())
+                                .or(fallback_source)?;
+                            source_index += 1;
+                            *inner_ty =
+                                substitute_infer_type_from_source_inner(inner_ty, child_source)?;
+                        }
+                    }
+                }
+            }
+            Some(Type::Path(new_path))
+        },
+        _ => Some(ty.clone()),
+    }
+}
+
+/// Substitute infer placeholders (`_`) in a type using the structure of a source type.
+///
+/// This preserves multi-generic inference when the explicit type shape matches the source type,
+/// while still supporting wrapper substitutions like `Vec<_>` from `Option<T>`.
+///
+/// # Examples
+///
+/// ```ignore
+/// use syn::parse_quote;
+/// use koruma_derive_core::substitute_infer_type_from_source;
+///
+/// let explicit: Type = parse_quote!(std::collections::HashMap<_, _>);
+/// let source: Type = parse_quote!(std::collections::HashMap<String, i32>);
+/// let result = substitute_infer_type_from_source(&explicit, &source).unwrap();
+/// // result is std::collections::HashMap<String, i32>
+/// ```
+pub fn substitute_infer_type_from_source(ty: &Type, source_ty: &Type) -> Option<Type> {
+    substitute_infer_type_from_source_inner(ty, source_ty)
+}
+
 /// Extract the first generic type argument from a type.
 ///
 /// For example, `Vec<String>` → `String`, `HashSet<i32>` → `i32`.

@@ -52,7 +52,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         if len < self.min || len > self.max {
             false
         } else {

@@ -71,6 +71,9 @@ Validator-specific optional flags:
 | `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation<_>)]`                                        | always  |
 | `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation<_>(min = 0, max = 100, exclusive_max = true))]` | always  |
 
+Primitive integers and floats implement `numeric::Numeric` out of the box. Custom numeric-like
+types can opt in by implementing `numeric::Numeric::zero()`.
+
 ### Collection validators (`koruma_collection::collection`)
 
 | Validator               | Rule                           | Example attribute                                            | Feature |
@@ -80,7 +83,8 @@ Validator-specific optional flags:
 
 `collection::HasLen` is implemented for common standard types (`String`, `str`,
 arrays/slices, `Vec`, sets/maps, etc.) and optionally for `SmallVec` with the
-`smallvec` feature.
+`smallvec` feature. For `String` and `str`, `LenValidation` counts Unicode scalar
+values (`char`s), not UTF-8 bytes.
 
 ### General validators (`koruma_collection::general`)
 

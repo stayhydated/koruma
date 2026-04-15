@@ -4,10 +4,11 @@ use crate::expand::codegen::{
     validator_field_ident, validator_type_for_field, validator_variant_ident,
     validator_wants_full_type,
 };
+use crate::expand::collect_field_infos;
 use heck::ToUpperCamelCase;
 use koruma_derive_core::{
-    FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type, is_option_type,
-    option_inner_type, parse_field, parse_struct_options,
+    FieldInfo, ValidatorAttr, contains_infer_type, is_option_type, option_inner_type,
+    parse_struct_options,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -36,14 +37,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     };
 
     // Parse all fields and extract validation info
-    let mut field_infos: Vec<FieldInfo> = Vec::new();
-    for (i, field) in fields.iter().enumerate() {
-        match parse_field(field, i) {
-            ParseFieldResult::Valid(info) => field_infos.push(*info),
-            ParseFieldResult::Skip => {},
-            ParseFieldResult::Error(e) => return Err(e),
-        }
-    }
+    let field_infos = collect_field_infos(fields, Some(&struct_options))?;
 
     for field_info in &field_infos {
         if field_info.has_element_validators() {
@@ -83,6 +77,17 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             ),
         ));
     }
+
+    let struct_newtype_field_info = if struct_options.newtype {
+        Some(
+            field_infos
+                .first()
+                .cloned()
+                .expect("single-field struct newtypes should expose one participating field"),
+        )
+    } else {
+        None
+    };
 
     let known_field_names: Vec<_> = fields
         .iter()
@@ -1602,7 +1607,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
     // Generate TryFrom<Inner> impl for newtype structs with try_from
     let try_from_impl = if struct_options.try_from {
-        let field_info = &field_infos[0];
+        let field_info = struct_newtype_field_info
+            .as_ref()
+            .expect("newtype(try_from) implies a struct-level newtype field");
         let inner_ty = &field_info.ty;
 
         // Construct the struct instance based on field type (named vs unnamed)
@@ -1632,7 +1639,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
     // Generate Deref impl for newtype error structs
     let newtype_deref_impl = if struct_options.newtype {
-        let field_info = &field_infos[0];
+        let field_info = struct_newtype_field_info
+            .as_ref()
+            .expect("struct-level newtypes should expose one participating field");
         let field_name = &field_info.name;
         let field_ty = &field_info.ty;
 

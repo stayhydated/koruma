@@ -2529,6 +2529,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "syn-cfg-attr",
 ]
 
 [[package]]

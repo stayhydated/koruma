@@ -260,3 +260,40 @@ fn test_koruma_error_on_tuple_newtype_with_multiple_fields() {
         "expected newtype field-count error, got: {err}"
     );
 }
+
+#[test]
+fn test_koruma_error_on_struct_level_newtype_with_skipped_only_field() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        pub struct SkippedOnlyField(#[koruma(skip)] pub String);
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("require their only field to participate in validation"),
+        "expected skipped-only-field newtype error, got: {err}"
+    );
+}
+
+#[test]
+fn test_koruma_error_on_nested_field_with_split_validators() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct Parent {
+            #[koruma(nested)]
+            #[koruma(RequiredValidation<Option<_>>)]
+            pub child: Option<Child>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("cannot also use validators or `each(...)`"),
+        "expected nested+validator compatibility error, got: {err}"
+    );
+}

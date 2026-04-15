@@ -1,7 +1,5 @@
 use heck::ToUpperCamelCase;
-use koruma_derive_core::{
-    FieldInfo, ParseFieldResult, ValidatorAttr, option_inner_type, parse_field,
-};
+use koruma_derive_core::{FieldInfo, ValidatorAttr, option_inner_type, parse_struct_options};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 
@@ -9,6 +7,7 @@ use crate::expand::codegen::{
     helper_generics_for_usages, validator_field_ident, validator_type_for_field,
     validator_variant_ident,
 };
+use crate::expand::collect_field_infos;
 use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(KorumaAllFluent)]` derive macro.
@@ -19,6 +18,7 @@ use syn::DeriveInput;
 pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
     let generics = &input.generics;
+    let struct_options = parse_struct_options(&input.attrs)?;
 
     let fields = match &input.data {
         syn::Data::Struct(data) => &data.fields,
@@ -31,14 +31,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     };
 
     // Parse all fields and extract validation info
-    let mut field_infos: Vec<FieldInfo> = Vec::new();
-    for (i, field) in fields.iter().enumerate() {
-        match parse_field(field, i) {
-            ParseFieldResult::Valid(info) => field_infos.push(*info),
-            ParseFieldResult::Skip => {},
-            ParseFieldResult::Error(e) => return Err(e),
-        }
-    }
+    let field_infos: Vec<FieldInfo> = collect_field_infos(fields, Some(&struct_options))?;
 
     // Generate ToFluentString impls for each field's validator enum
     let fluent_impls: Vec<TokenStream2> = field_infos

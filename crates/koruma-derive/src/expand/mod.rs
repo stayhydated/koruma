@@ -2,6 +2,10 @@
 //!
 //! This module contains the actual TokenStream generation that can be tested.
 
+use quote::format_ident;
+use syn::{Field, Fields, Member};
+use syn_cfg_attr::AttributeHelpers;
+
 pub(crate) mod codegen;
 pub(crate) mod derive;
 pub(crate) mod display;
@@ -32,8 +36,8 @@ pub(crate) use koruma_derive_core::ShowcaseAttr;
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidatorAttr, find_value_field,
-    find_value_field_strict, parse_field, parse_struct_options,
+    FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo, ValidatorAttr,
+    find_value_field, find_value_field_strict, parse_field, parse_struct_options,
 };
 
 // Re-export utility functions from koruma-derive-core
@@ -43,3 +47,82 @@ pub(crate) use koruma_derive_core::{
     is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
     vec_inner_type,
 };
+
+pub(crate) fn collect_field_infos(
+    fields: &Fields,
+    struct_options: Option<&StructOptions>,
+) -> Result<Vec<FieldInfo>, syn::Error> {
+    let mut field_infos = Vec::new();
+
+    for (i, field) in fields.iter().enumerate() {
+        match parse_field(field, i) {
+            ParseFieldResult::Valid(info) => field_infos.push(*info),
+            ParseFieldResult::Skip => {},
+            ParseFieldResult::Error(e) => return Err(e),
+        }
+    }
+
+    if struct_options.is_some_and(|options| options.newtype)
+        && fields.len() == 1
+        && field_infos.is_empty()
+    {
+        let (index, field) = fields
+            .iter()
+            .enumerate()
+            .next()
+            .expect("single-field newtypes should expose one field");
+
+        if has_explicit_koruma_skip(field)? {
+            return Err(syn::Error::new_spanned(
+                field,
+                "struct-level newtypes require their only field to participate in validation; `#[koruma(skip)]` is not allowed",
+            ));
+        }
+
+        field_infos.push(synthetic_struct_newtype_field_info(field, index));
+    }
+
+    for field_info in &field_infos {
+        if field_info.is_nested() && field_info.has_validators() {
+            return Err(syn::Error::new_spanned(
+                &field_info.ty,
+                "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`, even across multiple `#[koruma(...)]` attributes",
+            ));
+        }
+    }
+
+    Ok(field_infos)
+}
+
+fn has_explicit_koruma_skip(field: &Field) -> Result<bool, syn::Error> {
+    for attr in field.attrs.to_vec().find_attribute("koruma") {
+        let parsed: KorumaAttr = attr.parse_args()?;
+        if parsed.is_skip {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn synthetic_struct_newtype_field_info(field: &Field, index: usize) -> FieldInfo {
+    let (name, member) = match field.ident.clone() {
+        Some(ident) => (ident.clone(), Member::Named(ident)),
+        None => (
+            format_ident!("_{}", index),
+            Member::Unnamed(syn::Index::from(index)),
+        ),
+    };
+
+    FieldInfo {
+        name,
+        member,
+        ty: field.ty.clone(),
+        validation: ValidationInfo {
+            field_validators: Vec::new(),
+            element_validators: Vec::new(),
+            is_nested: false,
+            is_newtype: true,
+        },
+    }
+}

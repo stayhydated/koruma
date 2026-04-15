@@ -1,12 +1,11 @@
 use crate::expand::codegen::{
-    effective_validation_type, transform_arg_value, validator_type_for_field,
+    each_element_type, effective_validation_type, transform_arg_value, validator_type_for_field,
     validator_wants_full_type,
 };
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
     FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type, first_generic_arg,
     is_option_type, option_inner_type, parse_field, parse_struct_options, substitute_infer_type,
-    vec_inner_type,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -66,6 +65,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             ),
         ));
     }
+
+    let known_field_names: Vec<_> = fields
+        .iter()
+        .filter_map(|field| field.ident.clone())
+        .collect();
 
     // Generate per-field error structs and collect info for main error struct
     // For nested fields, we don't generate a per-field error struct - we use the nested type's error directly
@@ -662,7 +666,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let field_ty = &f.ty;
                 // Handle Option<T> by extracting T
                 let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
-                quote! { #field_name: Option<<#inner_ty as koruma::ValidateExt>::Error> }
+                if struct_options.newtype && !is_option_type(field_ty) {
+                    quote! { #field_name: <#inner_ty as koruma::ValidateExt>::Error }
+                } else {
+                    quote! { #field_name: Option<<#inner_ty as koruma::ValidateExt>::Error> }
+                }
             } else {
                 let field_error_struct_name = format_ident!(
                     "{}{}KorumaValidationError",
@@ -685,10 +693,19 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 // For nested fields, return Option<&NestedTypeKorumaValidationError>
                 let field_ty = &f.ty;
                 let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
-                quote! {
-                    #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
-                    pub fn #field_name(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
-                        self.#field_name.as_ref()
+                if struct_options.newtype && !is_option_type(field_ty) {
+                    quote! {
+                        #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
+                        pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                            &self.#field_name
+                        }
+                    }
+                } else {
+                    quote! {
+                        #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
+                        pub fn #field_name(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
+                            self.#field_name.as_ref()
+                        }
                     }
                 }
             } else if f.is_newtype() {
@@ -743,7 +760,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let field_name = &f.name;
             if f.is_nested() {
                 // For nested fields, check if Option is None
-                quote! { self.#field_name.is_none() }
+                if struct_options.newtype && !is_option_type(&f.ty) {
+                    quote! { self.#field_name.is_empty() }
+                } else {
+                    quote! { self.#field_name.is_none() }
+                }
             } else {
                 quote! { self.#field_name.is_empty() }
             }
@@ -765,6 +786,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
             // For nested fields, default to None
             if f.is_nested() {
+                let field_ty = &f.ty;
+                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                if struct_options.newtype && !is_option_type(field_ty) {
+                    return quote! {
+                        #field_name: <#inner_ty as koruma::ValidateExt>::Error::default()
+                    };
+                }
                 return quote! { #field_name: None };
             }
 
@@ -868,6 +896,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     };
                 } else {
                     // For non-optional nested field, always validate
+                    if struct_options.newtype {
+                        return quote! {
+                            if let Err(nested_err) = self.#field_member.validate() {
+                                error.#field_name = nested_err;
+                                has_error = true;
+                            }
+                        };
+                    }
                     return quote! {
                         if let Err(nested_err) = self.#field_member.validate() {
                             error.#field_name = Some(nested_err);
@@ -907,7 +943,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             .args
                             .iter()
                             .map(|(arg_name, arg_value)| {
-                                let transformed = transform_arg_value(arg_value);
+                                let transformed =
+                                    transform_arg_value(arg_value, &known_field_names);
                                 quote! { .#arg_name(#transformed) }
                             })
                             .collect();
@@ -1047,7 +1084,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         .args
                         .iter()
                         .map(|(arg_name, arg_value)| {
-                            let transformed = transform_arg_value(arg_value);
+                            let transformed = transform_arg_value(arg_value, &known_field_names);
                             quote! { .#arg_name(#transformed) }
                         })
                         .collect();
@@ -1126,7 +1163,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     field_name.to_string().to_upper_camel_case()
                 );
 
-                let element_ty = vec_inner_type(field_ty).unwrap_or(field_ty);
+                let field_is_optional = is_option_type(field_ty);
+                let element_ty = each_element_type(field_ty);
                 let element_is_optional = is_option_type(element_ty);
                 let effective_element_ty = effective_validation_type(field_ty, true);
 
@@ -1143,7 +1181,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             .args
                             .iter()
                             .map(|(arg_name, arg_value)| {
-                                let transformed = transform_arg_value(arg_value);
+                                let transformed =
+                                    transform_arg_value(arg_value, &known_field_names);
                                 quote! { .#arg_name(#transformed) }
                             })
                             .collect();
@@ -1215,20 +1254,44 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     }
                 };
 
-                if element_is_optional {
-                    // For Vec<Option<T>>, skip None items
-                    quote! {
-                        for (idx, item) in self.#field_member.iter().enumerate() {
-                            if let Some(ref __item_value) = item {
+                if field_is_optional {
+                    let item_iteration = if element_is_optional {
+                        // For collections of Option<T>, skip None items.
+                        quote! {
+                            for (idx, item) in __collection_value.iter().enumerate() {
+                                if let Some(ref __item_value) = item {
+                                    #inner_element_validation
+                                }
+                            }
+                        }
+                    } else {
+                        // For collections of T, validate each item directly.
+                        quote! {
+                            for (idx, __item_value) in __collection_value.iter().enumerate() {
                                 #inner_element_validation
                             }
                         }
+                    };
+
+                    quote! {
+                        if let Some(ref __collection_value) = self.#field_member {
+                            #item_iteration
+                        }
                     }
                 } else {
-                    // For Vec<T>, validate each item directly
-                    quote! {
-                        for (idx, __item_value) in self.#field_member.iter().enumerate() {
-                            #inner_element_validation
+                    if element_is_optional {
+                        quote! {
+                            for (idx, item) in self.#field_member.iter().enumerate() {
+                                if let Some(ref __item_value) = item {
+                                    #inner_element_validation
+                                }
+                            }
+                        }
+                    } else {
+                        quote! {
+                            for (idx, __item_value) in self.#field_member.iter().enumerate() {
+                                #inner_element_validation
+                            }
                         }
                     }
                 }
@@ -1423,16 +1486,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 // Instead, we'll just add a convenience method
                 quote! {}
             } else {
-                // For non-optional nested, we can deref directly
-                // But the field is Option in the error struct, so we need to handle that
-                // Actually, for newtype we should change the error struct to not use Option
-                // Let's add a deref that panics if no error (which shouldn't happen if we have an error struct)
+                // For non-optional nested newtypes, the error struct stores the inner error directly.
                 quote! {
                     impl core::ops::Deref for #error_struct_name {
                         type Target = <#inner_ty as koruma::ValidateExt>::Error;
 
                         fn deref(&self) -> &Self::Target {
-                            self.#field_name.as_ref().expect("newtype error should have inner error")
+                            &self.#field_name
                         }
                     }
                 }

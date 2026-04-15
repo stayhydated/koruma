@@ -4,8 +4,8 @@ use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
     Address, AddressWrapper, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
-    Employee, GenericItem, Item, MultiAttrItem, MultiValidatorItem, Order, OrderWithLenCheck,
-    PositiveNumber, UserProfile,
+    Employee, GenericItem, Item, MultiAttrItem, MultiValidatorItem, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, StaticSecretConfirmation, UserProfile,
 };
 use super::validators::GenericRangeValidation;
 
@@ -319,6 +319,64 @@ fn test_each_multiple_invalid() {
 fn test_each_empty_collection() {
     let order = Order { scores: vec![] };
     assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_optional_collection_none_skips_validation() {
+    let order = OptionalOrder { scores: None };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_optional_collection_some_invalid_element() {
+    let order = OptionalOrder {
+        scores: Some(vec![50.0, 150.0, 75.0]),
+    };
+
+    let err = order.validate().unwrap_err();
+    let score_errors = err.scores().element_errors();
+
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing element validator")
+            .actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_cross_field_arg_identifier_still_rewrites_to_field_access() {
+    let confirmation = PasswordConfirmation {
+        password: "secret".to_string(),
+        confirm: "different".to_string(),
+    };
+
+    let err = confirmation.validate().unwrap_err();
+    let validator = err
+        .confirm()
+        .matches_string_validation()
+        .expect("expected confirm mismatch");
+    assert_eq!(validator.expected, "secret");
+    assert_eq!(validator.actual(), "different");
+}
+
+#[test]
+fn test_non_field_arg_identifier_is_not_rewritten() {
+    let confirmation = StaticSecretConfirmation {
+        confirm: "wrong".to_string(),
+    };
+
+    let err = confirmation.validate().unwrap_err();
+    let validator = err
+        .confirm()
+        .matches_static_str_validation()
+        .expect("expected shared-secret mismatch");
+    assert_eq!(validator.expected, "shared-secret");
+    assert_eq!(validator.actual(), "wrong");
 }
 
 // Tests for optional field validation

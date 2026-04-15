@@ -444,7 +444,24 @@ fn test_koruma_expansion_vec_option_each_with_explicit_infer_type() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("ifletSome(ref__item_value)=item"));
+    assert!(compact.contains("generic_range:Option<GenericRange<Vec<i32>>>"));
     assert!(compact.contains("GenericRange::<Vec<i32>>::builder()"));
+}
+
+#[test]
+fn test_koruma_expansion_option_vec_each_uses_inner_collection() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalVecElementValidators {
+            #[koruma(each(GenericRange<_>(min = 0, max = 10)))]
+            pub values: Option<Vec<i32>>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("ifletSome(ref__collection_value)=self.values"));
+    assert!(compact.contains("for(idx,__item_value)in__collection_value.iter().enumerate()"));
+    assert!(compact.contains("GenericRange::<i32>::builder()"));
 }
 
 #[test]
@@ -460,6 +477,38 @@ fn test_koruma_expansion_field_arg_ident_transforms_to_self_clone() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains(".matches(self.password.clone())"));
+}
+
+#[test]
+fn test_koruma_expansion_non_field_arg_ident_is_left_alone() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct ConstantArgInput {
+            #[koruma(MatchesValidation(matches = STATIC_MATCH))]
+            pub confirm: String,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains(".matches(STATIC_MATCH)"));
+    assert!(!compact.contains("self.STATIC_MATCH"));
+}
+
+#[test]
+fn test_koruma_expansion_struct_newtype_nested_deref_has_no_expect() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        pub struct NestedWrapper {
+            #[koruma(nested)]
+            pub inner: InnerValue,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("implcore::ops::DerefforNestedWrapperKorumaValidationError"));
+    assert!(compact.contains("fnderef(&self)->&Self::Target{&self.inner}"));
+    assert!(!compact.contains("expect(\"newtypeerrorshouldhaveinnererror\")"));
 }
 
 #[test]

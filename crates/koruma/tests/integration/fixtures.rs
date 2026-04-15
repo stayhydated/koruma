@@ -1,9 +1,12 @@
 use koruma::{Koruma, Validate};
 
 use super::validators::{
-    EvenNumberValidation, GenericRangeValidation, NumberRangeValidation, RequiredValidation,
-    StringLengthValidation, VecLenValidation,
+    EvenNumberValidation, GenericRangeValidation, MatchesStaticStrValidation,
+    MatchesStringValidation, NumberRangeValidation, RequiredValidation, StringLengthValidation,
+    VecLenValidation,
 };
+
+const STATIC_CONFIRM_SECRET: &str = "shared-secret";
 
 /// Example struct demonstrating validation with non-generic validators.
 #[derive(Koruma)]
@@ -54,6 +57,30 @@ pub struct Order {
     // Each score in the list must be in range 0-100
     #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
     pub scores: Vec<f64>,
+}
+
+/// Example struct demonstrating optional collection validation with `each`.
+#[derive(Koruma)]
+pub struct OptionalOrder {
+    // The collection is optional, but each present score still must be in range 0-100.
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Option<Vec<f64>>,
+}
+
+/// Example struct demonstrating cross-field shorthand in validator args.
+#[derive(Koruma)]
+pub struct PasswordConfirmation {
+    pub password: String,
+
+    #[koruma(MatchesStringValidation(expected = password))]
+    pub confirm: String,
+}
+
+/// Example struct demonstrating that bare identifiers which are not fields remain untouched.
+#[derive(Koruma)]
+pub struct StaticSecretConfirmation {
+    #[koruma(MatchesStaticStrValidation(expected = STATIC_CONFIRM_SECRET))]
+    pub confirm: String,
 }
 
 /// Example struct demonstrating optional field validation.

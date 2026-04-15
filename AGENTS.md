@@ -117,7 +117,6 @@ Additional rules:
   Role: workspace maintenance tooling.
 
   Key commands:
-
   - `sync-display-ftl`: syncs English FTL message templates with `Display` implementations in `koruma-collection` validators.
   - `build-book`: builds the mdBook into `web/public/book`.
   - `build-llms-txt`: concatenates mdBook sources into `web/public/llms.txt`.

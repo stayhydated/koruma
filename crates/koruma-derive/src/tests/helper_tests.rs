@@ -1,5 +1,6 @@
 //! Unit tests for helper functions in the expand module.
 
+use crate::expand::effective_validation_type;
 use koruma_derive_core::*;
 
 use quote::quote;
@@ -79,6 +80,20 @@ fn test_vec_inner_type_returns_none_for_non_vec() {
 
     let ty: syn::Type = syn::parse_quote!(HashMap<String, i32>);
     assert!(vec_inner_type(&ty).is_none());
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_optional_vec_uses_element_type() {
+    let ty: syn::Type = syn::parse_quote!(Option<Vec<i32>>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "i32");
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_vec_option_unwraps_inner_option() {
+    let ty: syn::Type = syn::parse_quote!(Vec<Option<String>>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "String");
 }
 
 #[test]

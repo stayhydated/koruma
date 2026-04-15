@@ -124,3 +124,33 @@ impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
         value.is_some()
     }
 }
+
+/// A validation rule that checks if a string matches an expected string.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct MatchesStringValidation {
+    pub expected: String,
+    #[koruma(value)]
+    actual: String,
+}
+
+impl Validate<String> for MatchesStringValidation {
+    fn validate(&self, value: &String) -> bool {
+        value == &self.expected
+    }
+}
+
+/// A validation rule that checks if a string matches a shared static secret.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct MatchesStaticStrValidation {
+    pub expected: &'static str,
+    #[koruma(value)]
+    actual: String,
+}
+
+impl Validate<String> for MatchesStaticStrValidation {
+    fn validate(&self, value: &String) -> bool {
+        value == self.expected
+    }
+}

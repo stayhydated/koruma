@@ -41,8 +41,8 @@ match item.validate() {
 Use `TypeName<_>(...)` when the validator is generic and Rust can infer the missing type
 parameter. If a field has no `#[koruma(...)]` attribute, `koruma` does not validate it.
 
-For per-element validation, `each(...)` currently supports `Vec<T>` fields (and
-`Option<Vec<T>>`):
+For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
+`&[T]`, arrays like `[T; N]`, and optional variants of those:
 
 ```rust
 #[derive(Koruma)]

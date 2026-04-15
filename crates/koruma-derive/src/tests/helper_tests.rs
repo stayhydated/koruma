@@ -97,6 +97,20 @@ fn test_effective_validation_type_for_each_on_vec_option_unwraps_inner_option() 
 }
 
 #[test]
+fn test_effective_validation_type_for_each_on_slice_uses_element_type() {
+    let ty: syn::Type = syn::parse_quote!(&[i32]);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "i32");
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inner_option() {
+    let ty: syn::Type = syn::parse_quote!(Option<&[Option<String>]>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "String");
+}
+
+#[test]
 fn test_find_value_field_finds_marked_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct Test {

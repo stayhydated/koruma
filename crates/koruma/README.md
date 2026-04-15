@@ -145,8 +145,8 @@ match item.validate() {
 }
 ```
 
-For per-element validation, `each(...)` currently supports `Vec<T>` fields (and
-`Option<Vec<T>>`):
+For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
+`&[T]`, arrays like `[T; N]`, and optional variants of those:
 
 ```rs
 #[derive(Koruma)]

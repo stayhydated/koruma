@@ -141,8 +141,8 @@ fn test_koruma_error_on_each_non_vec_collection() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`each(...)` currently only supports `Vec<T>`"),
-        "expected Vec-only each(...) error, got: {err}",
+            .contains("`each(...)` currently only supports `Vec<T>`, slice fields"),
+        "expected unsupported each(...) collection error, got: {err}",
     );
 }
 

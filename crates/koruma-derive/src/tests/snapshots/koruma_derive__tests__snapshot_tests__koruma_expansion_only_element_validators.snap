@@ -130,6 +130,6 @@ impl Scores {
 impl koruma::ValidateExt for Scores {
     type Error = ScoresKorumaValidationError;
     fn validate(&self) -> Result<(), ScoresKorumaValidationError> {
-        Scores::validate(self)
+        Self::validate(self)
     }
 }

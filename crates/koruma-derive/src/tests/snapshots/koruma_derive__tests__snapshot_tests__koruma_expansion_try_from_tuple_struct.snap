@@ -94,7 +94,7 @@ impl Email {
 impl koruma::ValidateExt for Email {
     type Error = EmailKorumaValidationError;
     fn validate(&self) -> Result<(), EmailKorumaValidationError> {
-        Email::validate(self)
+        Self::validate(self)
     }
 }
 impl koruma::NewtypeValidation for Email {}

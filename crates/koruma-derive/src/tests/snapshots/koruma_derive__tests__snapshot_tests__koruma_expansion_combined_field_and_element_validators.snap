@@ -176,6 +176,6 @@ impl OrderWithLenCheck {
 impl koruma::ValidateExt for OrderWithLenCheck {
     type Error = OrderWithLenCheckKorumaValidationError;
     fn validate(&self) -> Result<(), OrderWithLenCheckKorumaValidationError> {
-        OrderWithLenCheck::validate(self)
+        Self::validate(self)
     }
 }

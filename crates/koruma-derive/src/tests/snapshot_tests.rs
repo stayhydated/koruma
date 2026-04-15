@@ -465,6 +465,21 @@ fn test_koruma_expansion_option_vec_each_uses_inner_collection() {
 }
 
 #[test]
+fn test_koruma_expansion_slice_each_uses_element_type() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct BorrowedSliceElementValidators<'a> {
+            #[koruma(each(GenericRange<_>(min = 0, max = 10)))]
+            pub values: &'a [i32],
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("for(idx,__item_value)inself.values.iter().enumerate()"));
+    assert!(compact.contains("GenericRange::<i32>::builder()"));
+}
+
+#[test]
 fn test_koruma_expansion_multi_generic_explicit_type_infers_per_slot() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MultiGenericInference {

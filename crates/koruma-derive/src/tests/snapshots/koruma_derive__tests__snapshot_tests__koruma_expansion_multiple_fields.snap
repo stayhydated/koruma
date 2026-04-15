@@ -149,6 +149,6 @@ impl Item {
 impl koruma::ValidateExt for Item {
     type Error = ItemKorumaValidationError;
     fn validate(&self) -> Result<(), ItemKorumaValidationError> {
-        Item::validate(self)
+        Self::validate(self)
     }
 }

@@ -67,6 +67,20 @@ pub struct OptionalOrder {
     pub scores: Option<Vec<f64>>,
 }
 
+/// Example struct demonstrating borrowed slice validation with `each`.
+#[derive(Koruma)]
+pub struct BorrowedOrder<'a> {
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: &'a [f64],
+}
+
+/// Example struct demonstrating optional borrowed slice validation with `each`.
+#[derive(Koruma)]
+pub struct OptionalBorrowedOrder<'a> {
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Option<&'a [f64]>,
+}
+
 /// Example struct demonstrating cross-field shorthand in validator args.
 #[derive(Koruma)]
 pub struct PasswordConfirmation {

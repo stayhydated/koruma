@@ -67,7 +67,10 @@ impl koruma::ValidationError for WhereWrapperKorumaValidationError {
         self._0.is_empty()
     }
 }
-impl WhereWrapper {
+impl<T> WhereWrapper<T>
+where
+    T: Default,
+{
     #[doc = concat!(
         "Validates all fields of `", "WhereWrapper",
         "` and returns an error struct containing all validation failures."
@@ -98,13 +101,19 @@ impl WhereWrapper {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for WhereWrapper {
+impl<T> koruma::ValidateExt for WhereWrapper<T>
+where
+    T: Default,
+{
     type Error = WhereWrapperKorumaValidationError;
     fn validate(&self) -> Result<(), WhereWrapperKorumaValidationError> {
-        WhereWrapper::validate(self)
+        Self::validate(self)
     }
 }
-impl koruma::NewtypeValidation for WhereWrapper {}
+impl<T> koruma::NewtypeValidation for WhereWrapper<T>
+where
+    T: Default,
+{}
 impl<T> TryFrom<T> for WhereWrapper<T>
 where
     T: Default,

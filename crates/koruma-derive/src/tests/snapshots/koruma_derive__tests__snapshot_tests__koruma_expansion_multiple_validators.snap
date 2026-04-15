@@ -120,6 +120,6 @@ impl MultiValidatorItem {
 impl koruma::ValidateExt for MultiValidatorItem {
     type Error = MultiValidatorItemKorumaValidationError;
     fn validate(&self) -> Result<(), MultiValidatorItemKorumaValidationError> {
-        MultiValidatorItem::validate(self)
+        Self::validate(self)
     }
 }

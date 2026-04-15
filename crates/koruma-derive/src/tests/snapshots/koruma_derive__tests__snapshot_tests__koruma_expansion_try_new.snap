@@ -97,6 +97,6 @@ impl Person {
 impl koruma::ValidateExt for Person {
     type Error = PersonKorumaValidationError;
     fn validate(&self) -> Result<(), PersonKorumaValidationError> {
-        Person::validate(self)
+        Self::validate(self)
     }
 }

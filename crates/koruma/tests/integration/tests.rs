@@ -3,9 +3,10 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
-    Employee, GenericItem, Item, MultiAttrItem, MultiValidatorItem, OptionalOrder, Order,
-    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, StaticSecretConfirmation, UserProfile,
+    Address, AddressWrapper, BorrowedOrder, Company, ContainsNewtype, Customer,
+    CustomerWithOptionalAddress, Employee, GenericItem, Item, MultiAttrItem, MultiValidatorItem,
+    OptionalBorrowedOrder, OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation,
+    PositiveNumber, StaticSecretConfirmation, UserProfile,
 };
 use super::validators::GenericRangeValidation;
 
@@ -346,6 +347,39 @@ fn test_each_optional_collection_some_invalid_element() {
             .actual(),
         150.0
     );
+}
+
+#[test]
+fn test_each_borrowed_slice_valid() {
+    let values = [50.0, 75.0, 100.0];
+    let order = BorrowedOrder { scores: &values };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_borrowed_slice_invalid() {
+    let values = [50.0, 150.0, 75.0];
+    let order = BorrowedOrder { scores: &values };
+
+    let err = order.validate().unwrap_err();
+    let score_errors = err.scores().element_errors();
+
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing element validator")
+            .actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_each_optional_borrowed_slice_none_skips_validation() {
+    let order = OptionalBorrowedOrder { scores: None };
+    assert!(order.validate().is_ok());
 }
 
 #[test]

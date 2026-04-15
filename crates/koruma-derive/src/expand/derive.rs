@@ -17,6 +17,8 @@ use syn::DeriveInput;
 pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
     let error_struct_name = format_ident!("{}KorumaValidationError", struct_name);
+    let generics = &input.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     // Parse struct-level options like #[koruma(try_new, const_new)]
     let struct_options = parse_struct_options(&input.attrs)?;
@@ -1450,7 +1452,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     // Generate NewtypeValidation marker trait impl for struct-level newtypes
     let newtype_marker_impl = if struct_options.newtype {
         quote! {
-            impl koruma::NewtypeValidation for #struct_name {}
+            impl #impl_generics koruma::NewtypeValidation for #struct_name #ty_generics #where_clause {}
         }
     } else {
         quote! {}
@@ -1460,10 +1462,6 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let try_from_impl = if struct_options.try_from {
         let field_info = &field_infos[0];
         let inner_ty = &field_info.ty;
-
-        // Handle generics
-        let generics = &input.generics;
-        let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
         // Construct the struct instance based on field type (named vs unnamed)
         let struct_init = match &field_info.member {
@@ -1569,7 +1567,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             }
         }
 
-        impl #struct_name {
+        impl #impl_generics #struct_name #ty_generics #where_clause {
             #try_new_fn
 
             #[doc = concat!("Validates all fields of `", #struct_name_str, "` and returns an error struct containing all validation failures.")]
@@ -1589,11 +1587,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             }
         }
 
-        impl koruma::ValidateExt for #struct_name {
+        impl #impl_generics koruma::ValidateExt for #struct_name #ty_generics #where_clause {
             type Error = #error_struct_name;
 
             fn validate(&self) -> Result<(), #error_struct_name> {
-                #struct_name::validate(self)
+                Self::validate(self)
             }
         }
 

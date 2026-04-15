@@ -127,7 +127,7 @@ impl OptionalWrapper {
 impl koruma::ValidateExt for OptionalWrapper {
     type Error = OptionalWrapperKorumaValidationError;
     fn validate(&self) -> Result<(), OptionalWrapperKorumaValidationError> {
-        OptionalWrapper::validate(self)
+        Self::validate(self)
     }
 }
 impl koruma::NewtypeValidation for OptionalWrapper {}

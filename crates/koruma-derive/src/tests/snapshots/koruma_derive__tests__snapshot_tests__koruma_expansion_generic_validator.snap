@@ -103,6 +103,6 @@ impl GenericItem {
 impl koruma::ValidateExt for GenericItem {
     type Error = GenericItemKorumaValidationError;
     fn validate(&self) -> Result<(), GenericItemKorumaValidationError> {
-        GenericItem::validate(self)
+        Self::validate(self)
     }
 }

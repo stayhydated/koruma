@@ -66,7 +66,7 @@ impl koruma::ValidationError for WrapperKorumaValidationError {
         self._0.is_empty()
     }
 }
-impl Wrapper {
+impl<T> Wrapper<T> {
     #[doc = concat!(
         "Validates all fields of `", "Wrapper",
         "` and returns an error struct containing all validation failures."
@@ -97,13 +97,13 @@ impl Wrapper {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Wrapper {
+impl<T> koruma::ValidateExt for Wrapper<T> {
     type Error = WrapperKorumaValidationError;
     fn validate(&self) -> Result<(), WrapperKorumaValidationError> {
-        Wrapper::validate(self)
+        Self::validate(self)
     }
 }
-impl koruma::NewtypeValidation for Wrapper {}
+impl<T> koruma::NewtypeValidation for Wrapper<T> {}
 impl<T> TryFrom<T> for Wrapper<T> {
     type Error = WrapperKorumaValidationError;
     fn try_from(value: T) -> Result<Self, Self::Error> {

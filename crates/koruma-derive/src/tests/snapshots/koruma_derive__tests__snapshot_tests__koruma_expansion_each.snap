@@ -133,6 +133,6 @@ impl Order {
 impl koruma::ValidateExt for Order {
     type Error = OrderKorumaValidationError;
     fn validate(&self) -> Result<(), OrderKorumaValidationError> {
-        Order::validate(self)
+        Self::validate(self)
     }
 }

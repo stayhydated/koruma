@@ -67,7 +67,7 @@ impl koruma::ValidationError for BoundedWrapperKorumaValidationError {
         self._0.is_empty()
     }
 }
-impl BoundedWrapper {
+impl<T: Clone> BoundedWrapper<T> {
     #[doc = concat!(
         "Validates all fields of `", "BoundedWrapper",
         "` and returns an error struct containing all validation failures."
@@ -98,13 +98,13 @@ impl BoundedWrapper {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for BoundedWrapper {
+impl<T: Clone> koruma::ValidateExt for BoundedWrapper<T> {
     type Error = BoundedWrapperKorumaValidationError;
     fn validate(&self) -> Result<(), BoundedWrapperKorumaValidationError> {
-        BoundedWrapper::validate(self)
+        Self::validate(self)
     }
 }
-impl koruma::NewtypeValidation for BoundedWrapper {}
+impl<T: Clone> koruma::NewtypeValidation for BoundedWrapper<T> {}
 impl<T: Clone> TryFrom<T> for BoundedWrapper<T> {
     type Error = BoundedWrapperKorumaValidationError;
     fn try_from(value: T) -> Result<Self, Self::Error> {

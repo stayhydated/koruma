@@ -17,6 +17,12 @@ pub struct Order {
     pub quantities: Vec<i32>,
 }
 
+#[derive(Koruma)]
+pub struct BorrowedOrder<'a> {
+    #[koruma(each(validators::normal::NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub quantities: &'a [i32],
+}
+
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
     #[koruma(validators::normal::NumberRangeValidation<_>(min = 0, max = 100))]

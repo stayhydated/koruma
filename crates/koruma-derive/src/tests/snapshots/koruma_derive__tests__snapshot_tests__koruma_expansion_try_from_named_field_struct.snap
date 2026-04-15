@@ -96,7 +96,7 @@ impl Username {
 impl koruma::ValidateExt for Username {
     type Error = UsernameKorumaValidationError;
     fn validate(&self) -> Result<(), UsernameKorumaValidationError> {
-        Username::validate(self)
+        Self::validate(self)
     }
 }
 impl koruma::NewtypeValidation for Username {}

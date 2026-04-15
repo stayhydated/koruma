@@ -14,15 +14,26 @@ pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
 
 /// Returns the collection type that `each(...)` should iterate over.
 ///
-/// This unwraps an outer `Option<_>` first so `Option<Vec<T>>` correctly
-/// behaves like an optional collection instead of an optional element.
+/// This unwraps an outer `Option<_>` first so optional collection fields
+/// correctly behave like optional collections instead of optional elements.
 pub(crate) fn each_collection_type(field_ty: &Type) -> &Type {
     option_inner_type(field_ty).unwrap_or(field_ty)
 }
 
+fn each_supported_element_type(ty: &Type) -> Option<&Type> {
+    match ty {
+        Type::Array(array) => Some(&array.elem),
+        Type::Group(group) => each_supported_element_type(&group.elem),
+        Type::Paren(paren) => each_supported_element_type(&paren.elem),
+        Type::Reference(reference) => each_supported_element_type(&reference.elem),
+        Type::Slice(slice) => Some(&slice.elem),
+        _ => vec_inner_type(ty),
+    }
+}
+
 pub(crate) fn validate_each_collection_type(field_ty: &Type) -> Result<(), syn::Error> {
     let collection_ty = each_collection_type(field_ty);
-    if vec_inner_type(collection_ty).is_some() {
+    if each_supported_element_type(collection_ty).is_some() {
         return Ok(());
     }
 
@@ -30,7 +41,7 @@ pub(crate) fn validate_each_collection_type(field_ty: &Type) -> Result<(), syn::
     Err(syn::Error::new_spanned(
         field_ty,
         format!(
-            "`each(...)` currently only supports `Vec<T>` fields (or `Option<Vec<T>>`), found `{rendered}`"
+            "`each(...)` currently only supports `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those, found `{rendered}`"
         ),
     ))
 }
@@ -38,13 +49,13 @@ pub(crate) fn validate_each_collection_type(field_ty: &Type) -> Result<(), syn::
 /// Returns the raw element type used by `each(...)`.
 ///
 /// For `Vec<Option<T>>` this returns `Option<T>`.
-/// For `Option<Vec<T>>` this returns `T`.
+/// For `Option<&[T]>` this returns `T`.
 ///
 /// This helper assumes `validate_each_collection_type()` already accepted the field.
 pub(crate) fn each_element_type(field_ty: &Type) -> &Type {
     let collection_ty = each_collection_type(field_ty);
-    vec_inner_type(collection_ty)
-        .expect("each(...) should be pre-validated to only run on Vec<T> fields")
+    each_supported_element_type(collection_ty)
+        .expect("each(...) should be pre-validated to only run on supported collection fields")
 }
 
 pub(crate) fn validator_infer_source_type<'a>(
@@ -132,7 +143,7 @@ pub(crate) fn validator_type_for_field(
         return quote! { #validator<#explicit_ty> };
     }
 
-    // For `each` validation, unwrap outer Option<Vec<T>> to Vec<T> first,
+    // For `each` validation, unwrap outer Option<Collection<T>> first,
     // then unwrap the collection element type.
     let after_each = if validate_each {
         each_element_type(field_ty)
@@ -153,7 +164,7 @@ pub(crate) fn validator_type_for_field(
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)
 pub(crate) fn effective_validation_type(field_ty: &Type, validate_each: bool) -> &Type {
-    // Unwrap outer Option<Vec<T>> first for each validation.
+    // Unwrap outer Option<Collection<T>> first for each validation.
     let after_each = if validate_each {
         each_element_type(field_ty)
     } else {

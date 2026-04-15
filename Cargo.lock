@@ -2535,6 +2535,7 @@ dependencies = [
 name = "koruma-derive-core"
 version = "0.8.0"
 dependencies = [
+ "heck",
  "insta",
  "quote",
  "syn",

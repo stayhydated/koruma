@@ -6,6 +6,9 @@ use koruma_derive_core::*;
 fn test_validator_attr_parse_simple() {
     let attr: ValidatorAttr = syn::parse_quote!(RangeValidation);
     assert_eq!(attr.name().to_string(), "RangeValidation");
+    assert_eq!(attr.path_name(), "RangeValidation");
+    assert_eq!(attr.codegen_snake_name(), "range_validation");
+    assert_eq!(attr.codegen_upper_camel_name(), "RangeValidation");
     assert!(!attr.infer_type);
     assert!(attr.args.is_empty());
 }
@@ -127,6 +130,15 @@ fn test_validator_attr_parse_deeply_nested_generic() {
     assert_eq!(attr.name().to_string(), "DeepValidator");
     assert!(!attr.infer_type);
     assert!(attr.explicit_type.is_some());
+}
+
+#[test]
+fn test_validator_attr_codegen_names_preserve_path_segments() {
+    let attr: ValidatorAttr = syn::parse_quote!(foo_bar::RangeValidation<_>);
+    assert_eq!(attr.name().to_string(), "RangeValidation");
+    assert_eq!(attr.path_name(), "foo_bar::RangeValidation");
+    assert_eq!(attr.codegen_snake_name(), "foo_bar_range_validation");
+    assert_eq!(attr.codegen_upper_camel_name(), "FooBarRangeValidation");
 }
 
 #[test]

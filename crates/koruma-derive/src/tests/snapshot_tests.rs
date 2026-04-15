@@ -319,6 +319,25 @@ fn test_koruma_all_display_expansion_newtype_inner_arm() {
 }
 
 #[test]
+fn test_koruma_all_display_expansion_uses_path_aware_variant_names() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DisplayQualifiedValidators {
+            #[koruma(foo::RangeValidation(min = 0, max = 10), bar::RangeValidation(min = 11, max = 20))]
+            pub value: i32,
+        }
+    };
+
+    let expanded = expand_koruma_all_display(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(
+        compact.contains("DisplayQualifiedValidatorsValueKorumaValidator::FooRangeValidation(v)")
+    );
+    assert!(
+        compact.contains("DisplayQualifiedValidatorsValueKorumaValidator::BarRangeValidation(v)")
+    );
+}
+
+#[test]
 fn test_koruma_all_display_rejects_non_struct() {
     let input: DeriveInput = syn::parse_quote! {
         enum NotAStruct {
@@ -373,6 +392,39 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     assert!(compact.contains("__koruma_assert_validate_wrapped_required_validation_newtype_field"));
     assert!(compact.contains(".with_value(__newtype_value.clone())"));
     assert!(compact.contains("letvalidator=PlainValidation::builder()"));
+}
+
+#[test]
+fn test_koruma_expansion_newtype_non_optional_with_validators_uses_direct_inner_validation() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct DirectNewtypeField {
+            #[koruma(newtype, GenericRange<_>(min = 0, max = 10), PlainValidation(min = 1))]
+            pub wrapped: WrappedValue,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(!compact.contains("ifletSome(ref__newtype_value)=self.wrapped"));
+    assert!(compact.contains("let__newtype_value=&self.wrapped;"));
+    assert!(compact.contains("ifletErr(newtype_err)=__newtype_value.validate()"));
+}
+
+#[test]
+fn test_koruma_expansion_qualified_validators_generate_distinct_members() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct QualifiedValidators {
+            #[koruma(foo::RangeValidation(min = 0, max = 10), bar::RangeValidation(min = 11, max = 20))]
+            pub value: i32,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("foo_range_validation:Option<foo::RangeValidation>"));
+    assert!(compact.contains("bar_range_validation:Option<bar::RangeValidation>"));
+    assert!(compact.contains("FooRangeValidation(foo::RangeValidation)"));
+    assert!(compact.contains("BarRangeValidation(bar::RangeValidation)"));
 }
 
 #[test]

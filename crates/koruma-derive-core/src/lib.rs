@@ -35,7 +35,7 @@ mod tests;
 // Re-export parsing types
 pub use parse::{
     FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo, ValidatorAttr,
-    find_value_field, parse_field, parse_struct_options,
+    find_value_field, find_value_field_strict, parse_field, parse_struct_options,
 };
 
 #[cfg(feature = "internal-showcase")]

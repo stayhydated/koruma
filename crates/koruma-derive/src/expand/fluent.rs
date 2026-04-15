@@ -1,11 +1,14 @@
-use heck::{ToSnakeCase, ToUpperCamelCase};
+use heck::ToUpperCamelCase;
 use koruma_derive_core::{
     FieldInfo, ParseFieldResult, ValidatorAttr, option_inner_type, parse_field,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 
-use crate::expand::codegen::{helper_generics_for_usages, validator_type_for_field};
+use crate::expand::codegen::{
+    helper_generics_for_usages, validator_field_ident, validator_type_for_field,
+    validator_variant_ident,
+};
 use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(KorumaAllFluent)]` derive macro.
@@ -73,7 +76,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .iter()
                 .map(|v: &ValidatorAttr| {
                     let variant_name =
-                        format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                        validator_variant_ident(v, &f.validation.field_validators);
                     quote! {
                         #enum_name::#variant_name(v) => v.to_fluent_string()
                     }
@@ -135,7 +138,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .iter()
                 .map(|v: &ValidatorAttr| {
                     let variant_name =
-                        format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                        validator_variant_ident(v, &f.validation.element_validators);
                     quote! {
                         #enum_name::#variant_name(v) => v.to_fluent_string()
                     }
@@ -203,7 +206,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.field_validators);
                         quote! {
                             if let Some(v) = &self.#validator_snake {
                                 messages.push(v.to_fluent_string());

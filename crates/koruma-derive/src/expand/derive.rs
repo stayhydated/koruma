@@ -1,9 +1,10 @@
 use crate::expand::codegen::{
     each_element_type, effective_validation_type, helper_generics_for_usages,
     resolve_explicit_infer_type, transform_arg_value, validate_each_collection_type,
-    validator_type_for_field, validator_wants_full_type,
+    validator_field_ident, validator_type_for_field, validator_variant_ident,
+    validator_wants_full_type,
 };
-use heck::{ToSnakeCase, ToUpperCamelCase};
+use heck::ToUpperCamelCase;
 use koruma_derive_core::{
     FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type, is_option_type,
     option_inner_type, parse_field, parse_struct_options,
@@ -58,9 +59,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
     }
 
+    let total_fields = fields.len();
+
     // try_from requires newtype (set via newtype(try_from))
     if struct_options.try_from {
-        let total_fields = fields.len();
         if total_fields != 1 {
             return Err(syn::Error::new_spanned(
                 &input,
@@ -72,13 +74,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
     }
 
-    // Validate newtype option - must have exactly one validated field
-    if struct_options.newtype && field_infos.len() != 1 {
+    if struct_options.newtype && total_fields != 1 {
         return Err(syn::Error::new_spanned(
             &input,
             format!(
-                "newtype structs must have exactly one validated field, found {}",
-                field_infos.len()
+                "newtype structs must have exactly one field, found {}",
+                total_fields
             ),
         ));
     }
@@ -219,7 +220,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .validation
                     .field_validators
                     .iter()
-                    .map(|v| v.name().to_string())
+                    .map(|v| v.path_name())
                     .collect();
                 let validators_list = field_validator_names.join("`], `[");
                 let mut helper_usages: Vec<TokenStream2> = f
@@ -244,7 +245,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.field_validators);
                         let vtype = validator_type_for_field(v, field_ty, false);
                         quote! { #validator_snake: Option<#vtype> }
                     })
@@ -256,8 +257,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
-                        let validator_name = v.name().to_string();
+                            validator_field_ident(v, &f.validation.field_validators);
+                        let validator_name = v.path_name();
                         let vtype = validator_type_for_field(v, field_ty, false);
                         quote! {
                             #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
@@ -274,7 +275,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.field_validators);
                         quote! { self.#validator_snake.is_none() }
                     })
                     .collect();
@@ -293,7 +294,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let variant_name =
-                            format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                            validator_variant_ident(v, &f.validation.field_validators);
                         let vtype = validator_type_for_field(v, field_ty, false);
                         quote! { #variant_name(#vtype) }
                     })
@@ -309,9 +310,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.field_validators);
                         let variant_name =
-                            format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                            validator_variant_ident(v, &f.validation.field_validators);
                         quote! {
                             if let Some(v) = &self.#validator_snake {
                                 result.push(#enum_name::#variant_name(v.clone()));
@@ -379,7 +380,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .iter()
                 .map(|v| {
                     let validator_snake =
-                        format_ident!("{}", v.name().to_string().to_snake_case());
+                        validator_field_ident(v, &f.validation.field_validators);
                     let vtype = validator_type_for_field(v, field_ty, false);
                     quote! { #validator_snake: Option<#vtype> }
                 })
@@ -391,8 +392,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .iter()
                 .map(|v| {
                     let validator_snake =
-                        format_ident!("{}", v.name().to_string().to_snake_case());
-                    let validator_name = v.name().to_string();
+                        validator_field_ident(v, &f.validation.field_validators);
+                    let validator_name = v.path_name();
                     let vtype = validator_type_for_field(v, field_ty, false);
                     quote! {
                         #[doc = concat!("Returns the failed [`", #validator_name, "`] validator, if any.")]
@@ -409,7 +410,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .iter()
                 .map(|v| {
                     let validator_snake =
-                        format_ident!("{}", v.name().to_string().to_snake_case());
+                        validator_field_ident(v, &f.validation.field_validators);
                     quote! { self.#validator_snake.is_none() }
                 })
                 .collect();
@@ -470,7 +471,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let element_validator_names: Vec<String> = f
                     .validation.element_validators
                     .iter()
-                    .map(|v| v.name().to_string())
+                    .map(|v| v.path_name())
                     .collect();
                 let element_validators_list = element_validator_names.join("`], `[");
                 let field_name_str = field_name.to_string();
@@ -481,7 +482,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.element_validators);
                         let vtype = validator_type_for_field(v, field_ty, true);
                         quote! { #validator_snake: Option<#vtype> }
                     })
@@ -492,8 +493,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
-                        let validator_name = v.name().to_string();
+                            validator_field_ident(v, &f.validation.element_validators);
+                        let validator_name = v.path_name();
                         let vtype = validator_type_for_field(v, field_ty, true);
                         quote! {
                             #[doc = concat!("Returns the failed [`", #validator_name, "`] validator, if any.")]
@@ -509,7 +510,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.element_validators);
                         quote! { self.#validator_snake.is_none() }
                     })
                     .collect();
@@ -519,7 +520,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let variant_name =
-                            format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                            validator_variant_ident(v, &f.validation.element_validators);
                         let vtype = validator_type_for_field(v, field_ty, true);
                         quote! { #variant_name(#vtype) }
                     })
@@ -530,9 +531,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.element_validators);
                         let variant_name =
-                            format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                            validator_variant_ident(v, &f.validation.element_validators);
                         quote! {
                             if let Some(v) = &self.#validator_snake {
                                 result.push(#element_enum_name::#variant_name(v.clone()));
@@ -628,7 +629,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .iter()
                 .map(|v| {
                     let variant_name =
-                        format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                        validator_variant_ident(v, &f.validation.field_validators);
                     let vtype = validator_type_for_field(v, field_ty, false);
                     quote! { #variant_name(#vtype) }
                 })
@@ -640,9 +641,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .iter()
                 .map(|v| {
                     let validator_snake =
-                        format_ident!("{}", v.name().to_string().to_snake_case());
+                        validator_field_ident(v, &f.validation.field_validators);
                     let variant_name =
-                        format_ident!("{}", v.name().to_string().to_upper_camel_case());
+                        validator_variant_ident(v, &f.validation.field_validators);
                     quote! {
                         if let Some(v) = &self.#validator_snake {
                             result.push(#enum_name::#variant_name(v.clone()));
@@ -658,7 +659,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let validator_names: Vec<String> = f
                     .validation.field_validators
                     .iter()
-                    .map(|v| v.name().to_string())
+                    .map(|v| v.path_name())
                     .collect();
                 let validators_list = validator_names.join("`], `[");
                 let field_name_str = field_name.to_string();
@@ -702,13 +703,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     let field_validator_names: Vec<String> = f
                         .validation.field_validators
                         .iter()
-                        .map(|v| v.name().to_string())
+                        .map(|v| v.path_name())
                         .collect();
                     let field_validators = field_validator_names.join("`], `[");
                     let element_validator_names: Vec<String> = f
                         .validation.element_validators
                         .iter()
-                        .map(|v| v.name().to_string())
+                        .map(|v| v.path_name())
                         .collect();
                     let element_validators = element_validator_names.join("`], `[");
                     quote! {
@@ -722,7 +723,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     let field_validator_names: Vec<String> = f
                         .validation.field_validators
                         .iter()
-                        .map(|v| v.name().to_string())
+                        .map(|v| v.path_name())
                         .collect();
                     let field_validators = field_validator_names.join("`], `[");
                     quote! {
@@ -966,7 +967,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         .iter()
                         .map(|v| {
                             let validator_snake =
-                                format_ident!("{}", v.name().to_string().to_snake_case());
+                                validator_field_ident(v, &f.validation.field_validators);
                             quote! { #validator_snake: None }
                         })
                         .collect();
@@ -991,7 +992,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 .field_validators
                 .iter()
                 .map(|v| {
-                    let validator_snake = format_ident!("{}", v.name().to_string().to_snake_case());
+                    let validator_snake = validator_field_ident(v, &f.validation.field_validators);
                     quote! { #validator_snake: None }
                 })
                 .collect();
@@ -1086,7 +1087,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                      -> TokenStream2 {
                         let validator = &v.validator;
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.field_validators);
                         let effective_ty = effective_validation_type(field_ty, false);
 
                         let builder_calls: Vec<TokenStream2> = v
@@ -1185,12 +1186,19 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         }
                     };
 
-                    // Two-phase validation: field validators first, then inner if Some
+                    if field_is_optional {
+                        return quote! {
+                            #(#full_type_checks)*
+                            if let Some(ref __newtype_value) = self.#field_member {
+                                #inner_validation
+                            }
+                        };
+                    }
+
                     return quote! {
                         #(#full_type_checks)*
-                        if let Some(ref __newtype_value) = self.#field_member {
-                            #inner_validation
-                        }
+                        let __newtype_value = &self.#field_member;
+                        #inner_validation
                     };
                 }
 
@@ -1230,7 +1238,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             let generate_validator_check =
                 |v: &ValidatorAttr, value_expr: TokenStream2, needs_ref: bool| -> TokenStream2 {
                     let validator = &v.validator;
-                    let validator_snake = format_ident!("{}", v.name().to_string().to_snake_case());
+                    let validator_snake = validator_field_ident(v, &f.validation.field_validators);
                     let effective_ty = effective_validation_type(field_ty, false);
 
                     let builder_calls: Vec<TokenStream2> = v
@@ -1328,7 +1336,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .map(|v| {
                         let validator = &v.validator;
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.element_validators);
 
                         let builder_calls: Vec<TokenStream2> = v
                             .args
@@ -1391,7 +1399,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     .iter()
                     .map(|v| {
                         let validator_snake =
-                            format_ident!("{}", v.name().to_string().to_snake_case());
+                            validator_field_ident(v, &f.validation.element_validators);
                         quote! { #validator_snake: None }
                     })
                     .collect();

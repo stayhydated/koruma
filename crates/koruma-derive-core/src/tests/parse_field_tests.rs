@@ -3,8 +3,8 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    FieldInfo, ParseFieldResult, ValidationInfo, ValidatorAttr, find_value_field, parse_field,
-    parse_struct_options,
+    FieldInfo, ParseFieldResult, ValidationInfo, ValidatorAttr, find_value_field,
+    find_value_field_strict, parse_field, parse_struct_options,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -106,6 +106,12 @@ fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), S
 
 fn find_value_field_name(input: &syn::ItemStruct) -> Option<String> {
     find_value_field(input).map(|(name, _)| name.to_string())
+}
+
+fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<Option<String>, String> {
+    find_value_field_strict(input)
+        .map(|value| value.map(|(name, _)| name.to_string()))
+        .map_err(|err| err.to_string())
 }
 
 fn parse_field_snapshot(field: &syn::Field) -> Option<SnapshotFieldInfo> {
@@ -363,6 +369,32 @@ fn test_parse_struct_options_cfg_attr_both() {
     assert_debug_snapshot!(parse_struct_options_result(&input));
 }
 
+#[test]
+fn test_parse_struct_options_multiple_attrs_merge() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(try_new)]
+        #[koruma(newtype)]
+        pub struct Email(String);
+    };
+
+    assert_eq!(parse_struct_options_result(&input).unwrap(), (true, true));
+}
+
+#[test]
+fn test_parse_struct_options_multiple_attrs_duplicate_error() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(try_new)]
+        #[koruma(try_new)]
+        pub struct Email(String);
+    };
+
+    let err = parse_struct_options(&input.attrs).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("duplicate struct-level koruma option `try_new`")
+    );
+}
+
 // =============================================================================
 // find_value_field tests
 // =============================================================================
@@ -406,6 +438,75 @@ fn test_find_value_field_cfg_attr_complex_condition() {
     };
 
     assert_debug_snapshot!(find_value_field_name(&input));
+}
+
+#[test]
+fn test_find_value_field_strict_rejects_duplicate_markers_on_same_field() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            min: i32,
+            #[koruma(value)]
+            #[doc = "other attrs stay untouched"]
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    let err = find_value_field_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("field `actual` has multiple `#[koruma(value)]` markers")
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_rejects_multiple_fields() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(value)]
+            actual: Option<i32>,
+            #[koruma(value)]
+            expected: Option<i32>,
+        }
+    };
+
+    let err = find_value_field_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("requires exactly one `#[koruma(value)]` field")
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_rejects_unknown_marker() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(other)]
+            actual: Option<i32>,
+        }
+    };
+
+    let err = find_value_field_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("validator fields only support `#[koruma(value)]`")
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_still_returns_name() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    assert_eq!(
+        find_value_field_name_strict(&input).unwrap(),
+        Some("actual".to_string())
+    );
 }
 
 // =============================================================================

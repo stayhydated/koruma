@@ -82,18 +82,23 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
         },
     };
 
-    let has_any_fields = match &input.fields {
-        Fields::Named(fields) => !fields.named.is_empty(),
-        Fields::Unnamed(fields) => !fields.unnamed.is_empty(),
-        Fields::Unit => false,
-    };
-    if !has_any_fields {
-        let err = syn::Error::new(
-            input.ident.span(),
-            "koruma::validator requires at least one field",
-        );
-        return TokenStream::from(err.to_compile_error());
-    };
+    match &input.fields {
+        Fields::Named(fields) if !fields.named.is_empty() => {},
+        Fields::Named(_) | Fields::Unit => {
+            let err = syn::Error::new(
+                input.ident.span(),
+                "koruma::validator requires at least one field",
+            );
+            return TokenStream::from(err.to_compile_error());
+        },
+        Fields::Unnamed(_) => {
+            let err = syn::Error::new(
+                input.ident.span(),
+                "koruma::validator only supports structs with named fields",
+            );
+            return TokenStream::from(err.to_compile_error());
+        },
+    }
 
     match expand_validator(input) {
         Ok(tokens) => TokenStream::from(tokens),

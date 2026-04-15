@@ -38,6 +38,60 @@ fn test_validator_error_public_value_field() {
 }
 
 #[test]
+fn test_validator_error_tuple_struct_rejected_early() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct TupleValidator(#[koruma(value)] i32);
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("koruma::validator only supports structs with named fields")
+    );
+}
+
+#[test]
+fn test_validator_error_on_multiple_value_fields() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(value)]
+            actual: i32,
+            #[koruma(value)]
+            expected: i32,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("requires exactly one `#[koruma(value)]` field")
+    );
+}
+
+#[test]
+fn test_validator_error_on_duplicate_value_marker_same_field() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(value)]
+            #[koruma(value)]
+            actual: i32,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("has multiple `#[koruma(value)]` markers")
+    );
+}
+
+#[test]
 fn test_koruma_success_no_validated_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct EmptyStruct {
@@ -163,7 +217,28 @@ fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("newtype structs must have exactly one validated field"),
+            .contains("newtype structs must have exactly one field"),
+        "expected newtype field-count error, got: {err}"
+    );
+}
+
+#[test]
+fn test_koruma_error_on_struct_level_newtype_with_one_validated_and_one_plain_field() {
+    let input: DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        pub struct BadNewtype {
+            #[koruma(RangeValidation(min = 0, max = 10))]
+            pub a: i32,
+            pub b: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("newtype structs must have exactly one field"),
         "expected newtype field-count error, got: {err}"
     );
 }
@@ -181,7 +256,7 @@ fn test_koruma_error_on_tuple_newtype_with_multiple_fields() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("newtype structs must have exactly one validated field"),
+            .contains("newtype structs must have exactly one field"),
         "expected newtype field-count error, got: {err}"
     );
 }

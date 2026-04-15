@@ -1,9 +1,10 @@
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
     ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type,
     option_inner_type, substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::{TokenStream as TokenStream2, TokenTree};
-use quote::{ToTokens, quote};
+use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeSet;
 use syn::{Expr, GenericParam, Generics, Ident, Type};
 
@@ -245,6 +246,70 @@ pub(crate) fn transform_arg_value(arg_value: &Expr, field_names: &[Ident]) -> To
     } else {
         quote! { #arg_value }
     }
+}
+
+fn stable_hash_hex(input: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in input.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{:08x}", (hash & 0xffff_ffff) as u32)
+}
+
+fn has_name_collision(
+    target_name: &str,
+    siblings: &[ValidatorAttr],
+    name_fn: impl Fn(&ValidatorAttr) -> String,
+) -> bool {
+    siblings
+        .iter()
+        .filter(|sibling| name_fn(sibling) == target_name)
+        .nth(1)
+        .is_some()
+}
+
+pub(crate) fn validator_field_ident(v: &ValidatorAttr, siblings: &[ValidatorAttr]) -> Ident {
+    let simple = v.name().to_string().to_snake_case();
+    if !has_name_collision(&simple, siblings, |sibling| {
+        sibling.name().to_string().to_snake_case()
+    }) {
+        return format_ident!("{}", simple);
+    }
+
+    let fallback = v.codegen_snake_name();
+    let resolved =
+        if has_name_collision(&fallback, siblings, |sibling| sibling.codegen_snake_name()) {
+            format!("{}_{}", fallback, stable_hash_hex(&v.path_name()))
+        } else {
+            fallback
+        };
+
+    format_ident!("{}", resolved)
+}
+
+pub(crate) fn validator_variant_ident(v: &ValidatorAttr, siblings: &[ValidatorAttr]) -> Ident {
+    let simple = v.name().to_string().to_upper_camel_case();
+    if !has_name_collision(&simple, siblings, |sibling| {
+        sibling.name().to_string().to_upper_camel_case()
+    }) {
+        return format_ident!("{}", simple);
+    }
+
+    let fallback = v.codegen_upper_camel_name();
+    let resolved = if has_name_collision(&fallback, siblings, |sibling| {
+        sibling.codegen_upper_camel_name()
+    }) {
+        format!(
+            "{}H{}",
+            fallback,
+            stable_hash_hex(&v.path_name()).to_ascii_uppercase()
+        )
+    } else {
+        fallback
+    };
+
+    format_ident!("{}", resolved)
 }
 
 /// Helper to generate the type for a validator

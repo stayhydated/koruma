@@ -166,6 +166,26 @@ fn field_info_and_parse_field_result_helpers() {
 }
 
 #[test]
+fn parse_field_allows_distinct_fully_qualified_validators() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(foo::RangeValidation(min = 0, max = 10), bar::RangeValidation(min = 11, max = 20))]
+        value: i32
+    };
+
+    let info = parse_field_info(&field);
+    let validator_paths: Vec<_> = info
+        .validation
+        .field_validators
+        .iter()
+        .map(ValidatorAttr::path_name)
+        .collect();
+    assert_eq!(
+        validator_paths,
+        vec!["foo::RangeValidation", "bar::RangeValidation"]
+    );
+}
+
+#[test]
 fn find_value_field_returns_none_without_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         struct Validator {

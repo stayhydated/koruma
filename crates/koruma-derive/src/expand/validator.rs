@@ -1,10 +1,10 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
-use koruma_derive_core::{find_value_field, option_inner_type};
+use koruma_derive_core::{find_value_field_strict, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Fields, GenericParam, Ident, ItemStruct, Visibility, parse_quote};
+use syn::{Fields, GenericParam, ItemStruct, Visibility, parse_quote};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
@@ -12,6 +12,13 @@ use syn::{Fields, GenericParam, Ident, ItemStruct, Visibility, parse_quote};
 pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
     let builder_name = format_ident!("{}Builder", struct_name);
+
+    if !matches!(input.fields, Fields::Named(_)) {
+        return Err(syn::Error::new_spanned(
+            &input.fields,
+            "koruma::validator only supports structs with named fields",
+        ));
+    }
 
     // Check if the struct has generics
     let has_generics = !input.generics.params.is_empty();
@@ -21,15 +28,16 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let showcase_attr = find_showcase_attr(&input);
 
     // Find the field marked with #[koruma(value)]
-    let (value_field_name, value_field_type) = find_value_field(&input).ok_or_else(|| {
-        syn::Error::new_spanned(
-            &input,
-            "koruma::validator requires a field marked with #[koruma(value)].\n\
+    let (value_field_name, value_field_type) =
+        find_value_field_strict(&input)?.ok_or_else(|| {
+            syn::Error::new_spanned(
+                &input,
+                "koruma::validator requires a field marked with #[koruma(value)].\n\
              Example:\n\
              #[koruma(value)]\n\
              actual: Option<i32>",
-        )
-    })?;
+            )
+        })?;
 
     // Extract the inner type from Option<T>
     let inner_type = option_inner_type(&value_field_type).unwrap_or(&value_field_type);
@@ -48,7 +56,10 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     // Remove #[koruma(value)] from the field so bon doesn't see it
     let Fields::Named(ref mut fields) = input.fields else {
-        unreachable!("find_value_field only returns Some for named fields");
+        return Err(syn::Error::new_spanned(
+            &input.fields,
+            "koruma::validator only supports structs with named fields",
+        ));
     };
     for field in &mut fields.named {
         if field.ident.as_ref() == Some(&value_field_name)
@@ -63,15 +74,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             ));
         }
 
-        field.attrs.retain(|attr| {
-            if attr.path().is_ident("koruma")
-                && let Ok(ident) = attr.parse_args::<Ident>()
-            {
-                return ident != "value";
-            }
-
-            true
-        });
+        if field.ident.as_ref() == Some(&value_field_name) {
+            field.attrs.retain(|attr| !attr.path().is_ident("koruma"));
+        }
     }
 
     // Generate the module name that bon creates (snake_case of struct name + _builder)

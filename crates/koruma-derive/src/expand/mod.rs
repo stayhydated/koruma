@@ -19,8 +19,8 @@ pub use validator::expand_validator;
 #[allow(unused_imports)]
 pub(crate) use codegen::{
     effective_validation_type, resolve_explicit_infer_type, transform_arg_value,
-    validate_each_collection_type, validator_infer_source_type, validator_type_for_field,
-    validator_wants_full_type,
+    validate_each_collection_type, validator_field_ident, validator_infer_source_type,
+    validator_type_for_field, validator_variant_ident, validator_wants_full_type,
 };
 
 // Re-export parsing types from koruma-derive-core
@@ -33,7 +33,7 @@ pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
     FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidatorAttr, find_value_field,
-    parse_field, parse_struct_options,
+    find_value_field_strict, parse_field, parse_struct_options,
 };
 
 // Re-export utility functions from koruma-derive-core

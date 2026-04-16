@@ -142,6 +142,13 @@ pub struct NonCloneSecret {
     pub raw: String,
 }
 
+/// Example struct demonstrating explicit concrete Option<T> full-type validation.
+#[derive(Koruma)]
+pub struct ExplicitRequiredProfile {
+    #[koruma(RequiredValidation<Option<String>>)]
+    pub bio: Option<String>,
+}
+
 /// Example struct demonstrating full-type element validation for optional elements.
 #[derive(Koruma)]
 pub struct OptionalElementPresenceOrder {

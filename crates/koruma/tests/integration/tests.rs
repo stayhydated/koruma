@@ -4,8 +4,8 @@ use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
     Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
-    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
-    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
+    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, ExplicitRequiredProfile,
+    GenericItem, Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
     OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
     OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
     QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
@@ -593,6 +593,23 @@ fn test_optional_field_none_skips_validation() {
     };
 
     // All None fields are skipped, username is valid
+    assert!(profile.validate().is_ok());
+}
+
+#[test]
+fn test_explicit_full_type_optional_field_none_fails() {
+    let profile = ExplicitRequiredProfile { bio: None };
+
+    let err = profile.validate().unwrap_err();
+    assert!(err.bio().required_validation().is_some());
+}
+
+#[test]
+fn test_explicit_full_type_optional_field_some_passes() {
+    let profile = ExplicitRequiredProfile {
+        bio: Some("I love concrete Option types".to_string()),
+    };
+
     assert!(profile.validate().is_ok());
 }
 

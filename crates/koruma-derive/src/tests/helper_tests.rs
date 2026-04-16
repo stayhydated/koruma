@@ -1,6 +1,6 @@
 //! Unit tests for helper functions in the expand module.
 
-use crate::expand::effective_validation_type;
+use crate::expand::{effective_validation_type, validator_wants_full_type};
 use koruma_derive_core::*;
 
 use quote::quote;
@@ -146,6 +146,19 @@ fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inne
     let ty: syn::Type = syn::parse_quote!(Option<&[Option<String>]>);
     let effective = effective_validation_type(&ty, true);
     assert_eq!(quote!(#effective).to_string(), "String");
+}
+
+#[test]
+fn test_validator_wants_full_type_for_explicit_option_type() {
+    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation<Option<String>>);
+    assert!(validator_wants_full_type(&attr));
+
+    let qualified_attr: ValidatorAttr =
+        syn::parse_quote!(RequiredValidation<core::option::Option<String>>);
+    assert!(validator_wants_full_type(&qualified_attr));
+
+    let non_option_attr: ValidatorAttr = syn::parse_quote!(RequiredValidation<String>);
+    assert!(!validator_wants_full_type(&non_option_attr));
 }
 
 #[test]

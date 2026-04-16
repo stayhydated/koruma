@@ -466,6 +466,25 @@ fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
 }
 
 #[test]
+fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalConcreteFullTypeValidator {
+            #[koruma(RequiredValidation<Option<String>>)]
+            pub value: Option<String>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("required_validation:Option<RequiredValidation<Option<String>>>"));
+    assert!(compact.contains(
+        "BuilderWithValueRef::with_value_ref(RequiredValidation::builder(),&self.value,)"
+    ));
+    assert!(compact.contains("validator.validate(&self.value)"));
+    assert!(!compact.contains("ifletSome(ref__field_value)=self.value"));
+}
+
+#[test]
 fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalElementValidators {

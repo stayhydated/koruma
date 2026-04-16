@@ -1,7 +1,7 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type, is_option_type,
-    option_inner_type, substitute_infer_type_from_source, vec_inner_type,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_type, option_inner_type,
+    substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::{TokenStream as TokenStream2, TokenTree};
 use quote::{ToTokens, format_ident, quote};
@@ -144,9 +144,11 @@ pub(crate) fn helper_generics_for_usages(
 }
 
 /// Check if a validator wants the full field type (not unwrapped from Option).
-/// This is true for `<Option<_>>` syntax.
+///
+/// Any explicit `Option<...>` validator type takes the full-type path so derived
+/// validation passes `&Option<T>` instead of unwrapping to `&T`.
 pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
-    v.explicit_type.as_ref().is_some_and(is_option_infer_type)
+    v.explicit_type.as_ref().is_some_and(is_option_type)
 }
 
 /// Returns the collection type that `each(...)` should iterate over.
@@ -268,7 +270,7 @@ pub(crate) fn validate_full_type_option_target(
             .as_ref()
             .expect("full-type validators should always have an explicit type"),
         format!(
-            "`<Option<_>>` requires an optional validation target, but the {target_context} is `{rendered_target}`"
+            "explicit `Option<...>` validator types require an optional validation target, but the {target_context} is `{rendered_target}`"
         ),
     ))
 }

@@ -7,9 +7,9 @@ use super::fixtures::{
     ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
     MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalOrder, Order,
     OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
-    StaticSecretConfirmation, UserProfile,
+    QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
 };
-use super::validators::GenericRangeValidation;
+use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
 #[test]
 fn test_valid_item() {
@@ -370,6 +370,43 @@ fn test_each_optional_collection_some_invalid_element() {
 }
 
 #[test]
+fn test_qualified_option_and_vec_paths_keep_validation_behavior() {
+    let profile = QualifiedPathProfile {
+        bio: Some(String::new()),
+        scores: Some(vec![50.0, 150.0, 75.0]),
+    };
+
+    let err = profile.validate().unwrap_err();
+    let bio_err = err
+        .bio()
+        .string_length_validation()
+        .expect("expected qualified Option<String> field to unwrap and validate");
+    assert_eq!(bio_err.input().as_str(), "");
+
+    let score_errors = err.scores().element_errors();
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected qualified Option<Vec<_>> field to validate elements")
+            .actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_qualified_option_and_vec_paths_skip_when_none() {
+    let profile = QualifiedPathProfile {
+        bio: None,
+        scores: None,
+    };
+
+    assert!(profile.validate().is_ok());
+}
+
+#[test]
 fn test_each_borrowed_slice_valid() {
     let values = [50.0, 75.0, 100.0];
     let order = BorrowedOrder { scores: &values };
@@ -408,6 +445,28 @@ fn test_borrowed_direct_field_valid() {
         username: "user:alice",
     };
     assert!(user.validate().is_ok());
+}
+
+#[test]
+fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value() {
+    let validator = PrefixBytesValidation::builder()
+        .prefix(b"ab")
+        .with_value(*b"abcd")
+        .build();
+
+    assert!(validator.validate(b"abcd"));
+    assert!(!validator.validate(b"zzzz"));
+    assert_eq!(validator.actual(), b"abcd");
+}
+
+#[test]
+fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value_ref() {
+    let builder = PrefixBytesValidation::builder().prefix(b"ab");
+    let validator = koruma::BuilderWithValueRef::with_value_ref(builder, b"abcd").build();
+
+    assert!(validator.validate(b"abcd"));
+    assert!(!validator.validate(b"zzzz"));
+    assert_eq!(validator.actual(), b"abcd");
 }
 
 #[test]

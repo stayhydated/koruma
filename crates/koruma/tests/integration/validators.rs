@@ -41,6 +41,22 @@ impl<T: PartialOrd + Clone> Validate<T> for GenericRangeValidation<T> {
     }
 }
 
+/// A validation rule that checks whether a fixed-size byte array starts with a prefix.
+/// This exercises validator builders that carry both lifetime and const generics.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct PrefixBytesValidation<'a, const N: usize> {
+    pub prefix: &'a [u8],
+    #[koruma(value)]
+    actual: [u8; N],
+}
+
+impl<'a, const N: usize> Validate<[u8; N]> for PrefixBytesValidation<'a, N> {
+    fn validate(&self, value: &[u8; N]) -> bool {
+        value.starts_with(self.prefix)
+    }
+}
+
 /// A validation rule that checks string length.
 #[validator]
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

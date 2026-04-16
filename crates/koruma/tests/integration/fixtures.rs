@@ -67,6 +67,16 @@ pub struct OptionalOrder {
     pub scores: Option<Vec<f64>>,
 }
 
+/// Example struct demonstrating that qualified Option/Vec paths keep the same semantics.
+#[derive(Koruma)]
+pub struct QualifiedPathProfile {
+    #[koruma(StringLengthValidation(min = 1, max = 200))]
+    pub bio: std::option::Option<String>,
+
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: core::option::Option<std::vec::Vec<f64>>,
+}
+
 /// Example struct demonstrating borrowed slice validation with `each`.
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {

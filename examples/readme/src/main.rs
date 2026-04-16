@@ -317,12 +317,11 @@ pub fn main() {
             }),
         };
 
-        if let Err(errors) = invalid_optional_signup.validate() {
-            if let Some(email_errors) = errors.email()
-                && let Some(email_err) = email_errors.non_empty_string_validation()
-            {
-                println!("  - optional email: {}", email_err.to_fluent_string());
-            }
+        if let Err(errors) = invalid_optional_signup.validate()
+            && let Some(email_errors) = errors.email()
+            && let Some(email_err) = email_errors.non_empty_string_validation()
+        {
+            println!("  - optional email: {}", email_err.to_fluent_string());
         }
 
         // Unnamed (tuple struct) newtype test

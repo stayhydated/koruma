@@ -64,12 +64,11 @@ let invalid_optional_form = OptionalSignupForm {
         value: "".to_string(),
     }),
 };
-if let Err(errors) = invalid_optional_form.validate() {
-    if let Some(email_errors) = errors.email() {
-        if let Some(email_err) = email_errors.non_empty_string_validation() {
-            println!("optional email failed: {}", email_err.to_fluent_string());
-        }
-    }
+if let Err(errors) = invalid_optional_form.validate()
+    && let Some(email_errors) = errors.email()
+    && let Some(email_err) = email_errors.non_empty_string_validation()
+{
+    println!("optional email failed: {}", email_err.to_fluent_string());
 }
 
 if let Err(errors) = Email::try_new("".to_string()) {

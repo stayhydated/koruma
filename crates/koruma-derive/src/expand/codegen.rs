@@ -96,14 +96,14 @@ pub(crate) fn helper_generics_for_usages(
         }
     }
 
-    let mut definition = Generics::default();
-    definition.params = source_generics
+    let params = source_generics
         .params
         .iter()
         .filter(|param| used.contains(&generic_param_key(param)))
         .cloned()
         .collect();
 
+    let mut definition_where_clause = None;
     if let Some(where_clause) = &source_generics.where_clause {
         let predicates: syn::punctuated::Punctuated<_, syn::token::Comma> = where_clause
             .predicates
@@ -116,12 +116,18 @@ pub(crate) fn helper_generics_for_usages(
             .collect();
 
         if !predicates.is_empty() {
-            definition.where_clause = Some(syn::WhereClause {
+            definition_where_clause = Some(syn::WhereClause {
                 where_token: where_clause.where_token,
                 predicates,
             });
         }
     }
+
+    let definition = Generics {
+        params,
+        where_clause: definition_where_clause,
+        ..Generics::default()
+    };
 
     let definition_for_impl = definition.clone();
     let (impl_generics, ty_generics, where_clause) = definition_for_impl.split_for_impl();

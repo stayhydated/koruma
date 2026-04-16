@@ -58,16 +58,14 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let total_fields = fields.len();
 
     // try_from requires newtype (set via newtype(try_from))
-    if struct_options.try_from {
-        if total_fields != 1 {
-            return Err(syn::Error::new_spanned(
-                &input,
-                format!(
-                    "newtype(try_from) requires exactly one field, found {}",
-                    total_fields
-                ),
-            ));
-        }
+    if struct_options.try_from && total_fields != 1 {
+        return Err(syn::Error::new_spanned(
+            &input,
+            format!(
+                "newtype(try_from) requires exactly one field, found {}",
+                total_fields
+            ),
+        ));
     }
 
     if struct_options.newtype && total_fields != 1 {

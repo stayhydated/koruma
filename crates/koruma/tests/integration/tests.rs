@@ -4,8 +4,9 @@ use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
     Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
-    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
-    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalOrder, Order,
+    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, ExplicitRequiredProfile,
+    GenericItem, Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
+    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
     OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
     QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
 };
@@ -370,6 +371,47 @@ fn test_each_optional_collection_some_invalid_element() {
 }
 
 #[test]
+fn test_each_optional_elements_full_type_validator_reports_none() {
+    let order = OptionalElementPresenceOrder {
+        values: vec![Some(1), None, Some(3)],
+    };
+
+    let err = order.validate().unwrap_err();
+    let value_errors = err.values().element_errors();
+
+    assert_eq!(value_errors.len(), 1);
+    assert_eq!(value_errors[0].0, 1);
+    assert!(value_errors[0].1.required_validation().is_some());
+}
+
+#[test]
+fn test_each_optional_elements_split_full_type_and_unwrapped_paths() {
+    let order = OptionalElementMixedValidators {
+        values: vec![None, Some(20), Some(5)],
+    };
+
+    let err = order.validate().unwrap_err();
+    let value_errors = err.values().element_errors();
+
+    assert_eq!(value_errors.len(), 2);
+    assert_eq!(value_errors[0].0, 0);
+    assert!(value_errors[0].1.required_validation().is_some());
+    assert!(value_errors[0].1.generic_range_validation().is_none());
+
+    assert_eq!(value_errors[1].0, 1);
+    assert!(value_errors[1].1.required_validation().is_none());
+    assert!(value_errors[1].1.generic_range_validation().is_some());
+    assert_eq!(
+        *value_errors[1]
+            .1
+            .generic_range_validation()
+            .expect("expected failing unwrapped element validator")
+            .actual(),
+        20
+    );
+}
+
+#[test]
 fn test_qualified_option_and_vec_paths_keep_validation_behavior() {
     let profile = QualifiedPathProfile {
         bio: Some(String::new()),
@@ -551,6 +593,23 @@ fn test_optional_field_none_skips_validation() {
     };
 
     // All None fields are skipped, username is valid
+    assert!(profile.validate().is_ok());
+}
+
+#[test]
+fn test_explicit_full_type_optional_field_none_fails() {
+    let profile = ExplicitRequiredProfile { bio: None };
+
+    let err = profile.validate().unwrap_err();
+    assert!(err.bio().required_validation().is_some());
+}
+
+#[test]
+fn test_explicit_full_type_optional_field_some_passes() {
+    let profile = ExplicitRequiredProfile {
+        bio: Some("I love concrete Option types".to_string()),
+    };
+
     assert!(profile.validate().is_ok());
 }
 

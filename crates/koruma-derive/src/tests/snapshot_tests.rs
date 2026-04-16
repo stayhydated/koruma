@@ -466,31 +466,47 @@ fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
 }
 
 #[test]
-fn test_koruma_expansion_non_optional_field_with_full_and_unwrapped_validators() {
+fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalMixedValidators {
-            #[koruma(RequiredValidation<Option<_>>, GenericRange<_>(min = 0, max = 10))]
-            pub value: i32,
+        pub struct OptionalConcreteFullTypeValidator {
+            #[koruma(RequiredValidation<Option<String>>)]
+            pub value: Option<String>,
         }
     };
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("let__field_value=&self.value;"));
+    assert!(compact.contains("required_validation:Option<RequiredValidation<Option<String>>>"));
+    assert!(compact.contains(
+        "BuilderWithValueRef::with_value_ref(RequiredValidation::builder(),&self.value,)"
+    ));
+    assert!(compact.contains("validator.validate(&self.value)"));
+    assert!(!compact.contains("ifletSome(ref__field_value)=self.value"));
 }
 
 #[test]
-fn test_koruma_expansion_non_optional_field_with_only_full_type_validator() {
+fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalFullOnlyValidator {
-            #[koruma(RequiredValidation<Option<_>>)]
-            pub value: i32,
+        pub struct OptionalElementValidators {
+            #[koruma(each(RequiredValidation<Option<_>>))]
+            pub values: Vec<Option<i32>>,
         }
     };
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("RequiredValidation::<Option<i32>>::builder()"));
+    assert!(compact.contains(
+        "BuilderWithValueRef::with_value_ref(RequiredValidation::<Option<i32>>::builder(),item,)"
+    ));
+    assert!(
+        compact.contains(
+            "__koruma_assert_validate_values_required_validation_element(&validator,item,)"
+        )
+    );
+    assert!(!compact.contains(
+        "__koruma_assert_validate_values_required_validation_element(&validator,__item_value,)"
+    ));
 }
 
 #[test]
@@ -518,7 +534,7 @@ fn test_koruma_expansion_vec_option_each_with_explicit_infer_type() {
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("ifletSome(ref__item_value)=item"));
+    assert!(compact.contains("ifletSome(__item_value)=item"));
     assert!(compact.contains("generic_range:Option<GenericRange<Vec<i32>>>"));
     assert!(compact.contains("GenericRange::<Vec<i32>>::builder()"));
 }

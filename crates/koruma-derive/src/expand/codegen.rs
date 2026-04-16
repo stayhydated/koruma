@@ -1,12 +1,12 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type,
-    option_inner_type, substitute_infer_type_from_source, vec_inner_type,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_type, option_inner_type,
+    substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::{TokenStream as TokenStream2, TokenTree};
 use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeSet;
-use syn::{Expr, GenericParam, Generics, Ident, Type};
+use syn::{Error, Expr, GenericParam, Generics, Ident, Type};
 
 pub(crate) struct HelperGenerics {
     pub definition: Generics,
@@ -96,14 +96,14 @@ pub(crate) fn helper_generics_for_usages(
         }
     }
 
-    let mut definition = Generics::default();
-    definition.params = source_generics
+    let params = source_generics
         .params
         .iter()
         .filter(|param| used.contains(&generic_param_key(param)))
         .cloned()
         .collect();
 
+    let mut definition_where_clause = None;
     if let Some(where_clause) = &source_generics.where_clause {
         let predicates: syn::punctuated::Punctuated<_, syn::token::Comma> = where_clause
             .predicates
@@ -116,12 +116,18 @@ pub(crate) fn helper_generics_for_usages(
             .collect();
 
         if !predicates.is_empty() {
-            definition.where_clause = Some(syn::WhereClause {
+            definition_where_clause = Some(syn::WhereClause {
                 where_token: where_clause.where_token,
                 predicates,
             });
         }
     }
+
+    let definition = Generics {
+        params,
+        where_clause: definition_where_clause,
+        ..Generics::default()
+    };
 
     let definition_for_impl = definition.clone();
     let (impl_generics, ty_generics, where_clause) = definition_for_impl.split_for_impl();
@@ -138,9 +144,11 @@ pub(crate) fn helper_generics_for_usages(
 }
 
 /// Check if a validator wants the full field type (not unwrapped from Option).
-/// This is true for `<Option<_>>` syntax.
+///
+/// Any explicit `Option<...>` validator type takes the full-type path so derived
+/// validation passes `&Option<T>` instead of unwrapping to `&T`.
 pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
-    v.explicit_type.as_ref().is_some_and(is_option_infer_type)
+    v.explicit_type.as_ref().is_some_and(is_option_type)
 }
 
 /// Returns the collection type that `each(...)` should iterate over.
@@ -233,6 +241,38 @@ pub(crate) fn resolve_explicit_infer_type(
                 ),
             )
         })
+}
+
+pub(crate) fn validate_full_type_option_target(
+    v: &ValidatorAttr,
+    field_ty: &Type,
+    validate_each: bool,
+    field_name: &Ident,
+) -> Result<(), Error> {
+    if !validator_wants_full_type(v) {
+        return Ok(());
+    }
+
+    let target_ty = validator_infer_source_type(v, field_ty, validate_each);
+    if is_option_type(target_ty) {
+        return Ok(());
+    }
+
+    let rendered_target = quote! { #target_ty }.to_string();
+    let target_context = if validate_each {
+        format!("element type of field `{field_name}`")
+    } else {
+        format!("field `{field_name}`")
+    };
+
+    Err(Error::new_spanned(
+        v.explicit_type
+            .as_ref()
+            .expect("full-type validators should always have an explicit type"),
+        format!(
+            "explicit `Option<...>` validator types require an optional validation target, but the {target_context} is `{rendered_target}`"
+        ),
+    ))
 }
 
 /// Transform a validator arg value for use in generated code.

@@ -15,11 +15,13 @@ use koruma::{Validate, validator};
 /// }
 /// ```
 ///
-/// Validates that a string is a valid URL.
+/// Validates that a string parses as a URL.
+///
+/// This accepts any scheme supported by [`url::Url::parse`].
 #[validator]
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "URL",
-    description = "Validates that the input is a valid URL",
+    description = "Validates that the input parses as a URL",
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {

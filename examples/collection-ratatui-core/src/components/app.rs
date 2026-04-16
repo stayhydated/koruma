@@ -224,14 +224,12 @@ impl App {
                         }
                     }
                 },
-                KeyCode::Backspace => {
-                    if self.module_selector.is_searching() {
-                        let current_query = self.module_selector.get_search_query().to_string();
-                        if !current_query.is_empty() {
-                            let new_query = &current_query[..current_query.len() - 1];
-                            self.module_selector
-                                .set_search_query(new_query, |module| module.name().to_string());
-                        }
+                KeyCode::Backspace if self.module_selector.is_searching() => {
+                    let current_query = self.module_selector.get_search_query().to_string();
+                    if !current_query.is_empty() {
+                        let new_query = &current_query[..current_query.len() - 1];
+                        self.module_selector
+                            .set_search_query(new_query, |module| module.name().to_string());
                     }
                 },
                 _ => {},
@@ -254,25 +252,21 @@ impl App {
                 KeyCode::Char('/') => {
                     self.language_selector.toggle_search();
                 },
-                KeyCode::Char(c) => {
-                    if self.language_selector.is_searching() && c.is_ascii_alphanumeric()
-                        || c == '-'
-                        || c == '_'
-                    {
-                        let current_query = self.language_selector.get_search_query().to_string();
-                        let new_query = format!("{}{}", current_query, c);
-                        self.language_selector
-                            .set_search_query(&new_query, |lang| lang.to_fluent_string());
-                    }
+                KeyCode::Char(c)
+                    if self.language_selector.is_searching()
+                        && (c.is_ascii_alphanumeric() || c == '-' || c == '_') =>
+                {
+                    let current_query = self.language_selector.get_search_query().to_string();
+                    let new_query = format!("{}{}", current_query, c);
+                    self.language_selector
+                        .set_search_query(&new_query, |lang| lang.to_fluent_string());
                 },
-                KeyCode::Backspace => {
-                    if self.language_selector.is_searching() {
-                        let current_query = self.language_selector.get_search_query().to_string();
-                        if !current_query.is_empty() {
-                            let new_query = &current_query[..current_query.len() - 1];
-                            self.language_selector
-                                .set_search_query(new_query, |lang| lang.to_fluent_string());
-                        }
+                KeyCode::Backspace if self.language_selector.is_searching() => {
+                    let current_query = self.language_selector.get_search_query().to_string();
+                    if !current_query.is_empty() {
+                        let new_query = &current_query[..current_query.len() - 1];
+                        self.language_selector
+                            .set_search_query(new_query, |lang| lang.to_fluent_string());
                     }
                 },
                 _ => {},

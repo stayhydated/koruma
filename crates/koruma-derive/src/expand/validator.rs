@@ -217,54 +217,49 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             quote! { "general" }
         };
 
-        // Extract generics from the struct
-        let (impl_generics, type_generics, _where_clause) = input.generics.split_for_impl();
+        let mut showcase_generics = input.generics.clone();
+        let showcase_where_clause = showcase_generics.make_where_clause();
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::std::marker::Send + ::std::marker::Sync));
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::koruma::Validate<#value_field_type>));
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::std::fmt::Display));
+        #[cfg(feature = "fluent")]
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::es_fluent::ToFluentString));
 
-        // Extract bounds from the generic params for the where clause
-        let mut where_predicates = Vec::new();
-        for param in input.generics.params.iter() {
-            if let GenericParam::Type(t) = param {
-                let ident = &t.ident;
-                // Add all existing bounds plus Send + Sync + Clone + 'static
-                // If no existing bounds, don't include the leading `+`
-                if t.bounds.is_empty() {
-                    where_predicates.push(quote! { #ident: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'static });
-                } else {
-                    let bounds = &t.bounds;
-                    where_predicates.push(quote! { #ident: #bounds + ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'static });
-                }
-            }
-        }
-        // Add Self: Display bound
-        where_predicates.push(quote! { Self: ::std::fmt::Display });
+        let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
-        let combined_where = quote! { where #(#where_predicates),* };
+        // Decide feature-sensitive behavior here in the macro crate. Emitting
+        // raw `cfg(feature = "...")` checks into downstream code would make the
+        // generated showcase impl depend on the consumer crate's feature names.
+        #[cfg(feature = "fluent")]
+        let fluent_string_body = quote! {
+            use ::es_fluent::ToFluentString as _;
+            self.to_fluent_string()
+        };
+        #[cfg(not(feature = "fluent"))]
+        let fluent_string_body = quote! {
+            "(fluent feature required)".to_string()
+        };
 
         quote! {
-            // DynValidator is implemented by validators that have Validate + Display impls
-            #[cfg(feature = "internal-showcase")]
-            impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics
-            #combined_where
-            {
+            impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics #where_clause {
                 fn is_valid(&self) -> bool {
                     ::koruma::Validate::validate(self, &self.#value_field_name)
                 }
 
                 fn display_string(&self) -> String {
-                    #[cfg(feature = "fmt")]
-                    { ::std::string::ToString::to_string(self) }
-                    #[cfg(not(feature = "fmt"))]
-                    { "(fmt feature required)".to_string() }
+                    ::std::string::ToString::to_string(self)
                 }
 
                 fn fluent_string(&self) -> String {
-                    #[cfg(feature = "fluent")]
-                    {
-                        use ::es_fluent::ToFluentString as _;
-                        self.to_fluent_string()
-                    }
-                    #[cfg(not(feature = "fluent"))]
-                    { "(fluent feature required)".to_string() }
+                    #fluent_string_body
                 }
             }
 

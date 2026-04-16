@@ -105,8 +105,8 @@ mod tests {
 
     #[test]
     fn string_len_counts_unicode_scalar_values() {
-        assert_eq!(HasLen::len("a😀é"), 3);
-        assert_eq!(HasLen::len(&"a😀é".to_string()), 3);
+        assert_eq!(HasLen::len("a💀é"), 3);
+        assert_eq!(HasLen::len(&"a💀é".to_string()), 3);
     }
 
     #[cfg(feature = "smallvec")]

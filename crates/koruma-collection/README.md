@@ -41,19 +41,19 @@ Validator-specific optional flags:
 
 ### String validators (`koruma_collection::string`)
 
-| Validator                   | Rule                     | Example attribute                                                       | Feature |
-| --------------------------- | ------------------------ | ----------------------------------------------------------------------- | ------- |
-| `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation<_>)]`                          | always  |
-| `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation<_>)]`                                 | always  |
-| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation<_>(substring = "abc"))]`           | always  |
-| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation<_>(other = "secret".to_string()))]` | always  |
-| `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation<_>(pattern = r"^[a-z0-9_]+$"))]`    | `regex` |
-| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation<_>(prefix = "usr_"))]`               | always  |
-| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation<_>(suffix = ".rs"))]`                | always  |
+| Validator                   | Rule                     | Example attribute                                                                                | Feature |
+| --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ------- |
+| `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation<_>)]`                                                   | always  |
+| `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation<_>)]`                                                          | always  |
+| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation<_>(substring = "abc"))]`                                    | always  |
+| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation<_>(other = "secret".to_string()))]`                          | always  |
+| `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation<_>(pattern = regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
+| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation<_>(prefix = "usr_"))]`                                        | always  |
+| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation<_>(suffix = ".rs"))]`                                         | always  |
 
 `MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
-compared value or regex pattern. Invalid `PatternValidation` regex strings fail validation instead
-of panicking.
+compared value or regex pattern. `PatternValidation` stores a compiled `regex::Regex`, so invalid
+patterns fail during construction instead of during validation.
 
 ### Format validators (`koruma_collection::format`)
 

@@ -19,7 +19,9 @@
 
 ## Showcase registry (feature `internal-showcase`)
 
-- `DynValidator`: type-erased validator interface.
+- `DynValidator`: type-erased validator interface. Showcase impls preserve the
+  validator's original generic bounds, require `Display` for user-facing text,
+  and only emit Fluent hooks when the macro expansion has fluent support.
 - `InputType`: expected input classification (text or numeric).
 - `ValidatorShowcase`: metadata collected via `inventory`.
 - `validators()`: returns all registered validators.

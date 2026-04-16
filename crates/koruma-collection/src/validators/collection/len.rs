@@ -101,7 +101,7 @@ mod tests {
             max: 3,
             actual: String::new(),
         };
-        assert!(validator.validate(&"a😀é".to_string()));
-        assert!(!validator.validate(&"😀😀😀😀".to_string()));
+        assert!(validator.validate(&"a💀é".to_string()));
+        assert!(!validator.validate(&"💀💀💀💀".to_string()));
     }
 }

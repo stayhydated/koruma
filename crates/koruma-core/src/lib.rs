@@ -34,8 +34,9 @@ pub trait BuilderWithValue<T> {
 /// validator builders.
 ///
 /// Validators that capture the input clone from the borrowed value inside the
-/// builder impl. Validators marked with `#[koruma(value, skip_capture)]` can
-/// ignore the borrowed input and keep their default value instead.
+/// builder impl. Validators marked with `#[koruma(value, skip_capture)]` on an
+/// `Option<T>` value field can ignore the borrowed input and keep their default
+/// value instead.
 #[doc(hidden)]
 pub trait BuilderWithValueRef<T> {
     type Output;
@@ -81,18 +82,21 @@ pub mod showcase {
     /// allowing consumers to work with any validator regardless of its
     /// generic type parameters.
     ///
-    /// Methods are always present but may return placeholder values
-    /// when the corresponding feature is not enabled.
     pub trait DynValidator: Send + Sync {
         /// Check if the validation passed.
         fn is_valid(&self) -> bool;
 
-        /// Get the display string (via `to_string()` when `fmt` feature is enabled).
-        /// Returns "(fmt feature required)" if fmt is not enabled.
+        /// Get the display string via `Display::to_string()`.
+        ///
+        /// Showcased validators should implement `Display` when they want a
+        /// user-facing message in showcase UIs.
         fn display_string(&self) -> String;
 
-        /// Get the fluent i18n string (via `to_fluent_string()` when `fluent` feature is enabled).
-        /// Returns "(fluent feature required)" if fluent is not enabled.
+        /// Get the fluent i18n string via `to_fluent_string()` when koruma's
+        /// `fluent` feature is enabled for the generated showcase impl.
+        ///
+        /// Returns "(fluent feature required)" when fluent support is not
+        /// enabled for the validator macro expansion.
         fn fluent_string(&self) -> String;
     }
 

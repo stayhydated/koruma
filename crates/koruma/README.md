@@ -176,13 +176,17 @@ Borrowed fields work too when the validator accepts the borrowed item type:
 ```rs
 use koruma::Koruma;
 use koruma_collection::string::PatternValidation;
+use regex::Regex;
 
 #[derive(Koruma)]
 pub struct BorrowedUser<'a> {
-    #[koruma(PatternValidation<_>(pattern = r"^user:[a-z]+$"))]
+    #[koruma(PatternValidation<_>(pattern = Regex::new(r"^user:[a-z]+$").unwrap()))]
     pub username: &'a str,
 }
 ```
+
+`PatternValidation` stores a compiled `Regex`, so invalid patterns fail while you construct the
+validator instead of during validation.
 
 ### 3. Use `all()` getter (`KorumaAllDisplay`)
 

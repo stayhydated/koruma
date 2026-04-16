@@ -718,6 +718,13 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
     assert!(compact.contains("showcase_validation_builder::State"));
     assert!(compact.contains("S::Actual:koruma::bon::IsUnset"));
     assert!(compact.contains("DynValidatorforShowcaseValidation"));
+    assert!(compact.contains("whereU:Default"));
+    assert!(compact.contains("Self:::std::marker::Send+::std::marker::Sync"));
+    assert!(compact.contains("Self:::koruma::Validate<Option<T>>"));
+    assert!(compact.contains("Self:::std::fmt::Display"));
+    assert!(!compact.contains("feature=\"internal-showcase\""));
+    assert!(!compact.contains("feature=\"fmt\""));
+    assert!(!compact.contains("feature=\"fluent\""));
 }
 
 #[cfg(feature = "fluent")]

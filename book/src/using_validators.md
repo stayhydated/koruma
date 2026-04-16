@@ -57,16 +57,17 @@ Borrowed fields work too when the validator accepts the borrowed item type:
 ```rust
 use koruma::Koruma;
 use koruma_collection::string::PatternValidation;
+use regex::Regex;
 
 #[derive(Koruma)]
 pub struct BorrowedUser<'a> {
-    #[koruma(PatternValidation<_>(pattern = r"^user:[a-z]+$"))]
+    #[koruma(PatternValidation<_>(pattern = Regex::new(r"^user:[a-z]+$").unwrap()))]
     pub username: &'a str,
 }
 ```
 
-Invalid `PatternValidation` regex strings fail validation instead of panicking, so bad runtime
-configuration stays on the normal validation path.
+`PatternValidation` stores a compiled `Regex`, so invalid patterns fail while you construct the
+validator instead of during validation.
 
 For fields with more than one validator, `koruma` generates accessors for each validator as well as
 an `all()` iterator when you derive `KorumaAllDisplay` or `KorumaAllFluent`. The next chapter

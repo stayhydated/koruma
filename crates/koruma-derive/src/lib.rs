@@ -132,8 +132,8 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// The macro captures validator values through a hidden borrowed builder hook.
 /// Validators that keep the default `#[koruma(value)]` behavior still clone the
 /// input into the error value; validators marked with
-/// `#[koruma(value, skip_capture)]` can opt out when they do not need to store
-/// the validated value.
+/// `#[koruma(value, skip_capture)]` on an `Option<T>` value field can opt out
+/// when they do not need to store the validated value.
 #[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]
 pub fn derive_koruma(input: TokenStream) -> TokenStream {

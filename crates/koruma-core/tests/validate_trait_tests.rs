@@ -9,11 +9,7 @@ struct RangeValidator {
 
 impl Validate<i32> for RangeValidator {
     fn validate(&self, value: &i32) -> bool {
-        if *value >= self.min && *value <= self.max {
-            true
-        } else {
-            false
-        }
+        *value >= self.min && *value <= self.max
     }
 }
 
@@ -40,11 +36,7 @@ struct GenericLengthValidator<T> {
 
 impl<T: AsRef<str>> Validate<T> for GenericLengthValidator<T> {
     fn validate(&self, value: &T) -> bool {
-        if value.as_ref().len() >= self.min_len {
-            true
-        } else {
-            false
-        }
+        value.as_ref().len() >= self.min_len
     }
 }
 

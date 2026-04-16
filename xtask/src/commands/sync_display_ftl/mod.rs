@@ -274,8 +274,7 @@ example_validation = Value { $min } and { $actual }.
         let options: SyncArgs = SyncArgs {
             check: true,
             verbose: true,
-        }
-        .into();
+        };
         assert!(options.check);
         assert!(options.verbose);
     }
@@ -605,8 +604,7 @@ impl std::fmt::Display for IncludedValidation {
                 .collect(),
         };
         let display = DisplayInfo {
-            expr_by_placeholder: [("kind".to_string(), "self.kind".to_string())]
-                .into_iter()
+            expr_by_placeholder: std::iter::once(("kind".to_string(), "self.kind".to_string()))
                 .collect(),
             source: PathBuf::from("demo.rs"),
             write_span: Span::call_site(),
@@ -1116,7 +1114,7 @@ unsupported = { "literal" }
             namespace: "example".to_string(),
             message_id: "example_validation".to_string(),
             source: PathBuf::from("example.rs"),
-            fields: ["actual".to_string()].into_iter().collect(),
+            fields: std::iter::once("actual".to_string()).collect(),
         };
 
         let display = DisplayInfo {

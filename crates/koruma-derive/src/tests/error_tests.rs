@@ -252,6 +252,56 @@ fn test_koruma_error_on_duplicate_element_validator() {
 }
 
 #[test]
+fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct NonOptionalFullTypeValidator {
+            #[koruma(RequiredValidation<Option<_>>)]
+            pub value: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`<Option<_>>` requires an optional validation target"),
+        "expected optional-target diagnostic, got: {}",
+        err
+    );
+    assert!(
+        err.to_string().contains("field `value`"),
+        "expected field name in diagnostic, got: {}",
+        err
+    );
+}
+
+#[test]
+fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elements() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct NonOptionalElementFullTypeValidator {
+            #[koruma(each(RequiredValidation<Option<_>>))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`<Option<_>>` requires an optional validation target"),
+        "expected optional-target diagnostic, got: {}",
+        err
+    );
+    assert!(
+        err.to_string().contains("element type of field `values`"),
+        "expected element context in diagnostic, got: {}",
+        err
+    );
+}
+
+#[test]
 fn test_koruma_error_on_each_non_vec_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonVecEach {

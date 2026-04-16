@@ -1,8 +1,8 @@
 use crate::expand::codegen::{
     each_element_type, effective_validation_type, helper_generics_for_usages,
     resolve_explicit_infer_type, transform_arg_value, validate_each_collection_type,
-    validator_field_ident, validator_type_for_field, validator_variant_ident,
-    validator_wants_full_type,
+    validate_full_type_option_target, validator_field_ident, validator_type_for_field,
+    validator_variant_ident, validator_wants_full_type,
 };
 use crate::expand::collect_field_infos;
 use heck::ToUpperCamelCase;
@@ -45,10 +45,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         }
 
         for validator in &field_info.validation.field_validators {
+            validate_full_type_option_target(validator, &field_info.ty, false, &field_info.name)?;
             resolve_explicit_infer_type(validator, &field_info.ty, false)?;
         }
 
         for validator in &field_info.validation.element_validators {
+            validate_full_type_option_target(validator, &field_info.ty, true, &field_info.name)?;
             resolve_explicit_infer_type(validator, &field_info.ty, true)?;
         }
     }

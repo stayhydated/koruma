@@ -1,12 +1,12 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_infer_type, is_option_type,
     option_inner_type, substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::{TokenStream as TokenStream2, TokenTree};
 use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeSet;
-use syn::{Expr, GenericParam, Generics, Ident, Type};
+use syn::{Error, Expr, GenericParam, Generics, Ident, Type};
 
 pub(crate) struct HelperGenerics {
     pub definition: Generics,
@@ -233,6 +233,38 @@ pub(crate) fn resolve_explicit_infer_type(
                 ),
             )
         })
+}
+
+pub(crate) fn validate_full_type_option_target(
+    v: &ValidatorAttr,
+    field_ty: &Type,
+    validate_each: bool,
+    field_name: &Ident,
+) -> Result<(), Error> {
+    if !validator_wants_full_type(v) {
+        return Ok(());
+    }
+
+    let target_ty = validator_infer_source_type(v, field_ty, validate_each);
+    if is_option_type(target_ty) {
+        return Ok(());
+    }
+
+    let rendered_target = quote! { #target_ty }.to_string();
+    let target_context = if validate_each {
+        format!("element type of field `{field_name}`")
+    } else {
+        format!("field `{field_name}`")
+    };
+
+    Err(Error::new_spanned(
+        v.explicit_type
+            .as_ref()
+            .expect("full-type validators should always have an explicit type"),
+        format!(
+            "`<Option<_>>` requires an optional validation target, but the {target_context} is `{rendered_target}`"
+        ),
+    ))
 }
 
 /// Transform a validator arg value for use in generated code.

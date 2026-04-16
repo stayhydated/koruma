@@ -466,25 +466,11 @@ fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
 }
 
 #[test]
-fn test_koruma_expansion_non_optional_field_with_full_and_unwrapped_validators() {
+fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalMixedValidators {
-            #[koruma(RequiredValidation<Option<_>>, GenericRange<_>(min = 0, max = 10))]
-            pub value: i32,
-        }
-    };
-
-    let expanded = expand_koruma(input).unwrap();
-    let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("let__field_value=&self.value;"));
-}
-
-#[test]
-fn test_koruma_expansion_non_optional_field_with_only_full_type_validator() {
-    let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalFullOnlyValidator {
-            #[koruma(RequiredValidation<Option<_>>)]
-            pub value: i32,
+        pub struct OptionalElementValidators {
+            #[koruma(each(RequiredValidation<Option<_>>))]
+            pub values: Vec<Option<i32>>,
         }
     };
 

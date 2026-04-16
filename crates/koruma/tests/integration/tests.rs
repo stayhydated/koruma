@@ -5,7 +5,8 @@ use koruma::{Validate, ValidationError};
 use super::fixtures::{
     Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
     ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
-    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalOrder, Order,
+    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
+    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
     OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
     QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
 };
@@ -366,6 +367,47 @@ fn test_each_optional_collection_some_invalid_element() {
             .expect("expected failing element validator")
             .actual(),
         150.0
+    );
+}
+
+#[test]
+fn test_each_optional_elements_full_type_validator_reports_none() {
+    let order = OptionalElementPresenceOrder {
+        values: vec![Some(1), None, Some(3)],
+    };
+
+    let err = order.validate().unwrap_err();
+    let value_errors = err.values().element_errors();
+
+    assert_eq!(value_errors.len(), 1);
+    assert_eq!(value_errors[0].0, 1);
+    assert!(value_errors[0].1.required_validation().is_some());
+}
+
+#[test]
+fn test_each_optional_elements_split_full_type_and_unwrapped_paths() {
+    let order = OptionalElementMixedValidators {
+        values: vec![None, Some(20), Some(5)],
+    };
+
+    let err = order.validate().unwrap_err();
+    let value_errors = err.values().element_errors();
+
+    assert_eq!(value_errors.len(), 2);
+    assert_eq!(value_errors[0].0, 0);
+    assert!(value_errors[0].1.required_validation().is_some());
+    assert!(value_errors[0].1.generic_range_validation().is_none());
+
+    assert_eq!(value_errors[1].0, 1);
+    assert!(value_errors[1].1.required_validation().is_none());
+    assert!(value_errors[1].1.generic_range_validation().is_some());
+    assert_eq!(
+        *value_errors[1]
+            .1
+            .generic_range_validation()
+            .expect("expected failing unwrapped element validator")
+            .actual(),
+        20
     );
 }
 

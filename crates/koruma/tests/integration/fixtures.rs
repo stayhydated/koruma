@@ -142,6 +142,20 @@ pub struct NonCloneSecret {
     pub raw: String,
 }
 
+/// Example struct demonstrating full-type element validation for optional elements.
+#[derive(Koruma)]
+pub struct OptionalElementPresenceOrder {
+    #[koruma(each(RequiredValidation<Option<_>>))]
+    pub values: Vec<Option<i32>>,
+}
+
+/// Example struct demonstrating mixed full-type and unwrapped element validators.
+#[derive(Koruma)]
+pub struct OptionalElementMixedValidators {
+    #[koruma(each(RequiredValidation<Option<_>>, GenericRangeValidation<_>(min = 0, max = 10)))]
+    pub values: Vec<Option<i32>>,
+}
+
 /// Example struct showing that RequiredValidation can validate Option<NonClone>
 /// without forcing clone capture in the derive expansion.
 #[derive(Koruma)]

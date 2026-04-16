@@ -1426,72 +1426,81 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let element_is_optional = is_option_type(element_ty);
                 let effective_element_ty = effective_validation_type(field_ty, true);
 
-                let element_validator_checks: Vec<TokenStream2> = f
-                    .validation
-                    .element_validators
-                    .iter()
-                    .map(|v| {
-                        let validator = &v.validator;
-                        let validator_snake =
-                            validator_field_ident(v, &f.validation.element_validators);
+                let (full_type_element_validators, unwrapped_element_validators): (Vec<_>, Vec<_>) =
+                    f.validation
+                        .element_validators
+                        .iter()
+                        .partition(|v| validator_wants_full_type(v));
 
-                        let builder_calls: Vec<TokenStream2> = v
-                            .args
-                            .iter()
-                            .map(|(arg_name, arg_value)| {
-                                let transformed =
-                                    transform_arg_value(arg_value, &known_field_names);
-                                quote! { .#arg_name(#transformed) }
-                            })
-                            .collect();
+                let generate_element_validator_check = |v: &ValidatorAttr,
+                                                        value_expr: TokenStream2|
+                 -> TokenStream2 {
+                    let validator = &v.validator;
+                    let validator_snake =
+                        validator_field_ident(v, &f.validation.element_validators);
 
-                        if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type)
-                        {
-                            let validator_ty = if v.explicit_type.is_some() {
-                                let substituted = resolve_explicit_infer_type(v, field_ty, true)
-                                    .expect("explicit infer types should be pre-validated")
-                                    .expect(
-                                        "explicit infer types should resolve to a concrete type",
-                                    );
-                                quote! { #substituted }
-                            } else {
-                                quote! { #effective_element_ty }
-                            };
-                            let assert_fn = format_ident!(
-                                "__koruma_assert_validate_{}_{}_element",
-                                field_name,
-                                validator_snake
-                            );
-                            quote! {
-                                fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
-                                    v.validate(t)
-                                }
-                                let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                    #validator::<#validator_ty>::builder()
-                                        #(#builder_calls)*,
-                                    __item_value,
-                                )
-                                .build();
-                                if !#assert_fn(&validator, __item_value) {
-                                    element_error.#validator_snake = Some(validator);
-                                    element_has_error = true;
-                                }
-                            }
+                    let builder_calls: Vec<TokenStream2> = v
+                        .args
+                        .iter()
+                        .map(|(arg_name, arg_value)| {
+                            let transformed = transform_arg_value(arg_value, &known_field_names);
+                            quote! { .#arg_name(#transformed) }
+                        })
+                        .collect();
+
+                    if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type) {
+                        let validator_ty = if v.explicit_type.is_some() {
+                            let substituted = resolve_explicit_infer_type(v, field_ty, true)
+                                .expect("explicit infer types should be pre-validated")
+                                .expect("explicit infer types should resolve to a concrete type");
+                            quote! { #substituted }
                         } else {
-                            quote! {
-                                let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                    #validator::builder()
-                                        #(#builder_calls)*,
-                                    __item_value,
-                                )
-                                .build();
-                                if !validator.validate(__item_value) {
-                                    element_error.#validator_snake = Some(validator);
-                                    element_has_error = true;
-                                }
+                            quote! { #effective_element_ty }
+                        };
+                        let assert_fn = format_ident!(
+                            "__koruma_assert_validate_{}_{}_element",
+                            field_name,
+                            validator_snake
+                        );
+                        quote! {
+                            fn #assert_fn<V: koruma::Validate<T>, T>(v: &V, t: &T) -> bool {
+                                v.validate(t)
+                            }
+                            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                #validator::<#validator_ty>::builder()
+                                    #(#builder_calls)*,
+                                #value_expr,
+                            )
+                            .build();
+                            if !#assert_fn(&validator, #value_expr) {
+                                element_error.#validator_snake = Some(validator);
+                                element_has_error = true;
                             }
                         }
-                    })
+                    } else {
+                        quote! {
+                            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                                #validator::builder()
+                                    #(#builder_calls)*,
+                                #value_expr,
+                            )
+                            .build();
+                            if !validator.validate(#value_expr) {
+                                element_error.#validator_snake = Some(validator);
+                                element_has_error = true;
+                            }
+                        }
+                    }
+                };
+
+                let full_type_element_checks: Vec<TokenStream2> = full_type_element_validators
+                    .iter()
+                    .map(|v| generate_element_validator_check(v, quote! { item }))
+                    .collect();
+
+                let unwrapped_element_checks: Vec<TokenStream2> = unwrapped_element_validators
+                    .iter()
+                    .map(|v| generate_element_validator_check(v, quote! { __item_value }))
                     .collect();
 
                 let element_validator_defaults: Vec<TokenStream2> = f
@@ -1505,27 +1514,26 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     })
                     .collect();
 
-                let inner_element_validation = quote! {
-                    let mut element_error = #element_error_struct_name {
-                        #(#element_validator_defaults),*
-                    };
-                    let mut element_has_error = false;
-
-                    #(#element_validator_checks)*
-
-                    if element_has_error {
-                        error.#field_name.element_errors.push((idx, element_error));
-                        has_error = true;
-                    }
-                };
-
                 if field_is_optional {
                     let item_iteration = if element_is_optional {
-                        // For collections of Option<T>, skip None items.
+                        // For collections of Option<T>, full-type validators see every element
+                        // while unwrapped validators only inspect Some(..) items.
                         quote! {
                             for (idx, item) in __collection_value.iter().enumerate() {
-                                if let Some(ref __item_value) = item {
-                                    #inner_element_validation
+                                let mut element_error = #element_error_struct_name {
+                                    #(#element_validator_defaults),*
+                                };
+                                let mut element_has_error = false;
+
+                                #(#full_type_element_checks)*
+
+                                if let Some(__item_value) = item {
+                                    #(#unwrapped_element_checks)*
+                                }
+
+                                if element_has_error {
+                                    error.#field_name.element_errors.push((idx, element_error));
+                                    has_error = true;
                                 }
                             }
                         }
@@ -1533,7 +1541,18 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         // For collections of T, validate each item directly.
                         quote! {
                             for (idx, __item_value) in __collection_value.iter().enumerate() {
-                                #inner_element_validation
+                                let mut element_error = #element_error_struct_name {
+                                    #(#element_validator_defaults),*
+                                };
+                                let mut element_has_error = false;
+
+                                #(#full_type_element_checks)*
+                                #(#unwrapped_element_checks)*
+
+                                if element_has_error {
+                                    error.#field_name.element_errors.push((idx, element_error));
+                                    has_error = true;
+                                }
                             }
                         }
                     };
@@ -1547,15 +1566,38 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     if element_is_optional {
                         quote! {
                             for (idx, item) in self.#field_member.iter().enumerate() {
-                                if let Some(ref __item_value) = item {
-                                    #inner_element_validation
+                                let mut element_error = #element_error_struct_name {
+                                    #(#element_validator_defaults),*
+                                };
+                                let mut element_has_error = false;
+
+                                #(#full_type_element_checks)*
+
+                                if let Some(__item_value) = item {
+                                    #(#unwrapped_element_checks)*
+                                }
+
+                                if element_has_error {
+                                    error.#field_name.element_errors.push((idx, element_error));
+                                    has_error = true;
                                 }
                             }
                         }
                     } else {
                         quote! {
                             for (idx, __item_value) in self.#field_member.iter().enumerate() {
-                                #inner_element_validation
+                                let mut element_error = #element_error_struct_name {
+                                    #(#element_validator_defaults),*
+                                };
+                                let mut element_has_error = false;
+
+                                #(#full_type_element_checks)*
+                                #(#unwrapped_element_checks)*
+
+                                if element_has_error {
+                                    error.#field_name.element_errors.push((idx, element_error));
+                                    has_error = true;
+                                }
                             }
                         }
                     }

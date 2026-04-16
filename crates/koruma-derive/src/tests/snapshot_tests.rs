@@ -477,6 +477,17 @@ fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("RequiredValidation::<Option<i32>>::builder()"));
+    assert!(compact.contains(
+        "BuilderWithValueRef::with_value_ref(RequiredValidation::<Option<i32>>::builder(),item,)"
+    ));
+    assert!(
+        compact.contains(
+            "__koruma_assert_validate_values_required_validation_element(&validator,item,)"
+        )
+    );
+    assert!(!compact.contains(
+        "__koruma_assert_validate_values_required_validation_element(&validator,__item_value,)"
+    ));
 }
 
 #[test]
@@ -504,7 +515,7 @@ fn test_koruma_expansion_vec_option_each_with_explicit_infer_type() {
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("ifletSome(ref__item_value)=item"));
+    assert!(compact.contains("ifletSome(__item_value)=item"));
     assert!(compact.contains("generic_range:Option<GenericRange<Vec<i32>>>"));
     assert!(compact.contains("GenericRange::<Vec<i32>>::builder()"));
 }

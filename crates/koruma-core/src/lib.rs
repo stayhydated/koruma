@@ -101,10 +101,9 @@ pub mod showcase {
     }
 
     /// The type of input expected by the validator.
-    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     pub enum InputType {
-        /// Any text input (default)
-        #[default]
+        /// Any text input.
         Text,
         /// Numeric input only (integers)
         Numeric,

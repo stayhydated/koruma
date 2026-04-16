@@ -20,6 +20,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Contains 'test'",
     description = "Validates that the input contains the substring 'test'",
+    input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(ContainsValidation::builder()

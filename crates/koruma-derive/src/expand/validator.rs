@@ -206,11 +206,8 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             "__koruma_showcase_anchor_{}",
             struct_name.to_string().to_snake_case()
         );
-        let input_type_tokens = if let Some(ref it) = showcase.input_type {
-            quote! { ::koruma::showcase::InputType::#it }
-        } else {
-            quote! { ::koruma::showcase::InputType::Text }
-        };
+        let input_type = &showcase.input_type;
+        let input_type_tokens = quote! { ::koruma::showcase::InputType::#input_type };
         let module_tokens = if let Some(ref m) = showcase.module {
             quote! { #m }
         } else {

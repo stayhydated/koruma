@@ -696,6 +696,7 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
         #[showcase(
             name = "Demo",
             description = "Demo description",
+            input_type = Text,
             create = |input: &str| {
                 let _ = input;
                 ::anyhow::Result::Ok(ShowcaseValidation::<String, usize, 2>::builder().with_value("x".to_string()).build())
@@ -714,6 +715,7 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
 
     let expanded = expand_validator(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("input_type:::koruma::showcase::InputType::Text"));
     assert!(compact.contains("module:\"general\""));
     assert!(compact.contains("showcase_validation_builder::State"));
     assert!(compact.contains("S::Actual:koruma::bon::IsUnset"));

@@ -20,6 +20,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Phone Number",
     description = "Validates that the input is a valid phone number",
+    input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(PhoneNumberValidation::builder()

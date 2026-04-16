@@ -26,6 +26,7 @@ use super::HasLen;
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Length",
     description = "Validates string length is between 1 and 10",
+    input_type = Text,
     module = "collection",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(LenValidation::builder()

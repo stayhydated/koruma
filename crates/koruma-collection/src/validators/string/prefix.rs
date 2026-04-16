@@ -20,6 +20,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Prefix 'hello'",
     description = "Validates that the input starts with 'hello'",
+    input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(PrefixValidation::builder()

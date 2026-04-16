@@ -455,7 +455,7 @@ fn showcase_attr_errors_are_reported() {
     );
 
     let missing_description: Result<ShowcaseAttr, _> =
-        syn::parse_str(r#"name = "n", create = |input: &str| input"#);
+        syn::parse_str(r#"name = "n", create = |input: &str| input, input_type = Text"#);
     assert!(
         missing_description
             .err()
@@ -464,8 +464,29 @@ fn showcase_attr_errors_are_reported() {
             .contains("showcase requires `description` attribute")
     );
 
+    let missing_input_type: Result<ShowcaseAttr, _> =
+        syn::parse_str(r#"name = "n", description = "d", create = |input: &str| input"#);
+    assert!(
+        missing_input_type
+            .err()
+            .expect("expected parse error")
+            .to_string()
+            .contains("showcase requires `input_type` attribute")
+    );
+
+    let invalid_input_type: Result<ShowcaseAttr, _> = syn::parse_str(
+        r#"name = "n", description = "d", create = |input: &str| input, input_type = Boolean"#,
+    );
+    assert!(
+        invalid_input_type
+            .err()
+            .expect("expected parse error")
+            .to_string()
+            .contains("showcase `input_type` must be `Text` or `Numeric`")
+    );
+
     let input: syn::ItemStruct = syn::parse_quote! {
-        #[showcase(name = "N", description = "D", create = |input: &str| input)]
+        #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text)]
         struct Demo;
     };
     assert!(
@@ -475,7 +496,7 @@ fn showcase_attr_errors_are_reported() {
     );
 
     let invalid_input: syn::ItemStruct = syn::parse_quote! {
-        #[showcase(name = "N", description = "D", create = |input: &str| input, modul = "oops")]
+        #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text, modul = "oops")]
         struct BadDemo;
     };
     assert!(

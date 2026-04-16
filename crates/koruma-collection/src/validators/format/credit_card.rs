@@ -20,6 +20,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Credit Card",
     description = "Validates that the input is a valid credit card number",
+    input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(CreditCardValidation::builder()

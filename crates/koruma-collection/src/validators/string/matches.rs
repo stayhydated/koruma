@@ -21,6 +21,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Matches Value",
     description = "Validates that the input matches 'expected'",
+    input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(MatchesValidation::builder()

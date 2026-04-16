@@ -996,10 +996,11 @@ pub fn find_value_field_info(input: &ItemStruct) -> Option<ValueFieldInfo> {
     find_value_field_info_strict(input).ok().flatten()
 }
 
-/// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`
+/// Parsed showcase attribute:
+/// `#[showcase(name = "...", description = "...", create = |input| { ... }, input_type = Text)]`
 ///
 /// The `create` closure takes a `&str` and returns the validator instance.
-/// Optional `input_type` can be "text" (default) or "numeric".
+/// Required `input_type` must be `Text` or `Numeric`.
 /// Optional `module` can be "string", "format", "numeric", "collection", or "general".
 #[cfg(feature = "internal-showcase")]
 #[derive(Clone, Debug)]
@@ -1007,7 +1008,7 @@ pub struct ShowcaseAttr {
     pub name: syn::LitStr,
     pub description: syn::LitStr,
     pub create: syn::ExprClosure,
-    pub input_type: Option<Ident>,
+    pub input_type: Ident,
     pub module: Option<syn::LitStr>,
 }
 
@@ -1061,7 +1062,25 @@ impl Parse for ShowcaseAttr {
             })?,
             create: create
                 .ok_or_else(|| Error::new(input.span(), "showcase requires `create` attribute"))?,
-            input_type,
+            input_type: match input_type {
+                Some(input_type)
+                    if matches!(input_type.to_string().as_str(), "Text" | "Numeric") =>
+                {
+                    input_type
+                },
+                Some(input_type) => {
+                    return Err(Error::new(
+                        input_type.span(),
+                        "showcase `input_type` must be `Text` or `Numeric`",
+                    ));
+                },
+                None => {
+                    return Err(Error::new(
+                        input.span(),
+                        "showcase requires `input_type` attribute",
+                    ));
+                },
+            },
             module,
         })
     }

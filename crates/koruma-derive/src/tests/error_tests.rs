@@ -304,6 +304,32 @@ fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elem
 }
 
 #[test]
+fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_elements() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct NonOptionalExplicitElementFullTypeValidator {
+            #[koruma(each(RequiredValidation<Option<String>>))]
+            pub values: Vec<String>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string().contains(
+            "explicit `Option<...>` validator types require an optional validation target"
+        ),
+        "expected optional-target diagnostic, got: {}",
+        err
+    );
+    assert!(
+        err.to_string().contains("element type of field `values`"),
+        "expected element context in diagnostic, got: {}",
+        err
+    );
+}
+
+#[test]
 fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitFullTypeValidator {

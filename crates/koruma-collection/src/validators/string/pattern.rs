@@ -36,10 +36,6 @@ pub struct PatternValidation<T: AsRef<str>> {
     #[builder(into)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     pub pattern: String,
-    /// Compiled regex cached at construction time.
-    #[builder(skip = regex::Regex::new(&pattern).ok())]
-    #[cfg_attr(feature = "fluent", fluent(skip))]
-    compiled: Option<regex::Regex>,
     /// The string being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
@@ -48,8 +44,8 @@ pub struct PatternValidation<T: AsRef<str>> {
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        self.compiled
-            .as_ref()
+        regex::Regex::new(&self.pattern)
+            .ok()
             .is_some_and(|compiled| compiled.is_match(value.as_ref()))
     }
 }
@@ -93,6 +89,22 @@ mod tests {
             .build();
 
         assert!(!validator.validate(&"12345".to_string()));
+    }
+
+    #[test]
+    fn validate_uses_the_current_pattern_value() {
+        let mut validator = PatternValidation::builder()
+            .pattern(r"^a$")
+            .with_value(String::new())
+            .build();
+
+        assert!(validator.validate(&"a".to_string()));
+        assert!(!validator.validate(&"b".to_string()));
+
+        validator.pattern = r"^b$".to_string();
+
+        assert!(!validator.validate(&"a".to_string()));
+        assert!(validator.validate(&"b".to_string()));
     }
 
     #[cfg(feature = "fmt")]

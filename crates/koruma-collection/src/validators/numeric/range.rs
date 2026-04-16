@@ -42,9 +42,6 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
     #[cfg_attr(feature = "fluent", fluent(skip))]
     #[builder(default = false)]
     pub exclusive_min: bool,
-    /// Left delimiter used in error messages.
-    #[builder(skip = if exclusive_min { "(" } else { "[" })]
-    left_delimiter: &'static str,
     /// Maximum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub max: T,
@@ -52,9 +49,6 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
     #[cfg_attr(feature = "fluent", fluent(skip))]
     #[builder(default = false)]
     pub exclusive_max: bool,
-    /// Right delimiter used in error messages.
-    #[builder(skip = if exclusive_max { ")" } else { "]" })]
-    right_delimiter: &'static str,
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
@@ -82,10 +76,13 @@ impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T
 #[cfg(feature = "fmt")]
 impl<T: PartialOrd + Copy + std::fmt::Display> std::fmt::Display for RangeValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let left_delimiter = if self.exclusive_min { "(" } else { "[" };
+        let right_delimiter = if self.exclusive_max { ")" } else { "]" };
+
         write!(
             f,
             "Must be in the range {}{}, {}{}.",
-            self.left_delimiter, self.min, self.max, self.right_delimiter
+            left_delimiter, self.min, self.max, right_delimiter
         )
     }
 }
@@ -101,10 +98,8 @@ mod tests {
         let validator = RangeValidation {
             min: 1_i32,
             exclusive_min: false,
-            left_delimiter: "[",
             max: 3_i32,
             exclusive_max: false,
-            right_delimiter: "]",
             actual: 0_i32,
         };
 
@@ -118,10 +113,8 @@ mod tests {
         let validator = RangeValidation {
             min: 1_i32,
             exclusive_min: false,
-            left_delimiter: "[",
             max: 3_i32,
             exclusive_max: false,
-            right_delimiter: "]",
             actual: 0_i32,
         };
 
@@ -134,10 +127,8 @@ mod tests {
         let validator = RangeValidation {
             min: 1_i32,
             exclusive_min: true,
-            left_delimiter: "(",
             max: 3_i32,
             exclusive_max: true,
-            right_delimiter: ")",
             actual: 0_i32,
         };
 
@@ -152,13 +143,28 @@ mod tests {
         let validator = RangeValidation {
             min: 1_i32,
             exclusive_min: true,
-            left_delimiter: "(",
             max: 3_i32,
             exclusive_max: false,
-            right_delimiter: "]",
             actual: 0_i32,
         };
 
         assert_eq!(validator.to_string(), "Must be in the range (1, 3].");
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_uses_the_current_exclusivity_flags() {
+        let mut validator = RangeValidation::builder()
+            .min(1_i32)
+            .max(3_i32)
+            .with_value(0_i32)
+            .build();
+
+        assert_eq!(validator.to_string(), "Must be in the range [1, 3].");
+
+        validator.exclusive_min = true;
+        validator.exclusive_max = true;
+
+        assert_eq!(validator.to_string(), "Must be in the range (1, 3).");
     }
 }

@@ -5,12 +5,10 @@ expression: pretty_print(expanded)
 #[derive(koruma::bon::Builder)]
 #[builder(crate = ::koruma::bon)]
 #[derive(Clone, Debug)]
-pub struct GenericRangeValidation<T> {
-    pub min: T,
-    pub max: T,
+pub struct PresenceOnlyValidation<T> {
     actual: Option<T>,
 }
-impl<T> GenericRangeValidation<T> {
+impl<T> PresenceOnlyValidation<T> {
     #[doc = concat!(
         "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
     )]
@@ -18,7 +16,7 @@ impl<T> GenericRangeValidation<T> {
         &self.actual
     }
 }
-impl<T, S: generic_range_validation_builder::State> GenericRangeValidationBuilder<T, S>
+impl<T, S: presence_only_validation_builder::State> PresenceOnlyValidationBuilder<T, S>
 where
     S::Actual: koruma::bon::IsUnset,
 {
@@ -26,24 +24,20 @@ where
     pub fn with_value(
         self,
         value: T,
-    ) -> GenericRangeValidationBuilder<
+    ) -> PresenceOnlyValidationBuilder<
         T,
-        generic_range_validation_builder::SetActual<S>,
+        presence_only_validation_builder::SetActual<S>,
     > {
         self.actual(value)
     }
 }
-impl<T, S: generic_range_validation_builder::State> koruma::BuilderWithValueRef<T>
-for GenericRangeValidationBuilder<T, S>
+impl<T, S: presence_only_validation_builder::State> koruma::BuilderWithValueRef<T>
+for PresenceOnlyValidationBuilder<T, S>
 where
     S::Actual: koruma::bon::IsUnset,
-    T: ::std::clone::Clone,
 {
-    type Output = GenericRangeValidationBuilder<
-        T,
-        generic_range_validation_builder::SetActual<S>,
-    >;
-    fn with_value_ref(self, value: &T) -> Self::Output {
-        self.with_value(value.clone())
+    type Output = Self;
+    fn with_value_ref(self, _value: &T) -> Self::Output {
+        self
     }
 }

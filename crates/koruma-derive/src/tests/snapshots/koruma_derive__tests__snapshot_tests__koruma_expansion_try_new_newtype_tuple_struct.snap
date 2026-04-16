@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 285
 expression: rendered
 ---
 #[doc = concat!(
@@ -91,8 +90,10 @@ impl Username {
         };
         let mut has_error = false;
         let __field_value = &self.0;
-        let validator = NonEmptyStringValidation::builder()
-            .with_value(__field_value.clone())
+        let validator = koruma::BuilderWithValueRef::with_value_ref(
+                NonEmptyStringValidation::builder(),
+                __field_value,
+            )
             .build();
         if !validator.validate(__field_value) {
             error._0.non_empty_string_validation = Some(validator);
@@ -104,7 +105,7 @@ impl Username {
 impl koruma::ValidateExt for Username {
     type Error = UsernameKorumaValidationError;
     fn validate(&self) -> Result<(), UsernameKorumaValidationError> {
-        Username::validate(self)
+        Self::validate(self)
     }
 }
 impl koruma::NewtypeValidation for Username {}

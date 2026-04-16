@@ -29,3 +29,16 @@ where
         self.actual(value)
     }
 }
+impl<S: direct_value_validation_builder::State> koruma::BuilderWithValueRef<i32>
+for DirectValueValidationBuilder<S>
+where
+    S::Actual: koruma::bon::IsUnset,
+    i32: ::std::clone::Clone,
+{
+    type Output = DirectValueValidationBuilder<
+        direct_value_validation_builder::SetActual<S>,
+    >;
+    fn with_value_ref(self, value: &i32) -> Self::Output {
+        self.with_value(value.clone())
+    }
+}

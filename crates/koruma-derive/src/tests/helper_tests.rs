@@ -1,5 +1,6 @@
 //! Unit tests for helper functions in the expand module.
 
+use crate::expand::effective_validation_type;
 use koruma_derive_core::*;
 
 use quote::quote;
@@ -28,6 +29,21 @@ fn test_option_inner_type_nested() {
         inner_str.contains("Vec"),
         "Expected Vec<String>, got: {}",
         inner_str
+    );
+}
+
+#[test]
+fn test_option_inner_type_supports_qualified_paths() {
+    let std_ty: syn::Type = syn::parse_quote!(std::option::Option<i32>);
+    assert_eq!(
+        option_inner_type(&std_ty).map(|inner| quote!(#inner).to_string()),
+        Some("i32".to_string())
+    );
+
+    let core_ty: syn::Type = syn::parse_quote!(core::option::Option<String>);
+    assert_eq!(
+        option_inner_type(&core_ty).map(|inner| quote!(#inner).to_string()),
+        Some("String".to_string())
     );
 }
 
@@ -70,6 +86,21 @@ fn test_vec_inner_type_complex() {
 }
 
 #[test]
+fn test_vec_inner_type_supports_qualified_paths() {
+    let std_ty: syn::Type = syn::parse_quote!(std::vec::Vec<f64>);
+    assert_eq!(
+        vec_inner_type(&std_ty).map(|inner| quote!(#inner).to_string()),
+        Some("f64".to_string())
+    );
+
+    let alloc_ty: syn::Type = syn::parse_quote!(alloc::vec::Vec<String>);
+    assert_eq!(
+        vec_inner_type(&alloc_ty).map(|inner| quote!(#inner).to_string()),
+        Some("String".to_string())
+    );
+}
+
+#[test]
 fn test_vec_inner_type_returns_none_for_non_vec() {
     let ty: syn::Type = syn::parse_quote!(i32);
     assert!(vec_inner_type(&ty).is_none());
@@ -79,6 +110,42 @@ fn test_vec_inner_type_returns_none_for_non_vec() {
 
     let ty: syn::Type = syn::parse_quote!(HashMap<String, i32>);
     assert!(vec_inner_type(&ty).is_none());
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_optional_vec_uses_element_type() {
+    let ty: syn::Type = syn::parse_quote!(Option<Vec<i32>>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "i32");
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_qualified_option_vec_uses_element_type() {
+    let ty: syn::Type =
+        syn::parse_quote!(core::option::Option<std::vec::Vec<core::option::Option<String>>>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "String");
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_vec_option_unwraps_inner_option() {
+    let ty: syn::Type = syn::parse_quote!(Vec<Option<String>>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "String");
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_slice_uses_element_type() {
+    let ty: syn::Type = syn::parse_quote!(&[i32]);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "i32");
+}
+
+#[test]
+fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inner_option() {
+    let ty: syn::Type = syn::parse_quote!(Option<&[Option<String>]>);
+    let effective = effective_validation_type(&ty, true);
+    assert_eq!(quote!(#effective).to_string(), "String");
 }
 
 #[test]

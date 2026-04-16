@@ -86,7 +86,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         len >= self.min && len <= self.max
     }
 }
@@ -96,7 +96,7 @@ impl fmt::Display for StringLengthValidation {
         write!(
             f,
             "String length {} must be between {} and {} characters",
-            self.input.len(),
+            self.input.chars().count(),
             self.min,
             self.max
         )
@@ -107,6 +107,21 @@ impl fmt::Display for StringLengthValidation {
 `#[validator]` generates `with_value(...)` on the builder and a getter on the validator type with
 the same name as the `#[koruma(value)]` field. That field is expected to stay private; use the
 generated getter for reads.
+
+If a validator does not need to retain the failing input, you can opt out of capture on an
+`Option<T>` value field:
+
+```rs
+#[validator]
+pub struct RequiredValidation<T> {
+    #[koruma(value, skip_capture)]
+    actual: Option<T>,
+}
+```
+
+`skip_capture` keeps the stored field at its default `None` during derived validation, which avoids
+clone requirements for presence-only validators. If your validator still derives traits like
+`Clone` or `Debug` through that field, use a manual impl like `general::RequiredValidation`.
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
@@ -144,6 +159,34 @@ match item.validate() {
     },
 }
 ```
+
+For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
+`&[T]`, arrays like `[T; N]`, and optional variants of those:
+
+```rs
+#[derive(Koruma)]
+pub struct Order {
+    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub line_item_scores: Vec<i32>,
+}
+```
+
+Borrowed fields work too when the validator accepts the borrowed item type:
+
+```rs
+use koruma::Koruma;
+use koruma_collection::string::PatternValidation;
+use regex::Regex;
+
+#[derive(Koruma)]
+pub struct BorrowedUser<'a> {
+    #[koruma(PatternValidation<_>(pattern = Regex::new(r"^user:[a-z]+$").unwrap()))]
+    pub username: &'a str,
+}
+```
+
+`PatternValidation` stores a compiled `Regex`, so invalid patterns fail while you construct the
+validator instead of during validation.
 
 ### 3. Use `all()` getter (`KorumaAllDisplay`)
 
@@ -247,7 +290,7 @@ Use `#[koruma(try_new, newtype(try_from))]` when you need:
 
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
 - `newtype(try_from)` - a `TryFrom<Inner>` impl for `From`/`try_from` calls
-- `newtype` - transparent error access via `Deref` to the inner field's error
+- `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
 
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 
@@ -271,6 +314,12 @@ pub struct SignupForm {
     pub email: Email,
 }
 
+#[derive(Koruma, KorumaAllFluent)]
+pub struct OptionalSignupForm {
+    #[koruma(newtype)]
+    pub email: Option<Email>,
+}
+
 let form = SignupForm {
     username: "".to_string(),
     email: Email {
@@ -287,6 +336,22 @@ if let Err(errors) = form.validate() {
 
     for failed in errors.email().all() {
         println!("email validator: {}", failed.to_fluent_string());
+    }
+}
+
+let optional_form = OptionalSignupForm { email: None };
+assert!(optional_form.validate().is_ok());
+
+let invalid_optional_form = OptionalSignupForm {
+    email: Some(Email {
+        value: "".to_string(),
+    }),
+};
+if let Err(errors) = invalid_optional_form.validate() {
+    if let Some(email_errors) = errors.email() {
+        if let Some(email_err) = email_errors.non_empty_string_validation() {
+            println!("optional email failed: {}", email_err.to_fluent_string());
+        }
     }
 }
 

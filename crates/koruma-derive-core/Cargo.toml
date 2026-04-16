@@ -16,6 +16,7 @@ default = [  ]
 internal-showcase = [  ]
 
 [dependencies]
+heck = { workspace = true }
 quote = { workspace = true }
 syn = { features = [ "full", "extra-traits" ], workspace = true }
 syn-cfg-attr = { workspace = true }

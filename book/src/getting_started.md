@@ -66,5 +66,10 @@ if let Err(errors) = user.validate() {
 If you want to inspect the captured input on a validator error, call the generated getter that
 matches the `#[koruma(value)]` field name.
 
+For validators that only care about presence and do not need to store the input, an `Option<T>`
+value field can use `#[koruma(value, skip_capture)]` to avoid derive-generated capture clones. If
+that field would still impose `Clone` or `Debug` bounds on the validator type, use manual impls
+like `RequiredValidation` does.
+
 The following chapters expand this pattern and show how to build richer validators and more useful
 error reporting.

@@ -25,10 +25,23 @@ pub trait ValidationError {
 
 /// Trait for validator builders that can receive the value being validated.
 ///
-/// This is auto-implemented by `#[koruma::validator]` to delegate to the
-/// field marked with `#[koruma(value)]`.
+/// This trait is useful for simple owned-value builder APIs.
 pub trait BuilderWithValue<T> {
     fn with_value(self, value: T) -> Self;
+}
+
+/// Hidden trait used by derived validation code to pass borrowed values into
+/// validator builders.
+///
+/// Validators that capture the input clone from the borrowed value inside the
+/// builder impl. Validators marked with `#[koruma(value, skip_capture)]` on an
+/// `Option<T>` value field can ignore the borrowed input and keep their default
+/// value instead.
+#[doc(hidden)]
+pub trait BuilderWithValueRef<T> {
+    type Output;
+
+    fn with_value_ref(self, value: &T) -> Self::Output;
 }
 
 /// Trait for structs that derive `Koruma` and have a `validate()` method.
@@ -69,26 +82,28 @@ pub mod showcase {
     /// allowing consumers to work with any validator regardless of its
     /// generic type parameters.
     ///
-    /// Methods are always present but may return placeholder values
-    /// when the corresponding feature is not enabled.
     pub trait DynValidator: Send + Sync {
         /// Check if the validation passed.
         fn is_valid(&self) -> bool;
 
-        /// Get the display string (via `to_string()` when `fmt` feature is enabled).
-        /// Returns "(fmt feature required)" if fmt is not enabled.
+        /// Get the display string via `Display::to_string()`.
+        ///
+        /// Showcased validators should implement `Display` when they want a
+        /// user-facing message in showcase UIs.
         fn display_string(&self) -> String;
 
-        /// Get the fluent i18n string (via `to_fluent_string()` when `fluent` feature is enabled).
-        /// Returns "(fluent feature required)" if fluent is not enabled.
+        /// Get the fluent i18n string via `to_fluent_string()` when koruma's
+        /// `fluent` feature is enabled for the generated showcase impl.
+        ///
+        /// Returns "(fluent feature required)" when fluent support is not
+        /// enabled for the validator macro expansion.
         fn fluent_string(&self) -> String;
     }
 
     /// The type of input expected by the validator.
-    #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     pub enum InputType {
-        /// Any text input (default)
-        #[default]
+        /// Any text input.
         Text,
         /// Numeric input only (integers)
         Numeric,

@@ -1,3 +1,3 @@
 ## RequiredValidation
 
-required_validation = 此字段为必填，不能为空。
+required_validation = 此字段为必填。

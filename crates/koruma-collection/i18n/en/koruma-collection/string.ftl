@@ -12,11 +12,11 @@ contains_validation = Must contain the substring '{ $substring }'.
 
 ## MatchesValidation
 
-matches_validation = Does not match the expected value '{ $other }'.
+matches_validation = Does not match the expected value.
 
 ## PatternValidation
 
-pattern_validation = Does not match the required pattern '{ $pattern }'.
+pattern_validation = Does not match the required pattern.
 
 ## PrefixValidation
 

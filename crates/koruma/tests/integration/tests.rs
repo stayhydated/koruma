@@ -3,11 +3,13 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
-    Employee, GenericItem, Item, MultiAttrItem, MultiValidatorItem, Order, OrderWithLenCheck,
-    PositiveNumber, UserProfile,
+    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
+    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, GenericItem, Item,
+    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
+    QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
 };
-use super::validators::GenericRangeValidation;
+use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
 #[test]
 fn test_valid_item() {
@@ -243,6 +245,25 @@ fn test_multi_attr_odd() {
 }
 
 #[test]
+fn test_required_validation_supports_non_clone_option_payload() {
+    let valid = PresenceOnlyNonClone {
+        token: Some(NonCloneSecret {
+            raw: "secret".to_string(),
+        }),
+    };
+    assert!(valid.validate().is_ok());
+    assert_eq!(
+        valid.token.as_ref().map(|secret| secret.raw.as_str()),
+        Some("secret")
+    );
+
+    let missing = PresenceOnlyNonClone { token: None };
+    let err = missing.validate().unwrap_err();
+    let validation = err.token().required_validation().unwrap();
+    assert!(validation.actual().is_none());
+}
+
+#[test]
 fn test_multi_attr_both_fail() {
     let item = MultiAttrItem { value: 151 }; // Out of range AND odd
     let err = item.validate().unwrap_err();
@@ -319,6 +340,205 @@ fn test_each_multiple_invalid() {
 fn test_each_empty_collection() {
     let order = Order { scores: vec![] };
     assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_optional_collection_none_skips_validation() {
+    let order = OptionalOrder { scores: None };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_optional_collection_some_invalid_element() {
+    let order = OptionalOrder {
+        scores: Some(vec![50.0, 150.0, 75.0]),
+    };
+
+    let err = order.validate().unwrap_err();
+    let score_errors = err.scores().element_errors();
+
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing element validator")
+            .actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_qualified_option_and_vec_paths_keep_validation_behavior() {
+    let profile = QualifiedPathProfile {
+        bio: Some(String::new()),
+        scores: Some(vec![50.0, 150.0, 75.0]),
+    };
+
+    let err = profile.validate().unwrap_err();
+    let bio_err = err
+        .bio()
+        .string_length_validation()
+        .expect("expected qualified Option<String> field to unwrap and validate");
+    assert_eq!(bio_err.input().as_str(), "");
+
+    let score_errors = err.scores().element_errors();
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected qualified Option<Vec<_>> field to validate elements")
+            .actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_qualified_option_and_vec_paths_skip_when_none() {
+    let profile = QualifiedPathProfile {
+        bio: None,
+        scores: None,
+    };
+
+    assert!(profile.validate().is_ok());
+}
+
+#[test]
+fn test_each_borrowed_slice_valid() {
+    let values = [50.0, 75.0, 100.0];
+    let order = BorrowedOrder { scores: &values };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_borrowed_slice_invalid() {
+    let values = [50.0, 150.0, 75.0];
+    let order = BorrowedOrder { scores: &values };
+
+    let err = order.validate().unwrap_err();
+    let score_errors = err.scores().element_errors();
+
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing element validator")
+            .actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_each_optional_borrowed_slice_none_skips_validation() {
+    let order = OptionalBorrowedOrder { scores: None };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_borrowed_direct_field_valid() {
+    let user = BorrowedUsername {
+        username: "user:alice",
+    };
+    assert!(user.validate().is_ok());
+}
+
+#[test]
+fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value() {
+    let validator = PrefixBytesValidation::builder()
+        .prefix(b"ab")
+        .with_value(*b"abcd")
+        .build();
+
+    assert!(validator.validate(b"abcd"));
+    assert!(!validator.validate(b"zzzz"));
+    assert_eq!(validator.actual(), b"abcd");
+}
+
+#[test]
+fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value_ref() {
+    let builder = PrefixBytesValidation::builder().prefix(b"ab");
+    let validator = koruma::BuilderWithValueRef::with_value_ref(builder, b"abcd").build();
+
+    assert!(validator.validate(b"abcd"));
+    assert!(!validator.validate(b"zzzz"));
+    assert_eq!(validator.actual(), b"abcd");
+}
+
+#[test]
+fn test_borrowed_direct_field_invalid() {
+    let user = BorrowedUsername { username: "guest" };
+
+    let err = user.validate().unwrap_err();
+    let validator = err
+        .username()
+        .starts_with_validation()
+        .expect("expected username prefix validation error");
+
+    assert_eq!(*validator.actual(), "guest");
+    assert_eq!(
+        err.username().all()[0].to_string(),
+        "Must start with 'user:'"
+    );
+}
+
+#[test]
+fn test_each_borrowed_str_items_invalid() {
+    let tags = ["tag:one", "bad"];
+    let value = BorrowedTags { tags: &tags };
+
+    let err = value.validate().unwrap_err();
+    let tag_errors = err.tags().element_errors();
+
+    assert_eq!(tag_errors.len(), 1);
+    assert_eq!(tag_errors[0].0, 1);
+    assert_eq!(
+        *tag_errors[0]
+            .1
+            .starts_with_validation()
+            .expect("expected failing borrowed element validator")
+            .actual(),
+        "bad"
+    );
+    assert_eq!(
+        tag_errors[0].1.all()[0].to_string(),
+        "Must start with 'tag:'"
+    );
+}
+
+#[test]
+fn test_cross_field_arg_identifier_still_rewrites_to_field_access() {
+    let confirmation = PasswordConfirmation {
+        password: "secret".to_string(),
+        confirm: "different".to_string(),
+    };
+
+    let err = confirmation.validate().unwrap_err();
+    let validator = err
+        .confirm()
+        .matches_string_validation()
+        .expect("expected confirm mismatch");
+    assert_eq!(validator.expected, "secret");
+    assert_eq!(validator.actual(), "different");
+}
+
+#[test]
+fn test_non_field_arg_identifier_is_not_rewritten() {
+    let confirmation = StaticSecretConfirmation {
+        confirm: "wrong".to_string(),
+    };
+
+    let err = confirmation.validate().unwrap_err();
+    let validator = err
+        .confirm()
+        .matches_static_str_validation()
+        .expect("expected shared-secret mismatch");
+    assert_eq!(validator.expected, "shared-secret");
+    assert_eq!(validator.actual(), "wrong");
 }
 
 // Tests for optional field validation

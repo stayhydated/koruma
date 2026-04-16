@@ -107,10 +107,10 @@ impl Scores {
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = RangeValidation::<i32>::builder()
-                .min(0)
-                .max(100)
-                .with_value(__item_value.clone())
+            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                    RangeValidation::<i32>::builder().min(0).max(100),
+                    __item_value,
+                )
                 .build();
             if !__koruma_assert_validate_values_range_validation_element(
                 &validator,
@@ -130,6 +130,6 @@ impl Scores {
 impl koruma::ValidateExt for Scores {
     type Error = ScoresKorumaValidationError;
     fn validate(&self) -> Result<(), ScoresKorumaValidationError> {
-        Scores::validate(self)
+        Self::validate(self)
     }
 }

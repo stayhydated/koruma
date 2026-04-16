@@ -79,10 +79,10 @@ impl Item {
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = GenericRange::<i32>::builder()
-                .min(0)
-                .max(100)
-                .with_value(__field_value.clone())
+            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                    GenericRange::<i32>::builder().min(0).max(100),
+                    __field_value,
+                )
                 .build();
             if !__koruma_assert_validate_score_generic_range_field(
                 &validator,
@@ -98,6 +98,6 @@ impl Item {
 impl koruma::ValidateExt for Item {
     type Error = ItemKorumaValidationError;
     fn validate(&self) -> Result<(), ItemKorumaValidationError> {
-        Item::validate(self)
+        Self::validate(self)
     }
 }

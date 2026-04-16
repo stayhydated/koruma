@@ -35,7 +35,8 @@ mod tests;
 // Re-export parsing types
 pub use parse::{
     FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo, ValidatorAttr,
-    find_value_field, parse_field, parse_struct_options,
+    ValueFieldCapture, ValueFieldInfo, find_value_field, find_value_field_info,
+    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
 };
 
 #[cfg(feature = "internal-showcase")]
@@ -44,5 +45,6 @@ pub use parse::{ShowcaseAttr, find_showcase_attr};
 // Re-export utility functions
 pub use utils::{
     contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-    is_option_type, option_inner_type, substitute_infer_type, type_to_ident, vec_inner_type,
+    is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
+    type_to_ident, vec_inner_type,
 };

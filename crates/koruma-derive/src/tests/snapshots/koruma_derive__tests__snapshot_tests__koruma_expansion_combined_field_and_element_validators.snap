@@ -133,10 +133,10 @@ impl OrderWithLenCheck {
         };
         let mut has_error = false;
         let __field_value = &self.scores;
-        let validator = VecLenValidation::builder()
-            .min(1)
-            .max(10)
-            .with_value(__field_value.clone())
+        let validator = koruma::BuilderWithValueRef::with_value_ref(
+                VecLenValidation::builder().min(1).max(10),
+                __field_value,
+            )
             .build();
         if !validator.validate(__field_value) {
             error.scores.vec_len_validation = Some(validator);
@@ -153,10 +153,10 @@ impl OrderWithLenCheck {
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = RangeValidation::<i32>::builder()
-                .min(0)
-                .max(100)
-                .with_value(__item_value.clone())
+            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                    RangeValidation::<i32>::builder().min(0).max(100),
+                    __item_value,
+                )
                 .build();
             if !__koruma_assert_validate_scores_range_validation_element(
                 &validator,
@@ -176,6 +176,6 @@ impl OrderWithLenCheck {
 impl koruma::ValidateExt for OrderWithLenCheck {
     type Error = OrderWithLenCheckKorumaValidationError;
     fn validate(&self) -> Result<(), OrderWithLenCheckKorumaValidationError> {
-        OrderWithLenCheck::validate(self)
+        Self::validate(self)
     }
 }

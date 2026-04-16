@@ -44,7 +44,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         len >= self.min && len <= self.max
     }
 }
@@ -54,7 +54,7 @@ impl fmt::Display for StringLengthValidation {
         write!(
             f,
             "String length {} must be between {} and {} characters",
-            self.input.len(),
+            self.input.chars().count(),
             self.min,
             self.max
         )
@@ -80,5 +80,26 @@ impl Validate<String> for ZipCodeValidation {
 impl fmt::Display for ZipCodeValidation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Zip code '{}' must be exactly 5 digits", self.input)
+    }
+}
+
+/// A validation rule that checks whether a string starts with a prefix.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct StartsWithValidation<T: AsRef<str>> {
+    prefix: &'static str,
+    #[koruma(value)]
+    actual: T,
+}
+
+impl<T: AsRef<str>> Validate<T> for StartsWithValidation<T> {
+    fn validate(&self, value: &T) -> bool {
+        value.as_ref().starts_with(self.prefix)
+    }
+}
+
+impl<T: AsRef<str>> fmt::Display for StartsWithValidation<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Must start with '{}'", self.prefix)
     }
 }

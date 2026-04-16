@@ -34,7 +34,7 @@ use koruma::{Validate, validator};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
-pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
+pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
     /// Minimum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub min: T,
@@ -74,9 +74,16 @@ impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T
 }
 
 #[cfg(feature = "fmt")]
-impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display for RangeValidation<T> {
+impl<T: PartialOrd + Copy + std::fmt::Display> std::fmt::Display for RangeValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Must be between {} and {}.", self.min, self.max)
+        let left_delimiter = if self.exclusive_min { "(" } else { "[" };
+        let right_delimiter = if self.exclusive_max { ")" } else { "]" };
+
+        write!(
+            f,
+            "Must be in the range {}{}, {}{}.",
+            left_delimiter, self.min, self.max, right_delimiter
+        )
     }
 }
 
@@ -128,5 +135,36 @@ mod tests {
         assert!(!validator.validate(&1));
         assert!(validator.validate(&2));
         assert!(!validator.validate(&3));
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_uses_interval_notation_for_exclusive_bounds() {
+        let validator = RangeValidation {
+            min: 1_i32,
+            exclusive_min: true,
+            max: 3_i32,
+            exclusive_max: false,
+            actual: 0_i32,
+        };
+
+        assert_eq!(validator.to_string(), "Must be in the range (1, 3].");
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_uses_the_current_exclusivity_flags() {
+        let mut validator = RangeValidation::builder()
+            .min(1_i32)
+            .max(3_i32)
+            .with_value(0_i32)
+            .build();
+
+        assert_eq!(validator.to_string(), "Must be in the range [1, 3].");
+
+        validator.exclusive_min = true;
+        validator.exclusive_max = true;
+
+        assert_eq!(validator.to_string(), "Must be in the range (1, 3).");
     }
 }

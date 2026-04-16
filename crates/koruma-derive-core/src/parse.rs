@@ -3,15 +3,17 @@
 //! This module provides types and functions for parsing koruma validation
 //! attributes from syn AST nodes.
 
+use heck::{ToSnakeCase, ToUpperCamelCase};
 use syn::{
     Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
     PathArguments, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
+    punctuated::Punctuated,
     spanned::Spanned,
     token,
 };
 
-use syn_cfg_attr::AttributeHelpers;
+use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
 /// Represents a single parsed validator: `ValidatorName(arg = value, ...)`,
 /// `ValidatorName<_>(arg = value, ...)`, or `ValidatorName<SomeType>(arg = value, ...)`.
@@ -63,6 +65,44 @@ impl ValidatorAttr {
             .last()
             .expect("path should have at least one segment")
             .ident
+    }
+
+    /// Returns the full validator path as written, without generic arguments.
+    pub fn path_name(&self) -> String {
+        self.validator
+            .segments
+            .iter()
+            .map(|segment| segment.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::")
+    }
+
+    /// Returns a stable snake_case stem for generated field and getter names.
+    ///
+    /// This returns the fully qualified path flattened into snake_case.
+    /// Callers that need to resolve collisions should combine this with
+    /// additional disambiguation logic.
+    pub fn codegen_snake_name(&self) -> String {
+        self.validator
+            .segments
+            .iter()
+            .map(|segment| segment.ident.to_string().to_snake_case())
+            .collect::<Vec<_>>()
+            .join("_")
+    }
+
+    /// Returns a stable UpperCamelCase stem for generated enum variants.
+    ///
+    /// This returns the fully qualified path flattened into UpperCamelCase.
+    /// Callers that need to resolve collisions should combine this with
+    /// additional disambiguation logic.
+    pub fn codegen_upper_camel_name(&self) -> String {
+        self.validator
+            .segments
+            .iter()
+            .map(|segment| segment.ident.to_string().to_upper_camel_case())
+            .collect::<Vec<_>>()
+            .join("")
     }
 
     /// Returns whether this validator has any arguments.
@@ -495,11 +535,43 @@ impl Parse for StructOptions {
 ///
 /// Returns `StructOptions::default()` if no `#[koruma(...)]` attribute is found.
 pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
-    if let Some(attr) = attrs.to_vec().find_attribute("koruma").first() {
-        attr.parse_args::<StructOptions>()
-    } else {
-        Ok(StructOptions::default())
+    let mut merged = StructOptions::default();
+
+    for attr in attrs.to_vec().find_attribute("koruma") {
+        let parsed = attr.parse_args::<StructOptions>()?;
+
+        if parsed.try_new {
+            if merged.try_new {
+                return Err(Error::new(
+                    attr.path().span(),
+                    "duplicate struct-level koruma option `try_new`",
+                ));
+            }
+            merged.try_new = true;
+        }
+
+        if parsed.newtype {
+            if merged.newtype {
+                return Err(Error::new(
+                    attr.path().span(),
+                    "duplicate struct-level koruma option `newtype`",
+                ));
+            }
+            merged.newtype = true;
+        }
+
+        if parsed.try_from {
+            if merged.try_from {
+                return Err(Error::new(
+                    attr.path().span(),
+                    "duplicate struct-level koruma option `newtype(try_from)`",
+                ));
+            }
+            merged.try_from = true;
+        }
     }
+
+    Ok(merged)
 }
 
 /// Validation information extracted from `#[koruma(...)]` attributes.
@@ -673,7 +745,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
                 }
                 // Collect validators from this attribute, checking for duplicates
                 for validator in koruma_attr.field_validators {
-                    let validator_name = validator.name().to_string();
+                    let validator_name = validator.path_name();
                     if !seen_field_validators.insert(validator_name.clone()) {
                         return ParseFieldResult::Error(Error::new(
                             validator.validator.span(),
@@ -686,7 +758,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
                     all_field_validators.push(validator);
                 }
                 for validator in koruma_attr.element_validators {
-                    let validator_name = validator.name().to_string();
+                    let validator_name = validator.path_name();
                     if !seen_element_validators.insert(validator_name.clone()) {
                         return ParseFieldResult::Error(Error::new(
                             validator.validator.span(),
@@ -708,6 +780,20 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
     // If skip was specified, skip the field
     if is_skip {
         return ParseFieldResult::Skip;
+    }
+
+    if is_nested && is_newtype {
+        return ParseFieldResult::Error(Error::new_spanned(
+            field,
+            "fields cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`, even across multiple `#[koruma(...)]` attributes",
+        ));
+    }
+
+    if is_newtype && !all_element_validators.is_empty() {
+        return ParseFieldResult::Error(Error::new_spanned(
+            field,
+            "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers",
+        ));
     }
 
     // Check for nested
@@ -758,28 +844,163 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
     }))
 }
 
+struct ValidatorFieldMarkers(Punctuated<Ident, Token![,]>);
+
+impl Parse for ValidatorFieldMarkers {
+    fn parse(input: ParseStream) -> Result<Self> {
+        Ok(Self(Punctuated::<Ident, Token![,]>::parse_terminated(
+            input,
+        )?))
+    }
+}
+
+fn validator_field_markers(attr: &ExpandedAttr) -> Result<Punctuated<Ident, Token![,]>> {
+    attr.parse_args::<ValidatorFieldMarkers>()
+        .map(|markers| markers.0)
+}
+
+/// Describes whether the `#[koruma(value)]` field should capture the input
+/// value in derived validation errors.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValueFieldCapture {
+    /// Store the validated value in the generated validator instance.
+    Capture,
+    /// Skip storing the validated value and leave the field at its default.
+    Skip,
+}
+
+/// Parsed information about the field marked with `#[koruma(value)]`.
+#[derive(Clone, Debug)]
+pub struct ValueFieldInfo {
+    pub name: Ident,
+    pub ty: Type,
+    pub capture: ValueFieldCapture,
+}
+
+/// Find the field marked with `#[koruma(value)]` and return its parsed info.
+///
+/// This strict variant validates that validator structs use exactly one
+/// `#[koruma(value)]` marker and that validator-field `#[koruma(...)]`
+/// attributes only contain the `value` and `skip_capture` markers.
+pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFieldInfo>> {
+    let Fields::Named(ref fields) = input.fields else {
+        return Ok(None);
+    };
+
+    let mut found: Option<ValueFieldInfo> = None;
+
+    for field in &fields.named {
+        let Some(field_name) = field.ident.clone() else {
+            continue;
+        };
+        let mut field_has_value = false;
+        let mut field_skip_capture = false;
+
+        for attr in field.attrs.to_vec().find_attribute("koruma") {
+            let markers = validator_field_markers(&attr)?;
+            if markers.is_empty() {
+                return Err(Error::new_spanned(
+                    attr.path(),
+                    "validator fields only support `#[koruma(value)]` and `#[koruma(skip_capture)]`",
+                ));
+            }
+
+            for marker in markers {
+                if marker == "value" {
+                    if field_has_value {
+                        return Err(Error::new(
+                            marker.span(),
+                            format!("field `{field_name}` has multiple `#[koruma(value)]` markers"),
+                        ));
+                    }
+
+                    field_has_value = true;
+                    continue;
+                }
+
+                if marker == "skip_capture" {
+                    if field_skip_capture {
+                        return Err(Error::new(
+                            marker.span(),
+                            format!(
+                                "field `{field_name}` has multiple `#[koruma(skip_capture)]` markers"
+                            ),
+                        ));
+                    }
+
+                    field_skip_capture = true;
+                    continue;
+                }
+
+                return Err(Error::new(
+                    marker.span(),
+                    "validator fields only support `#[koruma(value)]` and `#[koruma(skip_capture)]`",
+                ));
+            }
+        }
+
+        if field_skip_capture && !field_has_value {
+            return Err(Error::new(
+                field_name.span(),
+                format!(
+                    "field `{field_name}` uses `#[koruma(skip_capture)]` but is missing `#[koruma(value)]`"
+                ),
+            ));
+        }
+
+        if field_has_value {
+            if let Some(existing) = &found {
+                return Err(Error::new(
+                    field_name.span(),
+                    format!(
+                        "koruma::validator requires exactly one `#[koruma(value)]` field, found both `{}` and `{}`",
+                        existing.name, field_name
+                    ),
+                ));
+            }
+
+            found = Some(ValueFieldInfo {
+                name: field_name,
+                ty: field.ty.clone(),
+                capture: if field_skip_capture {
+                    ValueFieldCapture::Skip
+                } else {
+                    ValueFieldCapture::Capture
+                },
+            });
+        }
+    }
+
+    Ok(found)
+}
+
+/// Find the field marked with `#[koruma(value)]` and return its name and type.
+///
+/// This strict variant validates that validator structs use exactly one
+/// `#[koruma(value)]` marker and that validator-field `#[koruma(...)]`
+/// attributes only contain the `value` and `skip_capture` markers.
+pub fn find_value_field_strict(input: &ItemStruct) -> Result<Option<(Ident, Type)>> {
+    Ok(find_value_field_info_strict(input)?.map(|info| (info.name, info.ty)))
+}
+
 /// Find the field marked with `#[koruma(value)]` and return its name and type.
 ///
 /// This is used by the `#[koruma::validator]` attribute macro to find which
 /// field should receive the value being validated.
 pub fn find_value_field(input: &ItemStruct) -> Option<(Ident, Type)> {
-    if let Fields::Named(ref fields) = input.fields {
-        for field in &fields.named {
-            if let Some(attr) = field.attrs.to_vec().find_attribute("koruma").first()
-                && let Ok(ident) = attr.parse_args::<Ident>()
-                && ident == "value"
-            {
-                return Some((field.ident.clone().unwrap(), field.ty.clone()));
-            }
-        }
-    }
-    None
+    find_value_field_strict(input).ok().flatten()
 }
 
-/// Parsed showcase attribute: `#[showcase(name = "...", description = "...", create = |input| { ... })]`
+/// Find the field marked with `#[koruma(value)]` and return its parsed info.
+pub fn find_value_field_info(input: &ItemStruct) -> Option<ValueFieldInfo> {
+    find_value_field_info_strict(input).ok().flatten()
+}
+
+/// Parsed showcase attribute:
+/// `#[showcase(name = "...", description = "...", create = |input| { ... }, input_type = Text)]`
 ///
 /// The `create` closure takes a `&str` and returns the validator instance.
-/// Optional `input_type` can be "text" (default) or "numeric".
+/// Required `input_type` must be `Text` or `Numeric`.
 /// Optional `module` can be "string", "format", "numeric", "collection", or "general".
 #[cfg(feature = "internal-showcase")]
 #[derive(Clone, Debug)]
@@ -787,7 +1008,7 @@ pub struct ShowcaseAttr {
     pub name: syn::LitStr,
     pub description: syn::LitStr,
     pub create: syn::ExprClosure,
-    pub input_type: Option<Ident>,
+    pub input_type: Ident,
     pub module: Option<syn::LitStr>,
 }
 
@@ -841,7 +1062,25 @@ impl Parse for ShowcaseAttr {
             })?,
             create: create
                 .ok_or_else(|| Error::new(input.span(), "showcase requires `create` attribute"))?,
-            input_type,
+            input_type: match input_type {
+                Some(input_type)
+                    if matches!(input_type.to_string().as_str(), "Text" | "Numeric") =>
+                {
+                    input_type
+                },
+                Some(input_type) => {
+                    return Err(Error::new(
+                        input_type.span(),
+                        "showcase `input_type` must be `Text` or `Numeric`",
+                    ));
+                },
+                None => {
+                    return Err(Error::new(
+                        input.span(),
+                        "showcase requires `input_type` attribute",
+                    ));
+                },
+            },
             module,
         })
     }
@@ -849,13 +1088,11 @@ impl Parse for ShowcaseAttr {
 
 /// Find and parse showcase attribute from struct
 #[cfg(feature = "internal-showcase")]
-pub fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
+pub fn find_showcase_attr(input: &ItemStruct) -> Result<Option<ShowcaseAttr>> {
     for attr in &input.attrs {
-        if attr.path().is_ident("showcase")
-            && let Ok(parsed) = attr.parse_args::<ShowcaseAttr>()
-        {
-            return Some(parsed);
+        if attr.path().is_ident("showcase") {
+            return Ok(Some(attr.parse_args::<ShowcaseAttr>()?));
         }
     }
-    None
+    Ok(None)
 }

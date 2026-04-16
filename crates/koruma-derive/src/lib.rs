@@ -82,18 +82,23 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
         },
     };
 
-    let has_any_fields = match &input.fields {
-        Fields::Named(fields) => !fields.named.is_empty(),
-        Fields::Unnamed(fields) => !fields.unnamed.is_empty(),
-        Fields::Unit => false,
-    };
-    if !has_any_fields {
-        let err = syn::Error::new(
-            input.ident.span(),
-            "koruma::validator requires at least one field",
-        );
-        return TokenStream::from(err.to_compile_error());
-    };
+    match &input.fields {
+        Fields::Named(fields) if !fields.named.is_empty() => {},
+        Fields::Named(_) | Fields::Unit => {
+            let err = syn::Error::new(
+                input.ident.span(),
+                "koruma::validator requires at least one field",
+            );
+            return TokenStream::from(err.to_compile_error());
+        },
+        Fields::Unnamed(_) => {
+            let err = syn::Error::new(
+                input.ident.span(),
+                "koruma::validator only supports structs with named fields",
+            );
+            return TokenStream::from(err.to_compile_error());
+        },
+    }
 
     match expand_validator(input) {
         Ok(tokens) => TokenStream::from(tokens),
@@ -124,7 +129,11 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// - Getter methods returning `Option<&ValidatorType>` for each field
 /// - `validate(&self) -> Result<(), ItemValidationError>` method on `Item`
 ///
-/// The macro always generates `.with_value(self.field.clone())` for validators.
+/// The macro captures validator values through a hidden borrowed builder hook.
+/// Validators that keep the default `#[koruma(value)]` behavior still clone the
+/// input into the error value; validators marked with
+/// `#[koruma(value, skip_capture)]` on an `Option<T>` value field can opt out
+/// when they do not need to store the validated value.
 #[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]
 pub fn derive_koruma(input: TokenStream) -> TokenStream {

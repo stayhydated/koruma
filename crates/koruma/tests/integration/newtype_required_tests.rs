@@ -22,7 +22,7 @@ fn test_required_newtype_none() {
     // Should have required_validation error
     assert!(err.age().required_validation().is_some());
     // Should NOT have inner error because the value was None
-    assert!(err.age().inner().is_empty());
+    assert!(err.age().inner().is_none());
     // Can use all() to get all failed validators
     assert_eq!(err.age().all().len(), 1);
 }
@@ -38,8 +38,9 @@ fn test_required_newtype_invalid_inner() {
     // Should NOT have required_validation error because value is Some
     assert!(err.age().required_validation().is_none());
     // Should have inner error from the newtype validation
-    assert!(err.age().inner().number_range_validation().is_some());
-    assert!(!err.age().inner().is_empty());
+    let inner = err.age().inner().expect("expected inner newtype error");
+    assert!(inner.number_range_validation().is_some());
+    assert!(!inner.is_empty());
 }
 
 #[test]

@@ -11,11 +11,23 @@ use crate::{
 use koruma::{Koruma, Validate};
 use koruma_collection::{collection, general, numeric, string};
 
-// #[derive(Koruma)]
-// struct Order {
-//     #[koruma(LenValidation<_>(min = 1, max = 5))]
-//     items: Vec<String>,
-// }
+#[derive(Koruma)]
+pub struct Order {
+    #[koruma(each(validators::normal::NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub quantities: Vec<i32>,
+}
+
+#[derive(Koruma)]
+pub struct BorrowedOrder<'a> {
+    #[koruma(each(validators::normal::NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub quantities: &'a [i32],
+}
+
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedUsername<'a> {
+    #[koruma(validators::normal::StartsWithValidation<_>(prefix = "user:"))]
+    pub username: &'a str,
+}
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
@@ -127,6 +139,14 @@ pub struct SignupForm {
     /// Newtype field - validation cascades, and errors are treated as if they were on this field
     #[koruma(newtype)]
     pub email: Email,
+}
+
+/// An optional newtype field preserves the distinction between "missing" and "invalid".
+/// When `email` is `None`, there is no synthetic inner error.
+#[derive(Koruma, koruma::KorumaAllFluent)]
+pub struct OptionalSignupForm {
+    #[koruma(newtype)]
+    pub email: Option<Email>,
 }
 
 /// An unnamed (tuple) newtype wrapper around String, representing a username.

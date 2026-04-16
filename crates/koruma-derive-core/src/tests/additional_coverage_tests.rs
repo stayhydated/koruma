@@ -1,7 +1,8 @@
 use crate::{
     FieldInfo, KorumaAttr, ParseFieldResult, ValidatorAttr, contains_infer_type,
     expr_as_simple_ident, find_value_field, first_generic_arg, is_option_infer_type,
-    option_inner_type, parse_field, substitute_infer_type, type_to_ident, vec_inner_type,
+    option_inner_type, parse_field, substitute_infer_type, substitute_infer_type_from_source,
+    type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -165,6 +166,26 @@ fn field_info_and_parse_field_result_helpers() {
 }
 
 #[test]
+fn parse_field_allows_distinct_fully_qualified_validators() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(foo::RangeValidation(min = 0, max = 10), bar::RangeValidation(min = 11, max = 20))]
+        value: i32
+    };
+
+    let info = parse_field_info(&field);
+    let validator_paths: Vec<_> = info
+        .validation
+        .field_validators
+        .iter()
+        .map(ValidatorAttr::path_name)
+        .collect();
+    assert_eq!(
+        validator_paths,
+        vec!["foo::RangeValidation", "bar::RangeValidation"]
+    );
+}
+
+#[test]
 fn find_value_field_returns_none_without_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         struct Validator {
@@ -204,6 +225,31 @@ fn utility_functions_cover_non_happy_paths() {
     assert_eq!(
         quote::quote!(#substituted_nested).to_string(),
         "std :: collections :: HashMap < String , String >"
+    );
+
+    let inferred_map = substitute_infer_type_from_source(
+        &nested_path,
+        &syn::parse_quote!(std::collections::HashMap<String, i32>),
+    )
+    .expect("expected matching multi-generic source inference");
+    assert_eq!(
+        quote::quote!(#inferred_map).to_string(),
+        "std :: collections :: HashMap < String , i32 >"
+    );
+
+    let wrapped_vec = substitute_infer_type_from_source(
+        &syn::parse_quote!(Vec<_>),
+        &syn::parse_quote!(Option<String>),
+    )
+    .expect("expected single-slot wrapper inference");
+    assert_eq!(quote::quote!(#wrapped_vec).to_string(), "Vec < String >");
+
+    assert!(
+        substitute_infer_type_from_source(
+            &syn::parse_quote!(std::collections::HashMap<_, _>),
+            &syn::parse_quote!(Option<std::collections::HashMap<String, i32>>),
+        )
+        .is_none()
     );
 
     let const_generic: syn::Type = syn::parse_quote!(ArrayLike<1>);
@@ -329,6 +375,42 @@ fn field_info_has_validators_covers_element_only_branch() {
 }
 
 #[test]
+fn parse_field_rejects_newtype_with_each_across_attributes() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(newtype)]
+        #[koruma(each(PositiveValidation))]
+        wrapped: Wrapper
+    };
+
+    let err = parse_field(&field, 0)
+        .error()
+        .expect("expected newtype + each(...) to be rejected");
+    assert!(
+        err.to_string()
+            .contains("cannot also use `each(...)`; element validation is not supported"),
+        "expected newtype + each rejection, got: {err}",
+    );
+}
+
+#[test]
+fn parse_field_rejects_nested_and_newtype_combination() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(nested)]
+        #[koruma(newtype)]
+        wrapped: Wrapper
+    };
+
+    let err = parse_field(&field, 0)
+        .error()
+        .expect("expected nested + newtype to be rejected");
+    assert!(
+        err.to_string()
+            .contains("cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`"),
+        "expected nested + newtype rejection, got: {err}",
+    );
+}
+
+#[test]
 fn utility_functions_cover_remaining_line_paths() {
     let ty_with_lifetime: syn::Type = syn::parse_quote!(Borrowed<'static>);
     assert!(first_generic_arg(&ty_with_lifetime).is_none());
@@ -373,7 +455,7 @@ fn showcase_attr_errors_are_reported() {
     );
 
     let missing_description: Result<ShowcaseAttr, _> =
-        syn::parse_str(r#"name = "n", create = |input: &str| input"#);
+        syn::parse_str(r#"name = "n", create = |input: &str| input, input_type = Text"#);
     assert!(
         missing_description
             .err()
@@ -382,9 +464,46 @@ fn showcase_attr_errors_are_reported() {
             .contains("showcase requires `description` attribute")
     );
 
+    let missing_input_type: Result<ShowcaseAttr, _> =
+        syn::parse_str(r#"name = "n", description = "d", create = |input: &str| input"#);
+    assert!(
+        missing_input_type
+            .err()
+            .expect("expected parse error")
+            .to_string()
+            .contains("showcase requires `input_type` attribute")
+    );
+
+    let invalid_input_type: Result<ShowcaseAttr, _> = syn::parse_str(
+        r#"name = "n", description = "d", create = |input: &str| input, input_type = Boolean"#,
+    );
+    assert!(
+        invalid_input_type
+            .err()
+            .expect("expected parse error")
+            .to_string()
+            .contains("showcase `input_type` must be `Text` or `Numeric`")
+    );
+
     let input: syn::ItemStruct = syn::parse_quote! {
-        #[showcase(name = "N", description = "D", create = |input: &str| input)]
+        #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text)]
         struct Demo;
     };
-    assert!(find_showcase_attr(&input).is_some());
+    assert!(
+        find_showcase_attr(&input)
+            .expect("valid showcase attr")
+            .is_some()
+    );
+
+    let invalid_input: syn::ItemStruct = syn::parse_quote! {
+        #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text, modul = "oops")]
+        struct BadDemo;
+    };
+    assert!(
+        find_showcase_attr(&invalid_input)
+            .err()
+            .expect("expected showcase attr parse error")
+            .to_string()
+            .contains("unknown showcase attribute: modul")
+    );
 }

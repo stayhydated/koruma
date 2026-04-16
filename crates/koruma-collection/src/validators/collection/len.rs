@@ -19,11 +19,14 @@ use super::HasLen;
 ///
 /// Validates that a collection's length is within the specified bounds.
 ///
+/// For `String` and `str`, length is measured in Unicode scalar values (`char`s).
+///
 /// Works with any type that implements `HasLen + Clone`.
 #[validator]
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Length",
     description = "Validates string length is between 1 and 10",
+    input_type = Text,
     module = "collection",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(LenValidation::builder()
@@ -90,5 +93,16 @@ mod tests {
         };
         assert!(!validator.validate(&"".to_string()));
         assert!(!validator.validate(&"abcd".to_string()));
+    }
+
+    #[test]
+    fn counts_unicode_scalar_values_for_strings() {
+        let validator = LenValidation {
+            min: 3,
+            max: 3,
+            actual: String::new(),
+        };
+        assert!(validator.validate(&"a💀é".to_string()));
+        assert!(!validator.validate(&"💀💀💀💀".to_string()));
     }
 }

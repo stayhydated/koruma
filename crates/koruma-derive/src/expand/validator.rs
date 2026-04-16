@@ -1,10 +1,10 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
-use koruma_derive_core::{find_value_field, option_inner_type};
+use koruma_derive_core::{ValueFieldCapture, find_value_field_info_strict, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Fields, GenericParam, Ident, ItemStruct, Visibility, parse_quote};
+use syn::{Fields, GenericParam, ItemStruct, Visibility, parse_quote};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
@@ -13,15 +13,19 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let struct_name = &input.ident;
     let builder_name = format_ident!("{}Builder", struct_name);
 
-    // Check if the struct has generics
-    let has_generics = !input.generics.params.is_empty();
+    if !matches!(input.fields, Fields::Named(_)) {
+        return Err(syn::Error::new_spanned(
+            &input.fields,
+            "koruma::validator only supports structs with named fields",
+        ));
+    }
 
     // Parse showcase attribute if present (only when feature enabled)
     #[cfg(feature = "internal-showcase")]
-    let showcase_attr = find_showcase_attr(&input);
+    let showcase_attr = find_showcase_attr(&input)?;
 
     // Find the field marked with #[koruma(value)]
-    let (value_field_name, value_field_type) = find_value_field(&input).ok_or_else(|| {
+    let value_field = find_value_field_info_strict(&input)?.ok_or_else(|| {
         syn::Error::new_spanned(
             &input,
             "koruma::validator requires a field marked with #[koruma(value)].\n\
@@ -30,9 +34,21 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
              actual: Option<i32>",
         )
     })?;
+    let value_field_name = value_field.name;
+    let value_field_type = value_field.ty;
+    let value_field_capture = value_field.capture;
 
     // Extract the inner type from Option<T>
     let inner_type = option_inner_type(&value_field_type).unwrap_or(&value_field_type);
+
+    if value_field_capture == ValueFieldCapture::Skip
+        && option_inner_type(&value_field_type).is_none()
+    {
+        return Err(syn::Error::new_spanned(
+            &value_field_type,
+            "`#[koruma(value, skip_capture)]` currently requires an `Option<T>` field",
+        ));
+    }
 
     // Add #[derive(bon::Builder)] to the existing attributes
     let builder_attr: syn::Attribute = parse_quote!(#[derive(koruma::bon::Builder)]);
@@ -48,7 +64,10 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     // Remove #[koruma(value)] from the field so bon doesn't see it
     let Fields::Named(ref mut fields) = input.fields else {
-        unreachable!("find_value_field only returns Some for named fields");
+        return Err(syn::Error::new_spanned(
+            &input.fields,
+            "koruma::validator only supports structs with named fields",
+        ));
     };
     for field in &mut fields.named {
         if field.ident.as_ref() == Some(&value_field_name)
@@ -63,15 +82,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             ));
         }
 
-        field.attrs.retain(|attr| {
-            if attr.path().is_ident("koruma")
-                && let Ok(ident) = attr.parse_args::<Ident>()
-            {
-                return ident != "value";
-            }
-
-            true
-        });
+        if field.ident.as_ref() == Some(&value_field_name) {
+            field.attrs.retain(|attr| !attr.path().is_ident("koruma"));
+        }
     }
 
     // Generate the module name that bon creates (snake_case of struct name + _builder)
@@ -97,76 +110,90 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         }
     };
 
-    let with_value_impl = if has_generics {
-        // For generic validators, the builder is Builder<T, S> (type param first, then state)
-        // Use the actual field type (inner_type) for the value parameter
-        //
-        // We need to propagate the bounds from the original struct's generics.
-        // The builder has form: StructBuilder<T, S> where T has the original bounds and S is builder state.
+    let builder_generic_args: Vec<_> = input
+        .generics
+        .params
+        .iter()
+        .map(|param| match param {
+            GenericParam::Lifetime(param) => {
+                let lifetime = &param.lifetime;
+                quote! { #lifetime }
+            },
+            GenericParam::Type(param) => {
+                let ident = &param.ident;
+                quote! { #ident }
+            },
+            GenericParam::Const(param) => {
+                let ident = &param.ident;
+                quote! { #ident }
+            },
+        })
+        .collect();
 
-        // Extract just the type parameter names (without bounds) for use in type position
-        let type_param_names: Vec<_> = input
-            .generics
-            .params
-            .iter()
-            .filter_map(|p| match p {
-                GenericParam::Type(t) => Some(&t.ident),
-                _ => None,
-            })
-            .collect();
+    let output_builder_ty =
+        quote! { #builder_name<#(#builder_generic_args,)* #module_name::#set_value_type<S>> };
 
-        // Extract bounds from the generic params to put in where clause
-        let type_param_bounds: Vec<_> = input
-            .generics
-            .params
-            .iter()
-            .filter_map(|p| match p {
-                GenericParam::Type(t) if !t.bounds.is_empty() => {
-                    let ident = &t.ident;
-                    let bounds = &t.bounds;
-                    Some(quote! { #ident: #bounds })
-                },
-                _ => None,
-            })
-            .collect();
+    let mut with_value_generics = input.generics.clone();
+    with_value_generics
+        .params
+        .push(parse_quote!(S: #module_name::State));
+    with_value_generics
+        .make_where_clause()
+        .predicates
+        .push(parse_quote!(S::#value_assoc_type: koruma::bon::IsUnset));
+    let (with_value_impl_generics, with_value_ty_generics, with_value_where_clause) =
+        with_value_generics.split_for_impl();
 
-        let where_clause = &input.generics.where_clause;
-
-        // Build where predicates: type param bounds + original where clause + S::Value: IsUnset
-        let where_predicates = {
-            let mut predicates = type_param_bounds;
-            if let Some(wc) = where_clause {
-                for pred in &wc.predicates {
-                    predicates.push(quote! { #pred });
-                }
-            }
-            predicates.push(quote! { S::#value_assoc_type: koruma::bon::IsUnset });
-            predicates
-        };
-
-        quote! {
-            impl<#(#type_param_names,)* S: #module_name::State> #builder_name<#(#type_param_names,)* S>
-            where
-                #(#where_predicates),*
-            {
-                /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
-                pub fn with_value(self, value: #inner_type) -> #builder_name<#(#type_param_names,)* #module_name::#set_value_type<S>> {
-                    self.#value_field_name(value)
-                }
+    let with_value_impl = quote! {
+        impl #with_value_impl_generics #builder_name #with_value_ty_generics #with_value_where_clause {
+            /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
+            pub fn with_value(self, value: #inner_type) -> #output_builder_ty {
+                self.#value_field_name(value)
             }
         }
-    } else {
-        quote! {
-            impl<S: #module_name::State> #builder_name<S>
-            where
-                S::#value_assoc_type: koruma::bon::IsUnset,
+    };
+
+    let mut with_value_ref_generics = input.generics.clone();
+    with_value_ref_generics
+        .params
+        .push(parse_quote!(S: #module_name::State));
+    with_value_ref_generics
+        .make_where_clause()
+        .predicates
+        .push(parse_quote!(S::#value_assoc_type: koruma::bon::IsUnset));
+    if value_field_capture == ValueFieldCapture::Capture {
+        with_value_ref_generics
+            .make_where_clause()
+            .predicates
+            .push(parse_quote!(#inner_type: ::std::clone::Clone));
+    }
+    let (with_value_ref_impl_generics, with_value_ref_ty_generics, with_value_ref_where_clause) =
+        with_value_ref_generics.split_for_impl();
+    let builder_ty = quote! { #builder_name #with_value_ref_ty_generics };
+
+    let with_value_ref_impl = match value_field_capture {
+        ValueFieldCapture::Capture => quote! {
+            impl #with_value_ref_impl_generics koruma::BuilderWithValueRef<#inner_type>
+                for #builder_ty #with_value_ref_where_clause
             {
-                /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
-                pub fn with_value(self, value: #inner_type) -> #builder_name<#module_name::#set_value_type<S>> {
-                    self.#value_field_name(value)
+                type Output = #output_builder_ty;
+
+                fn with_value_ref(self, value: &#inner_type) -> Self::Output {
+                    self.with_value(value.clone())
                 }
             }
-        }
+        },
+        ValueFieldCapture::Skip => quote! {
+            impl #with_value_ref_impl_generics koruma::BuilderWithValueRef<#inner_type>
+                for #builder_ty #with_value_ref_where_clause
+            {
+                type Output = Self;
+
+                fn with_value_ref(self, _value: &#inner_type) -> Self::Output {
+                    self
+                }
+            }
+        },
     };
 
     // Generate showcase registration if the attribute is present
@@ -179,65 +206,57 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             "__koruma_showcase_anchor_{}",
             struct_name.to_string().to_snake_case()
         );
-        let input_type_tokens = if let Some(ref it) = showcase.input_type {
-            quote! { ::koruma::showcase::InputType::#it }
-        } else {
-            quote! { ::koruma::showcase::InputType::Text }
-        };
+        let input_type = &showcase.input_type;
+        let input_type_tokens = quote! { ::koruma::showcase::InputType::#input_type };
         let module_tokens = if let Some(ref m) = showcase.module {
             quote! { #m }
         } else {
             quote! { "general" }
         };
 
-        // Extract generics from the struct
-        let (impl_generics, type_generics, _where_clause) = input.generics.split_for_impl();
+        let mut showcase_generics = input.generics.clone();
+        let showcase_where_clause = showcase_generics.make_where_clause();
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::std::marker::Send + ::std::marker::Sync));
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::koruma::Validate<#value_field_type>));
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::std::fmt::Display));
+        #[cfg(feature = "fluent")]
+        showcase_where_clause
+            .predicates
+            .push(parse_quote!(Self: ::es_fluent::ToFluentString));
 
-        // Extract bounds from the generic params for the where clause
-        let mut where_predicates = Vec::new();
-        for param in input.generics.params.iter() {
-            if let GenericParam::Type(t) = param {
-                let ident = &t.ident;
-                // Add all existing bounds plus Send + Sync + Clone + 'static
-                // If no existing bounds, don't include the leading `+`
-                if t.bounds.is_empty() {
-                    where_predicates.push(quote! { #ident: ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'static });
-                } else {
-                    let bounds = &t.bounds;
-                    where_predicates.push(quote! { #ident: #bounds + ::std::clone::Clone + ::std::marker::Send + ::std::marker::Sync + 'static });
-                }
-            }
-        }
-        // Add Self: Display bound
-        where_predicates.push(quote! { Self: ::std::fmt::Display });
+        let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
-        let combined_where = quote! { where #(#where_predicates),* };
+        // Decide feature-sensitive behavior here in the macro crate. Emitting
+        // raw `cfg(feature = "...")` checks into downstream code would make the
+        // generated showcase impl depend on the consumer crate's feature names.
+        #[cfg(feature = "fluent")]
+        let fluent_string_body = quote! {
+            use ::es_fluent::ToFluentString as _;
+            self.to_fluent_string()
+        };
+        #[cfg(not(feature = "fluent"))]
+        let fluent_string_body = quote! {
+            "(fluent feature required)".to_string()
+        };
 
         quote! {
-            // DynValidator is implemented by validators that have Validate + Display impls
-            #[cfg(feature = "internal-showcase")]
-            impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics
-            #combined_where
-            {
+            impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics #where_clause {
                 fn is_valid(&self) -> bool {
                     ::koruma::Validate::validate(self, &self.#value_field_name)
                 }
 
                 fn display_string(&self) -> String {
-                    #[cfg(feature = "fmt")]
-                    { ::std::string::ToString::to_string(self) }
-                    #[cfg(not(feature = "fmt"))]
-                    { "(fmt feature required)".to_string() }
+                    ::std::string::ToString::to_string(self)
                 }
 
                 fn fluent_string(&self) -> String {
-                    #[cfg(feature = "fluent")]
-                    {
-                        use ::es_fluent::ToFluentString as _;
-                        self.to_fluent_string()
-                    }
-                    #[cfg(not(feature = "fluent"))]
-                    { "(fluent feature required)".to_string() }
+                    #fluent_string_body
                 }
             }
 
@@ -269,6 +288,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         #value_getter_impl
 
         #with_value_impl
+        #with_value_ref_impl
 
         #showcase_registration
     })

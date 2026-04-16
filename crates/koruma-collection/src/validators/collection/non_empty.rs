@@ -26,6 +26,7 @@ use super::HasLen;
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "NonEmpty",
     description = "Validates that the input is not empty",
+    input_type = Text,
     module = "collection",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(NonEmptyValidation::builder()

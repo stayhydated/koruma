@@ -109,17 +109,19 @@ impl Order {
                 even_validation: None,
             };
             let mut element_has_error = false;
-            let validator = RangeValidation::builder()
-                .min(0)
-                .max(100)
-                .with_value(__item_value.clone())
+            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                    RangeValidation::builder().min(0).max(100),
+                    __item_value,
+                )
                 .build();
             if !validator.validate(__item_value) {
                 element_error.range_validation = Some(validator);
                 element_has_error = true;
             }
-            let validator = EvenValidation::builder()
-                .with_value(__item_value.clone())
+            let validator = koruma::BuilderWithValueRef::with_value_ref(
+                    EvenValidation::builder(),
+                    __item_value,
+                )
                 .build();
             if !validator.validate(__item_value) {
                 element_error.even_validation = Some(validator);
@@ -136,6 +138,6 @@ impl Order {
 impl koruma::ValidateExt for Order {
     type Error = OrderKorumaValidationError;
     fn validate(&self) -> Result<(), OrderKorumaValidationError> {
-        Order::validate(self)
+        Self::validate(self)
     }
 }

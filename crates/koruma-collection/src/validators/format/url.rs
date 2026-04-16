@@ -20,6 +20,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "URL",
     description = "Validates that the input is a valid URL",
+    input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(UrlValidation::builder()

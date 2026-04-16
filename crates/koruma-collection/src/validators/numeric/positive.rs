@@ -43,7 +43,7 @@ pub struct PositiveValidation<T: Numeric> {
 
 impl<T: Numeric> Validate<T> for PositiveValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        *value > T::default()
+        *value > T::zero()
     }
 }
 

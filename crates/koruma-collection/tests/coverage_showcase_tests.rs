@@ -68,10 +68,7 @@ fn ip_kind_display_covers_all_variants() {
 #[test]
 fn required_validation_display_smoke_test() {
     let validator = RequiredValidation::<Option<String>>::builder().build();
-    assert_eq!(
-        validator.to_string(),
-        "This field is required and must not be empty."
-    );
+    assert_eq!(validator.to_string(), "This field is required.");
 }
 
 #[test]

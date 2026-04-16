@@ -7,24 +7,26 @@ use koruma::{Validate, validator};
 /// ```rust
 /// use koruma::Koruma;
 /// use koruma_collection::string::PatternValidation;
+/// use regex::Regex;
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(PatternValidation<_>(pattern = r"^[a-zA-Z0-9_]+$"))]
+///     #[koruma(PatternValidation<_>(pattern = Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
 ///     username: String,
 /// }
 /// ```
 ///
-/// Validates that a string matches a regular expression pattern.
+/// Validates that a string matches a compiled regular expression pattern.
 #[validator]
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Regex Pattern",
     description = "Validates that the input matches a regex pattern (uses ^[a-zA-Z0-9_]+$)",
+    input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
         Ok(PatternValidation::builder()
             .with_value(input.to_string())
-            .pattern(r"^[a-zA-Z0-9_]+$")
+            .pattern(::regex::Regex::new(r"^[a-zA-Z0-9_]+$")?)
             .build())
     }
 ))]
@@ -32,9 +34,9 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct PatternValidation<T: AsRef<str>> {
-    /// The regex pattern to match against
-    #[builder(into)]
-    pub pattern: String,
+    /// The compiled regex pattern to match against
+    #[cfg_attr(feature = "fluent", fluent(skip))]
+    pub pattern: regex::Regex,
     /// The string being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
@@ -43,18 +45,14 @@ pub struct PatternValidation<T: AsRef<str>> {
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        let s = value.as_ref();
-        match regex::Regex::new(&self.pattern) {
-            Ok(re) => re.is_match(s),
-            Err(_) => false, // Invalid regex pattern
-        }
+        self.pattern.is_match(value.as_ref())
     }
 }
 
 #[cfg(feature = "fmt")]
 impl<T: AsRef<str>> std::fmt::Display for PatternValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Does not match the required pattern '{}'.", self.pattern)
+        write!(f, "Does not match the required pattern.")
     }
 }
 
@@ -66,28 +64,65 @@ mod tests {
 
     #[test]
     fn accepts_when_pattern_matches() {
-        let validator = PatternValidation {
-            pattern: r"^\d+$".to_string(),
-            actual: String::new(),
-        };
+        let validator = PatternValidation::builder()
+            .pattern(regex::Regex::new(r"^\d+$").unwrap())
+            .with_value(String::new())
+            .build();
         assert!(validator.validate(&"12345".to_string()));
     }
 
     #[test]
     fn rejects_when_pattern_does_not_match() {
-        let validator = PatternValidation {
-            pattern: r"^\d+$".to_string(),
-            actual: String::new(),
-        };
+        let validator = PatternValidation::builder()
+            .pattern(regex::Regex::new(r"^\d+$").unwrap())
+            .with_value(String::new())
+            .build();
         assert!(!validator.validate(&"123a".to_string()));
     }
 
     #[test]
-    fn rejects_invalid_pattern() {
-        let validator = PatternValidation {
-            pattern: "(".to_string(),
-            actual: String::new(),
-        };
-        assert!(!validator.validate(&"123".to_string()));
+    fn invalid_pattern_fails_at_construction_time() {
+        assert!(regex::Regex::new("(").is_err());
+    }
+
+    #[test]
+    fn validate_uses_the_current_pattern_value() {
+        let mut validator = PatternValidation::builder()
+            .pattern(regex::Regex::new(r"^a$").unwrap())
+            .with_value(String::new())
+            .build();
+
+        assert!(validator.validate(&"a".to_string()));
+        assert!(!validator.validate(&"b".to_string()));
+
+        validator.pattern = regex::Regex::new(r"^b$").unwrap();
+
+        assert!(!validator.validate(&"a".to_string()));
+        assert!(validator.validate(&"b".to_string()));
+    }
+
+    #[test]
+    fn builder_accepts_precompiled_regexes() {
+        let validator = PatternValidation::builder()
+            .pattern(regex::Regex::new(r"^cache-hit-\d+$").unwrap())
+            .with_value(String::new())
+            .build();
+
+        assert!(validator.validate(&"cache-hit-42".to_string()));
+    }
+
+    #[cfg(feature = "fmt")]
+    #[test]
+    fn display_does_not_echo_the_pattern() {
+        let validator = PatternValidation::builder()
+            .pattern(regex::Regex::new(r"^\d+$").unwrap())
+            .with_value(String::new())
+            .build();
+
+        assert_eq!(
+            validator.to_string(),
+            "Does not match the required pattern."
+        );
+        assert!(!validator.to_string().contains(r"^\d+$"));
     }
 }

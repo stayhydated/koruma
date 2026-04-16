@@ -1,9 +1,12 @@
 use koruma::{Koruma, Validate};
 
 use super::validators::{
-    EvenNumberValidation, GenericRangeValidation, NumberRangeValidation, RequiredValidation,
+    EvenNumberValidation, GenericRangeValidation, MatchesStaticStrValidation,
+    MatchesStringValidation, NumberRangeValidation, RequiredValidation, StartsWithValidation,
     StringLengthValidation, VecLenValidation,
 };
+
+const STATIC_CONFIRM_SECRET: &str = "shared-secret";
 
 /// Example struct demonstrating validation with non-generic validators.
 #[derive(Koruma)]
@@ -56,6 +59,68 @@ pub struct Order {
     pub scores: Vec<f64>,
 }
 
+/// Example struct demonstrating optional collection validation with `each`.
+#[derive(Koruma)]
+pub struct OptionalOrder {
+    // The collection is optional, but each present score still must be in range 0-100.
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Option<Vec<f64>>,
+}
+
+/// Example struct demonstrating that qualified Option/Vec paths keep the same semantics.
+#[derive(Koruma)]
+pub struct QualifiedPathProfile {
+    #[koruma(StringLengthValidation(min = 1, max = 200))]
+    pub bio: std::option::Option<String>,
+
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: core::option::Option<std::vec::Vec<f64>>,
+}
+
+/// Example struct demonstrating borrowed slice validation with `each`.
+#[derive(Koruma)]
+pub struct BorrowedOrder<'a> {
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: &'a [f64],
+}
+
+/// Example struct demonstrating optional borrowed slice validation with `each`.
+#[derive(Koruma)]
+pub struct OptionalBorrowedOrder<'a> {
+    #[koruma(each(GenericRangeValidation<_>(min = 0.0, max = 100.0)))]
+    pub scores: Option<&'a [f64]>,
+}
+
+/// Example struct demonstrating borrowed direct-field validation.
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedUsername<'a> {
+    #[koruma(StartsWithValidation<_>(prefix = "user:"))]
+    pub username: &'a str,
+}
+
+/// Example struct demonstrating borrowed string element validation with `each`.
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedTags<'a> {
+    #[koruma(each(StartsWithValidation<_>(prefix = "tag:")))]
+    pub tags: &'a [&'a str],
+}
+
+/// Example struct demonstrating cross-field shorthand in validator args.
+#[derive(Koruma)]
+pub struct PasswordConfirmation {
+    pub password: String,
+
+    #[koruma(MatchesStringValidation(expected = password))]
+    pub confirm: String,
+}
+
+/// Example struct demonstrating that bare identifiers which are not fields remain untouched.
+#[derive(Koruma)]
+pub struct StaticSecretConfirmation {
+    #[koruma(MatchesStaticStrValidation(expected = STATIC_CONFIRM_SECRET))]
+    pub confirm: String,
+}
+
 /// Example struct demonstrating optional field validation.
 /// Optional fields skip validation when None.
 #[derive(Koruma)]
@@ -70,6 +135,19 @@ pub struct UserProfile {
     // Optional field with range validation
     #[koruma(NumberRangeValidation(min = 0, max = 150))]
     pub age: Option<i32>,
+}
+
+/// Example payload without Clone to exercise skip-capture validators.
+pub struct NonCloneSecret {
+    pub raw: String,
+}
+
+/// Example struct showing that RequiredValidation can validate Option<NonClone>
+/// without forcing clone capture in the derive expansion.
+#[derive(Koruma)]
+pub struct PresenceOnlyNonClone {
+    #[koruma(RequiredValidation<Option<_>>)]
+    pub token: Option<NonCloneSecret>,
 }
 
 /// Example struct demonstrating COMBINED collection-level AND per-element validation.

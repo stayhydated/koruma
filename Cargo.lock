@@ -2529,12 +2529,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+ "syn-cfg-attr",
 ]
 
 [[package]]
 name = "koruma-derive-core"
 version = "0.8.0"
 dependencies = [
+ "heck",
  "insta",
  "quote",
  "syn",

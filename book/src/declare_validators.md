@@ -55,7 +55,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         len >= self.min && len <= self.max
     }
 }
@@ -65,7 +65,7 @@ impl fmt::Display for StringLengthValidation {
         write!(
             f,
             "string length {} must be between {} and {} characters",
-            self.input.len(),
+            self.input.chars().count(),
             self.min,
             self.max
         )
@@ -77,3 +77,9 @@ The core pattern stays the same: define any configuration fields you need, mark 
 with `#[koruma(value)]`, implement `Validate<T>`, and optionally implement `Display` for friendly
 error messages. External callers can read the captured value through the generated getter
 (`validator.actual()`, `validator.input()`, and so on).
+
+For presence-only validators that do not need to retain the failing input, use
+`#[koruma(value, skip_capture)]` on an `Option<T>` field. During derived validation, koruma leaves
+that field at `None` instead of cloning the input into the error value. If the validator still
+needs `Clone` or `Debug`, implement those manually so the skipped field does not reintroduce type
+bounds.

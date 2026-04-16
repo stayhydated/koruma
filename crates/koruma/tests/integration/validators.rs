@@ -1,6 +1,7 @@
 //! Validator implementations for integration tests.
 
 use koruma::{Validate, validator};
+use std::fmt;
 
 /// A validation rule that checks if a number is within a specified range.
 #[validator]
@@ -40,6 +41,22 @@ impl<T: PartialOrd + Clone> Validate<T> for GenericRangeValidation<T> {
     }
 }
 
+/// A validation rule that checks whether a fixed-size byte array starts with a prefix.
+/// This exercises validator builders that carry both lifetime and const generics.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct PrefixBytesValidation<'a, const N: usize> {
+    pub prefix: &'a [u8],
+    #[koruma(value)]
+    actual: [u8; N],
+}
+
+impl<'a, const N: usize> Validate<[u8; N]> for PrefixBytesValidation<'a, N> {
+    fn validate(&self, value: &[u8; N]) -> bool {
+        value.starts_with(self.prefix)
+    }
+}
+
 /// A validation rule that checks string length.
 #[validator]
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -52,7 +69,7 @@ pub struct StringLengthValidation {
 
 impl Validate<String> for StringLengthValidation {
     fn validate(&self, value: &String) -> bool {
-        let len = value.len();
+        let len = value.chars().count();
         if len < self.min || len > self.max {
             false
         } else {
@@ -112,15 +129,79 @@ impl<T> VecLenValidation<T> {
 /// A validation rule that checks if a value is present (not None).
 /// Works with Option<T> types.
 #[validator]
-#[derive(Clone, Debug)]
 pub struct RequiredValidation<T> {
-    #[koruma(value)]
+    #[koruma(value, skip_capture)]
     #[allow(dead_code)]
     actual: Option<T>,
+}
+
+impl<T> Clone for RequiredValidation<T> {
+    fn clone(&self) -> Self {
+        Self { actual: None }
+    }
+}
+
+impl<T> fmt::Debug for RequiredValidation<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RequiredValidation")
+            .field("actual", &"<skipped>")
+            .finish()
+    }
 }
 
 impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
     fn validate(&self, value: &Option<T>) -> bool {
         value.is_some()
+    }
+}
+
+/// A validation rule that checks if a string matches an expected string.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct MatchesStringValidation {
+    pub expected: String,
+    #[koruma(value)]
+    actual: String,
+}
+
+impl Validate<String> for MatchesStringValidation {
+    fn validate(&self, value: &String) -> bool {
+        value == &self.expected
+    }
+}
+
+/// A validation rule that checks if a string matches a shared static secret.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct MatchesStaticStrValidation {
+    pub expected: &'static str,
+    #[koruma(value)]
+    actual: String,
+}
+
+impl Validate<String> for MatchesStaticStrValidation {
+    fn validate(&self, value: &String) -> bool {
+        value == self.expected
+    }
+}
+
+/// A validation rule that checks whether a string starts with a prefix.
+#[validator]
+#[derive(Clone, Debug)]
+pub struct StartsWithValidation<T: AsRef<str>> {
+    pub prefix: &'static str,
+    #[koruma(value)]
+    actual: T,
+}
+
+impl<T: AsRef<str>> Validate<T> for StartsWithValidation<T> {
+    fn validate(&self, value: &T) -> bool {
+        value.as_ref().starts_with(self.prefix)
+    }
+}
+
+impl<T: AsRef<str>> fmt::Display for StartsWithValidation<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Must start with '{}'", self.prefix)
     }
 }

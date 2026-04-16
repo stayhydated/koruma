@@ -375,6 +375,42 @@ fn field_info_has_validators_covers_element_only_branch() {
 }
 
 #[test]
+fn parse_field_rejects_newtype_with_each_across_attributes() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(newtype)]
+        #[koruma(each(PositiveValidation))]
+        wrapped: Wrapper
+    };
+
+    let err = parse_field(&field, 0)
+        .error()
+        .expect("expected newtype + each(...) to be rejected");
+    assert!(
+        err.to_string()
+            .contains("cannot also use `each(...)`; element validation is not supported"),
+        "expected newtype + each rejection, got: {err}",
+    );
+}
+
+#[test]
+fn parse_field_rejects_nested_and_newtype_combination() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(nested)]
+        #[koruma(newtype)]
+        wrapped: Wrapper
+    };
+
+    let err = parse_field(&field, 0)
+        .error()
+        .expect("expected nested + newtype to be rejected");
+    assert!(
+        err.to_string()
+            .contains("cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`"),
+        "expected nested + newtype rejection, got: {err}",
+    );
+}
+
+#[test]
 fn utility_functions_cover_remaining_line_paths() {
     let ty_with_lifetime: syn::Type = syn::parse_quote!(Borrowed<'static>);
     assert!(first_generic_arg(&ty_with_lifetime).is_none());

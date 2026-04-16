@@ -341,3 +341,43 @@ fn test_koruma_error_on_nested_field_with_split_validators() {
         "expected nested+validator compatibility error, got: {err}"
     );
 }
+
+#[test]
+fn test_koruma_error_on_newtype_field_with_each() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct Parent {
+            #[koruma(newtype)]
+            #[koruma(each(PositiveValidation))]
+            pub child: Child,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("cannot also use `each(...)`; element validation is not supported"),
+        "expected newtype + each rejection, got: {err}"
+    );
+}
+
+#[test]
+fn test_koruma_error_on_field_with_nested_and_newtype() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct Parent {
+            #[koruma(nested)]
+            #[koruma(newtype)]
+            pub child: Child,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`"),
+        "expected nested + newtype rejection, got: {err}"
+    );
+}

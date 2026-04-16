@@ -782,6 +782,20 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
         return ParseFieldResult::Skip;
     }
 
+    if is_nested && is_newtype {
+        return ParseFieldResult::Error(Error::new_spanned(
+            field,
+            "fields cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`, even across multiple `#[koruma(...)]` attributes",
+        ));
+    }
+
+    if is_newtype && !all_element_validators.is_empty() {
+        return ParseFieldResult::Error(Error::new_spanned(
+            field,
+            "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers",
+        ));
+    }
+
     // Check for nested
     if is_nested {
         return ParseFieldResult::Valid(Box::new(FieldInfo {

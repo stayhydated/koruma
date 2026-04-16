@@ -286,7 +286,7 @@ Use `#[koruma(try_new, newtype(try_from))]` when you need:
 
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
 - `newtype(try_from)` - a `TryFrom<Inner>` impl for `From`/`try_from` calls
-- `newtype` - transparent error access via `Deref` to the inner field's error
+- `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
 
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 
@@ -310,6 +310,12 @@ pub struct SignupForm {
     pub email: Email,
 }
 
+#[derive(Koruma, KorumaAllFluent)]
+pub struct OptionalSignupForm {
+    #[koruma(newtype)]
+    pub email: Option<Email>,
+}
+
 let form = SignupForm {
     username: "".to_string(),
     email: Email {
@@ -326,6 +332,22 @@ if let Err(errors) = form.validate() {
 
     for failed in errors.email().all() {
         println!("email validator: {}", failed.to_fluent_string());
+    }
+}
+
+let optional_form = OptionalSignupForm { email: None };
+assert!(optional_form.validate().is_ok());
+
+let invalid_optional_form = OptionalSignupForm {
+    email: Some(Email {
+        value: "".to_string(),
+    }),
+};
+if let Err(errors) = invalid_optional_form.validate() {
+    if let Some(email_errors) = errors.email() {
+        if let Some(email_err) = email_errors.non_empty_string_validation() {
+            println!("optional email failed: {}", email_err.to_fluent_string());
+        }
     }
 }
 

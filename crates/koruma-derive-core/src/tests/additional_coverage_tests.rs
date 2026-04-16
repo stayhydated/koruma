@@ -432,5 +432,21 @@ fn showcase_attr_errors_are_reported() {
         #[showcase(name = "N", description = "D", create = |input: &str| input)]
         struct Demo;
     };
-    assert!(find_showcase_attr(&input).is_some());
+    assert!(
+        find_showcase_attr(&input)
+            .expect("valid showcase attr")
+            .is_some()
+    );
+
+    let invalid_input: syn::ItemStruct = syn::parse_quote! {
+        #[showcase(name = "N", description = "D", create = |input: &str| input, modul = "oops")]
+        struct BadDemo;
+    };
+    assert!(
+        find_showcase_attr(&invalid_input)
+            .err()
+            .expect("expected showcase attr parse error")
+            .to_string()
+            .contains("unknown showcase attribute: modul")
+    );
 }

@@ -25,7 +25,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     // Parse showcase attribute if present (only when feature enabled)
     #[cfg(feature = "internal-showcase")]
-    let showcase_attr = find_showcase_attr(&input);
+    let showcase_attr = find_showcase_attr(&input)?;
 
     // Find the field marked with #[koruma(value)]
     let value_field = find_value_field_info_strict(&input)?.ok_or_else(|| {

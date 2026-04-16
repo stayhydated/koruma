@@ -1,5 +1,7 @@
 use heck::ToUpperCamelCase;
-use koruma_derive_core::{FieldInfo, ValidatorAttr, option_inner_type, parse_struct_options};
+use koruma_derive_core::{
+    FieldInfo, ValidatorAttr, is_option_type, option_inner_type, parse_struct_options,
+};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
 
@@ -181,41 +183,50 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             let helper_ty_generics = &helper_generics.ty_generics;
             let helper_where_clause = &helper_generics.where_clause;
 
-            if f.is_newtype() {
-                // For newtype fields, delegate to the inner error's to_fluent_string
-                quote! {
-                    impl #helper_impl_generics ::es_fluent::ToFluentString for #error_struct_name #helper_ty_generics #helper_where_clause {
-                        fn to_fluent_string(&self) -> String {
-                            use ::es_fluent::ToFluentString;
-                            self.inner().to_fluent_string()
+            // Join all field-level validator messages, and include the delegated
+            // newtype error when present.
+            let message_pushes: Vec<TokenStream2> = f
+                .validation
+                .field_validators
+                .iter()
+                .map(|v| {
+                    let validator_snake =
+                        validator_field_ident(v, &f.validation.field_validators);
+                    quote! {
+                        if let Some(v) = &self.#validator_snake {
+                            messages.push(v.to_fluent_string());
                         }
                     }
-                }
-            } else {
-                // For regular fields, join all validator messages
-                let message_pushes: Vec<TokenStream2> = f
-                    .validation
-                    .field_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake =
-                            validator_field_ident(v, &f.validation.field_validators);
-                        quote! {
-                            if let Some(v) = &self.#validator_snake {
-                                messages.push(v.to_fluent_string());
+                })
+                .collect();
+            let inner_message_push = if f.is_newtype() {
+                if is_option_type(field_ty) {
+                    Some(quote! {
+                        if let Some(inner) = self.inner() {
+                            if !inner.is_empty() {
+                                messages.push(inner.to_fluent_string());
                             }
                         }
                     })
-                    .collect();
-
-                quote! {
-                    impl #helper_impl_generics ::es_fluent::ToFluentString for #error_struct_name #helper_ty_generics #helper_where_clause {
-                        fn to_fluent_string(&self) -> String {
-                            use ::es_fluent::ToFluentString;
-                            let mut messages = Vec::new();
-                            #(#message_pushes)*
-                            messages.join("\n")
+                } else {
+                    Some(quote! {
+                        if !self.inner().is_empty() {
+                            messages.push(self.inner().to_fluent_string());
                         }
+                    })
+                }
+            } else {
+                None
+            };
+
+            quote! {
+                impl #helper_impl_generics ::es_fluent::ToFluentString for #error_struct_name #helper_ty_generics #helper_where_clause {
+                    fn to_fluent_string(&self) -> String {
+                        use ::es_fluent::ToFluentString;
+                        let mut messages = Vec::new();
+                        #(#message_pushes)*
+                        #inner_message_push
+                        messages.join("\n")
                     }
                 }
             }

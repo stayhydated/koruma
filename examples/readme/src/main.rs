@@ -1,8 +1,8 @@
 use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
 use readme::{
-    Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8, SignupForm,
-    SignupInput, User, Username, i18n,
+    Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8,
+    OptionalSignupForm, SignupForm, SignupInput, User, Username, i18n,
 };
 use strum::IntoEnumIterator as _;
 
@@ -303,6 +303,26 @@ pub fn main() {
                     println!("    - email: {}", err.to_fluent_string());
                 }
             },
+        }
+
+        let optional_signup = OptionalSignupForm { email: None };
+        println!(
+            "Optional signup with no email is valid: {}",
+            optional_signup.validate().is_ok()
+        );
+
+        let invalid_optional_signup = OptionalSignupForm {
+            email: Some(Email {
+                value: "".to_string(),
+            }),
+        };
+
+        if let Err(errors) = invalid_optional_signup.validate() {
+            if let Some(email_errors) = errors.email()
+                && let Some(email_err) = email_errors.non_empty_string_validation()
+            {
+                println!("  - optional email: {}", email_err.to_fluent_string());
+            }
         }
 
         // Unnamed (tuple struct) newtype test

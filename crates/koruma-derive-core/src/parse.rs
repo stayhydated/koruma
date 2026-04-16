@@ -1055,13 +1055,11 @@ impl Parse for ShowcaseAttr {
 
 /// Find and parse showcase attribute from struct
 #[cfg(feature = "internal-showcase")]
-pub fn find_showcase_attr(input: &ItemStruct) -> Option<ShowcaseAttr> {
+pub fn find_showcase_attr(input: &ItemStruct) -> Result<Option<ShowcaseAttr>> {
     for attr in &input.attrs {
-        if attr.path().is_ident("showcase")
-            && let Ok(parsed) = attr.parse_args::<ShowcaseAttr>()
-        {
-            return Some(parsed);
+        if attr.path().is_ident("showcase") {
+            return Ok(Some(attr.parse_args::<ShowcaseAttr>()?));
         }
     }
-    None
+    Ok(None)
 }

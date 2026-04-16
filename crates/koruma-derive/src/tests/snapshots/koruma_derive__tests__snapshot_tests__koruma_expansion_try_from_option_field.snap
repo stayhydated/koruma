@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 937
 expression: rendered
 ---
 #[doc = concat!(
@@ -19,7 +20,7 @@ pub enum OptionalWrapperInnerKorumaValidator {
 #[derive(Clone, Debug, Default)]
 pub struct OptionalWrapperInnerKorumaValidationError {
     required_validation: Option<RequiredValidation<Option<InnerValue>>>,
-    inner: <InnerValue as koruma::ValidateExt>::Error,
+    inner: Option<<InnerValue as koruma::ValidateExt>::Error>,
 }
 impl OptionalWrapperInnerKorumaValidationError {
     #[doc = concat!(
@@ -30,9 +31,9 @@ impl OptionalWrapperInnerKorumaValidationError {
     ) -> Option<&RequiredValidation<Option<InnerValue>>> {
         self.required_validation.as_ref()
     }
-    #[doc = concat!("Returns the inner validation error for `", "inner", "`.")]
-    pub fn inner(&self) -> &<InnerValue as koruma::ValidateExt>::Error {
-        &self.inner
+    #[doc = concat!("Returns the inner validation error for `", "inner", "`, if any.")]
+    pub fn inner(&self) -> Option<&<InnerValue as koruma::ValidateExt>::Error> {
+        self.inner.as_ref()
     }
     #[doc = concat!(
         "Returns all failed validators for `", "inner",
@@ -46,13 +47,16 @@ impl OptionalWrapperInnerKorumaValidationError {
                     OptionalWrapperInnerKorumaValidator::RequiredValidation(v.clone()),
                 );
         }
-        if !self.inner.is_empty() {
-            result.push(OptionalWrapperInnerKorumaValidator::Inner(self.inner.clone()));
+        if let Some(inner) = &self.inner {
+            if !inner.is_empty() {
+                result.push(OptionalWrapperInnerKorumaValidator::Inner(inner.clone()));
+            }
         }
         result
     }
     pub fn is_empty(&self) -> bool {
-        self.required_validation.is_none() && self.inner.is_empty()
+        self.required_validation.is_none()
+            && self.inner.as_ref().map_or(true, |inner| inner.is_empty())
     }
     pub fn has_errors(&self) -> bool {
         !self.is_empty()
@@ -95,7 +99,7 @@ impl OptionalWrapper {
         let mut error = OptionalWrapperKorumaValidationError {
             inner: OptionalWrapperInnerKorumaValidationError {
                 required_validation: None,
-                inner: <InnerValue as koruma::ValidateExt>::Error::default(),
+                inner: None,
             },
         };
         let mut has_error = false;
@@ -119,7 +123,7 @@ impl OptionalWrapper {
         }
         if let Some(ref __newtype_value) = self.inner {
             if let Err(newtype_err) = __newtype_value.validate() {
-                error.inner.inner = newtype_err;
+                error.inner.inner = Some(newtype_err);
                 has_error = true;
             }
         }

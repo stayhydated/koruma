@@ -109,6 +109,32 @@ fn test_validator_error_skip_capture_requires_option_value_field() {
     );
 }
 
+#[cfg(feature = "internal-showcase")]
+#[test]
+fn test_validator_error_on_invalid_showcase_attr() {
+    let input: ItemStruct = syn::parse_quote! {
+        #[showcase(
+            name = "Bad Showcase",
+            description = "Should fail",
+            create = |input: &str| input,
+            modul = "broken"
+        )]
+        pub struct BadShowcaseValidator {
+            #[koruma(value)]
+            actual: Option<String>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("unknown showcase attribute: modul"),
+        "expected showcase parse error, got: {err}"
+    );
+}
+
 #[test]
 fn test_koruma_success_no_validated_fields() {
     let input: DeriveInput = syn::parse_quote! {

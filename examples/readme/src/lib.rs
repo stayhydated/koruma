@@ -141,6 +141,14 @@ pub struct SignupForm {
     pub email: Email,
 }
 
+/// An optional newtype field preserves the distinction between "missing" and "invalid".
+/// When `email` is `None`, there is no synthetic inner error.
+#[derive(Koruma, koruma::KorumaAllFluent)]
+pub struct OptionalSignupForm {
+    #[koruma(newtype)]
+    pub email: Option<Email>,
+}
+
 /// An unnamed (tuple) newtype wrapper around String, representing a username.
 /// Uses `#[koruma(try_new, newtype)]` with a tuple struct.
 /// The field is accessed as `Username::try_new(value).unwrap().0` (tuple index 0).

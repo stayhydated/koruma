@@ -179,28 +179,66 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                 // If the newtype field has no validators, generate simple wrapper
                 if !has_field_validators {
+                    let field_is_optional = is_option_type(field_ty);
                     let helper_generics =
                         helper_generics_for_usages(generics, &[quote! { <#inner_ty as koruma::ValidateExt>::Error }]);
                     let helper_definition = &helper_generics.definition;
                     let helper_impl_generics = &helper_generics.impl_generics;
                     let helper_ty_generics = &helper_generics.ty_generics;
                     let helper_where_clause = &helper_generics.where_clause;
+                    let inner_field_ty = if field_is_optional {
+                        quote! { Option<<#inner_ty as koruma::ValidateExt>::Error> }
+                    } else {
+                        quote! { <#inner_ty as koruma::ValidateExt>::Error }
+                    };
+                    let inner_getter = if field_is_optional {
+                        quote! {
+                            #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`, if any.")]
+                            pub fn inner(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
+                                self.inner.as_ref()
+                            }
+                        }
+                    } else {
+                        quote! {
+                            #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
+                            pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                                &self.inner
+                            }
+                        }
+                    };
+                    let is_empty_check = if field_is_optional {
+                        quote! {
+                            self.inner.as_ref().map_or(true, |inner| inner.is_empty())
+                        }
+                    } else {
+                        quote! { self.inner.is_empty() }
+                    };
+                    let deref_impl = if field_is_optional {
+                        quote! {}
+                    } else {
+                        quote! {
+                            impl #helper_impl_generics std::ops::Deref for #field_error_struct_name #helper_ty_generics #helper_where_clause {
+                                type Target = <#inner_ty as koruma::ValidateExt>::Error;
+
+                                fn deref(&self) -> &Self::Target {
+                                    &self.inner
+                                }
+                            }
+                        }
+                    };
 
                     return quote! {
                         #[doc = concat!("Validation errors for the `", #field_name_str, "` newtype field of [`", #struct_name_str, "`].")]
                         #[derive(Clone, Debug, Default)]
                         pub struct #field_error_struct_name #helper_definition {
-                            inner: <#inner_ty as koruma::ValidateExt>::Error,
+                            inner: #inner_field_ty,
                         }
 
                         impl #helper_impl_generics #field_error_struct_name #helper_ty_generics #helper_where_clause {
-                            #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
-                            pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
-                                &self.inner
-                            }
+                            #inner_getter
 
                             pub fn is_empty(&self) -> bool {
-                                self.inner.is_empty()
+                                #is_empty_check
                             }
 
                             pub fn has_errors(&self) -> bool {
@@ -208,14 +246,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             }
                         }
 
-                        impl #helper_impl_generics std::ops::Deref for #field_error_struct_name #helper_ty_generics #helper_where_clause {
-                            type Target = <#inner_ty as koruma::ValidateExt>::Error;
-
-                            fn deref(&self) -> &Self::Target {
-                                &self.inner
-                            }
-                        }
-
+                        #deref_impl
                     };
                 }
 
@@ -243,6 +274,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let helper_impl_generics = &helper_generics.impl_generics;
                 let helper_ty_generics = &helper_generics.ty_generics;
                 let helper_where_clause = &helper_generics.where_clause;
+                let field_is_optional = is_option_type(field_ty);
 
                 let field_validator_fields: Vec<TokenStream2> = f
                     .validation
@@ -328,9 +360,45 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
 
                 // Add push for inner error when it's not empty
                 let inner_push = quote! {
-                    if !self.inner.is_empty() {
-                        result.push(#enum_name::Inner(self.inner.clone()));
+                    if let Some(inner) = &self.inner {
+                        if !inner.is_empty() {
+                            result.push(#enum_name::Inner(inner.clone()));
+                        }
                     }
+                };
+                let inner_push = if field_is_optional {
+                    inner_push
+                } else {
+                    quote! {
+                        if !self.inner.is_empty() {
+                            result.push(#enum_name::Inner(self.inner.clone()));
+                        }
+                    }
+                };
+                let inner_field_ty = if field_is_optional {
+                    quote! { Option<<#inner_ty as koruma::ValidateExt>::Error> }
+                } else {
+                    quote! { <#inner_ty as koruma::ValidateExt>::Error }
+                };
+                let inner_getter = if field_is_optional {
+                    quote! {
+                        #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`, if any.")]
+                        pub fn inner(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
+                            self.inner.as_ref()
+                        }
+                    }
+                } else {
+                    quote! {
+                        #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
+                        pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                            &self.inner
+                        }
+                    }
+                };
+                let inner_is_empty_check = if field_is_optional {
+                    quote! { self.inner.as_ref().map_or(true, |inner| inner.is_empty()) }
+                } else {
+                    quote! { self.inner.is_empty() }
                 };
 
                 return quote! {
@@ -346,16 +414,13 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     #[derive(Clone, Debug, Default)]
                     pub struct #field_error_struct_name #helper_definition {
                         #(#field_validator_fields,)*
-                        inner: <#inner_ty as koruma::ValidateExt>::Error,
+                        inner: #inner_field_ty,
                     }
 
                     impl #helper_impl_generics #field_error_struct_name #helper_ty_generics #helper_where_clause {
                         #(#field_validator_getters)*
 
-                        #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
-                        pub fn inner(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
-                            &self.inner
-                        }
+                        #inner_getter
 
                         #[doc = concat!("Returns all failed validators for `", #field_name_str, "` including inner newtype validation errors.")]
                         pub fn all(&self) -> Vec<#enum_path> {
@@ -366,7 +431,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         }
 
                         pub fn is_empty(&self) -> bool {
-                            #(#field_is_empty_checks)&&* && self.inner.is_empty()
+                            #(#field_is_empty_checks)&&* && #inner_is_empty_check
                         }
 
                         pub fn has_errors(&self) -> bool {
@@ -889,10 +954,19 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     // This allows `e.field().all()` directly without needing `?`
                     let field_ty = &f.ty;
                     let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
-                    quote! {
-                        #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
-                        pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
-                            &self.#field_name.inner
+                    if is_option_type(field_ty) {
+                        quote! {
+                            #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
+                            pub fn #field_name(&self) -> Option<&<#inner_ty as koruma::ValidateExt>::Error> {
+                                self.#field_name.inner.as_ref()
+                            }
+                        }
+                    } else {
+                        quote! {
+                            #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
+                            pub fn #field_name(&self) -> &<#inner_ty as koruma::ValidateExt>::Error {
+                                &self.#field_name.inner
+                            }
                         }
                     }
                 }
@@ -963,6 +1037,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let has_field_validators = !f.validation.field_validators.is_empty();
                 let field_ty = &f.ty;
                 let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+                let field_is_optional = is_option_type(field_ty);
 
                 if has_field_validators {
                     // Newtype field with validators - generate explicit defaults for field validators
@@ -976,11 +1051,16 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             quote! { #validator_snake: None }
                         })
                         .collect();
+                    let inner_default = if field_is_optional {
+                        quote! { None }
+                    } else {
+                        quote! { <#inner_ty as koruma::ValidateExt>::Error::default() }
+                    };
 
                     return quote! {
                         #field_name: #field_error_struct_name {
                             #(#field_validator_defaults,)*
-                            inner: <#inner_ty as koruma::ValidateExt>::Error::default()
+                            inner: #inner_default
                         }
                     };
                 }
@@ -1073,6 +1153,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             if f.is_newtype() {
                 let field_is_optional = is_option_type(field_ty);
                 let has_field_validators = !f.validation.field_validators.is_empty();
+                let set_inner_error = if field_is_optional {
+                    quote! { error.#field_name.inner = Some(newtype_err); }
+                } else {
+                    quote! { error.#field_name.inner = newtype_err; }
+                };
 
                 if has_field_validators {
                     // Newtype field with validators - use two-phase validation
@@ -1181,7 +1266,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     let inner_validation = if unwrapped_validators.is_empty() {
                         quote! {
                             if let Err(newtype_err) = __newtype_value.validate() {
-                                error.#field_name.inner = newtype_err;
+                                #set_inner_error
                                 has_error = true;
                             }
                         }
@@ -1189,7 +1274,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         quote! {
                             #(#unwrapped_checks)*
                             if let Err(newtype_err) = __newtype_value.validate() {
-                                error.#field_name.inner = newtype_err;
+                                #set_inner_error
                                 has_error = true;
                             }
                         }
@@ -1217,7 +1302,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     return quote! {
                         if let Some(ref __newtype_value) = self.#field_member {
                             if let Err(newtype_err) = __newtype_value.validate() {
-                                error.#field_name.inner = newtype_err;
+                                #set_inner_error
                                 has_error = true;
                             }
                         }
@@ -1226,7 +1311,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     // For non-optional newtype field, always validate
                     return quote! {
                         if let Err(newtype_err) = self.#field_member.validate() {
-                            error.#field_name.inner = newtype_err;
+                            #set_inner_error
                             has_error = true;
                         }
                     };

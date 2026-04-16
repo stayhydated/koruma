@@ -390,6 +390,11 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("ifletSome(ref__newtype_value)=self.wrapped"));
+    assert!(compact.contains("inner:Option<<WrappedValueaskoruma::ValidateExt>::Error>"));
+    assert!(compact.contains("pubfnwrapped(&self)->Option<&<WrappedValueaskoruma::ValidateExt>::Error>{self.wrapped.inner.as_ref()}"));
+    assert!(
+        !compact.contains("implstd::ops::DerefforOptionalNewtypeFieldWrappedKorumaValidationError")
+    );
 }
 
 #[test]
@@ -406,6 +411,10 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     assert!(compact.contains("__koruma_assert_validate_wrapped_required_validation_newtype_field"));
     assert!(compact.contains("koruma::BuilderWithValueRef::with_value_ref("));
     assert!(compact.contains("PlainValidation::builder().min(1)"));
+    assert!(compact.contains("inner:Option<<WrappedValueaskoruma::ValidateExt>::Error>"));
+    assert!(compact.contains("pubfninner(&self)->Option<&<WrappedValueaskoruma::ValidateExt>::Error>{self.inner.as_ref()}"));
+    assert!(compact.contains("error.wrapped.inner=Some(newtype_err);"));
+    assert!(compact.contains("inner:None"));
 }
 
 #[test]
@@ -804,7 +813,24 @@ fn test_koruma_all_fluent_expansion_newtype_inner_delegate() {
 
     let expanded = expand_koruma_all_fluent(input).unwrap();
     let rendered = pretty_print(expanded);
-    assert!(rendered.contains("self.inner().to_fluent_string()"));
+    assert!(rendered.contains("if !self.inner().is_empty()"));
+    assert!(rendered.contains("messages.push(self.inner().to_fluent_string())"));
+}
+
+#[cfg(feature = "fluent")]
+#[test]
+fn test_koruma_all_fluent_expansion_optional_newtype_inner_delegate() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct FluentOptionalNewtypeItem {
+            #[koruma(newtype)]
+            pub wrapped: Option<WrappedValue>,
+        }
+    };
+
+    let expanded = expand_koruma_all_fluent(input).unwrap();
+    let rendered = pretty_print(expanded);
+    assert!(rendered.contains("if let Some(inner) = self.inner()"));
+    assert!(rendered.contains("messages.push(inner.to_fluent_string())"));
 }
 
 #[cfg(feature = "fluent")]

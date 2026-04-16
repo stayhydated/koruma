@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`koruma-collection` ships a curated set of validators built on top of `koruma`, organized by domain (strings, formats, numbers, collections). It optionally integrates with `es-fluent` for localized error messages.
+`koruma-collection` ships a curated set of validators built on top of `koruma`, organized by domain (`string`, `format`, `numeric`, `collection`, `general`). It optionally integrates with `es-fluent` for localized error messages.
 
 ## Modules
 
@@ -25,8 +25,8 @@
 - `full`: enables all optional validators and dependencies.
 - `fluent`: enables Fluent integration and embedded i18n assets.
 - `full-fluent`: `full` + `fluent`.
-- Per-validator features: `email`, `email-idna`, `url`, `phone-number`, `credit-card`, `regex`, `rust_decimal`, `smallvec`, `heck`.
-- `internal-showcase`: enables validator registry support via `koruma/internal-showcase` and requires `full`.
+- Per-validator features: `email`, `url`, `phone-number`, `credit-card`, `regex`, `smallvec`.
+- `internal-showcase`: enables validator registry support via `koruma/internal-showcase`, turns on `full-fluent`, keeps `fmt`, and adds `anyhow` for showcase factory closures.
 
 ## Extending
 

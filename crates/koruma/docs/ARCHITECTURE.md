@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`koruma` is the public facade crate. It re-exports the core traits from `koruma-core`, the derive macros from `koruma-derive`, and the `bon` builder API as `koruma::bon`. It also owns feature gates that enable optional i18n with [Project Fluent](https://projectfluent.org/). and showcase support.
+`koruma` is the public facade crate. It re-exports the core traits from `koruma-core`, the derive macros from `koruma-derive`, and the `bon` builder API as `koruma::bon`. It also owns feature gates that enable optional i18n with [Project Fluent](https://projectfluent.org/) and the internal showcase registry support used by workspace demos.
 
 ## Key entry points
 
@@ -19,7 +19,7 @@
 
 - `derive` (default): re-exports `Koruma`, `KorumaAllDisplay`, and `#[koruma::validator]` from `koruma-derive`.
 - `fluent`: re-exports `KorumaAllFluent` when `derive` is enabled and forwards fluent support to `koruma-derive`.
-- `internal-showcase`: enables `koruma_core::showcase` and forwards showcase support to `koruma-derive`.
+- `internal-showcase`: enables `koruma_core::showcase`, forwards showcase support to `koruma-core` and `koruma-derive`, and re-exports `inventory` for registry submission.
 
 ## Control flow
 

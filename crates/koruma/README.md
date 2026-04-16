@@ -289,7 +289,7 @@ if let Err(errors) = user.validate() {
 Use `#[koruma(try_new, newtype(try_from))]` when you need:
 
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
-- `newtype(try_from)` - a `TryFrom<Inner>` impl for `From`/`try_from` calls
+- `newtype(try_from)` - a `TryFrom<Inner>` impl for checked conversions from the inner type
 - `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
 
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).

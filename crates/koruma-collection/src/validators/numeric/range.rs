@@ -18,7 +18,7 @@ use koruma::{Validate, validator};
 /// Validates that a numeric value is within specified bounds.
 #[validator]
 #[cfg_attr(feature = "internal-showcase", showcase(
-    name = "Range [0, 100]",
+    name = "Range [0, 100)",
     description = "Validates that the input is a number between 0 and 100",
     input_type = Numeric,
     module = "numeric",
@@ -27,6 +27,7 @@ use koruma::{Validate, validator};
         Ok(RangeValidation::builder()
             .min(0_f64)
             .max(100_f64)
+            .exclusive_max(true)
             .with_value(num)
             .build())
     }
@@ -39,14 +40,26 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub min: T,
     /// Whether the minimum value is exclusive
-    #[cfg_attr(feature = "fluent", fluent(skip))]
+    #[cfg_attr(
+        feature = "fluent",
+        fluent(
+            arg_name = "left_delimiter",
+            value(|x: &bool| if *x { "(" } else { "[" })
+        )
+    )]
     #[builder(default = false)]
     pub exclusive_min: bool,
     /// Maximum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     pub max: T,
     /// Whether the maximum value is exclusive
-    #[cfg_attr(feature = "fluent", fluent(skip))]
+    #[cfg_attr(
+        feature = "fluent",
+        fluent(
+            arg_name = "right_delimiter",
+            value(|x: &bool| if *x { ")" } else { "]" })
+        )
+    )]
     #[builder(default = false)]
     pub exclusive_max: bool,
     /// The value being validated (stored for error context)

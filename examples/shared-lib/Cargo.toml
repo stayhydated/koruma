@@ -12,7 +12,6 @@ es-fluent-lang = { workspace = true }
 es-fluent-manager-embedded = { workspace = true }
 rust-embed = { workspace = true }
 strum = { features = [ "derive" ], workspace = true }
-unic-langid = { workspace = true }
 
 [build-dependencies]
 es-fluent = { features = [ "build" ], workspace = true }

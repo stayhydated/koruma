@@ -2951,7 +2951,6 @@ dependencies = [
  "es-fluent-manager-embedded",
  "rust-embed",
  "strum",
- "unic-langid",
 ]
 
 [[package]]

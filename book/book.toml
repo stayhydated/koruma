@@ -2,7 +2,7 @@
 authors = [ "stayhydated" ]
 language = "en"
 src = "src"
-title = "Koruma Documentation"
+title = "koruma"
 
 [rust]
 edition = "2024"

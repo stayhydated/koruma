@@ -5,7 +5,7 @@ When your data model contains structs inside other structs, you can use the `#[k
 This attribute tells `koruma` to call `validate()` on the nested field and include its errors in the parent's error type if any occur. This allows the parent struct's `Errors` struct to provide strongly typed access not just to its own fields, but also to the nested struct's fields.
 
 ```rust
-use koruma::{Koruma, KorumaAllDisplay};
+use koruma::Koruma;
 
 #[derive(Clone, Koruma)]
 pub struct Address {
@@ -15,7 +15,6 @@ pub struct Address {
     #[koruma(StringLengthValidation(min = 1, max = 50))]
     pub city: String,
 
-    // Imagine ZipCodeValidation is defined somewhere
     #[koruma(ZipCodeValidation)]
     pub zip_code: String,
 }
@@ -25,6 +24,9 @@ pub struct Customer {
     #[koruma(StringLengthValidation(min = 1, max = 100))]
     pub name: String,
 
+    #[koruma(NumberRangeValidation<_>(min = 18, max = 120))]
+    pub age: i32,
+
     // Nested struct - validation cascades automatically
     #[koruma(nested)]
     pub address: Address,
@@ -32,6 +34,7 @@ pub struct Customer {
 
 let customer = Customer {
     name: "".to_string(), // Invalid: empty name
+    age: 15,              // Invalid: too young (min 18)
     address: Address {
         street: "123 Main St".to_string(),
         city: "".to_string(),        // Invalid: empty city
@@ -45,6 +48,10 @@ match customer.validate() {
         // Access top-level field errors
         if let Some(name_err) = errors.name().string_length_validation() {
             println!("name: {}", name_err);
+        }
+
+        if let Some(age_err) = errors.age().number_range_validation() {
+            println!("age: {}", age_err);
         }
 
         // Access nested struct errors
@@ -68,7 +75,7 @@ match customer.validate() {
 ## How It Works
 
 1. Both the parent (`Customer`) and nested (`Address`) structs must derive `Koruma`.
-2. When `customer.validate()` is called, it verifies `name` normally and also calls `address.validate()`.
+2. When `customer.validate()` is called, it verifies `name` and `age` normally and also calls `address.validate()`.
 3. If `address.validate()` fails, the resulting errors are wrapped inside `customer`'s overall `Errors` struct.
 4. You access the nested errors using the corresponding accessor (`errors.address()`), which returns an `Option<AddressErrors>`. If there are any errors in the `address`, this returns `Some`, containing the exact error tree of the nested type.
 

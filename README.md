@@ -69,7 +69,7 @@ impl<T: PartialOrd + Copy + fmt::Display + Clone> fmt::Display for NumberRangeVa
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "yo number {} aint in [{}, {}]",
+            "Value {} must be between {} and {}",
             self.actual, self.min, self.max
         )
     }

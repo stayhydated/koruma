@@ -31,7 +31,7 @@ impl<T: PartialOrd + Copy + fmt::Display + Clone> fmt::Display for NumberRangeVa
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "value {} must be between {} and {}",
+            "Value {} must be between {} and {}",
             self.actual, self.min, self.max
         )
     }
@@ -64,7 +64,7 @@ impl fmt::Display for StringLengthValidation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "string length {} must be between {} and {} characters",
+            "String length {} must be between {} and {} characters",
             self.input.chars().count(),
             self.min,
             self.max

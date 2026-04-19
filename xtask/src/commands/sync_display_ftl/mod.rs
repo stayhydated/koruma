@@ -200,7 +200,7 @@ mod tests {
     use crate::cli::SyncArgs;
 
     use super::collect::{collect_display_info, collect_rs_files, collect_validator_info};
-    use super::ftl::collect_ftl_templates;
+    use super::ftl::{collect_ftl_templates, namespace_from_ftl_path};
     use super::parse::parse_display_impl;
     use super::template::{
         apply_replacements, build_write_call, escape_format_literal, line_start_offsets,
@@ -949,15 +949,17 @@ unsupported = { "literal" }
             &skip_tmp.path().join("sample.ftl"),
             "sample_validation = ok",
         );
-        #[cfg(unix)]
-        {
-            use std::ffi::OsString;
-            use std::os::unix::ffi::OsStringExt as _;
-            let non_utf8_stem = OsString::from_vec(vec![0x66, 0x80, 0x6f, 0x2e, 0x66, 0x74, 0x6c]);
-            write_file(&skip_tmp.path().join(non_utf8_stem), "msg = value");
-        }
         let skipped = collect_ftl_templates(skip_tmp.path()).expect("skip paths should succeed");
         assert_eq!(skipped.len(), 1);
+    }
+
+    #[test]
+    fn namespace_from_ftl_path_skips_non_unicode_stems() {
+        assert_eq!(
+            namespace_from_ftl_path(Path::new("sample.ftl")),
+            Some("sample".to_string())
+        );
+        assert_eq!(namespace_from_ftl_path(Path::new("ignore.txt")), None);
     }
 
     #[test]

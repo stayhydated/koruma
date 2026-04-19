@@ -5,6 +5,16 @@ use fluent_syntax::{ast, parser};
 
 use super::types::TemplatePart;
 
+pub(super) fn namespace_from_ftl_path(path: &Path) -> Option<String> {
+    if path.extension().is_none_or(|ext| ext != "ftl") {
+        return None;
+    }
+
+    path.file_stem()
+        .and_then(|stem| stem.to_str())
+        .map(str::to_owned)
+}
+
 pub fn collect_ftl_templates(
     ftl_root: &Path,
 ) -> Result<HashMap<(String, String), Vec<TemplatePart>>> {
@@ -13,14 +23,9 @@ pub fn collect_ftl_templates(
     for entry in fs::read_dir(ftl_root)? {
         let entry = entry?;
         let path = entry.path();
-        if path.extension().is_none_or(|ext| ext != "ftl") {
-            continue;
-        }
-
-        let Some(stem) = path.file_stem().and_then(|stem| stem.to_str()) else {
+        let Some(namespace) = namespace_from_ftl_path(&path) else {
             continue;
         };
-        let namespace = stem.to_string();
 
         let source = fs::read_to_string(&path)
             .with_context(|| format!("Failed to read {}", path.display()))?;

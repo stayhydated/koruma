@@ -36,9 +36,9 @@ derive-getters = "0.5"
 dioxus = "0.7"
 dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
 email_address = "0.2"
-es-fluent = "0.14"
-es-fluent-lang = "0.14"
-es-fluent-manager-embedded = "0.14"
+es-fluent = { branch = "cleanup", git = "https://github.com/stayhydated/es-fluent" }
+es-fluent-lang = { branch = "cleanup", git = "https://github.com/stayhydated/es-fluent" }
+es-fluent-manager-embedded = { branch = "cleanup", git = "https://github.com/stayhydated/es-fluent" }
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"

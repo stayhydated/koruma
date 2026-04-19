@@ -452,6 +452,26 @@ impl std::fmt::Display for IncludedValidation {
             Some("self.min".to_string())
         );
 
+        let local_var_impl: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for RangeValidation {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    let left_delimiter = if self.exclusive_min { "(" } else { "[" };
+                    write!(f, "Value {} {}", left_delimiter, self.min)
+                }
+            }
+        };
+        let (_, map, _span) = parse_display_impl(&local_var_impl)
+            .expect("parse should succeed")
+            .expect("display impl should be extracted");
+        assert_eq!(
+            map.get("left_delimiter").map(|value| compact_ws(value)),
+            Some("left_delimiter".to_string())
+        );
+        assert_eq!(
+            map.get("min").map(|value| compact_ws(value)),
+            Some("self.min".to_string())
+        );
+
         let non_display_impl: ItemImpl = syn::parse_quote! {
             impl IncludedValidation {
                 fn fmt(&self) {}
@@ -578,7 +598,13 @@ impl std::fmt::Display for IncludedValidation {
         assert_eq!(infer_variable_name(&unary_expr), Some("count".to_string()));
 
         let plain_expr: Expr = syn::parse_quote!(some_value);
-        assert_eq!(infer_variable_name(&plain_expr), None);
+        assert_eq!(
+            infer_variable_name(&plain_expr),
+            Some("some_value".to_string())
+        );
+
+        let qualified_expr: Expr = syn::parse_quote!(crate::some_value);
+        assert_eq!(infer_variable_name(&qualified_expr), None);
 
         let named_member: Member = syn::parse_quote!(field_name);
         assert_eq!(member_name(&named_member), Some("field_name".to_string()));

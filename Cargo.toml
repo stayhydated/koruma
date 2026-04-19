@@ -51,6 +51,7 @@ koruma-derive = { path = "crates/koruma-derive", version = "0.8.0" }
 koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.8.0" }
 mdbook-driver = "0.5"
 paste = "1.0"
+path-slash = "0.2"
 phonenumber = "0.3"
 prettyplease = "0.2"
 proc-macro-error2 = "2.0"

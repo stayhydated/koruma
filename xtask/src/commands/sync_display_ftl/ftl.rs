@@ -5,14 +5,19 @@ use fluent_syntax::{ast, parser};
 
 use super::types::TemplatePart;
 
-pub(super) fn namespace_from_ftl_path(path: &Path) -> Option<String> {
+pub(super) fn namespace_from_ftl_path(path: &Path) -> Result<Option<String>> {
     if path.extension().is_none_or(|ext| ext != "ftl") {
-        return None;
+        return Ok(None);
     }
 
-    path.file_stem()
-        .and_then(|stem| stem.to_str())
-        .map(str::to_owned)
+    let stem = path
+        .file_stem()
+        .with_context(|| format!("Missing file stem for {}", path.display()))?;
+    let namespace = stem
+        .to_str()
+        .with_context(|| format!("FTL namespace stem is not valid UTF-8: {}", path.display()))?;
+
+    Ok(Some(namespace.to_owned()))
 }
 
 pub fn collect_ftl_templates(
@@ -23,7 +28,7 @@ pub fn collect_ftl_templates(
     for entry in fs::read_dir(ftl_root)? {
         let entry = entry?;
         let path = entry.path();
-        let Some(namespace) = namespace_from_ftl_path(&path) else {
+        let Some(namespace) = namespace_from_ftl_path(&path)? else {
             continue;
         };
 

@@ -954,12 +954,15 @@ unsupported = { "literal" }
     }
 
     #[test]
-    fn namespace_from_ftl_path_skips_non_unicode_stems() {
+    fn namespace_from_ftl_path_filters_non_ftl_paths() {
         assert_eq!(
-            namespace_from_ftl_path(Path::new("sample.ftl")),
+            namespace_from_ftl_path(Path::new("sample.ftl")).expect("UTF-8 stem should parse"),
             Some("sample".to_string())
         );
-        assert_eq!(namespace_from_ftl_path(Path::new("ignore.txt")), None);
+        assert_eq!(
+            namespace_from_ftl_path(Path::new("ignore.txt")).expect("non-FTL path should skip"),
+            None
+        );
     }
 
     #[test]

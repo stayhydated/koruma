@@ -5875,6 +5875,7 @@ dependencies = [
  "fluent-syntax",
  "heck",
  "mdbook-driver",
+ "path-slash",
  "proc-macro2",
  "quote",
  "syn",

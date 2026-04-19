@@ -167,26 +167,15 @@ For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
 #[derive(Koruma)]
 pub struct Order {
     #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
-    pub line_item_scores: Vec<i32>,
+    pub quantities: Vec<i32>,
 }
-```
-
-Borrowed fields work too when the validator accepts the borrowed item type:
-
-```rs
-use koruma::Koruma;
-use koruma_collection::string::PatternValidation;
-use regex::Regex;
 
 #[derive(Koruma)]
-pub struct BorrowedUser<'a> {
-    #[koruma(PatternValidation<_>(pattern = Regex::new(r"^user:[a-z]+$").unwrap()))]
-    pub username: &'a str,
+pub struct BorrowedOrder<'a> {
+    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub quantities: &'a [i32],
 }
 ```
-
-`PatternValidation` stores a compiled `Regex`, so invalid patterns fail while you construct the
-validator instead of during validation.
 
 ### 3. Use `all()` getter (`KorumaAllDisplay`)
 
@@ -284,13 +273,13 @@ if let Err(errors) = user.validate() {
 }
 ```
 
-## Newtype pattern (`#[koruma(try_new, newtype(try_from))]`)
+## Newtype pattern (`#[koruma(newtype)]`, optional `try_new` / `newtype(try_from)`)
 
-Use `#[koruma(try_new, newtype(try_from))]` when you need:
+Use `#[koruma(newtype)]`, adding `try_new` and `newtype(try_from)` as needed, when you want:
 
+- `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
 - `newtype(try_from)` - a `TryFrom<Inner>` impl for checked conversions from the inner type
-- `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
 
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 

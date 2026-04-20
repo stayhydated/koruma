@@ -82,7 +82,8 @@ mod tests {
 
     #[test]
     fn invalid_pattern_fails_at_construction_time() {
-        assert!(regex::Regex::new("(").is_err());
+        let pattern = "(".to_string();
+        assert!(regex::Regex::new(&pattern).is_err());
     }
 
     #[test]

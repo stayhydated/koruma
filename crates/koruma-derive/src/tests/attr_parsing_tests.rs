@@ -160,9 +160,7 @@ fn test_validator_attr_parse_option_infer_type() {
 #[test]
 fn test_validator_attr_parse_turbofish_error() {
     let result: Result<ValidatorAttr, _> = syn::parse_str("Validator::<_>");
-    let err = result
-        .err()
-        .expect("expected turbofish syntax to be rejected");
+    let err = result.expect_err("expected turbofish syntax to be rejected");
     assert!(err.to_string().contains("use angle bracket syntax `<...>`"));
 }
 

@@ -251,6 +251,7 @@ pub fn parse_format_chunks(format_str: &str) -> Result<Vec<FormatChunk>> {
 
 pub fn infer_variable_name(expr: &Expr) -> Option<String> {
     match expr {
+        Expr::Path(path) => path.path.get_ident().map(|ident| ident.to_string()),
         Expr::Field(field) => {
             let member = member_name(&field.member)?;
             if is_self_expr(&field.base) {

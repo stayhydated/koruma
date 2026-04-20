@@ -22,7 +22,7 @@ license = "MIT OR Apache-2.0"
 publish = true
 readme = "README.md"
 repository = "https://github.com/stayhydated/koruma"
-rust-version = "1.88"
+rust-version = "1.95"
 version = "0.8.0"
 
 [workspace.dependencies]
@@ -36,9 +36,9 @@ derive-getters = "0.5"
 dioxus = "0.7"
 dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
 email_address = "0.2"
-es-fluent = "0.14"
-es-fluent-lang = "0.14"
-es-fluent-manager-embedded = "0.14"
+es-fluent = "0.15"
+es-fluent-lang = "0.15"
+es-fluent-manager-embedded = "0.15"
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"
@@ -51,6 +51,7 @@ koruma-derive = { path = "crates/koruma-derive", version = "0.8.0" }
 koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.8.0" }
 mdbook-driver = "0.5"
 paste = "1.0"
+path-slash = "0.2"
 phonenumber = "0.3"
 prettyplease = "0.2"
 proc-macro-error2 = "2.0"
@@ -89,7 +90,14 @@ unexpected_cfgs = { level = "deny" }
 
 [workspace.lints.clippy]
 dbg_macro = "deny"
+derive_partial_eq_without_eq = "warn"
+err_expect = "warn"
+incompatible_msrv = "deny"
+iter_on_single_items = "warn"
+needless_bool = "warn"
+redundant_clone = "warn"
 todo = "deny"
 type_complexity = "allow"
 uninlined_format_args = "allow"
 unused_trait_names = "warn"
+useless_conversion = "warn"

@@ -200,7 +200,7 @@ mod tests {
     use crate::cli::SyncArgs;
 
     use super::collect::{collect_display_info, collect_rs_files, collect_validator_info};
-    use super::ftl::collect_ftl_templates;
+    use super::ftl::{collect_ftl_templates, namespace_from_ftl_path};
     use super::parse::parse_display_impl;
     use super::template::{
         apply_replacements, build_write_call, escape_format_literal, line_start_offsets,
@@ -274,8 +274,7 @@ example_validation = Value { $min } and { $actual }.
         let options: SyncArgs = SyncArgs {
             check: true,
             verbose: true,
-        }
-        .into();
+        };
         assert!(options.check);
         assert!(options.verbose);
     }
@@ -453,6 +452,26 @@ impl std::fmt::Display for IncludedValidation {
             Some("self.min".to_string())
         );
 
+        let local_var_impl: ItemImpl = syn::parse_quote! {
+            impl std::fmt::Display for RangeValidation {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    let left_delimiter = if self.exclusive_min { "(" } else { "[" };
+                    write!(f, "Value {} {}", left_delimiter, self.min)
+                }
+            }
+        };
+        let (_, map, _span) = parse_display_impl(&local_var_impl)
+            .expect("parse should succeed")
+            .expect("display impl should be extracted");
+        assert_eq!(
+            map.get("left_delimiter").map(|value| compact_ws(value)),
+            Some("left_delimiter".to_string())
+        );
+        assert_eq!(
+            map.get("min").map(|value| compact_ws(value)),
+            Some("self.min".to_string())
+        );
+
         let non_display_impl: ItemImpl = syn::parse_quote! {
             impl IncludedValidation {
                 fn fmt(&self) {}
@@ -579,7 +598,13 @@ impl std::fmt::Display for IncludedValidation {
         assert_eq!(infer_variable_name(&unary_expr), Some("count".to_string()));
 
         let plain_expr: Expr = syn::parse_quote!(some_value);
-        assert_eq!(infer_variable_name(&plain_expr), None);
+        assert_eq!(
+            infer_variable_name(&plain_expr),
+            Some("some_value".to_string())
+        );
+
+        let qualified_expr: Expr = syn::parse_quote!(crate::some_value);
+        assert_eq!(infer_variable_name(&qualified_expr), None);
 
         let named_member: Member = syn::parse_quote!(field_name);
         assert_eq!(member_name(&named_member), Some("field_name".to_string()));
@@ -605,8 +630,7 @@ impl std::fmt::Display for IncludedValidation {
                 .collect(),
         };
         let display = DisplayInfo {
-            expr_by_placeholder: [("kind".to_string(), "self.kind".to_string())]
-                .into_iter()
+            expr_by_placeholder: std::iter::once(("kind".to_string(), "self.kind".to_string()))
                 .collect(),
             source: PathBuf::from("demo.rs"),
             write_span: Span::call_site(),
@@ -951,15 +975,20 @@ unsupported = { "literal" }
             &skip_tmp.path().join("sample.ftl"),
             "sample_validation = ok",
         );
-        #[cfg(unix)]
-        {
-            use std::ffi::OsString;
-            use std::os::unix::ffi::OsStringExt as _;
-            let non_utf8_stem = OsString::from_vec(vec![0x66, 0x80, 0x6f, 0x2e, 0x66, 0x74, 0x6c]);
-            write_file(&skip_tmp.path().join(non_utf8_stem), "msg = value");
-        }
         let skipped = collect_ftl_templates(skip_tmp.path()).expect("skip paths should succeed");
         assert_eq!(skipped.len(), 1);
+    }
+
+    #[test]
+    fn namespace_from_ftl_path_filters_non_ftl_paths() {
+        assert_eq!(
+            namespace_from_ftl_path(Path::new("sample.ftl")).expect("UTF-8 stem should parse"),
+            Some("sample".to_string())
+        );
+        assert_eq!(
+            namespace_from_ftl_path(Path::new("ignore.txt")).expect("non-FTL path should skip"),
+            None
+        );
     }
 
     #[test]
@@ -1116,7 +1145,7 @@ unsupported = { "literal" }
             namespace: "example".to_string(),
             message_id: "example_validation".to_string(),
             source: PathBuf::from("example.rs"),
-            fields: ["actual".to_string()].into_iter().collect(),
+            fields: std::iter::once("actual".to_string()).collect(),
         };
 
         let display = DisplayInfo {

@@ -25,7 +25,7 @@ impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "yo number {} aint in [{}, {}]",
+            "Value {} must be between {} and {}",
             self.actual, self.min, self.max
         )
     }

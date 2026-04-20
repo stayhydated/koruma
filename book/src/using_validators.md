@@ -48,26 +48,15 @@ For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
 #[derive(Koruma)]
 pub struct Order {
     #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
-    pub line_item_scores: Vec<i32>,
+    pub quantities: Vec<i32>,
 }
-```
-
-Borrowed fields work too when the validator accepts the borrowed item type:
-
-```rust
-use koruma::Koruma;
-use koruma_collection::string::PatternValidation;
-use regex::Regex;
 
 #[derive(Koruma)]
-pub struct BorrowedUser<'a> {
-    #[koruma(PatternValidation<_>(pattern = Regex::new(r"^user:[a-z]+$").unwrap()))]
-    pub username: &'a str,
+pub struct BorrowedOrder<'a> {
+    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    pub quantities: &'a [i32],
 }
 ```
-
-`PatternValidation` stores a compiled `Regex`, so invalid patterns fail while you construct the
-validator instead of during validation.
 
 For fields with more than one validator, `koruma` generates accessors for each validator as well as
 an `all()` iterator when you derive `KorumaAllDisplay` or `KorumaAllFluent`. The next chapter

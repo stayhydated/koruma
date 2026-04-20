@@ -40,8 +40,7 @@ fn validator_attr_helpers_and_error_paths() {
     let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<i32, u32>");
     assert!(
         too_many_types
-            .err()
-            .expect("expected parse error")
+            .expect_err("expected parse error")
             .to_string()
             .contains("exactly one type argument")
     );
@@ -49,8 +48,7 @@ fn validator_attr_helpers_and_error_paths() {
     let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<1>");
     assert!(
         non_type_generic
-            .err()
-            .expect("expected parse error")
+            .expect_err("expected parse error")
             .to_string()
             .contains("expects a type argument")
     );
@@ -58,8 +56,7 @@ fn validator_attr_helpers_and_error_paths() {
     let turbofish: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<_>");
     assert!(
         turbofish
-            .err()
-            .expect("expected turbofish syntax to be rejected")
+            .expect_err("expected turbofish syntax to be rejected")
             .to_string()
             .contains("use angle bracket syntax `<...>`")
     );
@@ -448,8 +445,7 @@ fn showcase_attr_errors_are_reported() {
     );
     assert!(
         unknown
-            .err()
-            .expect("expected parse error")
+            .expect_err("expected parse error")
             .to_string()
             .contains("unknown showcase attribute")
     );
@@ -458,8 +454,7 @@ fn showcase_attr_errors_are_reported() {
         syn::parse_str(r#"name = "n", create = |input: &str| input, input_type = Text"#);
     assert!(
         missing_description
-            .err()
-            .expect("expected parse error")
+            .expect_err("expected parse error")
             .to_string()
             .contains("showcase requires `description` attribute")
     );
@@ -468,8 +463,7 @@ fn showcase_attr_errors_are_reported() {
         syn::parse_str(r#"name = "n", description = "d", create = |input: &str| input"#);
     assert!(
         missing_input_type
-            .err()
-            .expect("expected parse error")
+            .expect_err("expected parse error")
             .to_string()
             .contains("showcase requires `input_type` attribute")
     );
@@ -479,8 +473,7 @@ fn showcase_attr_errors_are_reported() {
     );
     assert!(
         invalid_input_type
-            .err()
-            .expect("expected parse error")
+            .expect_err("expected parse error")
             .to_string()
             .contains("showcase `input_type` must be `Text` or `Numeric`")
     );
@@ -501,8 +494,7 @@ fn showcase_attr_errors_are_reported() {
     };
     assert!(
         find_showcase_attr(&invalid_input)
-            .err()
-            .expect("expected showcase attr parse error")
+            .expect_err("expected showcase attr parse error")
             .to_string()
             .contains("unknown showcase attribute: modul")
     );

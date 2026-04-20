@@ -800,7 +800,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
     if is_nested {
         return ParseFieldResult::Valid(Box::new(FieldInfo {
             name,
-            member: member.clone(),
+            member,
             ty,
             validation: ValidationInfo {
                 field_validators: all_field_validators,
@@ -815,7 +815,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
     if is_newtype {
         return ParseFieldResult::Valid(Box::new(FieldInfo {
             name,
-            member: member.clone(),
+            member,
             ty,
             validation: ValidationInfo {
                 field_validators: all_field_validators,
@@ -833,7 +833,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
 
     ParseFieldResult::Valid(Box::new(FieldInfo {
         name,
-        member: member.clone(),
+        member,
         ty,
         validation: ValidationInfo {
             field_validators: all_field_validators,

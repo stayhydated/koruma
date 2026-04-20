@@ -21,50 +21,43 @@ A typical `koruma` workflow looks like this:
 4. Derive `Koruma` on the struct you want to validate.
 5. Call `validate()` and inspect the generated error accessors.
 
-A minimal example:
+A small end-to-end example, using the validator definitions from the next chapter:
 
 ```rust
-use koruma::{Koruma, KorumaAllDisplay, Validate, validator};
-use std::fmt;
+use koruma::{Koruma, KorumaAllDisplay};
 
-#[validator]
-#[derive(Clone, Debug)]
-pub struct NonEmptyStringValidation {
-    #[koruma(value)]
-    input: String,
-}
-
-impl Validate<String> for NonEmptyStringValidation {
-    fn validate(&self, value: &String) -> bool {
-        !value.is_empty()
-    }
-}
-
-impl fmt::Display for NonEmptyStringValidation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "value must not be empty")
-    }
-}
-
+// Assume NumberRangeValidation and StringLengthValidation are defined as in the next chapter.
 #[derive(Koruma, KorumaAllDisplay)]
-pub struct User {
-    #[koruma(NonEmptyStringValidation)]
-    pub username: String,
+pub struct Item {
+    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
+    pub age: i32,
+
+    #[koruma(StringLengthValidation(min = 1, max = 67))]
+    pub name: String,
+
+    // No #[koruma(...)] attribute -> not validated
+    pub internal_id: u64,
 }
 
-let user = User {
-    username: "".to_string(),
+let item = Item {
+    age: 150,
+    name: "".to_string(),
+    internal_id: 1,
 };
 
-if let Err(errors) = user.validate() {
-    if let Some(err) = errors.username().non_empty_string_validation() {
-        println!("{}", err);
+if let Err(errors) = item.validate() {
+    if let Some(age_err) = errors.age().number_range_validation() {
+        println!("age failed: {}", age_err);
+    }
+
+    if let Some(name_err) = errors.name().string_length_validation() {
+        println!("name failed: {}", name_err);
     }
 }
 ```
 
-If you want to inspect the captured input on a validator error, call the generated getter that
-matches the `#[koruma(value)]` field name.
+The validator definitions themselves come next. If you want to inspect the captured input on a
+validator error, call the generated getter that matches the `#[koruma(value)]` field name.
 
 For validators that only care about presence and do not need to store the input, an `Option<T>`
 value field can use `#[koruma(value, skip_capture)]` to avoid derive-generated capture clones. If

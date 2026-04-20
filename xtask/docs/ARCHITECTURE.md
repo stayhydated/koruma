@@ -8,7 +8,7 @@
 
 - `sync-display-ftl`: synchronizes English FTL messages with `std::fmt::Display` implementations in `koruma-collection` validators.
 - `build-book`: builds mdBook documentation to `web/public/book`.
-- `build-llms-txt`: concatenates mdBook sources into `web/public/llms.txt` for LLM consumption.
+- `build-llms-txt`: builds `web/public/llms.txt` and `web/public/llms-full.txt` from the mdBook for LLM consumption.
 
 ### sync-display-ftl
 
@@ -48,4 +48,4 @@ flowchart TD
 
 ### build-llms-txt
 
-- `xtask/src/commands/build_llms_txt.rs`: reads `SUMMARY.md`, extracts referenced markdown files, concatenates their content with separators.
+- `xtask/src/commands/build_llms_txt.rs`: loads the mdBook, skips draft chapters, writes a linked chapter index to `llms.txt`, and writes the expanded chapter content to `llms-full.txt`.

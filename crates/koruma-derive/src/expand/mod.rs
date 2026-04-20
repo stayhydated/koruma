@@ -23,8 +23,9 @@ pub use validator::expand_validator;
 #[allow(unused_imports)]
 pub(crate) use codegen::{
     effective_validation_type, resolve_explicit_infer_type, transform_arg_value,
-    validate_each_collection_type, validator_field_ident, validator_infer_source_type,
-    validator_type_for_field, validator_variant_ident, validator_wants_full_type,
+    validate_each_collection_type, validator_builder_expr, validator_field_ident,
+    validator_infer_source_type, validator_type_for_field, validator_variant_ident,
+    validator_wants_full_type,
 };
 
 // Re-export parsing types from koruma-derive-core

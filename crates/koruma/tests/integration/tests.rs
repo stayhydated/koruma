@@ -3,9 +3,10 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
-    ContainsNewtype, Customer, CustomerWithOptionalAddress, Employee, ExplicitRequiredProfile,
-    GenericItem, Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
+    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername,
+    BuilderPasswordConfirmation, BuilderSyntaxItem, Company, ContainsNewtype, Customer,
+    CustomerWithOptionalAddress, Employee, ExplicitRequiredProfile, GenericItem, Item,
+    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
     OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
     OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
     QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
@@ -151,6 +152,31 @@ fn test_generic_item_invalid_points() {
     // The error contains the actual value
     let points_err = err.points().generic_range_validation().unwrap();
     assert_eq!(*points_err.actual(), 2000);
+}
+
+#[test]
+fn test_builder_syntax_item_invalid_score() {
+    let item = BuilderSyntaxItem { score: 150.0 };
+
+    let err = item.validate().unwrap_err();
+    assert!(err.score().generic_range_validation().is_some());
+    assert_eq!(
+        *err.score().generic_range_validation().unwrap().actual(),
+        150.0
+    );
+}
+
+#[test]
+fn test_builder_password_confirmation_reuses_field_values() {
+    let item = BuilderPasswordConfirmation {
+        password: "secret".to_string(),
+        confirm: "different".to_string(),
+    };
+
+    let err = item.validate().unwrap_err();
+    let confirm_err = err.confirm().matches_string_validation().unwrap();
+    assert_eq!(confirm_err.expected.as_str(), "secret");
+    assert_eq!(confirm_err.actual().as_str(), "different");
 }
 
 // Tests for multiple validators per field

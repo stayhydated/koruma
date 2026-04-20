@@ -288,6 +288,52 @@ pub(crate) fn transform_arg_value(arg_value: &Expr, field_names: &[Ident]) -> To
     }
 }
 
+pub(crate) fn validator_builder_expr(
+    v: &ValidatorAttr,
+    field_ty: &Type,
+    validate_each: bool,
+    field_names: &[Ident],
+) -> TokenStream2 {
+    let validator = &v.validator;
+    let effective_ty = effective_validation_type(field_ty, validate_each);
+
+    let builder_calls: Vec<TokenStream2> = v
+        .setter_calls()
+        .iter()
+        .map(|method| {
+            let method_name = &method.method;
+            let transformed_args: Vec<_> = method
+                .args
+                .iter()
+                .map(|arg| transform_arg_value(arg, field_names))
+                .collect();
+            quote! { .#method_name(#(#transformed_args),*) }
+        })
+        .collect();
+
+    let uses_infer = v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
+    if uses_infer {
+        let validator_ty = if v.explicit_type.is_some() {
+            let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
+                .expect("explicit infer types should be pre-validated")
+                .expect("explicit infer types should resolve to a concrete type");
+            quote! { #substituted }
+        } else {
+            quote! { #effective_ty }
+        };
+
+        quote! {
+            #validator::<#validator_ty>::builder()
+                #(#builder_calls)*
+        }
+    } else {
+        quote! {
+            #validator::builder()
+                #(#builder_calls)*
+        }
+    }
+}
+
 fn stable_hash_hex(input: &str) -> String {
     let mut hash: u64 = 0xcbf29ce484222325;
     for byte in input.as_bytes() {

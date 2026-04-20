@@ -33,6 +33,45 @@ fn test_validator_attr_parse_generic() {
 }
 
 #[test]
+fn test_validator_attr_parse_builder_chain() {
+    let attr: ValidatorAttr = syn::parse_quote!(
+        RangeValidation::builder()
+            .min(0)
+            .max(100)
+            .exclusive_max(true)
+    );
+    assert_eq!(attr.name().to_string(), "RangeValidation");
+    assert!(!attr.infer_type);
+    assert!(attr.args.is_empty());
+    assert_eq!(attr.builder_methods.len(), 3);
+    assert_eq!(attr.builder_methods[0].method.to_string(), "min");
+    assert_eq!(attr.builder_methods[1].method.to_string(), "max");
+    assert_eq!(attr.builder_methods[2].method.to_string(), "exclusive_max");
+}
+
+#[test]
+fn test_validator_attr_parse_builder_chain_with_turbofish_inference() {
+    let attr: ValidatorAttr = syn::parse_quote!(
+        validators::numeric::RangeValidation::<_>::builder()
+            .min(0)
+            .max(100)
+    );
+    assert_eq!(attr.name().to_string(), "RangeValidation");
+    assert_eq!(attr.path_name(), "validators::numeric::RangeValidation");
+    assert!(attr.infer_type);
+    assert_eq!(attr.builder_methods.len(), 2);
+}
+
+#[test]
+fn test_validator_attr_parse_builder_chain_with_explicit_option_type() {
+    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>::builder());
+    assert_eq!(attr.name().to_string(), "RequiredValidation");
+    assert!(!attr.infer_type);
+    assert!(attr.explicit_type.is_some());
+    assert!(attr.builder_methods.is_empty());
+}
+
+#[test]
 fn test_koruma_attr_parse_skip() {
     let attr: KorumaAttr = syn::parse_quote!(skip);
     assert!(attr.is_skip);

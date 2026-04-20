@@ -356,6 +356,26 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
 }
 
 #[test]
+fn test_koruma_error_on_builder_chain_with_build_call() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct InvalidBuilderSyntax {
+            #[koruma(NumberRangeValidation::builder().min(0).max(100).build())]
+            pub value: i32,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("injects value capture and `.build()` automatically"),
+        "expected builder chain diagnostic, got: {}",
+        err
+    );
+}
+
+#[test]
 fn test_koruma_error_on_each_non_vec_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonVecEach {

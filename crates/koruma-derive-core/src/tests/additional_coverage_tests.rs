@@ -21,6 +21,19 @@ fn validator_attr_helpers_and_error_paths() {
 
     let with_args: ValidatorAttr = syn::parse_quote!(RangeValidation(min = 0, max = 10));
     assert!(with_args.has_args());
+    let shorthand_calls = with_args.setter_calls();
+    assert_eq!(shorthand_calls.len(), 2);
+    assert_eq!(shorthand_calls[0].method.to_string(), "min");
+    assert_eq!(shorthand_calls[1].method.to_string(), "max");
+    assert_eq!(shorthand_calls[0].args.len(), 1);
+
+    let with_builder_methods: ValidatorAttr =
+        syn::parse_quote!(RangeValidation::builder().min(0).max(10));
+    assert!(with_builder_methods.has_args());
+    let builder_calls = with_builder_methods.setter_calls();
+    assert_eq!(builder_calls.len(), 2);
+    assert_eq!(builder_calls[0].method.to_string(), "min");
+    assert_eq!(builder_calls[1].method.to_string(), "max");
 
     let infer: ValidatorAttr = syn::parse_quote!(GenericValidation<_>);
     assert!(infer.uses_type_inference());
@@ -59,6 +72,15 @@ fn validator_attr_helpers_and_error_paths() {
             .expect_err("expected turbofish syntax to be rejected")
             .to_string()
             .contains("use angle bracket syntax `<...>`")
+    );
+
+    let builder_with_build: Result<ValidatorAttr, _> =
+        syn::parse_str("GenericValidation::builder().min(1).build()");
+    assert!(
+        builder_with_build
+            .expect_err("expected builder chains to reject .build()")
+            .to_string()
+            .contains("injects value capture and `.build()` automatically")
     );
 
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("std::ops::Fn(i32)");

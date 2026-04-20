@@ -1,8 +1,8 @@
 use crate::expand::codegen::{
-    each_element_type, effective_validation_type, helper_generics_for_usages,
-    resolve_explicit_infer_type, transform_arg_value, validate_each_collection_type,
-    validate_full_type_option_target, validator_field_ident, validator_type_for_field,
-    validator_variant_ident, validator_wants_full_type,
+    each_element_type, helper_generics_for_usages, resolve_explicit_infer_type,
+    validate_each_collection_type, validate_full_type_option_target, validator_builder_expr,
+    validator_field_ident, validator_type_for_field, validator_variant_ident,
+    validator_wants_full_type,
 };
 use crate::expand::collect_field_infos;
 use heck::ToUpperCamelCase;
@@ -1175,20 +1175,10 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                                             value_expr: TokenStream2,
                                                             needs_ref: bool|
                      -> TokenStream2 {
-                        let validator = &v.validator;
                         let validator_snake =
                             validator_field_ident(v, &f.validation.field_validators);
-                        let effective_ty = effective_validation_type(field_ty, false);
-
-                        let builder_calls: Vec<TokenStream2> = v
-                            .args
-                            .iter()
-                            .map(|(arg_name, arg_value)| {
-                                let transformed =
-                                    transform_arg_value(arg_value, &known_field_names);
-                                quote! { .#arg_name(#transformed) }
-                            })
-                            .collect();
+                        let builder_expr =
+                            validator_builder_expr(v, field_ty, false, &known_field_names);
 
                         let ref_expr = if needs_ref {
                             quote! { &#value_expr }
@@ -1196,20 +1186,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                             quote! { #value_expr }
                         };
 
-                        let uses_infer = v.infer_type
-                            || v.explicit_type.as_ref().is_some_and(contains_infer_type);
-
-                        if uses_infer {
-                            let validator_ty = if v.explicit_type.is_some() {
-                                let substituted = resolve_explicit_infer_type(v, field_ty, false)
-                                    .expect("explicit infer types should be pre-validated")
-                                    .expect(
-                                        "explicit infer types should resolve to a concrete type",
-                                    );
-                                quote! { #substituted }
-                            } else {
-                                quote! { #effective_ty }
-                            };
+                        if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type)
+                        {
                             let assert_fn = format_ident!(
                                 "__koruma_assert_validate_{}_{}_newtype_field",
                                 field_name,
@@ -1220,8 +1198,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                     v.validate(t)
                                 }
                                 let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                    #validator::<#validator_ty>::builder()
-                                        #(#builder_calls)*,
+                                    #builder_expr,
                                     #ref_expr,
                                 )
                                 .build();
@@ -1233,8 +1210,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                         } else {
                             quote! {
                                 let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                    #validator::builder()
-                                        #(#builder_calls)*,
+                                    #builder_expr,
                                     #ref_expr,
                                 )
                                 .build();
@@ -1331,18 +1307,9 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             // Helper to generate validator check code
             let generate_validator_check =
                 |v: &ValidatorAttr, value_expr: TokenStream2, needs_ref: bool| -> TokenStream2 {
-                    let validator = &v.validator;
                     let validator_snake = validator_field_ident(v, &f.validation.field_validators);
-                    let effective_ty = effective_validation_type(field_ty, false);
-
-                    let builder_calls: Vec<TokenStream2> = v
-                        .args
-                        .iter()
-                        .map(|(arg_name, arg_value)| {
-                            let transformed = transform_arg_value(arg_value, &known_field_names);
-                            quote! { .#arg_name(#transformed) }
-                        })
-                        .collect();
+                    let builder_expr =
+                        validator_builder_expr(v, field_ty, false, &known_field_names);
 
                     // The reference expression for validate()
                     let ref_expr = if needs_ref {
@@ -1352,18 +1319,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     };
 
                     // Determine the validator type
-                    let uses_infer =
-                        v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
-
-                    if uses_infer {
-                        let validator_ty = if v.explicit_type.is_some() {
-                            let substituted = resolve_explicit_infer_type(v, field_ty, false)
-                                .expect("explicit infer types should be pre-validated")
-                                .expect("explicit infer types should resolve to a concrete type");
-                            quote! { #substituted }
-                        } else {
-                            quote! { #effective_ty }
-                        };
+                    if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type) {
                         let assert_fn = format_ident!(
                             "__koruma_assert_validate_{}_{}_field",
                             field_name,
@@ -1374,8 +1330,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                 v.validate(t)
                             }
                             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                #validator::<#validator_ty>::builder()
-                                    #(#builder_calls)*,
+                                #builder_expr,
                                 #ref_expr,
                             )
                             .build();
@@ -1387,8 +1342,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     } else {
                         quote! {
                             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                #validator::builder()
-                                    #(#builder_calls)*,
+                                #builder_expr,
                                 #ref_expr,
                             )
                             .build();
@@ -1424,8 +1378,6 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let field_is_optional = is_option_type(field_ty);
                 let element_ty = each_element_type(field_ty);
                 let element_is_optional = is_option_type(element_ty);
-                let effective_element_ty = effective_validation_type(field_ty, true);
-
                 let (full_type_element_validators, unwrapped_element_validators): (Vec<_>, Vec<_>) =
                     f.validation
                         .element_validators
@@ -1435,28 +1387,12 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 let generate_element_validator_check = |v: &ValidatorAttr,
                                                         value_expr: TokenStream2|
                  -> TokenStream2 {
-                    let validator = &v.validator;
                     let validator_snake =
                         validator_field_ident(v, &f.validation.element_validators);
-
-                    let builder_calls: Vec<TokenStream2> = v
-                        .args
-                        .iter()
-                        .map(|(arg_name, arg_value)| {
-                            let transformed = transform_arg_value(arg_value, &known_field_names);
-                            quote! { .#arg_name(#transformed) }
-                        })
-                        .collect();
+                    let builder_expr =
+                        validator_builder_expr(v, field_ty, true, &known_field_names);
 
                     if v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type) {
-                        let validator_ty = if v.explicit_type.is_some() {
-                            let substituted = resolve_explicit_infer_type(v, field_ty, true)
-                                .expect("explicit infer types should be pre-validated")
-                                .expect("explicit infer types should resolve to a concrete type");
-                            quote! { #substituted }
-                        } else {
-                            quote! { #effective_element_ty }
-                        };
                         let assert_fn = format_ident!(
                             "__koruma_assert_validate_{}_{}_element",
                             field_name,
@@ -1467,8 +1403,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                                 v.validate(t)
                             }
                             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                #validator::<#validator_ty>::builder()
-                                    #(#builder_calls)*,
+                                #builder_expr,
                                 #value_expr,
                             )
                             .build();
@@ -1480,8 +1415,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                     } else {
                         quote! {
                             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                                #validator::builder()
-                                    #(#builder_calls)*,
+                                #builder_expr,
                                 #value_expr,
                             )
                             .build();

@@ -125,12 +125,19 @@ clone requirements for presence-only validators. If your validator still derives
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
+Validators in `#[koruma(...)]` can use either form and be mixed across fields:
+
+```rs
+#[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
+#[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
+```
+
 ```rs
 use koruma::{Koruma, KorumaAllDisplay, Validate};
 
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
+    #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]

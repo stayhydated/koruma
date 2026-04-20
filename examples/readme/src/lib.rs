@@ -31,7 +31,11 @@ pub struct BorrowedUsername<'a> {
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(validators::normal::NumberRangeValidation<_>(min = 0, max = 100))]
+    #[koruma(
+        validators::normal::NumberRangeValidation::<_>::builder()
+            .min(0)
+            .max(100)
+    )]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -176,7 +180,7 @@ pub struct SignupInput {
     #[koruma(string::AsciiValidation<_>, string::AlphanumericValidation<_>)]
     pub handle: String,
 
-    #[koruma(numeric::RangeValidation<_>(min = 13_u8, max = 120_u8))]
+    #[koruma(numeric::RangeValidation::<_>::builder().min(13_u8).max(120_u8))]
     pub age: u8,
 
     #[koruma(general::RequiredValidation<Option<_>>)]

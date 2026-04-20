@@ -4,12 +4,22 @@ Once validators are defined, attach them to fields with `#[koruma(...)]` and der
 your data type. The derive macro generates a `validate()` method that runs the configured
 validators and returns `Result<(), Errors>`.
 
+Validators in `#[koruma(...)]` can use either form and be mixed across fields:
+
+```rust
+#[koruma(TypeName<_>(min = 0, max = 100))]
+#[koruma(TypeName::<_>::builder().min(0).max(100))]
+```
+
+Use `TypeName<_>(...)` or `TypeName::<_>::builder()...` when the validator is generic and Rust can
+infer the missing type parameter.
+
 ```rust
 use koruma::{Koruma, KorumaAllDisplay};
 
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
+    #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
     pub age: i32,
 
     #[koruma(StringLengthValidation(min = 1, max = 67))]
@@ -38,8 +48,7 @@ match item.validate() {
 }
 ```
 
-Use `TypeName<_>(...)` when the validator is generic and Rust can infer the missing type
-parameter. If a field has no `#[koruma(...)]` attribute, `koruma` does not validate it.
+If a field has no `#[koruma(...)]` attribute, `koruma` does not validate it.
 
 For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
 `&[T]`, arrays like `[T; N]`, and optional variants of those:

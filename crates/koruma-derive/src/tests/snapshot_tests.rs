@@ -618,6 +618,35 @@ fn test_koruma_expansion_field_arg_ident_transforms_to_self_clone() {
 }
 
 #[test]
+fn test_koruma_expansion_builder_chain_uses_supplied_setters() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct BuilderSyntaxItem {
+            #[koruma(GenericRangeValidation::<_>::builder().min(0.0).max(100.0))]
+            pub score: f64,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("GenericRangeValidation::<f64>::builder().min(0.0).max(100.0)"));
+}
+
+#[test]
+fn test_koruma_expansion_builder_chain_field_arg_ident_transforms_to_self_clone() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct BuilderMatchesValidationInput {
+            pub password: String,
+            #[koruma(MatchesValidation::builder().matches(password))]
+            pub confirm: String,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains(".matches(self.password.clone())"));
+}
+
+#[test]
 fn test_koruma_expansion_non_field_arg_ident_is_left_alone() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct ConstantArgInput {

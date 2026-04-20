@@ -37,7 +37,18 @@ use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 ///
 /// // Full path
 /// #[koruma(validators::numeric::RangeValidation<_>(min = 0))]
+///
+/// // Standard Rust builder chain
+/// #[koruma(validators::numeric::RangeValidation::<_>::builder().min(0).max(100))]
 /// ```
+#[derive(Clone, Debug)]
+pub struct BuilderMethodCall {
+    /// The builder setter method name, such as `min` or `exclusive_max`.
+    pub method: Ident,
+    /// Positional Rust expression arguments passed to the setter.
+    pub args: Vec<Expr>,
+}
+
 #[derive(Clone, Debug)]
 pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
@@ -52,7 +63,11 @@ pub struct ValidatorAttr {
     /// Use `<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<Type>,
     /// Key-value argument pairs passed to the validator.
+    /// Used by the shorthand `Validator(arg = value, ...)` syntax.
     pub args: Vec<(Ident, Expr)>,
+    /// Builder setter method calls collected from a standard Rust builder chain.
+    /// Used by `Validator::builder().arg(value)...`.
+    pub builder_methods: Vec<BuilderMethodCall>,
 }
 
 impl ValidatorAttr {
@@ -107,7 +122,7 @@ impl ValidatorAttr {
 
     /// Returns whether this validator has any arguments.
     pub fn has_args(&self) -> bool {
-        !self.args.is_empty()
+        !self.args.is_empty() || !self.builder_methods.is_empty()
     }
 
     /// Returns whether this validator uses type inference (`<_>` syntax).
@@ -123,108 +138,230 @@ impl ValidatorAttr {
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Parse validator path first; bare `<...>` generic args remain in the token
-        // stream, while turbofish `::<...>` is captured on the final path segment.
-        let mut validator: Path = input.parse()?;
-        let validator_span = validator.span();
-        let last_segment = validator
-            .segments
-            .last_mut()
-            .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
+        if let Some(attr) = try_parse_builder_chain_validator(input)? {
+            return Ok(attr);
+        }
 
-        if let PathArguments::AngleBracketed(angle_args) = &last_segment.arguments
-            && angle_args.colon2_token.is_some()
-        {
+        parse_shorthand_validator(input)
+    }
+}
+
+fn try_parse_builder_chain_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
+    let fork = input.fork();
+    let expr: Expr = match fork.parse() {
+        Ok(expr) => expr,
+        Err(_) => return Ok(None),
+    };
+
+    let Some(_) = analyze_builder_chain_expr(&expr)? else {
+        return Ok(None);
+    };
+
+    let expr: Expr = input.parse()?;
+    let Some((validator, builder_methods)) = analyze_builder_chain_expr(&expr)? else {
+        return Err(Error::new(expr.span(), "expected validator builder chain"));
+    };
+
+    let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator, true)?;
+
+    Ok(Some(ValidatorAttr {
+        validator,
+        infer_type,
+        explicit_type,
+        args: Vec::new(),
+        builder_methods,
+    }))
+}
+
+fn parse_shorthand_validator(input: ParseStream) -> Result<ValidatorAttr> {
+    // Parse validator path first; bare `<...>` generic args remain in the token
+    // stream, while turbofish `::<...>` is rejected in this shorthand form.
+    let mut validator: Path = input.parse()?;
+    let validator_span = validator.span();
+    let last_segment = validator
+        .segments
+        .last_mut()
+        .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
+
+    if let PathArguments::AngleBracketed(angle_args) = &last_segment.arguments
+        && angle_args.colon2_token.is_some()
+    {
+        return Err(Error::new(
+            angle_args.span(),
+            "use angle bracket syntax `<...>` instead of turbofish `::<...>` in `#[koruma(...)]`",
+        ));
+    }
+
+    // Support `Validator<_>` by attaching the parsed generic args to the last
+    // path segment before extracting them into `ValidatorAttr`.
+    if input.peek(Token![<]) {
+        let angle_args: syn::AngleBracketedGenericArguments = input.parse()?;
+
+        if !matches!(last_segment.arguments, PathArguments::None) {
             return Err(Error::new(
                 angle_args.span(),
-                "use angle bracket syntax `<...>` instead of turbofish `::<...>` in `#[koruma(...)]`",
+                "validator type syntax can only appear once",
             ));
         }
 
-        // Support `Validator<_>` by attaching the parsed generic args to the last
-        // path segment before extracting them into `ValidatorAttr`.
-        if input.peek(Token![<]) {
-            let angle_args: syn::AngleBracketedGenericArguments = input.parse()?;
+        last_segment.arguments = PathArguments::AngleBracketed(angle_args);
+    }
 
-            if !matches!(last_segment.arguments, PathArguments::None) {
+    let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator, false)?;
+
+    let args = if input.peek(token::Paren) {
+        let content;
+        parenthesized!(content in input);
+
+        let mut args = Vec::new();
+        while !content.is_empty() {
+            let name: Ident = content.parse()?;
+            content.parse::<Token![=]>()?;
+            let value: Expr = content.parse()?;
+
+            args.push((name, value));
+
+            if content.peek(Token![,]) {
+                content.parse::<Token![,]>()?;
+            }
+        }
+        args
+    } else {
+        Vec::new()
+    };
+
+    Ok(ValidatorAttr {
+        validator,
+        infer_type,
+        explicit_type,
+        args,
+        builder_methods: Vec::new(),
+    })
+}
+
+fn split_validator_path_type_args(
+    mut validator: Path,
+    allow_turbofish: bool,
+) -> Result<(Path, bool, Option<Type>)> {
+    let validator_span = validator.span();
+    let last_segment = validator
+        .segments
+        .last_mut()
+        .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
+
+    let args = std::mem::replace(&mut last_segment.arguments, PathArguments::None);
+    let (infer_type, explicit_type) = match args {
+        PathArguments::None => (false, None),
+        PathArguments::AngleBracketed(mut angle_args) => {
+            if !allow_turbofish && angle_args.colon2_token.is_some() {
                 return Err(Error::new(
                     angle_args.span(),
-                    "validator type syntax can only appear once",
+                    "use angle bracket syntax `<...>` instead of turbofish `::<...>` in `#[koruma(...)]`",
                 ));
             }
 
-            last_segment.arguments = PathArguments::AngleBracketed(angle_args);
-        }
-
-        // Check for generic syntax: `<_>` or `<SomeType>`.
-        // `<_>` means "use the field type" (unwrapping Option if present).
-        // `<Option<_>>` means "use the full Option type" (without unwrapping).
-        // `<Vec<_>>` means "substitute _ with the inner type from the field".
-        let (infer_type, explicit_type) = {
-            let last_segment = validator
-                .segments
-                .last_mut()
-                .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
-
-            // Strip generic args from stored validator path and parse them into fields.
-            let args = std::mem::replace(&mut last_segment.arguments, PathArguments::None);
-            match args {
-                PathArguments::None => (false, None),
-                PathArguments::AngleBracketed(mut angle_args) => {
-                    if angle_args.args.len() != 1 {
-                        return Err(Error::new(
-                            angle_args.span(),
-                            "validator type syntax expects exactly one type argument",
-                        ));
-                    }
-
-                    let arg = angle_args.args.pop().expect("len checked").into_value();
-                    match arg {
-                        GenericArgument::Type(Type::Infer(_)) => (true, None),
-                        GenericArgument::Type(ty) => (false, Some(ty)),
-                        _ => Err(Error::new(
-                            arg.span(),
-                            "validator type syntax expects a type argument",
-                        ))?,
-                    }
-                },
-                PathArguments::Parenthesized(args) => {
-                    return Err(Error::new(
-                        args.span(),
-                        "validator path does not support parenthesized arguments",
-                    ));
-                },
+            if angle_args.args.len() != 1 {
+                return Err(Error::new(
+                    angle_args.span(),
+                    "validator type syntax expects exactly one type argument",
+                ));
             }
-        };
 
-        let args = if input.peek(token::Paren) {
-            let content;
-            parenthesized!(content in input);
-
-            let mut args = Vec::new();
-            while !content.is_empty() {
-                let name: Ident = content.parse()?;
-                content.parse::<Token![=]>()?;
-                let value: Expr = content.parse()?;
-
-                args.push((name, value));
-
-                if content.peek(Token![,]) {
-                    content.parse::<Token![,]>()?;
-                }
+            let arg = angle_args.args.pop().expect("len checked").into_value();
+            match arg {
+                GenericArgument::Type(Type::Infer(_)) => (true, None),
+                GenericArgument::Type(ty) => (false, Some(ty)),
+                _ => Err(Error::new(
+                    arg.span(),
+                    "validator type syntax expects a type argument",
+                ))?,
             }
-            args
-        } else {
-            Vec::new()
-        };
+        },
+        PathArguments::Parenthesized(args) => {
+            return Err(Error::new(
+                args.span(),
+                "validator path does not support parenthesized arguments",
+            ));
+        },
+    };
 
-        Ok(ValidatorAttr {
-            validator,
-            infer_type,
-            explicit_type,
-            args,
-        })
+    Ok((validator, infer_type, explicit_type))
+}
+
+fn analyze_builder_chain_expr(expr: &Expr) -> Result<Option<(Path, Vec<BuilderMethodCall>)>> {
+    match expr {
+        Expr::Group(group) => analyze_builder_chain_expr(&group.expr),
+        Expr::Paren(paren) => analyze_builder_chain_expr(&paren.expr),
+        Expr::MethodCall(method_call) => {
+            let Some((validator, mut builder_methods)) =
+                analyze_builder_chain_expr(&method_call.receiver)?
+            else {
+                return Ok(None);
+            };
+
+            let method_name = method_call.method.to_string();
+            if matches!(
+                method_name.as_str(),
+                "build" | "with_value" | "with_value_ref"
+            ) {
+                return Err(Error::new(
+                    method_call.method.span(),
+                    format!(
+                        "validator builder chains should stop before `.{method_name}(...)`; koruma injects value capture and `.build()` automatically"
+                    ),
+                ));
+            }
+
+            builder_methods.push(BuilderMethodCall {
+                method: method_call.method.clone(),
+                args: method_call.args.iter().cloned().collect(),
+            });
+            Ok(Some((validator, builder_methods)))
+        },
+        Expr::Call(call) => analyze_builder_call_expr(call),
+        _ => Ok(None),
     }
+}
+
+fn analyze_builder_call_expr(
+    call: &syn::ExprCall,
+) -> Result<Option<(Path, Vec<BuilderMethodCall>)>> {
+    let func = match &*call.func {
+        Expr::Group(group) => &group.expr,
+        Expr::Paren(paren) => &paren.expr,
+        other => other,
+    };
+
+    let Expr::Path(path_expr) = func else {
+        return Ok(None);
+    };
+
+    let mut builder_path = path_expr.path.clone();
+    let Some(last_segment) = builder_path.segments.last() else {
+        return Ok(None);
+    };
+
+    if last_segment.ident != "builder" {
+        return Ok(None);
+    }
+
+    if !call.args.is_empty() {
+        return Err(Error::new(
+            call.args.span(),
+            "validator builder syntax expects `builder()` without arguments",
+        ));
+    }
+
+    builder_path.segments.pop();
+    builder_path.segments.pop_punct();
+    if builder_path.segments.is_empty() {
+        return Err(Error::new(
+            path_expr.path.span(),
+            "validator builder syntax expects a validator type before `::builder()`",
+        ));
+    }
+
+    Ok(Some((builder_path, Vec::new())))
 }
 
 /// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators

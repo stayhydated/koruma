@@ -112,7 +112,7 @@ struct SignupInput {
     #[koruma(string::AsciiValidation<_>, string::AlphanumericValidation<_>)]
     handle: String,
 
-    #[koruma(numeric::RangeValidation<_>(min = 13_u8, max = 120_u8))]
+    #[koruma(numeric::RangeValidation::<_>::builder().min(13_u8).max(120_u8))]
     age: u8,
 
     #[koruma(general::RequiredValidation<Option<_>>)]
@@ -140,3 +140,6 @@ if let Err(errors) = input.validate() {
     }
 }
 ```
+
+The `RangeValidation` example above uses the standard Rust builder-chain form. The shorthand
+`numeric::RangeValidation<_>(min = 13_u8, max = 120_u8)` remains supported and is equivalent.

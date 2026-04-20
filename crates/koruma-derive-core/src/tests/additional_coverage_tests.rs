@@ -22,6 +22,10 @@ fn validator_attr_helpers_and_error_paths() {
     let with_args: ValidatorAttr = syn::parse_quote!(RangeValidation(min = 0, max = 10));
     assert!(with_args.has_args());
 
+    let with_builder_methods: ValidatorAttr =
+        syn::parse_quote!(RangeValidation::builder().min(0).max(10));
+    assert!(with_builder_methods.has_args());
+
     let infer: ValidatorAttr = syn::parse_quote!(GenericValidation<_>);
     assert!(infer.uses_type_inference());
     assert!(!infer.has_explicit_type());
@@ -59,6 +63,15 @@ fn validator_attr_helpers_and_error_paths() {
             .expect_err("expected turbofish syntax to be rejected")
             .to_string()
             .contains("use angle bracket syntax `<...>`")
+    );
+
+    let builder_with_build: Result<ValidatorAttr, _> =
+        syn::parse_str("GenericValidation::builder().min(1).build()");
+    assert!(
+        builder_with_build
+            .expect_err("expected builder chains to reject .build()")
+            .to_string()
+            .contains("injects value capture and `.build()` automatically")
     );
 
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("std::ops::Fn(i32)");

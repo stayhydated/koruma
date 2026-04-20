@@ -114,6 +114,22 @@ pub struct PasswordConfirmation {
     pub confirm: String,
 }
 
+/// Example struct demonstrating the Rust-native builder-chain validator syntax.
+#[derive(Koruma)]
+pub struct BuilderSyntaxItem {
+    #[koruma(GenericRangeValidation::<_>::builder().min(-10.0).max(100.0))]
+    pub score: f64,
+}
+
+/// Example struct demonstrating cross-field references inside builder-chain syntax.
+#[derive(Koruma)]
+pub struct BuilderPasswordConfirmation {
+    pub password: String,
+
+    #[koruma(MatchesStringValidation::builder().expected(password))]
+    pub confirm: String,
+}
+
 /// Example struct demonstrating that bare identifiers which are not fields remain untouched.
 #[derive(Koruma)]
 pub struct StaticSecretConfirmation {

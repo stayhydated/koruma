@@ -297,28 +297,19 @@ pub(crate) fn validator_builder_expr(
     let validator = &v.validator;
     let effective_ty = effective_validation_type(field_ty, validate_each);
 
-    let builder_calls: Vec<TokenStream2> = if !v.builder_methods.is_empty() {
-        v.builder_methods
-            .iter()
-            .map(|method| {
-                let method_name = &method.method;
-                let transformed_args: Vec<_> = method
-                    .args
-                    .iter()
-                    .map(|arg| transform_arg_value(arg, field_names))
-                    .collect();
-                quote! { .#method_name(#(#transformed_args),*) }
-            })
-            .collect()
-    } else {
-        v.args
-            .iter()
-            .map(|(arg_name, arg_value)| {
-                let transformed = transform_arg_value(arg_value, field_names);
-                quote! { .#arg_name(#transformed) }
-            })
-            .collect()
-    };
+    let builder_calls: Vec<TokenStream2> = v
+        .setter_calls()
+        .iter()
+        .map(|method| {
+            let method_name = &method.method;
+            let transformed_args: Vec<_> = method
+                .args
+                .iter()
+                .map(|arg| transform_arg_value(arg, field_names))
+                .collect();
+            quote! { .#method_name(#(#transformed_args),*) }
+        })
+        .collect();
 
     let uses_infer = v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
     if uses_infer {

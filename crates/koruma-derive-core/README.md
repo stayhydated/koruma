@@ -5,6 +5,6 @@
 
 Parsing utilities for `koruma` derive macros. This crate exposes the data model for
 `#[koruma(...)]` attributes, including both shorthand validator args and Rust-native builder-chain
-forms, and is intended for tooling or proc-macro internals.
+forms, plus normalized setter access for downstream tooling and proc-macro internals.
 
 Most users should depend on `koruma` (or `koruma-derive`) instead of this crate directly.

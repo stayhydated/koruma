@@ -3,11 +3,13 @@
 //! This module provides types and functions for parsing koruma validation
 //! attributes from syn AST nodes.
 
+use std::borrow::Cow;
+
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use syn::{
     Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
     PathArguments, Result, Token, Type, parenthesized,
-    parse::{Parse, ParseStream},
+    parse::{Parse, ParseStream, discouraged::Speculative},
     punctuated::Punctuated,
     spanned::Spanned,
     token,
@@ -125,6 +127,28 @@ impl ValidatorAttr {
         !self.args.is_empty() || !self.builder_methods.is_empty()
     }
 
+    /// Returns validator configuration as normalized builder setter calls.
+    ///
+    /// Shorthand args like `RangeValidation(min = 0, max = 10)` are exposed as
+    /// `min(0)` and `max(10)`, while explicit builder chains are returned as-is.
+    /// This gives downstream code a single representation to consume without
+    /// losing support for either attribute form.
+    pub fn setter_calls(&self) -> Cow<'_, [BuilderMethodCall]> {
+        if !self.builder_methods.is_empty() {
+            Cow::Borrowed(&self.builder_methods)
+        } else {
+            Cow::Owned(
+                self.args
+                    .iter()
+                    .map(|(name, value)| BuilderMethodCall {
+                        method: name.clone(),
+                        args: vec![value.clone()],
+                    })
+                    .collect(),
+            )
+        }
+    }
+
     /// Returns whether this validator uses type inference (`<_>` syntax).
     pub fn uses_type_inference(&self) -> bool {
         self.infer_type
@@ -156,8 +180,8 @@ fn try_parse_builder_chain_validator(input: ParseStream) -> Result<Option<Valida
     let Some(_) = analyze_builder_chain_expr(&expr)? else {
         return Ok(None);
     };
+    input.advance_to(&fork);
 
-    let expr: Expr = input.parse()?;
     let Some((validator, builder_methods)) = analyze_builder_chain_expr(&expr)? else {
         return Err(Error::new(expr.span(), "expected validator builder chain"));
     };

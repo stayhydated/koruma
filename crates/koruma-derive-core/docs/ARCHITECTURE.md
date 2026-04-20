@@ -12,7 +12,7 @@
 
 ## Data model
 
-- `ValidatorAttr`: a single validator invocation (path, shorthand args or builder setter calls, and type inference flags).
+- `ValidatorAttr`: a single validator invocation (path, shorthand args or builder setter calls, type inference flags, and normalized setter access via `setter_calls()`).
 - `KorumaAttr`: a field attribute grouping validators plus modifiers (`each`, `nested`, `newtype`, `skip`).
 - `ValidationInfo`: merged validators and modifier flags for a field.
 - `FieldInfo`: per-field metadata derived from `syn::Field`.

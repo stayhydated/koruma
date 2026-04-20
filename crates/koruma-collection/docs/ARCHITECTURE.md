@@ -25,7 +25,7 @@
 - `full`: enables all optional validators and dependencies.
 - `fluent`: enables Fluent integration and embedded i18n assets.
 - `full-fluent`: `full` + `fluent`.
-- Per-validator features: `email`, `url`, `phone-number`, `credit-card`, `regex`, `smallvec`.
+- Per-validator and integration features: `email`, `url`, `phone-number`, `credit-card`, `regex`, `smallvec`, `decimal` (`rust_decimal::Decimal` support for `numeric::Numeric`).
 - `internal-showcase`: enables validator registry support via `koruma/internal-showcase`, turns on `full-fluent`, keeps `fmt`, and adds `anyhow` for showcase factory closures.
 
 ## Extending

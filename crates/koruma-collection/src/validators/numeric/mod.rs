@@ -28,6 +28,13 @@ impl_numeric!(i8, i16, i32, i64, i128, isize);
 impl_numeric!(u8, u16, u32, u64, u128, usize);
 impl_numeric!(f32, f64);
 
+#[cfg(feature = "rust_decimal")]
+impl Numeric for rust_decimal::Decimal {
+    fn zero() -> Self {
+        rust_decimal::Decimal::ZERO
+    }
+}
+
 mod negative;
 mod non_negative;
 mod non_positive;
@@ -58,6 +65,8 @@ mod tests {
     use koruma::Validate as _;
 
     use super::{NegativeValidation, NonNegativeValidation, Numeric, PositiveValidation};
+    #[cfg(feature = "rust_decimal")]
+    use rust_decimal::Decimal;
 
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
     struct OffsetNumber(i32);
@@ -90,5 +99,24 @@ mod tests {
         assert!(!positive.validate(&OffsetNumber(10)));
         assert!(negative.validate(&OffsetNumber(9)));
         assert!(non_negative.validate(&OffsetNumber(10)));
+    }
+
+    #[cfg(feature = "rust_decimal")]
+    #[test]
+    fn decimal_support_uses_decimal_zero() {
+        let positive = PositiveValidation::builder()
+            .with_value(Decimal::ZERO)
+            .build();
+        let negative = NegativeValidation::builder()
+            .with_value(Decimal::ZERO)
+            .build();
+        let non_negative = NonNegativeValidation::builder()
+            .with_value(Decimal::ZERO)
+            .build();
+
+        assert!(positive.validate(&Decimal::new(1, 0)));
+        assert!(!positive.validate(&Decimal::ZERO));
+        assert!(negative.validate(&Decimal::new(-1, 0)));
+        assert!(non_negative.validate(&Decimal::ZERO));
     }
 }

@@ -20,6 +20,7 @@ email_address = { optional = true, workspace = true }
 koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
+rust_decimal = { optional = true, workspace = true }
 rust-embed = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
@@ -29,11 +30,12 @@ es-fluent = { features = [ "build" ], workspace = true }
 
 [features]
 default = [ "fmt" ]
-full = [ "url", "credit-card", "phone-number", "email", "regex", "smallvec" ]
+full = [ "url", "credit-card", "phone-number", "email", "regex", "smallvec", "rust_decimal" ]
 full-fluent = [ "full", "fluent" ]
 fluent = [ "koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:rust-embed" ]
 internal-showcase = [ "full-fluent", "koruma/internal-showcase", "fmt", "dep:anyhow" ]
 credit-card = [ "dep:card-validate" ]
+rust_decimal = [ "dep:rust_decimal" ]
 email = [ "dep:email_address" ]
 smallvec = [ "dep:smallvec" ]
 fmt = [  ]
@@ -47,6 +49,7 @@ features = [
   "full-fluent",
   "fluent",
   "credit-card",
+  "rust_decimal",
   "email",
   "smallvec",
   "fmt",

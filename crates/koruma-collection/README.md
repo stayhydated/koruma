@@ -75,8 +75,9 @@ patterns fail during construction instead of during validation.
 | `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation<_>)]`                                        | always  |
 | `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation<_>(min = 0, max = 100, exclusive_max = true))]` | always  |
 
-Primitive integers and floats implement `numeric::Numeric` out of the box. Custom numeric-like
-types can opt in by implementing `numeric::Numeric::zero()`.
+Primitive integers and floats implement `numeric::Numeric` out of the box. Enable the `decimal`
+feature to add `rust_decimal::Decimal`. Custom numeric-like types can opt in by implementing
+`numeric::Numeric::zero()`.
 
 `RangeValidation` messages use interval notation such as `[min, max]` or `(min, max]` so exclusive
 bounds are reflected directly in the rendered error.

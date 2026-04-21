@@ -5,7 +5,7 @@ This file is the working guide for contributors and coding agents in the `koruma
 Use it to answer three questions quickly:
 
 1. Where does this documentation belong?
-2. Which crates are the default entry points vs integration points vs internals?
+2. Which crates are public entry points versus integration points versus internals?
 3. What other surfaces must be updated in the same change?
 
 ## Project summary
@@ -16,7 +16,7 @@ Its priorities are:
 
 1. **Type safety**: keep validators, derived error types, and validation flows strongly typed.
 2. **Ergonomics**: make validator definitions and field annotations concise.
-3. **Developer experience**: support optional constructors, nested/newtype validation, built-in validators, and i18n.
+3. **Developer experience**: support optional constructors, nested and newtype validation, built-in validators, and i18n.
 
 For most application code, start with `crates/koruma`.
 
@@ -26,19 +26,17 @@ Reach for `crates/koruma-collection` when you want built-in validators instead o
 
 These labels describe the crate or surface itself, not the documentation file you are editing:
 
-- **User-facing**: normal entry points for application developers.
-- **Public integration**: public crates meant for extensions, tooling, or deeper customization, but not usually the default starting point.
-- **Internal**: workspace plumbing, implementation detail, demos, and maintenance tooling.
+- **User-facing**: Normal entry points for application developers.
+- **Public integration**: Public crates meant for extensions, tooling, or deeper customization. These are not usually the default starting point.
+- **Internal**: Workspace plumbing, implementation detail, demos, and maintenance tooling.
 
 ## Documentation rules
 
 ### User-facing documentation
 
-These surfaces are user-facing:
+These surfaces are always user-facing:
 
 - every `README.md` in the workspace,
-- the root `README.md`,
-- crate-level `README.md` files,
 - the mdBook under `book/`,
 - the public site under `web/`.
 
@@ -64,7 +62,7 @@ Do not put implementation detail into READMEs or the book.
 
 ## Synchronization rules
 
-When changing a public workflow, feature flag story, validator inventory, validator message shape, or user-visible API shape:
+When changing a public workflow, feature-flag story, validator inventory, validator message shape, or user-visible API shape:
 
 1. Update `examples/readme` when relevant.
 2. Update the affected user-facing `README.md` files.
@@ -97,7 +95,7 @@ Additional rules:
 - `crates/koruma-core`
   Audience: **Public integration**
   Docs: [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)
-  Role: foundational validation traits, validation error interfaces, nested/newtype support, and optional showcase registry types. Most application users should start with `koruma` instead.
+  Role: foundational validation traits, validation error interfaces, nested and newtype support, and optional showcase registry types. Most application users should start with `koruma` instead.
 
 - `crates/koruma-derive`
   Audience: **Public integration**
@@ -109,7 +107,7 @@ Additional rules:
   Docs: [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md)
   Role: parsing layer for `#[koruma(...)]` metadata shared by derive macros and tooling. Most application users should not depend on it directly.
 
-### Internal tooling
+### Internal crates and tooling
 
 - `xtask`
   Audience: **Internal**
@@ -150,7 +148,7 @@ Additional rules:
 
 - `book`
   Audience: **User-facing**
-  Role: mdBook for public workflows, validator usage, nested/newtype patterns, i18n integration, and `koruma-collection`.
+  Role: mdBook for public workflows, validator usage, nested and newtype patterns, i18n integration, and `koruma-collection`.
 
 ## Working rules by change type
 

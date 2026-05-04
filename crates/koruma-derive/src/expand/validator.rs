@@ -228,7 +228,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         #[cfg(feature = "fluent")]
         showcase_where_clause
             .predicates
-            .push(parse_quote!(Self: ::es_fluent::ToFluentString));
+            .push(parse_quote!(Self: ::es_fluent::FluentMessage));
 
         let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
@@ -237,8 +237,8 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         // generated showcase impl depend on the consumer crate's feature names.
         #[cfg(feature = "fluent")]
         let fluent_string_body = quote! {
-            use ::es_fluent::ToFluentString as _;
-            self.to_fluent_string()
+            use ::es_fluent::FluentMessage;
+            self.to_fluent_string_with(&mut |_domain, id, _args| id.to_string())
         };
         #[cfg(not(feature = "fluent"))]
         let fluent_string_body = quote! {

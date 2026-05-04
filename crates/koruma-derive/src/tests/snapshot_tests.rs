@@ -789,12 +789,11 @@ fn test_koruma_all_fluent_expansion() {
     let expanded = expand_koruma_all_fluent(input).unwrap();
     let rendered = pretty_print(expanded);
     assert!(
-        rendered.contains("impl ::es_fluent::ToFluentString for FluentItemValueKorumaValidator")
+        rendered.contains("impl ::es_fluent::FluentMessage for FluentItemValueKorumaValidator")
     );
     assert!(
-        rendered.contains(
-            "impl ::es_fluent::ToFluentString for FluentItemValuesElementKorumaValidator"
-        )
+        rendered
+            .contains("impl ::es_fluent::FluentMessage for FluentItemValuesElementKorumaValidator")
     );
 }
 
@@ -814,11 +813,11 @@ fn test_koruma_all_fluent_borrowed_types_carry_lifetimes() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(
         compact.contains(
-            "impl<'a>::es_fluent::ToFluentStringforFluentBorrowedValueKorumaValidator<'a>"
+            "impl<'a>::es_fluent::FluentMessageforFluentBorrowedValueKorumaValidator<'a>"
         )
     );
     assert!(compact.contains(
-        "impl<'a>::es_fluent::ToFluentStringforFluentBorrowedValuesElementKorumaValidator<'a>"
+        "impl<'a>::es_fluent::FluentMessageforFluentBorrowedValuesElementKorumaValidator<'a>"
     ));
 }
 
@@ -836,7 +835,7 @@ fn test_koruma_all_fluent_handles_skipped_fields() {
     let expanded = expand_koruma_all_fluent(input).unwrap();
     let rendered = pretty_print(expanded);
     assert!(rendered.contains(
-        "impl ::es_fluent::ToFluentString for FluentWithSkippedFieldValueKorumaValidator"
+        "impl ::es_fluent::FluentMessage for FluentWithSkippedFieldValueKorumaValidator"
     ));
 }
 
@@ -852,7 +851,7 @@ fn test_koruma_all_fluent_all_fields_skipped() {
 
     let expanded = expand_koruma_all_fluent(input).unwrap();
     let rendered = pretty_print(expanded);
-    assert!(!rendered.contains("impl ::es_fluent::ToFluentString for"));
+    assert!(!rendered.contains("impl ::es_fluent::FluentMessage for"));
 }
 
 #[cfg(feature = "fluent")]
@@ -868,7 +867,7 @@ fn test_koruma_all_fluent_expansion_newtype_inner_delegate() {
     let expanded = expand_koruma_all_fluent(input).unwrap();
     let rendered = pretty_print(expanded);
     assert!(rendered.contains("if !self.inner().is_empty()"));
-    assert!(rendered.contains("messages.push(self.inner().to_fluent_string())"));
+    assert!(rendered.contains("messages.push(self.inner().to_fluent_string_with(localize))"));
 }
 
 #[cfg(feature = "fluent")]
@@ -884,7 +883,7 @@ fn test_koruma_all_fluent_expansion_optional_newtype_inner_delegate() {
     let expanded = expand_koruma_all_fluent(input).unwrap();
     let rendered = pretty_print(expanded);
     assert!(rendered.contains("if let Some(inner) = self.inner()"));
-    assert!(rendered.contains("messages.push(inner.to_fluent_string())"));
+    assert!(rendered.contains("messages.push(inner.to_fluent_string_with(localize))"));
 }
 
 #[cfg(feature = "fluent")]

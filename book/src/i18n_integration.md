@@ -20,7 +20,7 @@ conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAll
 consumer type.
 
 ```rust
-use es_fluent::{EsFluent, ToFluentString as _};
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate, validator};
 
 #[validator]
@@ -66,23 +66,24 @@ pub struct User {
 let user = User { id: 3, username: "".to_string() };
 if let Err(errors) = user.validate() {
     if let Some(id_err) = errors.id().is_even_number_validation() {
-        println!("{}", id_err.to_fluent_string());
+        println!("{}", i18n::localize(id_err));
     }
 
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("{}", username_err.to_fluent_string());
+        println!("{}", i18n::localize(username_err));
     }
 
     for failed in errors.id().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 
     for failed in errors.username().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 }
 ```
 
 `KorumaAllFluent` gives you an `all()` iterator whose elements can be converted with
-`ToFluentString`. Initialise your i18n manager and select a locale before rendering localised
+`FluentMessage` + `FluentLocalizer`. Initialise your i18n context (or helper) and
+select a locale before rendering localised
 messages.

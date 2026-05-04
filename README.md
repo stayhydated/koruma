@@ -213,7 +213,7 @@ This setup assumes:
 - a locale is selected before rendering messages.
 
 ```rs
-use es_fluent::{EsFluent, ToFluentString as _};
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate, validator};
 
 #[validator]
@@ -263,19 +263,19 @@ let user = User {
 
 if let Err(errors) = user.validate() {
     if let Some(id_err) = errors.id().is_even_number_validation() {
-        println!("{}", id_err.to_fluent_string());
+        println!("{}", i18n::localize(id_err));
     }
 
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("{}", username_err.to_fluent_string());
+        println!("{}", i18n::localize(username_err));
     }
 
     for failed in errors.id().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 
     for failed in errors.username().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 }
 ```
@@ -291,7 +291,7 @@ Use `#[koruma(newtype)]`, adding `try_new` and `newtype(try_from)` as needed, wh
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 
 ```rs
-use es_fluent::ToFluentString as _;
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
@@ -324,14 +324,14 @@ let form = SignupForm {
 };
 if let Err(errors) = form.validate() {
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("username failed: {}", username_err.to_fluent_string());
+        println!("username failed: {}", i18n::localize(username_err));
     }
     if let Some(email_err) = errors.email().non_empty_string_validation() {
-        println!("email failed: {}", email_err.to_fluent_string());
+        println!("email failed: {}", i18n::localize(email_err));
     }
 
     for failed in errors.email().all() {
-        println!("email validator: {}", failed.to_fluent_string());
+        println!("email validator: {}", i18n::localize(failed));
     }
 }
 
@@ -347,16 +347,16 @@ if let Err(errors) = invalid_optional_form.validate()
     && let Some(email_errors) = errors.email()
     && let Some(email_err) = email_errors.non_empty_string_validation()
 {
-    println!("optional email failed: {}", email_err.to_fluent_string());
+    println!("optional email failed: {}", i18n::localize(email_err));
 }
 
 // Constructor-time validation path
 if let Err(errors) = Email::try_new("".to_string()) {
     if let Some(email_err) = errors.non_empty_string_validation() {
-        println!("email::try_new failed: {}", email_err.to_fluent_string());
+        println!("email::try_new failed: {}", i18n::localize(email_err));
     }
     for failed in errors.all() {
-        println!("email::try_new validator: {}", failed.to_fluent_string());
+        println!("email::try_new validator: {}", i18n::localize(failed));
     }
 }
 ```
@@ -366,7 +366,7 @@ if let Err(errors) = Email::try_new("".to_string()) {
 The same pattern works with tuple structs:
 
 ```rs
-use es_fluent::ToFluentString as _;
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
@@ -384,7 +384,7 @@ let login = LoginForm {
 };
 if let Err(errors) = login.validate() {
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("username failed: {}", username_err.to_fluent_string());
+        println!("username failed: {}", i18n::localize(username_err));
     }
 }
 
@@ -399,7 +399,7 @@ Add `try_from` inside `newtype(...)` to generate a `TryFrom<Inner>` impl:
 
 ```rs
 use std::convert::TryFrom;
-use es_fluent::ToFluentString as _;
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
@@ -410,7 +410,7 @@ match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),
     Err(errors) => {
         for failed in errors.all() {
-            println!("validation failed: {}", failed.to_fluent_string());
+            println!("validation failed: {}", i18n::localize(failed));
         }
     }
 }

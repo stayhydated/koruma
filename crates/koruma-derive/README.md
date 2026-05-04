@@ -15,7 +15,7 @@ instead of using this crate directly.
   shorthand validator args like `RangeValidation<_>(min = 0, max = 10)` or Rust-native builder
   chains like `RangeValidation::<_>::builder().min(0).max(10)`.
 - `#[derive(KorumaAllDisplay)]`: adds `Display` for `all()` validator enums.
-- `#[derive(KorumaAllFluent)]`: adds `ToFluentString` for `all()` validator enums (feature `fluent`).
+- `#[derive(KorumaAllFluent)]`: adds `FluentMessage` for `all()` validator enums (feature `fluent`).
 
 ## Features
 

@@ -2,7 +2,6 @@ use crate::components::key_codes::KeyCode;
 use crate::components::searchable_select::SearchableSelect;
 use crate::components::validator_module::ValidatorModule;
 use crate::input::{Input, InputRequest};
-use es_fluent::ToFluentString as _;
 use koruma::showcase::{DynValidator, InputType, ValidatorShowcase, validators};
 use ratatui::{
     Frame,
@@ -12,7 +11,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Wrap},
 };
 
-use crate::i18n::change_locale;
+use crate::i18n::{change_locale, localize};
 use koruma_shared_lib::Languages;
 use strum::IntoEnumIterator as _;
 
@@ -61,7 +60,7 @@ impl App {
         language_selector.set_selected_index(initial_idx);
 
         // Initialize with proper filtering
-        language_selector.set_search_query("", |lang| lang.to_fluent_string());
+        language_selector.set_search_query("", |lang| localize(lang));
 
         // Initialize module selector with all available modules
         let mut module_selector = SearchableSelect::new(available_modules.clone());
@@ -259,14 +258,14 @@ impl App {
                     let current_query = self.language_selector.get_search_query().to_string();
                     let new_query = format!("{}{}", current_query, c);
                     self.language_selector
-                        .set_search_query(&new_query, |lang| lang.to_fluent_string());
+                        .set_search_query(&new_query, |lang| localize(lang));
                 },
                 KeyCode::Backspace if self.language_selector.is_searching() => {
                     let current_query = self.language_selector.get_search_query().to_string();
                     if !current_query.is_empty() {
                         let new_query = &current_query[..current_query.len() - 1];
                         self.language_selector
-                            .set_search_query(new_query, |lang| lang.to_fluent_string());
+                            .set_search_query(new_query, |lang| localize(lang));
                     }
                 },
                 _ => {},
@@ -470,7 +469,7 @@ impl App {
                 } else {
                     Style::default().fg(Color::Gray)
                 };
-                vec![Span::styled(language.to_fluent_string(), style)]
+                vec![Span::styled(localize(language), style)]
             },
         );
     }
@@ -566,7 +565,7 @@ impl App {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border_color))
-            .title(" Fluent (to_fluent_string()) ")
+            .title(" Fluent (localized) ")
             .title_alignment(Alignment::Center);
 
         let paragraph = Paragraph::new(message)

@@ -92,7 +92,7 @@ pub mod showcase {
         /// user-facing message in showcase UIs.
         fn display_string(&self) -> String;
 
-        /// Get the fluent i18n string via `to_fluent_string()` when koruma's
+        /// Get the fluent i18n string via `FluentMessage::to_fluent_string_with(...)`
         /// `fluent` feature is enabled for the generated showcase impl.
         ///
         /// Returns "(fluent feature required)" when fluent support is not

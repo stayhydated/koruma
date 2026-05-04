@@ -6,8 +6,10 @@ default:
 fmt:
     cargo sort-derives
     cargo fmt
-    taplo fmt
+    # cargo es-fluent fmt --all
     bun run fmt
+    taplo fmt
+    rumdl fmt .
 
 clippy:
     cargo clippy --workspace --all-features

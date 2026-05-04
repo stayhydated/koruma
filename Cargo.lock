@@ -2983,6 +2983,7 @@ name = "koruma-core"
 version = "0.8.0"
 dependencies = [
  "anyhow",
+ "es-fluent",
  "inventory",
 ]
 

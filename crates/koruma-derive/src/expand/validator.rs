@@ -232,13 +232,14 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
         let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
-        // Decide feature-sensitive behavior here in the macro crate. Emitting
-        // raw `cfg(feature = "...")` checks into downstream code would make the
-        // generated showcase impl depend on the consumer crate's feature names.
         #[cfg(feature = "fluent")]
         let fluent_string_body = quote! {
+            "(fluent feature required)".to_string()
+        };
+        #[cfg(feature = "fluent")]
+        let fluent_string_with_body = quote! {
             use ::es_fluent::FluentMessage;
-            self.to_fluent_string_with(&mut |_domain, id, _args| id.to_string())
+            self.to_fluent_string_with(localize)
         };
         #[cfg(not(feature = "fluent"))]
         let fluent_string_body = quote! {
@@ -257,6 +258,18 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
                 fn fluent_string(&self) -> String {
                     #fluent_string_body
+                }
+
+                #[cfg(feature = "fluent")]
+                fn fluent_string_with(
+                    &self,
+                    localize: &mut dyn for<'a> FnMut(
+                        &str,
+                        &str,
+                        Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+                    ) -> String,
+                ) -> String {
+                    #fluent_string_with_body
                 }
             }
 

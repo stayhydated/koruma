@@ -95,8 +95,23 @@ pub mod showcase {
         /// Get the fluent i18n string via `FluentMessage::to_fluent_string_with(...)`
         /// `fluent` feature is enabled for the generated showcase impl.
         ///
-        /// Returns "(fluent feature required)" when fluent support is not
-        /// enabled for the validator macro expansion.
+        /// Returns the message identifier when no localizer callback is provided.
+        #[cfg(feature = "fluent")]
+        fn fluent_string_with(
+            &self,
+            localize: &mut dyn for<'a> FnMut(
+                &str,
+                &str,
+                Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+            ) -> String,
+        ) -> String;
+
+        #[cfg(feature = "fluent")]
+        fn fluent_string(&self) -> String {
+            self.fluent_string_with(&mut |_, id, _| id.to_string())
+        }
+
+        #[cfg(not(feature = "fluent"))]
         fn fluent_string(&self) -> String;
     }
 

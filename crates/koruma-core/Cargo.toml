@@ -14,9 +14,11 @@ readme = "README.md"
 [features]
 default = [  ]
 internal-showcase = [ "dep:anyhow", "dep:inventory" ]
+fluent = [ "dep:es-fluent" ]
 
 [dependencies]
 anyhow = { optional = true, workspace = true }
+es-fluent = { optional = true, workspace = true }
 inventory = { optional = true, workspace = true }
 
 [package.metadata.docs.rs]

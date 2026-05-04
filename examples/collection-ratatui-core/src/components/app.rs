@@ -11,7 +11,7 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph, Wrap},
 };
 
-use crate::i18n::{change_locale, localize};
+use crate::i18n::{change_locale, localize, localize_with_args};
 use koruma_shared_lib::Languages;
 use strum::IntoEnumIterator as _;
 
@@ -543,7 +543,7 @@ impl App {
     fn render_fluent_output(&self, frame: &mut Frame, area: Rect) {
         let (style, border_color, message) = match &self.current_validator {
             Some(Ok(v)) => {
-                let msg = v.fluent_string();
+                let msg = v.fluent_string_with(&mut localize_with_args);
                 if v.is_valid() {
                     (Style::default().fg(Color::Green), Color::Green, msg)
                 } else {

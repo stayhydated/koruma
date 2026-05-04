@@ -1,5 +1,6 @@
 mod i18n;
 
+use crate::i18n::localize_with_args;
 use dioxus::prelude::*;
 use koruma::showcase::{ValidatorShowcase, validators};
 use koruma_shared_lib::Languages;
@@ -123,8 +124,8 @@ pub fn App() -> Element {
                                 };
 
                                 let (status_emoji, display_msg, fluent_msg, error_msg) = match &current_validator {
-                                    Ok(v) if v.is_valid() => ("✓", v.display_string(), v.fluent_string(), None),
-                                    Ok(v) => ("✗", v.display_string(), v.fluent_string(), None),
+                                    Ok(v) if v.is_valid() => ("✓", v.display_string(), v.fluent_string_with(&mut localize_with_args), None),
+                                    Ok(v) => ("✗", v.display_string(), v.fluent_string_with(&mut localize_with_args), None),
                                     Err(e) => ("!", String::new(), String::new(), Some(format!("Error: {}", e))),
                                 };
 

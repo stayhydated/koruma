@@ -5,8 +5,6 @@ use std::sync::OnceLock;
 use es_fluent_manager_embedded as i18n_manager;
 use koruma_shared_lib::Languages;
 
-es_fluent_manager_embedded::define_i18n_module!();
-
 static I18N: OnceLock<i18n_manager::EmbeddedI18n> = OnceLock::new();
 
 fn manager() -> &'static i18n_manager::EmbeddedI18n {

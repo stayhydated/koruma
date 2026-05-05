@@ -14,12 +14,8 @@ koruma = { features = [ "internal-showcase", "derive", "fluent" ], workspace = t
 koruma-collection = { features = [ "internal-showcase" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 ratatui = { workspace = true }
-rust-embed = { workspace = true }
 strum = { features = [ "derive" ], workspace = true }
 unic-langid = { workspace = true }
 
-[build-dependencies]
-es-fluent = { features = [ "build" ], workspace = true }
-
 [package.metadata.cargo-machete]
-ignored = [ "es-fluent", "rust-embed" ]
+ignored = [ "es-fluent" ]

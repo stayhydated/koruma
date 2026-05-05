@@ -542,7 +542,6 @@ dependencies = [
  "koruma",
  "koruma-collection",
  "koruma-shared-lib",
- "rust-embed",
  "strum",
  "unic-langid",
  "wasm-bindgen",
@@ -559,7 +558,6 @@ dependencies = [
  "koruma-collection",
  "koruma-shared-lib",
  "ratatui",
- "rust-embed",
  "strum",
  "unic-langid",
 ]
@@ -1560,7 +1558,7 @@ dependencies = [
 [[package]]
 name = "es-fluent"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
@@ -1576,7 +1574,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "darling 0.23.0",
  "es-fluent-derive-core",
@@ -1592,7 +1590,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive-core"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "bon",
  "darling 0.23.0",
@@ -1611,7 +1609,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1627,7 +1625,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent-toml",
  "heck",
@@ -1641,7 +1639,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1660,7 +1658,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1672,7 +1670,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent-shared",
  "es-fluent-toml",
@@ -1686,7 +1684,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-shared"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "anyhow",
  "camino",
@@ -1708,7 +1706,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.16.0"
-source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#38f3890872463260f2fc8a7c8f51a42ac7522e60"
+source = "git+https://github.com/stayhydated/es-fluent?branch=no-singleton#d446c93bf186250c51f7e597a911dec37ffa87bd"
 dependencies = [
  "es-fluent-shared",
  "fs-err",
@@ -3019,8 +3017,6 @@ version = "0.8.0"
 dependencies = [
  "es-fluent",
  "es-fluent-lang",
- "es-fluent-manager-embedded",
- "rust-embed",
  "strum",
 ]
 
@@ -5054,9 +5050,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.52.1"
+version = "1.52.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b67dee974fe86fd92cc45b7a95fdd2f99a36a6d7b0d431a231178d3d670bbcc6"
+checksum = "110a78583f19d5cdb2c5ccf321d1290344e71313c6c37d43520d386027d18386"
 dependencies = [
  "bytes",
  "libc",

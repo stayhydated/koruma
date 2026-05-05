@@ -12,12 +12,14 @@ es-fluent = { version = "*", features = ["derive"] }
 This setup assumes:
 
 - `koruma` is built with `derive` + `fluent`.
-- your application has initialized an explicit es-fluent localizer/context.
-- a locale is selected on that context before rendering messages.
+- your application owns an `es-fluent` localizer, such as `EmbeddedI18n`.
+- a locale is selected on that localizer before rendering messages.
 
-Initialize the localizer you want to use for rendering. The examples expose a
-small `i18n::localize(...)` helper around an app-owned `EmbeddedI18n`; an
-application can instead pass the same context through its own state.
+Rendering is explicit: `KorumaAllFluent` produces `FluentMessage` values, and
+your application chooses the localizer used to turn them into strings. The
+examples expose a small `i18n::localize(...)` helper around an app-owned
+`EmbeddedI18n`; an application can instead pass that localizer through its own
+state.
 
 Validators intended for localisation derive `EsFluent`. When the validated value needs custom
 conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAllFluent` on the
@@ -88,5 +90,5 @@ if let Err(errors) = user.validate() {
 ```
 
 `KorumaAllFluent` gives you an `all()` iterator whose elements can be converted with
-`FluentMessage` + `FluentLocalizer`. Initialise the localizer/helper you want to
-use, select a locale on it, and then render localised messages.
+`FluentMessage` + `FluentLocalizer`. Use the app-owned localizer directly, or
+wrap it in a small helper function, after selecting the locale you want to render.

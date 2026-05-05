@@ -209,12 +209,14 @@ es-fluent = { version = "*", features = ["derive"] }
 This setup assumes:
 
 - `koruma` is built with `derive` + `fluent`.
-- your application has initialized an explicit es-fluent localizer/context.
-- a locale is selected on that context before rendering messages.
+- your application owns an `es-fluent` localizer, such as `EmbeddedI18n`.
+- a locale is selected on that localizer before rendering messages.
 
-Initialize the localizer you want to use for rendering. The examples expose a
-small `i18n::localize(...)` helper around an app-owned `EmbeddedI18n`; an
-application can instead pass the same context through its own state.
+Rendering is explicit: `KorumaAllFluent` produces `FluentMessage` values, and
+your application chooses the localizer used to turn them into strings. The
+examples expose a small `i18n::localize(...)` helper around an app-owned
+`EmbeddedI18n`; an application can instead pass that localizer through its own
+state.
 
 ```rs
 use es_fluent::EsFluent;

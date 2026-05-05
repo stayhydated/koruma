@@ -233,17 +233,25 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
         #[cfg(feature = "fluent")]
-        let fluent_string_body = quote! {
-            "(fluent feature required)".to_string()
+        let fluent_methods = quote! {
+            fn fluent_string_with(
+                &self,
+                localize: &mut dyn for<'a> FnMut(
+                    &str,
+                    &str,
+                    Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+                ) -> String,
+            ) -> String {
+                use ::es_fluent::FluentMessage;
+                self.to_fluent_string_with(localize)
+            }
         };
-        #[cfg(feature = "fluent")]
-        let fluent_string_with_body = quote! {
-            use ::es_fluent::FluentMessage;
-            self.to_fluent_string_with(localize)
-        };
+
         #[cfg(not(feature = "fluent"))]
-        let fluent_string_body = quote! {
-            "(fluent feature required)".to_string()
+        let fluent_methods = quote! {
+            fn fluent_string(&self) -> String {
+                "(fluent feature required)".to_string()
+            }
         };
 
         quote! {
@@ -256,21 +264,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                     ::std::string::ToString::to_string(self)
                 }
 
-                fn fluent_string(&self) -> String {
-                    #fluent_string_body
-                }
-
-                #[cfg(feature = "fluent")]
-                fn fluent_string_with(
-                    &self,
-                    localize: &mut dyn for<'a> FnMut(
-                        &str,
-                        &str,
-                        Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
-                    ) -> String,
-                ) -> String {
-                    #fluent_string_with_body
-                }
+                #fluent_methods
             }
 
             ::koruma::inventory::submit! {

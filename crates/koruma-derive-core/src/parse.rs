@@ -22,18 +22,25 @@ use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 ///
 /// # Examples
 ///
-/// ```ignore
-/// // Simple validator
-/// #[koruma(NonEmptyValidation::builder())]
+/// ```rust
+/// use koruma_derive_core::ValidatorAttr;
 ///
-/// // Validator with type inference
-/// #[koruma(RangeValidation::<_>::builder().min(0).max(100))]
+/// let simple: ValidatorAttr = syn::parse_quote!(NonEmptyValidation::builder());
+/// assert_eq!(simple.name().to_string(), "NonEmptyValidation");
+/// assert!(!simple.uses_type_inference());
 ///
-/// // Validator with explicit type
-/// #[koruma(RangeValidation::<i32>::builder().min(0).max(100))]
+/// let inferred: ValidatorAttr =
+///     syn::parse_quote!(RangeValidation::<_>::builder().min(0).max(100));
+/// assert!(inferred.uses_type_inference());
+/// assert_eq!(inferred.setter_calls().len(), 2);
 ///
-/// // Full path
-/// #[koruma(validators::numeric::RangeValidation::<_>::builder().min(0))]
+/// let explicit: ValidatorAttr =
+///     syn::parse_quote!(RangeValidation::<i32>::builder().min(0).max(100));
+/// assert!(explicit.has_explicit_type());
+///
+/// let full_path: ValidatorAttr =
+///     syn::parse_quote!(validators::numeric::RangeValidation::<_>::builder().min(0));
+/// assert_eq!(full_path.path_name(), "validators::numeric::RangeValidation");
 /// ```
 #[derive(Clone, Debug)]
 pub struct BuilderMethodCall {
@@ -301,18 +308,27 @@ fn analyze_builder_call_expr(
 ///
 /// # Examples
 ///
-/// ```ignore
-/// // Multiple validators
-/// #[koruma(Validator1::builder().a(1), Validator2::builder().b(2))]
+/// ```rust
+/// use koruma_derive_core::KorumaAttr;
 ///
-/// // Element validation for collections
-/// #[koruma(VecValidator::builder().min(0), each(ElementValidator::builder().max(100)))]
+/// let multiple: KorumaAttr = syn::parse_quote!(
+///     Validator1::builder().a(1),
+///     Validator2::builder().b(2)
+/// );
+/// assert_eq!(multiple.field_validators.len(), 2);
 ///
-/// // Skip validation
-/// #[koruma(skip)]
+/// let with_each: KorumaAttr = syn::parse_quote!(
+///     VecValidator::builder().min(0),
+///     each(ElementValidator::builder().max(100))
+/// );
+/// assert_eq!(with_each.field_validators.len(), 1);
+/// assert_eq!(with_each.element_validators.len(), 1);
 ///
-/// // Nested Koruma struct
-/// #[koruma(nested)]
+/// let skip: KorumaAttr = syn::parse_quote!(skip);
+/// assert!(skip.is_skip);
+///
+/// let nested: KorumaAttr = syn::parse_quote!(nested);
+/// assert!(nested.is_nested);
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct KorumaAttr {
@@ -491,26 +507,41 @@ impl Parse for KorumaAttr {
 ///
 /// # Examples
 ///
-/// ```ignore
-/// // Generate try_new constructor
-/// #[koruma(try_new)]
-/// #[derive(Koruma)]
-/// struct User { ... }
+/// ```rust
+/// use koruma_derive_core::parse_struct_options;
+/// use syn::ItemStruct;
 ///
-/// // Newtype wrapper
-/// #[koruma(newtype)]
-/// #[derive(Koruma)]
-/// struct Email(String);
+/// let user: ItemStruct = syn::parse_quote! {
+///     #[koruma(try_new)]
+///     struct User { name: String }
+/// };
+/// let options = parse_struct_options(&user.attrs).unwrap();
+/// assert!(options.try_new);
+/// assert!(!options.newtype);
 ///
-/// // Both options
-/// #[koruma(try_new, newtype)]
-/// #[derive(Koruma)]
-/// struct Email(String);
+/// let email: ItemStruct = syn::parse_quote! {
+///     #[koruma(newtype)]
+///     struct Email(String);
+/// };
+/// let options = parse_struct_options(&email.attrs).unwrap();
+/// assert!(options.newtype);
+/// assert!(!options.try_from);
 ///
-/// // TryFrom impl for newtypes - converts inner type to validated wrapper
-/// #[koruma(newtype(try_from))]
-/// #[derive(Koruma)]
-/// struct Email(String);
+/// let checked_email: ItemStruct = syn::parse_quote! {
+///     #[koruma(try_new, newtype)]
+///     struct CheckedEmail(String);
+/// };
+/// let options = parse_struct_options(&checked_email.attrs).unwrap();
+/// assert!(options.try_new);
+/// assert!(options.newtype);
+///
+/// let convertible_email: ItemStruct = syn::parse_quote! {
+///     #[koruma(newtype(try_from))]
+///     struct ConvertibleEmail(String);
+/// };
+/// let options = parse_struct_options(&convertible_email.attrs).unwrap();
+/// assert!(options.newtype);
+/// assert!(options.try_from);
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct StructOptions {

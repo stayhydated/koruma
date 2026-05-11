@@ -8,22 +8,25 @@
 //!
 //! # Example
 //!
-//! ```ignore
-//! use koruma_derive_core::{parse_field, ParseFieldResult, FieldInfo};
-//! use syn::Field;
+//! ```rust
+//! use koruma_derive_core::{ParseFieldResult, parse_field};
+//! use syn::{Field, parse_quote};
 //!
-//! fn analyze_field(field: &Field) {
+//! fn validator_count(field: &Field) -> Option<usize> {
 //!     match parse_field(field, 0) {
 //!         ParseFieldResult::Valid(info) => {
-//!             println!("Field {} has {} validators", info.name, info.field_validators.len());
-//!             for v in &info.field_validators {
-//!                 println!("  - {}", v.name());
-//!             }
+//!             Some(info.validation.field_validators.len())
 //!         }
-//!         ParseFieldResult::Skip => println!("Field skipped"),
-//!         ParseFieldResult::Error(e) => println!("Parse error: {}", e),
+//!         ParseFieldResult::Skip => None,
+//!         ParseFieldResult::Error(error) => panic!("Parse error: {error}"),
 //!     }
 //! }
+//!
+//! let field: Field = parse_quote! {
+//!     #[koruma(NonEmptyValidation::builder())]
+//!     username: String
+//! };
+//! assert_eq!(validator_count(&field), Some(1));
 //! ```
 
 mod parse;

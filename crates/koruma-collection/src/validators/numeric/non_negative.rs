@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Account {
-///     #[koruma(NonNegativeValidation<_>)]
+///     #[koruma(NonNegativeValidation::<_>::builder())]
 ///     balance: f64,
 /// }
 /// ```

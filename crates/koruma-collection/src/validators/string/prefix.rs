@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Config {
-///     #[koruma(PrefixValidation<_>(prefix = "config_"))]
+///     #[koruma(PrefixValidation::<_>::builder().prefix("config_"))]
 ///     key: String,
 /// }
 /// ```

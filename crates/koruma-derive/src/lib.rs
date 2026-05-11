@@ -113,10 +113,10 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// ```ignore
 /// #[derive(Koruma)]
 /// struct Item {
-///     #[koruma(NumberRangeValidation(min = 0, max = 100))]
+///     #[koruma(NumberRangeValidation::builder().min(0).max(100))]
 ///     age: i32,
 ///
-///     #[koruma(StringLengthValidation(min = 1, max = 50))]
+///     #[koruma(StringLengthValidation::builder().min(1).max(50))]
 ///     name: String,
 ///
 ///     // No #[koruma(...)] attribute means field is not validated
@@ -158,7 +158,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllDisplay)]
 /// pub struct Product {
-///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>::builder().min(5).max(20), PrefixValidation::<_>::builder().prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
@@ -193,7 +193,7 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
-///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>::builder().min(5).max(20), PrefixValidation::<_>::builder().prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///

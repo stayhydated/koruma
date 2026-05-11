@@ -30,7 +30,7 @@ impl std::fmt::Display for IpKind {
 ///
 /// #[derive(Koruma)]
 /// struct NetworkConfig {
-///     #[koruma(IpValidation<_>(kind = IpKind::V4))]
+///     #[koruma(IpValidation::<_>::builder().kind(IpKind::V4))]
 ///     ip_address: String,
 /// }
 /// ```

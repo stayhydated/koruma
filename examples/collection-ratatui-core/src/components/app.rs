@@ -60,7 +60,7 @@ impl App {
         language_selector.set_selected_index(initial_idx);
 
         // Initialize with proper filtering
-        language_selector.set_search_query("", |lang| localize(lang));
+        language_selector.set_search_query("", localize);
 
         // Initialize module selector with all available modules
         let mut module_selector = SearchableSelect::new(available_modules.clone());
@@ -258,14 +258,13 @@ impl App {
                     let current_query = self.language_selector.get_search_query().to_string();
                     let new_query = format!("{}{}", current_query, c);
                     self.language_selector
-                        .set_search_query(&new_query, |lang| localize(lang));
+                        .set_search_query(&new_query, localize);
                 },
                 KeyCode::Backspace if self.language_selector.is_searching() => {
                     let current_query = self.language_selector.get_search_query().to_string();
                     if !current_query.is_empty() {
                         let new_query = &current_query[..current_query.len() - 1];
-                        self.language_selector
-                            .set_search_query(new_query, |lang| localize(lang));
+                        self.language_selector.set_search_query(new_query, localize);
                     }
                 },
                 _ => {},

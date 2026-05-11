@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Debit {
-///     #[koruma(NonPositiveValidation<_>)]
+///     #[koruma(NonPositiveValidation::<_>::builder())]
 ///     amount: f64,
 /// }
 /// ```

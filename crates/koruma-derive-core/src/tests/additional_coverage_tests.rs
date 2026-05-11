@@ -14,18 +14,10 @@ fn parse_field_info(field: &syn::Field) -> FieldInfo {
 
 #[test]
 fn validator_attr_helpers_and_error_paths() {
-    let plain: ValidatorAttr = syn::parse_quote!(RangeValidation);
+    let plain: ValidatorAttr = syn::parse_quote!(RangeValidation::builder());
     assert!(!plain.has_args());
     assert!(!plain.uses_type_inference());
     assert!(!plain.has_explicit_type());
-
-    let with_args: ValidatorAttr = syn::parse_quote!(RangeValidation(min = 0, max = 10));
-    assert!(with_args.has_args());
-    let shorthand_calls = with_args.setter_calls();
-    assert_eq!(shorthand_calls.len(), 2);
-    assert_eq!(shorthand_calls[0].method.to_string(), "min");
-    assert_eq!(shorthand_calls[1].method.to_string(), "max");
-    assert_eq!(shorthand_calls[0].args.len(), 1);
 
     let with_builder_methods: ValidatorAttr =
         syn::parse_quote!(RangeValidation::builder().min(0).max(10));
@@ -35,22 +27,16 @@ fn validator_attr_helpers_and_error_paths() {
     assert_eq!(builder_calls[0].method.to_string(), "min");
     assert_eq!(builder_calls[1].method.to_string(), "max");
 
-    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation<_>);
+    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>::builder());
     assert!(infer.uses_type_inference());
     assert!(!infer.has_explicit_type());
 
-    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation<i32>);
+    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>::builder());
     assert!(!explicit.uses_type_inference());
     assert!(explicit.has_explicit_type());
 
-    let shorthand: ValidatorAttr = syn::parse_quote!(GenericValidation<_>);
-    assert!(shorthand.uses_type_inference());
-
-    let shorthand_with_spaces: ValidatorAttr = syn::parse_str("GenericValidation < _ >")
-        .expect("expected shorthand generic syntax to parse");
-    assert!(shorthand_with_spaces.uses_type_inference());
-
-    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<i32, u32>");
+    let too_many_types: Result<ValidatorAttr, _> =
+        syn::parse_str("GenericValidation::<i32, u32>::builder()");
     assert!(
         too_many_types
             .expect_err("expected parse error")
@@ -58,7 +44,8 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("exactly one type argument")
     );
 
-    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<1>");
+    let non_type_generic: Result<ValidatorAttr, _> =
+        syn::parse_str("GenericValidation::<1>::builder()");
     assert!(
         non_type_generic
             .expect_err("expected parse error")
@@ -66,12 +53,12 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("expects a type argument")
     );
 
-    let turbofish: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<_>");
+    let removed_shorthand: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<_>");
     assert!(
-        turbofish
-            .expect_err("expected turbofish syntax to be rejected")
+        removed_shorthand
+            .expect_err("expected shorthand syntax to be rejected")
             .to_string()
-            .contains("use angle bracket syntax `<...>`")
+            .contains("requires a builder chain")
     );
 
     let builder_with_build: Result<ValidatorAttr, _> =
@@ -92,8 +79,10 @@ fn validator_attr_helpers_and_error_paths() {
 
 #[test]
 fn koruma_attr_helpers_and_newtype_parsing_paths() {
-    let attr: KorumaAttr =
-        syn::parse_quote!(RangeValidation(min = 0, max = 10), each(PositiveValidation));
+    let attr: KorumaAttr = syn::parse_quote!(
+        RangeValidation::builder().min(0).max(10),
+        each(PositiveValidation::builder())
+    );
     assert!(attr.has_validators());
     assert!(!attr.is_modifier());
 
@@ -111,8 +100,8 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 
     let newtype_with_validators: KorumaAttr = syn::parse_quote!(
         newtype,
-        each(PositiveValidation),
-        RangeValidation(min = 0, max = 1)
+        each(PositiveValidation::builder()),
+        RangeValidation::builder().min(0).max(1)
     );
     assert!(newtype_with_validators.is_newtype);
     assert!(newtype_with_validators.has_validators());
@@ -123,7 +112,7 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 #[test]
 fn field_info_and_parse_field_result_helpers() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation(min = 0, max = 10), each(PositiveValidation))]
+        #[koruma(RangeValidation::builder().min(0).max(10), each(PositiveValidation::builder()))]
         value: Vec<i32>
     };
     let info = parse_field_info(&field);
@@ -159,7 +148,7 @@ fn field_info_and_parse_field_result_helpers() {
     assert!(skip_result.valid().is_none());
 
     let generic_field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation<_>)]
+        #[koruma(RangeValidation::<_>::builder())]
         broken: i32
     };
     let generic_result = parse_field(&generic_field, 0);
@@ -168,7 +157,7 @@ fn field_info_and_parse_field_result_helpers() {
     assert!(generic_info.validation.field_validators[0].infer_type);
 
     let explicit_field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation<i32>(min = 0, max = 10))]
+        #[koruma(RangeValidation::<i32>::builder().min(0).max(10))]
         constrained: i32
     };
     let explicit_result = parse_field(&explicit_field, 0);
@@ -187,7 +176,7 @@ fn field_info_and_parse_field_result_helpers() {
 #[test]
 fn parse_field_allows_distinct_fully_qualified_validators() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(foo::RangeValidation(min = 0, max = 10), bar::RangeValidation(min = 11, max = 20))]
+        #[koruma(foo::RangeValidation::builder().min(0).max(10), bar::RangeValidation::builder().min(11).max(20))]
         value: i32
     };
 
@@ -319,14 +308,14 @@ fn utility_functions_cover_non_happy_paths() {
 #[test]
 fn koruma_attr_newtype_parser_handles_trailing_commas() {
     let with_trailing_commas: KorumaAttr =
-        syn::parse_str("newtype, each(RangeValidation(min = 0, max = 1), PositiveValidation,), RequiredValidation,")
+        syn::parse_str("newtype, each(RangeValidation::builder().min(0).max(1), PositiveValidation::builder(),), RequiredValidation::builder(),")
             .expect("newtype parser should accept commas");
     assert!(with_trailing_commas.is_newtype);
     assert_eq!(with_trailing_commas.field_validators.len(), 1);
     assert_eq!(with_trailing_commas.element_validators.len(), 2);
 
     let plain_with_each: KorumaAttr = syn::parse_str(
-        "each(RangeValidation(min = 0, max = 1), PositiveValidation,), RequiredValidation,",
+        "each(RangeValidation::builder().min(0).max(1), PositiveValidation::builder(),), RequiredValidation::builder(),",
     )
     .expect("plain parser should accept commas");
     assert!(!plain_with_each.is_newtype);
@@ -336,13 +325,10 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
 
 #[test]
 fn parser_edge_cases_cover_remaining_parse_lines() {
-    let shorthand_with_spaces: ValidatorAttr =
-        syn::parse_str("RangeValidation < _ >").expect("expected shorthand syntax to parse");
-    assert!(shorthand_with_spaces.infer_type);
-
-    let shorthand_no_space: ValidatorAttr =
-        syn::parse_str("RangeValidation<_>").expect("expected shorthand syntax to parse");
-    assert!(shorthand_no_space.infer_type);
+    let builder_with_spaces: ValidatorAttr =
+        syn::parse_str("RangeValidation :: < _ > :: builder()")
+            .expect("expected builder syntax to parse");
+    assert!(builder_with_spaces.infer_type);
 
     // Parenthesized path arguments branch.
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("Fn(i32)");
@@ -350,16 +336,17 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
 
     // `newtype, each(...), ::Path` exercises comma continuation and non-ident validator path
     // in the newtype parser loop.
-    let newtype_with_each_and_path: KorumaAttr =
-        syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
-            .expect("newtype attr with `each` and absolute path should parse");
+    let newtype_with_each_and_path: KorumaAttr = syn::parse_str(
+        "newtype, each(::demo::ElemValidation::builder()), ::demo::FieldValidation::builder()",
+    )
+    .expect("newtype attr with `each` and absolute path should parse");
     assert!(newtype_with_each_and_path.is_newtype);
     assert_eq!(newtype_with_each_and_path.element_validators.len(), 1);
     assert_eq!(newtype_with_each_and_path.field_validators.len(), 1);
 
     // `newtype` followed by a path without a comma currently falls back to regular parsing.
     let newtype_without_comma_falls_through: KorumaAttr =
-        syn::parse_str("newtype::demo::FieldValidation")
+        syn::parse_str("newtype::demo::FieldValidation::builder()")
             .expect("fallback parser should still parse remaining validator path");
     assert!(!newtype_without_comma_falls_through.is_newtype);
     assert_eq!(
@@ -368,13 +355,13 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     );
 
     // Non-ident path in the non-newtype parser loop.
-    let absolute_path_only: KorumaAttr =
-        syn::parse_str("::demo::FieldValidation").expect("absolute validator path should parse");
+    let absolute_path_only: KorumaAttr = syn::parse_str("::demo::FieldValidation::builder()")
+        .expect("absolute validator path should parse");
     assert!(!absolute_path_only.is_newtype);
     assert_eq!(absolute_path_only.field_validators.len(), 1);
 
     let newtype_each_trailing_comma: KorumaAttr =
-        syn::parse_str("newtype, each(::demo::ElemValidation),")
+        syn::parse_str("newtype, each(::demo::ElemValidation::builder()),")
             .expect("newtype each with trailing comma should parse");
     assert!(newtype_each_trailing_comma.is_newtype);
     assert_eq!(newtype_each_trailing_comma.element_validators.len(), 1);
@@ -384,7 +371,7 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
 #[test]
 fn field_info_has_validators_covers_element_only_branch() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(PositiveValidation))]
+        #[koruma(each(PositiveValidation::builder()))]
         values: Vec<i32>
     };
     let info = parse_field_info(&field);
@@ -397,7 +384,7 @@ fn field_info_has_validators_covers_element_only_branch() {
 fn parse_field_rejects_newtype_with_each_across_attributes() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(newtype)]
-        #[koruma(each(PositiveValidation))]
+        #[koruma(each(PositiveValidation::builder()))]
         wrapped: Wrapper
     };
 

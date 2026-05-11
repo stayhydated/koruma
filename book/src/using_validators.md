@@ -4,15 +4,14 @@ Once validators are defined, attach them to fields with `#[koruma(...)]` and der
 your data type. The derive macro generates a `validate()` method that runs the configured
 validators and returns `Result<(), Errors>`.
 
-Validators in `#[koruma(...)]` can use either form and be mixed across fields:
+Validators in `#[koruma(...)]` use the same builder syntax you use in Rust code:
 
 ```rust
-#[koruma(TypeName<_>(min = 0, max = 100))]
 #[koruma(TypeName::<_>::builder().min(0).max(100))]
 ```
 
-Use `TypeName<_>(...)` or `TypeName::<_>::builder()...` when the validator is generic and Rust can
-infer the missing type parameter.
+Use `TypeName::<_>::builder()...` when the validator is generic and Rust can infer the missing type
+parameter.
 
 ```rust
 use koruma::{Koruma, KorumaAllDisplay};
@@ -22,7 +21,7 @@ pub struct Item {
     #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation(min = 1, max = 67))]
+    #[koruma(StringLengthValidation::builder().min(1).max(67))]
     pub name: String,
 
     // Fields without #[koruma(...)] are ignored by validation.
@@ -56,13 +55,13 @@ For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
 ```rust
 #[derive(Koruma)]
 pub struct Order {
-    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    #[koruma(each(NumberRangeValidation::<_>::builder().min(1).max(5)))]
     pub quantities: Vec<i32>,
 }
 
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {
-    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    #[koruma(each(NumberRangeValidation::<_>::builder().min(1).max(5)))]
     pub quantities: &'a [i32],
 }
 ```

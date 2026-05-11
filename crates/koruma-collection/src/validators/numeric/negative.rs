@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Temperature {
-///     #[koruma(NegativeValidation<_>)]
+///     #[koruma(NegativeValidation::<_>::builder())]
 ///     celsius: f64,
 /// }
 /// ```

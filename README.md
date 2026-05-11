@@ -125,10 +125,9 @@ clone requirements for presence-only validators. If your validator still derives
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
-Validators in `#[koruma(...)]` can use either form and be mixed across fields:
+Validators in `#[koruma(...)]` use the same builder syntax you use in Rust code:
 
 ```rs
-#[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
 #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
 ```
 
@@ -140,7 +139,7 @@ pub struct Item {
     #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation(min = 1, max = 67))]
+    #[koruma(StringLengthValidation::builder().min(1).max(67))]
     pub name: String,
 
     // No #[koruma(...)] attribute -> not validated
@@ -173,13 +172,13 @@ For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
 ```rs
 #[derive(Koruma)]
 pub struct Order {
-    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    #[koruma(each(NumberRangeValidation::<_>::builder().min(1).max(5)))]
     pub quantities: Vec<i32>,
 }
 
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {
-    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    #[koruma(each(NumberRangeValidation::<_>::builder().min(1).max(5)))]
     pub quantities: &'a [i32],
 }
 ```
@@ -255,10 +254,10 @@ impl Validate<String> for NonEmptyStringValidation {
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation<_>)]
+    #[koruma(IsEvenNumberValidation::<_>::builder())]
     pub id: i32,
 
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub username: String,
 }
 
@@ -303,13 +302,13 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
 pub struct Email {
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub value: String,
 }
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct SignupForm {
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub username: String,
 
     #[koruma(newtype)]
@@ -377,7 +376,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
-pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+pub struct Username(#[koruma(NonEmptyStringValidation::builder())] pub String);
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct LoginForm {
@@ -410,7 +409,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation<_>)] u8);
+pub struct Only67u8(#[koruma(Only67Validation::<_>::builder())] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),

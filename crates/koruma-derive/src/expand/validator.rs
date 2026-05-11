@@ -236,11 +236,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         let fluent_methods = quote! {
             fn fluent_string_with(
                 &self,
-                localize: &mut dyn for<'a> FnMut(
-                    &str,
-                    &str,
-                    Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
-                ) -> String,
+                localize: &mut ::koruma::showcase::FluentLocalizer<'_>,
             ) -> String {
                 use ::es_fluent::FluentMessage;
                 self.to_fluent_string_with(localize)

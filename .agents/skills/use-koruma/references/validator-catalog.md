@@ -1,7 +1,7 @@
 # koruma-collection Validator Catalog
 
-Use this reference when selecting built-in validators or editing the collection inventory. Verify
-feature flags against `crates/koruma-collection/Cargo.toml` before changing dependencies.
+Use this reference when selecting built-in validators for application code. Configure feature
+flags on the application's `koruma-collection` dependency.
 
 ## Feature Flags
 
@@ -10,7 +10,6 @@ feature flags against `crates/koruma-collection/Cargo.toml` before changing depe
   `regex`, `smallvec`, and `rust_decimal`.
 - `fluent`: enables `es-fluent` integration and enables `koruma/fluent`.
 - `full-fluent`: enables `full` and `fluent`.
-- `internal-showcase`: internal demo registry support.
 
 Validator-specific optional flags:
 
@@ -86,5 +85,5 @@ Import with `use koruma_collection::general;`.
 - `general::RequiredValidation<Option<T>>`: option is `Some`.
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
-`collection::NonEmptyValidation<_>` for emptiness checks. It uses `skip_capture` internally so
+`collection::NonEmptyValidation<_>` for emptiness checks. Its `skip_capture` behavior means
 `Option<NonCloneType>` fields do not require `Clone` just to report a missing-value error.

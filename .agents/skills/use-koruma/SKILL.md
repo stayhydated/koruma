@@ -1,45 +1,36 @@
 ---
 name: use-koruma
-description: "Use when Codex needs to add, review, or update Rust validation built with koruma or koruma-collection, including custom validators, field #[koruma(...)] attributes, derived Koruma error accessors, KorumaAllDisplay or KorumaAllFluent rendering, nested validation, newtype validation, try_new or TryFrom checked constructors, per-element each(...) validation, koruma-collection validator selection, feature flags, validator messages, i18n, docs, and examples in this workspace."
+description: "Use only for user-facing guidance on applying koruma or koruma-collection in application Rust code, including built-in validator selection, custom validators, field #[koruma(...)] attributes, derived Koruma error accessors, KorumaAllDisplay or KorumaAllFluent rendering, nested validation, newtype validation, try_new or TryFrom checked constructors, per-element each(...) validation, feature flags, validator messages, and i18n. Do not use for generic Rust build/test tasks."
 ---
 
 # Use Koruma
 
 ## Overview
 
-Use this skill for strongly typed per-field validation with `koruma`. Treat `koruma` and
-`koruma-collection` as one workflow: `koruma` provides the traits, derive macros, validation
-flow, and typed error accessors; `koruma-collection` provides common validators implemented on top
-of those APIs.
+This skill is user-facing only. Use it to help application developers apply strongly typed
+per-field validation with `koruma` and `koruma-collection` in their own Rust code.
+
+Do not add build, test, format, lint, or other verification steps here; those belong to the
+normal Rust workflow.
 
 ## Choose the Surface
 
-- Use `crates/koruma` as the normal user-facing entry point for application code.
+- Use `koruma` as the normal entry point for application code.
 - Use `koruma-collection` when a common string, format, numeric, collection, or general validator
   already fits the rule.
 - Define a custom `#[validator]` only when the rule is domain-specific, needs custom stored error
   data, or needs custom `Display` or Fluent message behavior.
-- Use `koruma-core`, `koruma-derive`, or `koruma-derive-core` directly only for integration,
-  tooling, or macro internals.
 
 ## Inspect First
 
-1. Read `examples/readme` for canonical executable examples.
-2. Read the matching user-facing docs before changing public behavior:
-   `README.md`, `crates/koruma/README.md`, `crates/koruma-collection/README.md`, and the relevant
-   `book/src/*.md` page.
-3. For built-in validators, read `references/validator-catalog.md` and verify feature flags against
-   `crates/koruma-collection/Cargo.toml` when editing dependencies.
-4. Keep implementation details in `docs/ARCHITECTURE.md`; keep READMEs and book pages
-   example-first.
+1. Read the local application code using `koruma` before changing patterns.
+2. For built-in validators, read `references/validator-catalog.md` when you need inventory,
+   module names, or feature flags.
+3. Prefer examples and concrete Rust snippets over prose-only guidance.
 
 ## Dependencies
 
-Inside this workspace, follow the root `Cargo.toml` dependency model: define versions and path
-dependencies at the workspace root, then use `workspace = true` in member crates. Non-example
-crates should not add explicit path dependencies.
-
-For external application examples:
+For application code:
 
 ```toml
 [dependencies]
@@ -166,28 +157,3 @@ validators are evaluated.
 - Add `#[koruma(newtype(try_from))]` to generate `TryFrom<Inner>` for checked conversions.
 - For Fluent, derive `EsFluent` on validators, derive `KorumaAllFluent` on consumers, and render
   messages through an app-owned `es-fluent` localizer.
-
-## Synchronize Public Surfaces
-
-When changing a public workflow, feature-flag story, validator inventory, validator message shape,
-or user-visible API shape, update the same change across:
-
-- `examples/readme` when relevant.
-- The affected user-facing `README.md` files.
-- The matching `book/src/*.md` pages.
-- `crates/koruma-collection/README.md` and `book/src/koruma_collection.md` for collection
-  inventory, feature flags, or usage guidance.
-- `crates/koruma-collection/i18n/` and `Display` implementations when validator messages change.
-
-For collection message changes, run `cargo run -p xtask -- sync-display-ftl --check` or
-`cargo run -p xtask -- sync-display-ftl` as appropriate.
-
-## Validation
-
-Run the narrowest useful checks first, then broaden based on the touched surface:
-
-- `cargo test -p koruma`
-- `cargo test -p koruma-collection --features full-fluent`
-- `cargo test -p readme`
-- `cargo run -p xtask -- build-book` for book changes
-- `cargo run -p xtask -- build-llms-txt` when generated public text surfaces must be refreshed

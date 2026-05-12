@@ -1,4 +1,4 @@
 interface:
   display_name: "Use Koruma"
-  short_description: "Add Koruma validation patterns"
+  short_description: "Apply Koruma in application Rust"
   default_prompt: "Use $use-koruma to add strongly typed validation with koruma and koruma-collection."

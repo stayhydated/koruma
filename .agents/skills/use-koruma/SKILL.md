@@ -5,30 +5,51 @@ description: "Use only for user-facing guidance on applying koruma or koruma-col
 
 # Use Koruma
 
-## Overview
+## Scope Boundary
 
-This skill is user-facing only. Use it to help application developers apply strongly typed
-per-field validation with `koruma` and `koruma-collection` in their own Rust code.
+Treat this skill as a hosted public-usage guide for `koruma` consumers. Use it
+only for user-facing application workflows: choosing `koruma` or
+`koruma-collection`, applying built-in validators, defining custom validators,
+deriving typed error accessors, rendering validation failures, and connecting
+validator messages to Fluent localization.
 
-Do not add build, test, format, lint, or other verification steps here; those belong to the
-normal Rust workflow.
+Do not use this skill as a contributor guide for `koruma` repository internals.
+For build, test, format, lint, maintenance, release, or architecture work, read
+the repository source, `AGENTS.md`, and the relevant crate documentation
+directly.
 
-## Choose the Surface
+## Core Workflow
 
-- Use `koruma` as the normal entry point for application code.
-- Use `koruma-collection` when a common string, format, numeric, collection, or general validator
-  already fits the rule.
-- Define a custom `#[validator]` only when the rule is domain-specific, needs custom stored error
-  data, or needs custom `Display` or Fluent message behavior.
+Start from the user-facing facade. Most application code uses `koruma`, and
+adds `koruma-collection` when built-in validators fit the rule:
 
-## Inspect First
+1. Inspect the local application type, validation calls, and existing
+   `Cargo.toml` feature setup before changing patterns.
+2. Use `koruma` as the normal entry point for derives, core traits, and error
+   rendering helpers.
+3. Use `koruma-collection` when a common string, format, numeric, collection,
+   or general validator already fits the rule.
+4. Define a custom `#[validator]` only when the rule is domain-specific, needs
+   custom stored error data, or needs custom `Display` or Fluent behavior.
+5. Attach validators with field-level `#[koruma(...)]` attributes. Use
+   `TypeName::<_>::builder()...` for generic validators so builder completion
+   exposes settings and computed values.
+6. Derive `Koruma` on the validated type. Add `KorumaAllDisplay` for `all()`
+   iterators over `Display`-renderable validators, or `KorumaAllFluent` for
+   localized `FluentMessage` values.
+7. For Fluent, derive `EsFluent` on validators and render messages through an
+   app-owned `es-fluent` localizer.
 
-1. Read the local application code using `koruma` before changing patterns.
-2. For built-in validators, read `references/validator-catalog.md` when you need inventory,
-   module names, or feature flags.
-3. Prefer examples and concrete Rust snippets over prose-only guidance.
+## Reference Selection
 
-## Dependencies
+Load only the reference needed for the task:
+
+- `references/validator-catalog.md`: built-in validator inventory, module names, feature flags, and usage notes.
+
+Prefer current public docs or source examples over memory when details matter.
+Prefer examples and concrete Rust snippets over prose-only guidance.
+
+## Implementation Rules
 
 For application code:
 
@@ -47,9 +68,7 @@ koruma-collection = { version = "*", features = ["full-fluent"] }
 es-fluent = { version = "*", features = ["derive"] }
 ```
 
-## Use Built-In Validators
-
-Prefer the collection modules when they match the rule:
+Prefer collection modules when they match the rule:
 
 ```rust
 use koruma::{Koruma, KorumaAllDisplay, Validate};
@@ -71,13 +90,8 @@ struct SignupInput {
 }
 ```
 
-Use `TypeName::<_>::builder()...` for generic validators. Builder syntax gives standard Rust
-method completion for validator settings and computed values.
-
-## Define Custom Validators
-
-Use `#[validator]`, mark the captured input with `#[koruma(value)]`, implement `Validate<T>`, and
-derive or implement the error rendering needed by the caller.
+Use `#[validator]`, mark the captured input with `#[koruma(value)]`, implement
+`Validate<T>`, and derive or implement the error rendering needed by the caller:
 
 ```rust
 use koruma::{Validate, validator};
@@ -112,14 +126,12 @@ impl fmt::Display for StringLengthValidation {
 }
 ```
 
-Keep `#[koruma(value)]` fields private and use the generated getter when external code needs the
-captured input. For presence-only validators, use `#[koruma(value, skip_capture)]` on an
-`Option<T>` value field so missing-value errors do not require cloning the original value.
+Keep `#[koruma(value)]` fields private and use the generated getter when
+external code needs the captured input. For presence-only validators, use
+`#[koruma(value, skip_capture)]` on an `Option<T>` value field so missing-value
+errors do not require cloning the original value.
 
-## Attach and Read Errors
-
-Derive `Koruma` on the validated type. Add `KorumaAllDisplay` for `all()` iterators over
-`Display`-renderable validators, or `KorumaAllFluent` for localized `FluentMessage` values.
+Read generated errors through field and validator accessors:
 
 ```rust
 #[derive(Koruma, KorumaAllDisplay)]
@@ -142,18 +154,14 @@ if let Err(errors) = item.validate() {
 }
 ```
 
-Generated validator accessors are snake_case versions of the validator type names. Fields without
-`#[koruma(...)]` are ignored. Multiple validators run in the order listed, and all configured
-validators are evaluated.
+Generated validator accessors are snake_case versions of validator type names.
+Fields without `#[koruma(...)]` are ignored. Multiple validators run in the
+order listed, and all configured validators are evaluated.
 
-## Common Patterns
+Common patterns:
 
-- Use `#[koruma(each(Validator::<_>::builder()...))]` for per-element validation of `Vec<T>`, slices, arrays,
-  and optional variants of those.
-- Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the
-  nested error tree.
+- Use `#[koruma(each(Validator::<_>::builder()...))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those.
+- Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree.
 - Use `#[koruma(newtype)]` for transparent error access through newtype wrappers.
 - Add `#[koruma(try_new, newtype)]` to generate a checked `try_new` constructor.
 - Add `#[koruma(newtype(try_from))]` to generate `TryFrom<Inner>` for checked conversions.
-- For Fluent, derive `EsFluent` on validators, derive `KorumaAllFluent` on consumers, and render
-  messages through an app-owned `es-fluent` localizer.

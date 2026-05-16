@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct File {
-///     #[koruma(SuffixValidation::<_>::builder().suffix(".txt"))]
+///     #[koruma(SuffixValidation::<_>::suffix(".txt"))]
 ///     name: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(SuffixValidation::builder()
-            .suffix(".rs")
+        Ok(SuffixValidation::suffix(".rs")
             .with_value(input.to_string())
             .build())
     }

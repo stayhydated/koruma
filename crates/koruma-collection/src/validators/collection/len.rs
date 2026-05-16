@@ -12,7 +12,7 @@ use super::HasLen;
 ///
 /// #[derive(Koruma)]
 /// struct Order {
-///     #[koruma(LenValidation::<_>::builder().min(1).max(5))]
+///     #[koruma(LenValidation::<_>::min(1).max(5))]
 ///     items: Vec<String>,
 /// }
 /// ```
@@ -29,8 +29,7 @@ use super::HasLen;
     input_type = Text,
     module = "collection",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(LenValidation::builder()
-            .min(1)
+        Ok(LenValidation::min(1)
             .max(10)
             .with_value(input.to_string())
             .build())

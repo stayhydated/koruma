@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 /// #[derive(Koruma)]
 /// struct User {
 ///     password: String,
-///     #[koruma(MatchesValidation::<_>::builder().other(password))]
+///     #[koruma(MatchesValidation::<_>::other(password))]
 ///     confirm_password: String,
 /// }
 /// ```
@@ -24,8 +24,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(MatchesValidation::builder()
-            .with_value(input.to_string())
+        Ok(MatchesValidation::with_value(input.to_string())
             .other("expected".to_string())
             .build())
     }

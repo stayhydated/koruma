@@ -150,14 +150,14 @@ fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inne
 
 #[test]
 fn test_validator_wants_full_type_for_explicit_option_type() {
-    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<String>>::builder());
+    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<String>>);
     assert!(validator_wants_full_type(&attr));
 
     let qualified_attr: ValidatorAttr =
-        syn::parse_quote!(RequiredValidation::<core::option::Option<String>>::builder());
+        syn::parse_quote!(RequiredValidation::<core::option::Option<String>>);
     assert!(validator_wants_full_type(&qualified_attr));
 
-    let non_option_attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<String>::builder());
+    let non_option_attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<String>);
     assert!(!validator_wants_full_type(&non_option_attr));
 }
 
@@ -194,7 +194,7 @@ fn test_find_value_field_returns_none_when_missing() {
 #[test]
 fn test_parse_field_with_single_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::builder().min(0).max(100))]
+        #[koruma(RangeValidation::min(0).max(100))]
         pub age: i32
     };
 
@@ -216,7 +216,7 @@ fn test_parse_field_with_single_validator() {
 #[test]
 fn test_parse_field_with_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange::<_>::builder().min(0.0).max(1.0))]
+        #[koruma(GenericRange::<_>::min(0.0).max(1.0))]
         pub score: f64
     };
 
@@ -230,7 +230,7 @@ fn test_parse_field_with_generic_validator() {
 #[test]
 fn test_parse_field_with_each() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(RangeValidation::builder().min(0).max(100)))]
+        #[koruma(each(RangeValidation::min(0).max(100)))]
         pub scores: Vec<i32>
     };
 

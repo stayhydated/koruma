@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Contact {
-///     #[koruma(PhoneNumberValidation::<_>::builder())]
+///     #[koruma(PhoneNumberValidation::<_>)]
 ///     phone: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(PhoneNumberValidation::builder()
-            .with_value(input.to_string())
+        Ok(PhoneNumberValidation::with_value(input.to_string())
             .build())
     }
 ))]

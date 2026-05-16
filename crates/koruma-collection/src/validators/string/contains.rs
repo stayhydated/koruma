@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(ContainsValidation::<_>::builder().substring("test"))]
+///     #[koruma(ContainsValidation::<_>::substring("test"))]
 ///     email: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(ContainsValidation::builder()
-            .substring("test")
+        Ok(ContainsValidation::substring("test")
             .with_value(input.to_string())
             .build())
     }

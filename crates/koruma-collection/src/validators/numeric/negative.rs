@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Temperature {
-///     #[koruma(NegativeValidation::<_>::builder())]
+///     #[koruma(NegativeValidation::<_>)]
 ///     celsius: f64,
 /// }
 /// ```
@@ -26,8 +26,7 @@ use super::Numeric;
     module = "numeric",
     create = |input: &str| -> anyhow::Result<_> {
         let num = input.parse::<f64>()?;
-        Ok(NegativeValidation::builder()
-            .with_value(num)
+        Ok(NegativeValidation::with_value(num)
             .build())
     }
 ))]

@@ -62,10 +62,10 @@ impl Validate<String> for NonEmptyStringValidation {
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation::<_>::builder())]
+    #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
 
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub username: String,
 }
 

@@ -196,7 +196,7 @@ fn test_koruma_error_on_enum() {
 fn test_koruma_error_on_duplicate_validator_same_attr() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateValidatorSameAttr {
-            #[koruma(RangeValidation::builder().min(0).max(100), RangeValidation::builder().min(10).max(50))]
+            #[koruma(RangeValidation::min(0).max(100), RangeValidation::min(10).max(50))]
             pub value: i32,
         }
     };
@@ -215,8 +215,8 @@ fn test_koruma_error_on_duplicate_validator_same_attr() {
 fn test_koruma_error_on_duplicate_validator_separate_attrs() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateValidatorSeparateAttrs {
-            #[koruma(RangeValidation::builder().min(0).max(100))]
-            #[koruma(RangeValidation::builder().min(10).max(50))]
+            #[koruma(RangeValidation::min(0).max(100))]
+            #[koruma(RangeValidation::min(10).max(50))]
             pub value: i32,
         }
     };
@@ -235,8 +235,8 @@ fn test_koruma_error_on_duplicate_validator_separate_attrs() {
 fn test_koruma_error_on_duplicate_element_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateElementValidator {
-            #[koruma(each(RangeValidation::builder().min(0).max(100)))]
-            #[koruma(each(RangeValidation::builder().min(10).max(50)))]
+            #[koruma(each(RangeValidation::min(0).max(100)))]
+            #[koruma(each(RangeValidation::min(10).max(50)))]
             pub values: Vec<i32>,
         }
     };
@@ -255,7 +255,7 @@ fn test_koruma_error_on_duplicate_element_validator() {
 fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<_>>::builder())]
+            #[koruma(RequiredValidation::<Option<_>>)]
             pub value: i32,
         }
     };
@@ -281,7 +281,7 @@ fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
 fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elements() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalElementFullTypeValidator {
-            #[koruma(each(RequiredValidation::<Option<_>>::builder()))]
+            #[koruma(each(RequiredValidation::<Option<_>>))]
             pub values: Vec<i32>,
         }
     };
@@ -307,7 +307,7 @@ fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elem
 fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_elements() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitElementFullTypeValidator {
-            #[koruma(each(RequiredValidation::<Option<String>>::builder()))]
+            #[koruma(each(RequiredValidation::<Option<String>>))]
             pub values: Vec<String>,
         }
     };
@@ -333,7 +333,7 @@ fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_eleme
 fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<String>>::builder())]
+            #[koruma(RequiredValidation::<Option<String>>)]
             pub value: String,
         }
     };
@@ -356,10 +356,10 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
 }
 
 #[test]
-fn test_koruma_error_on_builder_chain_with_build_call() {
+fn test_koruma_error_on_direct_chain_with_build_call() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct InvalidBuilderSyntax {
-            #[koruma(NumberRangeValidation::builder().min(0).max(100).build())]
+        pub struct InvalidDirectSyntax {
+            #[koruma(NumberRangeValidation::min(0).max(100).build())]
             pub value: i32,
         }
     };
@@ -369,8 +369,8 @@ fn test_koruma_error_on_builder_chain_with_build_call() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("injects value capture and `.build()` automatically"),
-        "expected builder chain diagnostic, got: {}",
+            .contains("injects builder creation, value capture, and `.build()` automatically"),
+        "expected validator chain diagnostic, got: {}",
         err
     );
 }
@@ -388,8 +388,9 @@ fn test_koruma_error_on_removed_constructor_style_validator_args() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("requires a builder chain"),
-        "expected builder-chain diagnostic, got: {}",
+        err.to_string()
+            .contains("requires a direct validator chain"),
+        "expected direct-chain diagnostic, got: {}",
         err
     );
 }
@@ -398,7 +399,7 @@ fn test_koruma_error_on_removed_constructor_style_validator_args() {
 fn test_koruma_error_on_each_non_vec_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonVecEach {
-            #[koruma(each(RangeValidation::builder().min(0).max(100)))]
+            #[koruma(each(RangeValidation::min(0).max(100)))]
             pub values: std::collections::HashSet<i32>,
         }
     };
@@ -418,9 +419,9 @@ fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]
         pub struct BadNewtype {
-            #[koruma(RangeValidation::builder().min(0).max(10))]
+            #[koruma(RangeValidation::min(0).max(10))]
             pub a: i32,
-            #[koruma(RangeValidation::builder().min(0).max(10))]
+            #[koruma(RangeValidation::min(0).max(10))]
             pub b: i32,
         }
     };
@@ -440,7 +441,7 @@ fn test_koruma_error_on_struct_level_newtype_with_one_validated_and_one_plain_fi
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]
         pub struct BadNewtype {
-            #[koruma(RangeValidation::builder().min(0).max(10))]
+            #[koruma(RangeValidation::min(0).max(10))]
             pub a: i32,
             pub b: i32,
         }
@@ -496,7 +497,7 @@ fn test_koruma_error_on_nested_field_with_split_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Parent {
             #[koruma(nested)]
-            #[koruma(RequiredValidation::<Option<_>>::builder())]
+            #[koruma(RequiredValidation::<Option<_>>)]
             pub child: Option<Child>,
         }
     };
@@ -516,7 +517,7 @@ fn test_koruma_error_on_newtype_field_with_each() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Parent {
             #[koruma(newtype)]
-            #[koruma(each(PositiveValidation::builder()))]
+            #[koruma(each(PositiveValidation))]
             pub child: Child,
         }
     };

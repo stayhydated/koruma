@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(AlphanumericValidation::<_>::builder())]
+///     #[koruma(AlphanumericValidation::<_>)]
 ///     username: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(AlphanumericValidation::builder()
-            .with_value(input.to_string())
+        Ok(AlphanumericValidation::with_value(input.to_string())
             .build())
     }
 ))]

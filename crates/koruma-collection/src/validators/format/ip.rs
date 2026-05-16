@@ -30,7 +30,7 @@ impl std::fmt::Display for IpKind {
 ///
 /// #[derive(Koruma)]
 /// struct NetworkConfig {
-///     #[koruma(IpValidation::<_>::builder().kind(IpKind::V4))]
+///     #[koruma(IpValidation::<_>::kind(IpKind::V4))]
 ///     ip_address: String,
 /// }
 /// ```
@@ -43,8 +43,7 @@ impl std::fmt::Display for IpKind {
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(IpValidation::builder()
-            .kind(IpKind::Any)
+        Ok(IpValidation::kind(IpKind::Any)
             .with_value(input.to_string())
             .build())
     }

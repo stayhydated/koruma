@@ -3,7 +3,7 @@ source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
-#[builder(crate = ::koruma::bon)]
+#[builder(crate = ::koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
 #[derive(Clone, Debug)]
 pub struct GenericRangeValidation<T> {
     pub min: T,
@@ -11,11 +11,50 @@ pub struct GenericRangeValidation<T> {
     actual: Option<T>,
 }
 impl<T> GenericRangeValidation<T> {
+    #[doc(hidden)]
+    pub fn __koruma_builder() -> GenericRangeValidationBuilder<
+        T,
+        generic_range_validation_builder::Empty,
+    > {
+        Self::__koruma_bon_builder()
+    }
+    #[doc = concat!(
+        "Starts building [`", stringify!(GenericRangeValidation), "`] with the `",
+        "actual", "` value set."
+    )]
+    pub fn with_value(
+        value: T,
+    ) -> GenericRangeValidationBuilder<
+        T,
+        generic_range_validation_builder::SetActual<
+            generic_range_validation_builder::Empty,
+        >,
+    > {
+        Self::__koruma_builder().with_value(value)
+    }
     #[doc = concat!(
         "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
     )]
     pub fn actual(&self) -> &Option<T> {
         &self.actual
+    }
+    #[doc = concat!("Starts building this validator with `", "min", "` set.")]
+    pub fn min(
+        value: T,
+    ) -> GenericRangeValidationBuilder<
+        T,
+        generic_range_validation_builder::SetMin<generic_range_validation_builder::Empty>,
+    > {
+        Self::__koruma_builder().min(value)
+    }
+    #[doc = concat!("Starts building this validator with `", "max", "` set.")]
+    pub fn max(
+        value: T,
+    ) -> GenericRangeValidationBuilder<
+        T,
+        generic_range_validation_builder::SetMax<generic_range_validation_builder::Empty>,
+    > {
+        Self::__koruma_builder().max(value)
     }
 }
 impl<T, S: generic_range_validation_builder::State> GenericRangeValidationBuilder<T, S>

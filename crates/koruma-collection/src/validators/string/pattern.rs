@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(PatternValidation::<_>::builder().pattern(Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
+///     #[koruma(PatternValidation::<_>::pattern(Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
 ///     username: String,
 /// }
 /// ```
@@ -24,8 +24,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(PatternValidation::builder()
-            .with_value(input.to_string())
+        Ok(PatternValidation::with_value(input.to_string())
             .pattern(::regex::Regex::new(r"^[a-zA-Z0-9_]+$")?)
             .build())
     }
@@ -64,8 +63,7 @@ mod tests {
 
     #[test]
     fn accepts_when_pattern_matches() {
-        let validator = PatternValidation::builder()
-            .pattern(regex::Regex::new(r"^\d+$").unwrap())
+        let validator = PatternValidation::pattern(regex::Regex::new(r"^\d+$").unwrap())
             .with_value(String::new())
             .build();
         assert!(validator.validate(&"12345".to_string()));
@@ -73,8 +71,7 @@ mod tests {
 
     #[test]
     fn rejects_when_pattern_does_not_match() {
-        let validator = PatternValidation::builder()
-            .pattern(regex::Regex::new(r"^\d+$").unwrap())
+        let validator = PatternValidation::pattern(regex::Regex::new(r"^\d+$").unwrap())
             .with_value(String::new())
             .build();
         assert!(!validator.validate(&"123a".to_string()));
@@ -88,8 +85,7 @@ mod tests {
 
     #[test]
     fn validate_uses_the_current_pattern_value() {
-        let mut validator = PatternValidation::builder()
-            .pattern(regex::Regex::new(r"^a$").unwrap())
+        let mut validator = PatternValidation::pattern(regex::Regex::new(r"^a$").unwrap())
             .with_value(String::new())
             .build();
 
@@ -104,8 +100,7 @@ mod tests {
 
     #[test]
     fn builder_accepts_precompiled_regexes() {
-        let validator = PatternValidation::builder()
-            .pattern(regex::Regex::new(r"^cache-hit-\d+$").unwrap())
+        let validator = PatternValidation::pattern(regex::Regex::new(r"^cache-hit-\d+$").unwrap())
             .with_value(String::new())
             .build();
 
@@ -115,8 +110,7 @@ mod tests {
     #[cfg(feature = "fmt")]
     #[test]
     fn display_does_not_echo_the_pattern() {
-        let validator = PatternValidation::builder()
-            .pattern(regex::Regex::new(r"^\d+$").unwrap())
+        let validator = PatternValidation::pattern(regex::Regex::new(r"^\d+$").unwrap())
             .with_value(String::new())
             .build();
 

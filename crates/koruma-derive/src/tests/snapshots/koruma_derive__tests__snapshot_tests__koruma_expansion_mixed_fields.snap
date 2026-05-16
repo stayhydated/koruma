@@ -212,7 +212,7 @@ impl ComplexItem {
         let mut has_error = false;
         let __field_value = &self.age;
         let validator = koruma::BuilderWithValueRef::with_value_ref(
-                RangeValidation::builder().min(0).max(100),
+                RangeValidation::min(0).max(100),
                 __field_value,
             )
             .build();
@@ -226,7 +226,7 @@ impl ComplexItem {
             };
             let mut element_has_error = false;
             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    LengthValidation::builder().min(1).max(50),
+                    LengthValidation::min(1).max(50),
                     __item_value,
                 )
                 .build();
@@ -241,7 +241,7 @@ impl ComplexItem {
         }
         let __field_value = &self.rating;
         let validator = koruma::BuilderWithValueRef::with_value_ref(
-                RangeValidation::builder().min(0).max(10),
+                RangeValidation::min(0).max(10),
                 __field_value,
             )
             .build();
@@ -250,7 +250,7 @@ impl ComplexItem {
             has_error = true;
         }
         let validator = koruma::BuilderWithValueRef::with_value_ref(
-                EvenValidation::builder(),
+                EvenValidation::__koruma_builder(),
                 __field_value,
             )
             .build();

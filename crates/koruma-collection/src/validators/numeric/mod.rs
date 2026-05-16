@@ -85,15 +85,9 @@ mod tests {
 
     #[test]
     fn numeric_uses_explicit_zero_value() {
-        let positive = PositiveValidation::builder()
-            .with_value(OffsetNumber(10))
-            .build();
-        let negative = NegativeValidation::builder()
-            .with_value(OffsetNumber(10))
-            .build();
-        let non_negative = NonNegativeValidation::builder()
-            .with_value(OffsetNumber(10))
-            .build();
+        let positive = PositiveValidation::with_value(OffsetNumber(10)).build();
+        let negative = NegativeValidation::with_value(OffsetNumber(10)).build();
+        let non_negative = NonNegativeValidation::with_value(OffsetNumber(10)).build();
 
         assert!(positive.validate(&OffsetNumber(11)));
         assert!(!positive.validate(&OffsetNumber(10)));
@@ -104,15 +98,9 @@ mod tests {
     #[cfg(feature = "rust_decimal")]
     #[test]
     fn decimal_support_uses_decimal_zero() {
-        let positive = PositiveValidation::builder()
-            .with_value(Decimal::ZERO)
-            .build();
-        let negative = NegativeValidation::builder()
-            .with_value(Decimal::ZERO)
-            .build();
-        let non_negative = NonNegativeValidation::builder()
-            .with_value(Decimal::ZERO)
-            .build();
+        let positive = PositiveValidation::with_value(Decimal::ZERO).build();
+        let negative = NegativeValidation::with_value(Decimal::ZERO).build();
+        let non_negative = NonNegativeValidation::with_value(Decimal::ZERO).build();
 
         assert!(positive.validate(&Decimal::new(1, 0)));
         assert!(!positive.validate(&Decimal::ZERO));

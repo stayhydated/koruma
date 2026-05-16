@@ -4,7 +4,10 @@ use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{ValueFieldCapture, find_value_field_info_strict, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Fields, GenericParam, ItemStruct, Visibility, parse_quote};
+use syn::{
+    Attribute, Field, Fields, GenericParam, Ident, ItemStruct, Token, Type, Visibility,
+    parenthesized, parse_quote,
+};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
@@ -55,8 +58,11 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     input.attrs.insert(0, builder_attr);
 
     // Tell bon to use koruma's re-exported bon path, so downstream crates don't
-    // need a direct `bon` dependency.
-    let bon_crate_attr: syn::Attribute = parse_quote!(#[builder(crate = ::koruma::bon)]);
+    // need a direct `bon` dependency. Keep Bon's start function private; koruma
+    // exposes direct validator entrypoints instead.
+    let bon_crate_attr: syn::Attribute = parse_quote!(
+        #[builder(crate = ::koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
+    );
     input.attrs.insert(1, bon_crate_attr);
 
     // Remove #[koruma(value)] and #[showcase(...)] from attributes
@@ -97,19 +103,6 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let value_field_name_str = value_field_name.to_string();
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
 
-    let value_getter_impl = quote! {
-        impl #impl_generics #struct_name #type_generics #where_clause {
-            #[doc = concat!(
-                "Returns the stored `",
-                #value_field_name_str,
-                "` value captured by `#[koruma(value)]`."
-            )]
-            pub fn #value_field_name(&self) -> &#value_field_type {
-                &self.#value_field_name
-            }
-        }
-    };
-
     let builder_generic_args: Vec<_> = input
         .generics
         .params
@@ -130,8 +123,50 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         })
         .collect();
 
+    let initial_builder_ty =
+        quote! { #builder_name<#(#builder_generic_args,)* #module_name::Empty> };
     let output_builder_ty =
         quote! { #builder_name<#(#builder_generic_args,)* #module_name::#set_value_type<S>> };
+    let initial_value_builder_ty = quote! { #builder_name<#(#builder_generic_args,)* #module_name::#set_value_type<#module_name::Empty>> };
+
+    let direct_builder_methods = direct_builder_methods(
+        &input,
+        &value_field_name,
+        &builder_name,
+        &module_name,
+        &builder_generic_args,
+    )?;
+
+    let value_getter_impl = quote! {
+        impl #impl_generics #struct_name #type_generics #where_clause {
+            #[doc(hidden)]
+            pub fn __koruma_builder() -> #initial_builder_ty {
+                Self::__koruma_bon_builder()
+            }
+
+            #[doc = concat!(
+                "Starts building [`",
+                stringify!(#struct_name),
+                "`] with the `",
+                #value_field_name_str,
+                "` value set."
+            )]
+            pub fn with_value(value: #inner_type) -> #initial_value_builder_ty {
+                Self::__koruma_builder().with_value(value)
+            }
+
+            #[doc = concat!(
+                "Returns the stored `",
+                #value_field_name_str,
+                "` value captured by `#[koruma(value)]`."
+            )]
+            pub fn #value_field_name(&self) -> &#value_field_type {
+                &self.#value_field_name
+            }
+
+            #(#direct_builder_methods)*
+        }
+    };
 
     let mut with_value_generics = input.generics.clone();
     with_value_generics
@@ -295,4 +330,164 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
         #showcase_registration
     })
+}
+
+struct DirectBuilderConfig {
+    method: Ident,
+    ty: Type,
+    set_type: Ident,
+    into: bool,
+    optional_inner_ty: Option<Type>,
+}
+
+fn direct_builder_methods(
+    input: &ItemStruct,
+    value_field_name: &Ident,
+    builder_name: &Ident,
+    module_name: &Ident,
+    builder_generic_args: &[TokenStream2],
+) -> Result<Vec<TokenStream2>, syn::Error> {
+    let Fields::Named(fields) = &input.fields else {
+        return Ok(Vec::new());
+    };
+
+    fields
+        .named
+        .iter()
+        .filter(|field| field.ident.as_ref() != Some(value_field_name))
+        .filter_map(|field| match direct_builder_config(field) {
+            Ok(Some(config)) => Some(Ok(render_direct_builder_method(
+                &config,
+                builder_name,
+                module_name,
+                builder_generic_args,
+            ))),
+            Ok(None) => None,
+            Err(err) => Some(Err(err)),
+        })
+        .collect()
+}
+
+fn direct_builder_config(field: &Field) -> Result<Option<DirectBuilderConfig>, syn::Error> {
+    let Some(field_name) = &field.ident else {
+        return Ok(None);
+    };
+
+    let mut method = field_name.clone();
+    let mut into = false;
+    let mut required = false;
+    let mut skip_direct_method = false;
+
+    for attr in field.attrs.iter().filter(is_builder_attr) {
+        attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident("into") {
+                into = true;
+                return Ok(());
+            }
+
+            if meta.path.is_ident("required") {
+                required = true;
+                return Ok(());
+            }
+
+            if meta.path.is_ident("skip")
+                || meta.path.is_ident("field")
+                || meta.path.is_ident("start_fn")
+            {
+                skip_direct_method = true;
+                consume_meta_value_or_group(&meta)?;
+                return Ok(());
+            }
+
+            if meta.path.is_ident("name") {
+                let value = meta.value()?;
+                method = value.parse()?;
+                return Ok(());
+            }
+
+            consume_meta_value_or_group(&meta)
+        })?;
+    }
+
+    if skip_direct_method {
+        return Ok(None);
+    }
+
+    let set_type = format_ident!("Set{}", field_name.to_string().to_upper_camel_case());
+    let optional_inner_ty = if required {
+        None
+    } else {
+        option_inner_type(&field.ty).cloned()
+    };
+
+    Ok(Some(DirectBuilderConfig {
+        method,
+        ty: field.ty.clone(),
+        set_type,
+        into,
+        optional_inner_ty,
+    }))
+}
+
+fn is_builder_attr(attr: &&Attribute) -> bool {
+    attr.path().is_ident("builder")
+}
+
+fn consume_meta_value_or_group(meta: &syn::meta::ParseNestedMeta<'_>) -> Result<(), syn::Error> {
+    if meta.input.peek(Token![=]) {
+        let value = meta.value()?;
+        let _: syn::Expr = value.parse()?;
+    } else if meta.input.peek(syn::token::Paren) {
+        let content;
+        parenthesized!(content in meta.input);
+        let _: TokenStream2 = content.parse()?;
+    }
+
+    Ok(())
+}
+
+fn render_direct_builder_method(
+    config: &DirectBuilderConfig,
+    builder_name: &Ident,
+    module_name: &Ident,
+    builder_generic_args: &[TokenStream2],
+) -> TokenStream2 {
+    let method = &config.method;
+    let ty = &config.ty;
+    let set_type = &config.set_type;
+    let output_builder_ty = quote! { #builder_name<#(#builder_generic_args,)* #module_name::#set_type<#module_name::Empty>> };
+    let arg_ty = if config.into {
+        quote! { impl ::std::convert::Into<#ty> }
+    } else {
+        quote! { #ty }
+    };
+    let method_name_str = method.to_string();
+
+    let maybe_method = config.optional_inner_ty.as_ref().map(|inner_ty| {
+        let maybe_method = format_ident!("maybe_{}", method);
+        let maybe_method_name_str = maybe_method.to_string();
+        quote! {
+            #[doc = concat!(
+                "Starts building this validator with `",
+                #maybe_method_name_str,
+                "` set."
+            )]
+            pub fn #maybe_method(value: ::std::option::Option<#inner_ty>) -> #output_builder_ty {
+                Self::__koruma_builder().#maybe_method(value)
+            }
+        }
+    });
+
+    quote! {
+        #[doc = concat!(
+            "Starts building this validator with `",
+            #method_name_str,
+            "` set."
+        )]
+        pub fn #method(value: #arg_ty) -> #output_builder_ty {
+            Self::__koruma_builder().#method(value)
+        }
+
+        #maybe_method
+    }
 }

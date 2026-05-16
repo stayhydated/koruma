@@ -32,8 +32,8 @@ adds `koruma-collection` when built-in validators fit the rule:
 4. Define a custom `#[validator]` only when the rule is domain-specific, needs
    custom stored error data, or needs custom `Display` or Fluent behavior.
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use
-   `TypeName::<_>::builder()...` for generic validators so builder completion
-   exposes settings and computed values.
+   `TypeName::<_>` for zero-configuration generic validators or
+   `TypeName::<_>::first_setter(...)` when configuring generic validators.
 6. Derive `Koruma` on the validated type. Add `KorumaAllDisplay` for `all()`
    iterators over `Display`-renderable validators, or `KorumaAllFluent` for
    localized `FluentMessage` values.
@@ -76,16 +76,16 @@ use koruma_collection::{collection, general, numeric, string};
 
 #[derive(Koruma, KorumaAllDisplay)]
 struct SignupInput {
-    #[koruma(collection::NonEmptyValidation::<_>::builder())]
+    #[koruma(collection::NonEmptyValidation::<_>)]
     username: String,
 
-    #[koruma(string::AsciiValidation::<_>::builder(), string::AlphanumericValidation::<_>::builder())]
+    #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
     handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>::builder().min(13_u8).max(120_u8))]
+    #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(general::RequiredValidation::<Option<_>>::builder())]
+    #[koruma(general::RequiredValidation::<Option<_>>)]
     display_name: Option<String>,
 }
 ```
@@ -136,10 +136,10 @@ Read generated errors through field and validator accessors:
 ```rust
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
+    #[koruma(NumberRangeValidation::<_>::min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation::builder().min(1).max(67))]
+    #[koruma(StringLengthValidation::min(1).max(67))]
     pub name: String,
 }
 
@@ -160,7 +160,7 @@ order listed, and all configured validators are evaluated.
 
 Common patterns:
 
-- Use `#[koruma(each(Validator::<_>::builder()...))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those.
+- Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>::first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those.
 - Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree.
 - Use `#[koruma(newtype)]` for transparent error access through newtype wrappers.
 - Add `#[koruma(try_new, newtype)]` to generate a checked `try_new` constructor.

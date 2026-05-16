@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(AsciiValidation::<_>::builder())]
+///     #[koruma(AsciiValidation::<_>)]
 ///     username: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(AsciiValidation::builder()
-            .with_value(input.to_string())
+        Ok(AsciiValidation::with_value(input.to_string())
             .build())
     }
 ))]

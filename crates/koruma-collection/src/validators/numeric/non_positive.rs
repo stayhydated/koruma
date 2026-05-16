@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Debit {
-///     #[koruma(NonPositiveValidation::<_>::builder())]
+///     #[koruma(NonPositiveValidation::<_>)]
 ///     amount: f64,
 /// }
 /// ```
@@ -26,8 +26,7 @@ use super::Numeric;
     module = "numeric",
     create = |input: &str| -> anyhow::Result<_> {
         let num = input.parse::<f64>()?;
-        Ok(NonPositiveValidation::builder()
-            .with_value(num)
+        Ok(NonPositiveValidation::with_value(num)
             .build())
     }
 ))]

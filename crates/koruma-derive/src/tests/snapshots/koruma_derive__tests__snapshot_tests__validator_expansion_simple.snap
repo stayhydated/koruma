@@ -3,7 +3,7 @@ source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
-#[builder(crate = ::koruma::bon)]
+#[builder(crate = ::koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
 #[derive(Clone, Debug)]
 pub struct NumberRangeValidation {
     min: i32,
@@ -11,11 +11,46 @@ pub struct NumberRangeValidation {
     actual: Option<i32>,
 }
 impl NumberRangeValidation {
+    #[doc(hidden)]
+    pub fn __koruma_builder() -> NumberRangeValidationBuilder<
+        number_range_validation_builder::Empty,
+    > {
+        Self::__koruma_bon_builder()
+    }
+    #[doc = concat!(
+        "Starts building [`", stringify!(NumberRangeValidation), "`] with the `",
+        "actual", "` value set."
+    )]
+    pub fn with_value(
+        value: i32,
+    ) -> NumberRangeValidationBuilder<
+        number_range_validation_builder::SetActual<
+            number_range_validation_builder::Empty,
+        >,
+    > {
+        Self::__koruma_builder().with_value(value)
+    }
     #[doc = concat!(
         "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
     )]
     pub fn actual(&self) -> &Option<i32> {
         &self.actual
+    }
+    #[doc = concat!("Starts building this validator with `", "min", "` set.")]
+    pub fn min(
+        value: i32,
+    ) -> NumberRangeValidationBuilder<
+        number_range_validation_builder::SetMin<number_range_validation_builder::Empty>,
+    > {
+        Self::__koruma_builder().min(value)
+    }
+    #[doc = concat!("Starts building this validator with `", "max", "` set.")]
+    pub fn max(
+        value: i32,
+    ) -> NumberRangeValidationBuilder<
+        number_range_validation_builder::SetMax<number_range_validation_builder::Empty>,
+    > {
+        Self::__koruma_builder().max(value)
     }
 }
 impl<S: number_range_validation_builder::State> NumberRangeValidationBuilder<S>

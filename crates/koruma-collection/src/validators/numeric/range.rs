@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Score {
-///     #[koruma(RangeValidation::<_>::builder().min(0).max(100))]
+///     #[koruma(RangeValidation::<_>::min(0).max(100))]
 ///     value: u32,
 /// }
 /// ```
@@ -24,8 +24,7 @@ use koruma::{Validate, validator};
     module = "numeric",
     create = |input: &str| -> anyhow::Result<_> {
         let num = input.parse::<f64>()?;
-        Ok(RangeValidation::builder()
-            .min(0_f64)
+        Ok(RangeValidation::min(0_f64)
             .max(100_f64)
             .exclusive_max(true)
             .with_value(num)
@@ -167,8 +166,7 @@ mod tests {
     #[cfg(feature = "fmt")]
     #[test]
     fn display_uses_the_current_exclusivity_flags() {
-        let mut validator = RangeValidation::builder()
-            .min(1_i32)
+        let mut validator = RangeValidation::min(1_i32)
             .max(3_i32)
             .with_value(0_i32)
             .build();

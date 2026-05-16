@@ -11,10 +11,10 @@ const STATIC_CONFIRM_SECRET: &str = "shared-secret";
 /// Example struct demonstrating validation with non-generic validators.
 #[derive(Koruma)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::builder().min(0).max(100))]
+    #[koruma(NumberRangeValidation::min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation::builder().min(1).max(67))]
+    #[koruma(StringLengthValidation::min(1).max(67))]
     pub name: String,
 
     // This field is not validated
@@ -26,10 +26,10 @@ pub struct Item {
 /// The type parameter is inferred from the field type using `<_>` syntax!
 #[derive(Koruma)]
 pub struct GenericItem {
-    #[koruma(GenericRangeValidation::<_>::builder().min(-10.0).max(100.0))]
+    #[koruma(GenericRangeValidation::<_>::min(-10.0).max(100.0))]
     pub score: f64,
 
-    #[koruma(GenericRangeValidation::<_>::builder().min(0).max(1000))]
+    #[koruma(GenericRangeValidation::<_>::min(0).max(1000))]
     pub points: u32,
 }
 
@@ -37,7 +37,7 @@ pub struct GenericItem {
 #[derive(Koruma)]
 pub struct MultiValidatorItem {
     // This field must be in range 0-100 AND be even
-    #[koruma(NumberRangeValidation::builder().min(0).max(100), EvenNumberValidation::builder())]
+    #[koruma(NumberRangeValidation::min(0).max(100), EvenNumberValidation)]
     pub value: i32,
 }
 
@@ -46,8 +46,8 @@ pub struct MultiValidatorItem {
 #[derive(Koruma)]
 pub struct MultiAttrItem {
     // Multiple #[koruma] attributes on the same field - all are collected
-    #[koruma(NumberRangeValidation::builder().min(0).max(100))]
-    #[koruma(EvenNumberValidation::builder())]
+    #[koruma(NumberRangeValidation::min(0).max(100))]
+    #[koruma(EvenNumberValidation)]
     pub value: i32,
 }
 
@@ -55,7 +55,7 @@ pub struct MultiAttrItem {
 #[derive(Koruma)]
 pub struct Order {
     // Each score in the list must be in range 0-100
-    #[koruma(each(GenericRangeValidation::<_>::builder().min(0.0).max(100.0)))]
+    #[koruma(each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
     pub scores: Vec<f64>,
 }
 
@@ -63,77 +63,77 @@ pub struct Order {
 #[derive(Koruma)]
 pub struct OptionalOrder {
     // The collection is optional, but each present score still must be in range 0-100.
-    #[koruma(each(GenericRangeValidation::<_>::builder().min(0.0).max(100.0)))]
+    #[koruma(each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
     pub scores: Option<Vec<f64>>,
 }
 
 /// Example struct demonstrating that qualified Option/Vec paths keep the same semantics.
 #[derive(Koruma)]
 pub struct QualifiedPathProfile {
-    #[koruma(StringLengthValidation::builder().min(1).max(200))]
+    #[koruma(StringLengthValidation::min(1).max(200))]
     pub bio: std::option::Option<String>,
 
-    #[koruma(each(GenericRangeValidation::<_>::builder().min(0.0).max(100.0)))]
+    #[koruma(each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
     pub scores: core::option::Option<std::vec::Vec<f64>>,
 }
 
 /// Example struct demonstrating borrowed slice validation with `each`.
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {
-    #[koruma(each(GenericRangeValidation::<_>::builder().min(0.0).max(100.0)))]
+    #[koruma(each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
     pub scores: &'a [f64],
 }
 
 /// Example struct demonstrating optional borrowed slice validation with `each`.
 #[derive(Koruma)]
 pub struct OptionalBorrowedOrder<'a> {
-    #[koruma(each(GenericRangeValidation::<_>::builder().min(0.0).max(100.0)))]
+    #[koruma(each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
     pub scores: Option<&'a [f64]>,
 }
 
 /// Example struct demonstrating borrowed direct-field validation.
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedUsername<'a> {
-    #[koruma(StartsWithValidation::<_>::builder().prefix("user:"))]
+    #[koruma(StartsWithValidation::<_>::prefix("user:"))]
     pub username: &'a str,
 }
 
 /// Example struct demonstrating borrowed string element validation with `each`.
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedTags<'a> {
-    #[koruma(each(StartsWithValidation::<_>::builder().prefix("tag:")))]
+    #[koruma(each(StartsWithValidation::<_>::prefix("tag:")))]
     pub tags: &'a [&'a str],
 }
 
-/// Example struct demonstrating cross-field builder arguments.
+/// Example struct demonstrating cross-field setter arguments.
 #[derive(Koruma)]
 pub struct PasswordConfirmation {
     pub password: String,
 
-    #[koruma(MatchesStringValidation::builder().expected(password))]
+    #[koruma(MatchesStringValidation::expected(password))]
     pub confirm: String,
 }
 
-/// Example struct demonstrating the Rust-native builder-chain validator syntax.
+/// Example struct demonstrating the Rust-native direct-chain validator syntax.
 #[derive(Koruma)]
-pub struct BuilderSyntaxItem {
-    #[koruma(GenericRangeValidation::<_>::builder().min(-10.0).max(100.0))]
+pub struct DirectSyntaxItem {
+    #[koruma(GenericRangeValidation::<_>::min(-10.0).max(100.0))]
     pub score: f64,
 }
 
-/// Example struct demonstrating cross-field references inside builder-chain syntax.
+/// Example struct demonstrating cross-field references inside direct-chain syntax.
 #[derive(Koruma)]
-pub struct BuilderPasswordConfirmation {
+pub struct DirectPasswordConfirmation {
     pub password: String,
 
-    #[koruma(MatchesStringValidation::builder().expected(password))]
+    #[koruma(MatchesStringValidation::expected(password))]
     pub confirm: String,
 }
 
 /// Example struct demonstrating that bare identifiers which are not fields remain untouched.
 #[derive(Koruma)]
 pub struct StaticSecretConfirmation {
-    #[koruma(MatchesStaticStrValidation::builder().expected(STATIC_CONFIRM_SECRET))]
+    #[koruma(MatchesStaticStrValidation::expected(STATIC_CONFIRM_SECRET))]
     pub confirm: String,
 }
 
@@ -141,15 +141,15 @@ pub struct StaticSecretConfirmation {
 /// Optional fields skip validation when None.
 #[derive(Koruma)]
 pub struct UserProfile {
-    #[koruma(StringLengthValidation::builder().min(1).max(50))]
+    #[koruma(StringLengthValidation::min(1).max(50))]
     pub username: String,
 
     // Optional field - only validated when Some
-    #[koruma(StringLengthValidation::builder().min(1).max(200))]
+    #[koruma(StringLengthValidation::min(1).max(200))]
     pub bio: Option<String>,
 
     // Optional field with range validation
-    #[koruma(NumberRangeValidation::builder().min(0).max(150))]
+    #[koruma(NumberRangeValidation::min(0).max(150))]
     pub age: Option<i32>,
 }
 
@@ -161,21 +161,21 @@ pub struct NonCloneSecret {
 /// Example struct demonstrating explicit concrete Option<T> full-type validation.
 #[derive(Koruma)]
 pub struct ExplicitRequiredProfile {
-    #[koruma(RequiredValidation::<Option<String>>::builder())]
+    #[koruma(RequiredValidation::<Option<String>>)]
     pub bio: Option<String>,
 }
 
 /// Example struct demonstrating full-type element validation for optional elements.
 #[derive(Koruma)]
 pub struct OptionalElementPresenceOrder {
-    #[koruma(each(RequiredValidation::<Option<_>>::builder()))]
+    #[koruma(each(RequiredValidation::<Option<_>>))]
     pub values: Vec<Option<i32>>,
 }
 
 /// Example struct demonstrating mixed full-type and unwrapped element validators.
 #[derive(Koruma)]
 pub struct OptionalElementMixedValidators {
-    #[koruma(each(RequiredValidation::<Option<_>>::builder(), GenericRangeValidation::<_>::builder().min(0).max(10)))]
+    #[koruma(each(RequiredValidation::<Option<_>>, GenericRangeValidation::<_>::min(0).max(10)))]
     pub values: Vec<Option<i32>>,
 }
 
@@ -183,7 +183,7 @@ pub struct OptionalElementMixedValidators {
 /// without forcing clone capture in the derive expansion.
 #[derive(Koruma)]
 pub struct PresenceOnlyNonClone {
-    #[koruma(RequiredValidation::<Option<_>>::builder())]
+    #[koruma(RequiredValidation::<Option<_>>)]
     pub token: Option<NonCloneSecret>,
 }
 
@@ -194,7 +194,7 @@ pub struct OrderWithLenCheck {
     // Vec must have 1-5 elements, AND each score must be in range 0-100
     // Note: VecLenValidation<T> expects T to be the inner type (f64), not Vec<f64>.
     // Use explicit type when the validator's generic param differs from the field type.
-    #[koruma(VecLenValidation::<f64>::builder().min(1).max(5), each(GenericRangeValidation::<_>::builder().min(0.0).max(100.0)))]
+    #[koruma(VecLenValidation::<f64>::min(1).max(5), each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
     pub scores: Vec<f64>,
 }
 
@@ -202,20 +202,20 @@ pub struct OrderWithLenCheck {
 /// Address is a nested struct that also derives Koruma.
 #[derive(Clone, Koruma)]
 pub struct Address {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub street: String,
 
-    #[koruma(StringLengthValidation::builder().min(1).max(50))]
+    #[koruma(StringLengthValidation::min(1).max(50))]
     pub city: String,
 
-    #[koruma(StringLengthValidation::builder().min(2).max(10))]
+    #[koruma(StringLengthValidation::min(2).max(10))]
     pub zip_code: String,
 }
 
 /// Example struct with a nested Koruma struct.
 #[derive(Koruma)]
 pub struct Customer {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub name: String,
 
     // Nested struct - will call Address::validate() automatically
@@ -226,7 +226,7 @@ pub struct Customer {
 /// Example struct with an optional nested Koruma struct.
 #[derive(Koruma)]
 pub struct CustomerWithOptionalAddress {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub name: String,
 
     // Optional nested struct - skipped when None, validated when Some
@@ -237,7 +237,7 @@ pub struct CustomerWithOptionalAddress {
 /// Example struct with deeply nested validation (nested within nested).
 #[derive(Clone, Koruma)]
 pub struct Company {
-    #[koruma(StringLengthValidation::builder().min(1).max(200))]
+    #[koruma(StringLengthValidation::min(1).max(200))]
     pub company_name: String,
 
     #[koruma(nested)]
@@ -247,7 +247,7 @@ pub struct Company {
 /// Example struct with multiple levels of nesting.
 #[derive(Koruma)]
 pub struct Employee {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub employee_name: String,
 
     #[koruma(nested)]
@@ -259,7 +259,7 @@ pub struct Employee {
 #[derive(Clone, Debug, Koruma)]
 #[koruma(newtype)]
 pub struct PositiveNumber {
-    #[koruma(NumberRangeValidation::builder().min(0).max(1000))]
+    #[koruma(NumberRangeValidation::min(0).max(1000))]
     pub value: i32,
 }
 
@@ -276,7 +276,7 @@ pub struct AddressWrapper {
 /// The field uses `#[koruma(newtype)]` for transparent error access.
 #[derive(Koruma)]
 pub struct ContainsNewtype {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub name: String,
 
     /// This field is a newtype - errors deref to the inner type's errors
@@ -288,14 +288,14 @@ pub struct ContainsNewtype {
 /// This tests the new functionality where newtype fields can have additional validators.
 #[derive(Koruma)]
 pub struct ContainsRequiredNewtype {
-    #[koruma(newtype, RequiredValidation::<Option<_>>::builder())]
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<PositiveNumber>,
 }
 
 /// Example struct containing an optional newtype field with multiple validators.
 #[derive(Koruma)]
 pub struct ContainsNewtypeWithValidators {
-    #[koruma(newtype, RequiredValidation::<Option<_>>::builder())]
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<PositiveNumber>,
     #[allow(dead_code)]
     pub name: String,

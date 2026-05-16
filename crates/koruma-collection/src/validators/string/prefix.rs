@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Config {
-///     #[koruma(PrefixValidation::<_>::builder().prefix("config_"))]
+///     #[koruma(PrefixValidation::<_>::prefix("config_"))]
 ///     key: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "string",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(PrefixValidation::builder()
-            .prefix("hello")
+        Ok(PrefixValidation::prefix("hello")
             .with_value(input.to_string())
             .build())
     }

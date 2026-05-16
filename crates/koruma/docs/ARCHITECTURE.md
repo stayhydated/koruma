@@ -25,7 +25,8 @@
 
 - Users derive `Koruma` and annotate fields with `#[koruma(...)]`.
 - The derive macro generates `validate()` implementations and typed error structs using `koruma-core` traits.
-- Validators annotated with `#[koruma::validator]` get a `bon` builder and a `with_value()` helper.
+- Validators annotated with `#[koruma::validator]` get hidden `bon` builder plumbing, direct setter
+  entrypoints, and `with_value()` helpers.
 - When `internal-showcase` is enabled, validators can register metadata for discovery via `inventory`.
 
 ## Extension points

@@ -86,7 +86,7 @@ impl GenericItem {
             v.validate(t)
         }
         let validator = koruma::BuilderWithValueRef::with_value_ref(
-                GenericRangeValidation::<f64>::builder().min(0.0).max(100.0),
+                GenericRangeValidation::<f64>::min(0.0).max(100.0),
                 __field_value,
             )
             .build();

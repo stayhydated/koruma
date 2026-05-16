@@ -228,21 +228,26 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         #[cfg(feature = "fluent")]
         showcase_where_clause
             .predicates
-            .push(parse_quote!(Self: ::es_fluent::ToFluentString));
+            .push(parse_quote!(Self: ::es_fluent::FluentMessage));
 
         let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
-        // Decide feature-sensitive behavior here in the macro crate. Emitting
-        // raw `cfg(feature = "...")` checks into downstream code would make the
-        // generated showcase impl depend on the consumer crate's feature names.
         #[cfg(feature = "fluent")]
-        let fluent_string_body = quote! {
-            use ::es_fluent::ToFluentString as _;
-            self.to_fluent_string()
+        let fluent_methods = quote! {
+            fn fluent_string_with(
+                &self,
+                localize: &mut ::koruma::showcase::FluentLocalizer<'_>,
+            ) -> String {
+                use ::es_fluent::FluentMessage;
+                self.to_fluent_string_with(localize)
+            }
         };
+
         #[cfg(not(feature = "fluent"))]
-        let fluent_string_body = quote! {
-            "(fluent feature required)".to_string()
+        let fluent_methods = quote! {
+            fn fluent_string(&self) -> String {
+                "(fluent feature required)".to_string()
+            }
         };
 
         quote! {
@@ -255,9 +260,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                     ::std::string::ToString::to_string(self)
                 }
 
-                fn fluent_string(&self) -> String {
-                    #fluent_string_body
-                }
+                #fluent_methods
             }
 
             ::koruma::inventory::submit! {

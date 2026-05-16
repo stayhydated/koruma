@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-assertion_line: 441
 expression: parse_field_snapshot(&field)
 ---
 Some(
@@ -14,7 +13,7 @@ Some(
                     name: "NonEmptyStringValidation",
                     infer_type: false,
                     explicit_type: None,
-                    args: [],
+                    builder_methods: [],
                 },
             ],
             element_validators: [],

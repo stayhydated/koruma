@@ -11,14 +11,16 @@ use syn::{Expr, GenericArgument, Ident, PathArguments, Type};
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::substitute_infer_type;
+/// use syn::Type;
 ///
 /// let ty: Type = parse_quote!(Vec<_>);
 /// let infer_ty: Type = parse_quote!(String);
 /// let result = substitute_infer_type(&ty, &infer_ty);
-/// // result is Vec<String>
+/// let expected: Type = parse_quote!(Vec<String>);
+/// assert_eq!(result, expected);
 /// ```
 pub fn substitute_infer_type(ty: &Type, infer_ty: &Type) -> Type {
     match ty {
@@ -130,14 +132,16 @@ fn substitute_infer_type_from_source_inner(ty: &Type, source_ty: &Type) -> Optio
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::substitute_infer_type_from_source;
+/// use syn::Type;
 ///
 /// let explicit: Type = parse_quote!(std::collections::HashMap<_, _>);
 /// let source: Type = parse_quote!(std::collections::HashMap<String, i32>);
 /// let result = substitute_infer_type_from_source(&explicit, &source).unwrap();
-/// // result is std::collections::HashMap<String, i32>
+/// let expected: Type = parse_quote!(std::collections::HashMap<String, i32>);
+/// assert_eq!(result, expected);
 /// ```
 pub fn substitute_infer_type_from_source(ty: &Type, source_ty: &Type) -> Option<Type> {
     substitute_infer_type_from_source_inner(ty, source_ty)
@@ -149,13 +153,15 @@ pub fn substitute_infer_type_from_source(ty: &Type, source_ty: &Type) -> Option<
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::first_generic_arg;
+/// use syn::Type;
 ///
 /// let ty: Type = parse_quote!(Vec<String>);
 /// let inner = first_generic_arg(&ty);
-/// // inner is Some(&String)
+/// let expected: Type = parse_quote!(String);
+/// assert_eq!(inner, Some(&expected));
 /// ```
 pub fn first_generic_arg(ty: &Type) -> Option<&Type> {
     if let Type::Path(type_path) = ty
@@ -175,9 +181,10 @@ pub fn first_generic_arg(ty: &Type) -> Option<&Type> {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::contains_infer_type;
+/// use syn::Type;
 ///
 /// let ty1: Type = parse_quote!(Vec<_>);
 /// assert!(contains_infer_type(&ty1));
@@ -209,13 +216,14 @@ pub fn contains_infer_type(ty: &Type) -> bool {
 /// Check if a type is `Option<_>` (Option wrapping an infer placeholder).
 ///
 /// This is used when a validator explicitly wants the full Option type,
-/// like `RequiredValidation<Option<_>>`.
+/// like `RequiredValidation::<Option<_>>::builder()`.
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::is_option_infer_type;
+/// use syn::Type;
 ///
 /// let ty1: Type = parse_quote!(Option<_>);
 /// assert!(is_option_infer_type(&ty1));
@@ -244,9 +252,10 @@ pub fn is_option_infer_type(ty: &Type) -> bool {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::expr_as_simple_ident;
+/// use syn::Expr;
 ///
 /// let expr: Expr = parse_quote!(password);
 /// let ident = expr_as_simple_ident(&expr);
@@ -274,17 +283,19 @@ pub fn expr_as_simple_ident(expr: &Expr) -> Option<&Ident> {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::option_inner_type;
+/// use syn::Type;
 ///
 /// let ty: Type = parse_quote!(Option<String>);
 /// let inner = option_inner_type(&ty);
-/// // inner is Some(&String)
+/// let expected: Type = parse_quote!(String);
+/// assert_eq!(inner, Some(&expected));
 ///
 /// let ty2: Type = parse_quote!(String);
 /// let inner2 = option_inner_type(&ty2);
-/// // inner2 is None
+/// assert!(inner2.is_none());
 /// ```
 pub fn option_inner_type(ty: &Type) -> Option<&Type> {
     let Type::Path(type_path) = ty else {
@@ -312,17 +323,19 @@ pub fn option_inner_type(ty: &Type) -> Option<&Type> {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::vec_inner_type;
+/// use syn::Type;
 ///
 /// let ty: Type = parse_quote!(Vec<String>);
 /// let inner = vec_inner_type(&ty);
-/// // inner is Some(&String)
+/// let expected: Type = parse_quote!(String);
+/// assert_eq!(inner, Some(&expected));
 ///
 /// let ty2: Type = parse_quote!(String);
 /// let inner2 = vec_inner_type(&ty2);
-/// // inner2 is None
+/// assert!(inner2.is_none());
 /// ```
 pub fn vec_inner_type(ty: &Type) -> Option<&Type> {
     let Type::Path(type_path) = ty else {
@@ -348,9 +361,10 @@ pub fn vec_inner_type(ty: &Type) -> Option<&Type> {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::is_option_type;
+/// use syn::Type;
 ///
 /// let ty1: Type = parse_quote!(Option<String>);
 /// assert!(is_option_type(&ty1));
@@ -368,15 +382,16 @@ pub fn is_option_type(ty: &Type) -> bool {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// use syn::parse_quote;
 /// use koruma_derive_core::type_to_ident;
+/// use syn::Type;
 ///
 /// let ty: Type = parse_quote!(Age);
-/// assert_eq!(type_to_ident(&ty), Some("Age".to_string()));
+/// assert_eq!(type_to_ident(&ty).map(|ident| ident.to_string()), Some("Age".to_string()));
 ///
 /// let ty2: Type = parse_quote!(Option<Age>);
-/// assert_eq!(type_to_ident(&ty2), Some("Option".to_string()));
+/// assert_eq!(type_to_ident(&ty2).map(|ident| ident.to_string()), Some("Option".to_string()));
 /// ```
 pub fn type_to_ident(ty: &Type) -> Option<Ident> {
     match ty {

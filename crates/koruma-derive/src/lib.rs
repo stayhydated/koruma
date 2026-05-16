@@ -113,10 +113,10 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// ```ignore
 /// #[derive(Koruma)]
 /// struct Item {
-///     #[koruma(NumberRangeValidation(min = 0, max = 100))]
+///     #[koruma(NumberRangeValidation::builder().min(0).max(100))]
 ///     age: i32,
 ///
-///     #[koruma(StringLengthValidation(min = 1, max = 50))]
+///     #[koruma(StringLengthValidation::builder().min(1).max(50))]
 ///     name: String,
 ///
 ///     // No #[koruma(...)] attribute means field is not validated
@@ -158,7 +158,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllDisplay)]
 /// pub struct Product {
-///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>::builder().min(5).max(20), PrefixValidation::<_>::builder().prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
@@ -178,11 +178,11 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
     }
 }
 
-/// Derive macro for implementing `ToFluentString` on the `all()` validator enums.
+/// Derive macro for implementing `FluentMessage` on the `all()` validator enums.
 ///
-/// Place this alongside `#[derive(Koruma)]` to generate `ToFluentString` implementations
+/// Place this alongside `#[derive(Koruma)]` to generate `FluentMessage` implementations
 /// for the `{Struct}{Field}KorumaValidator` enums returned by the `all()` method.
-/// Each variant delegates to its inner validator's `ToFluentString` implementation.
+/// Each variant delegates to its inner validator's `FluentMessage` implementation.
 ///
 /// Requires the `fluent` feature to be enabled.
 ///
@@ -193,13 +193,14 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
-///     #[koruma(LenValidation<_>(min = 5, max = 20), PrefixValidation<_>(prefix = "SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>::builder().min(5).max(20), PrefixValidation::<_>::builder().prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
-/// // Now you can use ToFluentString on all() results:
+/// // Now you can use `FluentMessage` on all() results:
 /// for err in errors.sku().all() {
-///     println!("{}", err.to_fluent_string());  // Uses i18n
+///     // Use your active i18n context/localizer to render this error:
+///     // println!("{}", i18n_context.localize_message(err));
 /// }
 /// ```
 #[cfg(feature = "fluent")]

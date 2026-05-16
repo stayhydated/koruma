@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-assertion_line: 229
 expression: parse_field_snapshot(&field)
 ---
 Some(
@@ -15,14 +14,18 @@ Some(
                     name: "RangeValidation",
                     infer_type: false,
                     explicit_type: None,
-                    args: [
+                    builder_methods: [
                         (
                             "min",
-                            "0",
+                            [
+                                "0",
+                            ],
                         ),
                         (
                             "max",
-                            "100",
+                            [
+                                "100",
+                            ],
                         ),
                     ],
                 },

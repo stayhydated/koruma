@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["*.toml"],
+  "ignorePatterns": ["*.toml", "*.yml", "*.yaml", "*.md"],
   "sortTailwindcss": {},
   "sortPackageJson": {
     "sortScripts": true

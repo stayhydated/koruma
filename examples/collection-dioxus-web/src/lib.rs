@@ -1,7 +1,7 @@
 mod i18n;
 
+use crate::i18n::localize_with_args;
 use dioxus::prelude::*;
-use es_fluent::ToFluentString;
 use koruma::showcase::{ValidatorShowcase, validators};
 use koruma_shared_lib::Languages;
 use std::collections::HashMap;
@@ -84,7 +84,7 @@ pub fn App() -> Element {
                             style: "color: #ff00a0; border-color: rgba(255, 0, 160, 0.5);",
                             onchange: move |e| {
                                 for lang in Languages::iter() {
-                                    if lang.to_fluent_string() == e.value() {
+                                    if i18n::localize(&lang) == e.value() {
                                         current_language.set(lang);
                                         let _ = i18n::change_locale(lang);
                                     }
@@ -92,9 +92,9 @@ pub fn App() -> Element {
                             },
                             for lang in Languages::iter() {
                                 option {
-                                    value: lang.to_fluent_string(),
+                                    value: i18n::localize(&lang),
                                     selected: lang == current_language(),
-                                    {lang.to_fluent_string()}
+                                    {i18n::localize(&lang)}
                                 }
                             }
                         }
@@ -124,8 +124,8 @@ pub fn App() -> Element {
                                 };
 
                                 let (status_emoji, display_msg, fluent_msg, error_msg) = match &current_validator {
-                                    Ok(v) if v.is_valid() => ("✓", v.display_string(), v.fluent_string(), None),
-                                    Ok(v) => ("✗", v.display_string(), v.fluent_string(), None),
+                                    Ok(v) if v.is_valid() => ("✓", v.display_string(), v.fluent_string_with(&mut localize_with_args), None),
+                                    Ok(v) => ("✗", v.display_string(), v.fluent_string_with(&mut localize_with_args), None),
                                     Err(e) => ("!", String::new(), String::new(), Some(format!("Error: {}", e))),
                                 };
 

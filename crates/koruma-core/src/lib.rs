@@ -76,6 +76,15 @@ pub trait NewtypeValidation: ValidateExt {}
 /// discovery for showcase purposes.
 #[cfg(feature = "internal-showcase")]
 pub mod showcase {
+    /// Localizer callback used by showcased validators to render Fluent messages.
+    #[cfg(feature = "fluent")]
+    pub type FluentLocalizer<'localizer> = dyn for<'a> FnMut(
+            &str,
+            &str,
+            Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+        ) -> String
+        + 'localizer;
+
     /// Trait for validators that can be presented by showcase consumers.
     ///
     /// This trait provides a type-erased interface for validators,
@@ -92,11 +101,19 @@ pub mod showcase {
         /// user-facing message in showcase UIs.
         fn display_string(&self) -> String;
 
-        /// Get the fluent i18n string via `to_fluent_string()` when koruma's
+        /// Get the fluent i18n string via `FluentMessage::to_fluent_string_with(...)`
         /// `fluent` feature is enabled for the generated showcase impl.
         ///
-        /// Returns "(fluent feature required)" when fluent support is not
-        /// enabled for the validator macro expansion.
+        /// Returns the message identifier when no localizer callback is provided.
+        #[cfg(feature = "fluent")]
+        fn fluent_string_with(&self, localize: &mut FluentLocalizer<'_>) -> String;
+
+        #[cfg(feature = "fluent")]
+        fn fluent_string(&self) -> String {
+            self.fluent_string_with(&mut |_, id, _| id.to_string())
+        }
+
+        #[cfg(not(feature = "fluent"))]
         fn fluent_string(&self) -> String;
     }
 

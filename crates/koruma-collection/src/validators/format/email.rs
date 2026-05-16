@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(EmailValidation<_>)]
+///     #[koruma(EmailValidation::<_>::builder())]
 ///     email: String,
 /// }
 /// ```

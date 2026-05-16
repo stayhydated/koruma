@@ -125,10 +125,9 @@ clone requirements for presence-only validators. If your validator still derives
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
-Validators in `#[koruma(...)]` can use either form and be mixed across fields:
+Validators in `#[koruma(...)]` use the same builder syntax you use in Rust code:
 
 ```rs
-#[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
 #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
 ```
 
@@ -140,7 +139,7 @@ pub struct Item {
     #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation(min = 1, max = 67))]
+    #[koruma(StringLengthValidation::builder().min(1).max(67))]
     pub name: String,
 
     // No #[koruma(...)] attribute -> not validated
@@ -173,13 +172,13 @@ For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
 ```rs
 #[derive(Koruma)]
 pub struct Order {
-    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    #[koruma(each(NumberRangeValidation::<_>::builder().min(1).max(5)))]
     pub quantities: Vec<i32>,
 }
 
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {
-    #[koruma(each(NumberRangeValidation<_>(min = 1, max = 5)))]
+    #[koruma(each(NumberRangeValidation::<_>::builder().min(1).max(5)))]
     pub quantities: &'a [i32],
 }
 ```
@@ -209,11 +208,17 @@ es-fluent = { version = "*", features = ["derive"] }
 This setup assumes:
 
 - `koruma` is built with `derive` + `fluent`.
-- your `es-fluent` manager is initialized.
-- a locale is selected before rendering messages.
+- your application owns an `es-fluent` localizer, such as `EmbeddedI18n`.
+- a locale is selected on that localizer before rendering messages.
+
+Rendering is explicit: `KorumaAllFluent` produces `FluentMessage` values, and
+your application chooses the localizer used to turn them into strings. The
+examples expose a small `i18n::localize(...)` helper around an app-owned
+`EmbeddedI18n`; an application can instead pass that localizer through its own
+state.
 
 ```rs
-use es_fluent::{EsFluent, ToFluentString as _};
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate, validator};
 
 #[validator]
@@ -249,10 +254,10 @@ impl Validate<String> for NonEmptyStringValidation {
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation<_>)]
+    #[koruma(IsEvenNumberValidation::<_>::builder())]
     pub id: i32,
 
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub username: String,
 }
 
@@ -263,19 +268,19 @@ let user = User {
 
 if let Err(errors) = user.validate() {
     if let Some(id_err) = errors.id().is_even_number_validation() {
-        println!("{}", id_err.to_fluent_string());
+        println!("{}", i18n::localize(id_err));
     }
 
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("{}", username_err.to_fluent_string());
+        println!("{}", i18n::localize(username_err));
     }
 
     for failed in errors.id().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 
     for failed in errors.username().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 }
 ```
@@ -291,19 +296,19 @@ Use `#[koruma(newtype)]`, adding `try_new` and `newtype(try_from)` as needed, wh
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 
 ```rs
-use es_fluent::ToFluentString as _;
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
 pub struct Email {
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub value: String,
 }
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct SignupForm {
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub username: String,
 
     #[koruma(newtype)]
@@ -324,14 +329,14 @@ let form = SignupForm {
 };
 if let Err(errors) = form.validate() {
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("username failed: {}", username_err.to_fluent_string());
+        println!("username failed: {}", i18n::localize(username_err));
     }
     if let Some(email_err) = errors.email().non_empty_string_validation() {
-        println!("email failed: {}", email_err.to_fluent_string());
+        println!("email failed: {}", i18n::localize(email_err));
     }
 
     for failed in errors.email().all() {
-        println!("email validator: {}", failed.to_fluent_string());
+        println!("email validator: {}", i18n::localize(failed));
     }
 }
 
@@ -347,16 +352,16 @@ if let Err(errors) = invalid_optional_form.validate()
     && let Some(email_errors) = errors.email()
     && let Some(email_err) = email_errors.non_empty_string_validation()
 {
-    println!("optional email failed: {}", email_err.to_fluent_string());
+    println!("optional email failed: {}", i18n::localize(email_err));
 }
 
 // Constructor-time validation path
 if let Err(errors) = Email::try_new("".to_string()) {
     if let Some(email_err) = errors.non_empty_string_validation() {
-        println!("email::try_new failed: {}", email_err.to_fluent_string());
+        println!("email::try_new failed: {}", i18n::localize(email_err));
     }
     for failed in errors.all() {
-        println!("email::try_new validator: {}", failed.to_fluent_string());
+        println!("email::try_new validator: {}", i18n::localize(failed));
     }
 }
 ```
@@ -366,12 +371,12 @@ if let Err(errors) = Email::try_new("".to_string()) {
 The same pattern works with tuple structs:
 
 ```rs
-use es_fluent::ToFluentString as _;
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
-pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
+pub struct Username(#[koruma(NonEmptyStringValidation::builder())] pub String);
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct LoginForm {
@@ -384,7 +389,7 @@ let login = LoginForm {
 };
 if let Err(errors) = login.validate() {
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("username failed: {}", username_err.to_fluent_string());
+        println!("username failed: {}", i18n::localize(username_err));
     }
 }
 
@@ -399,18 +404,18 @@ Add `try_from` inside `newtype(...)` to generate a `TryFrom<Inner>` impl:
 
 ```rs
 use std::convert::TryFrom;
-use es_fluent::ToFluentString as _;
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation<_>)] u8);
+pub struct Only67u8(#[koruma(Only67Validation::<_>::builder())] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),
     Err(errors) => {
         for failed in errors.all() {
-            println!("validation failed: {}", failed.to_fluent_string());
+            println!("validation failed: {}", i18n::localize(failed));
         }
     }
 }

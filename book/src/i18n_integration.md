@@ -12,15 +12,21 @@ es-fluent = { version = "*", features = ["derive"] }
 This setup assumes:
 
 - `koruma` is built with `derive` + `fluent`.
-- your `es-fluent` manager is initialized.
-- a locale is selected before rendering messages.
+- your application owns an `es-fluent` localizer, such as `EmbeddedI18n`.
+- a locale is selected on that localizer before rendering messages.
+
+Rendering is explicit: `KorumaAllFluent` produces `FluentMessage` values, and
+your application chooses the localizer used to turn them into strings. The
+examples expose a small `i18n::localize(...)` helper around an app-owned
+`EmbeddedI18n`; an application can instead pass that localizer through its own
+state.
 
 Validators intended for localisation derive `EsFluent`. When the validated value needs custom
 conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAllFluent` on the
 consumer type.
 
 ```rust
-use es_fluent::{EsFluent, ToFluentString as _};
+use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate, validator};
 
 #[validator]
@@ -56,33 +62,33 @@ impl Validate<String> for NonEmptyStringValidation {
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation<_>)]
+    #[koruma(IsEvenNumberValidation::<_>::builder())]
     pub id: i32,
 
-    #[koruma(NonEmptyStringValidation)]
+    #[koruma(NonEmptyStringValidation::builder())]
     pub username: String,
 }
 
 let user = User { id: 3, username: "".to_string() };
 if let Err(errors) = user.validate() {
     if let Some(id_err) = errors.id().is_even_number_validation() {
-        println!("{}", id_err.to_fluent_string());
+        println!("{}", i18n::localize(id_err));
     }
 
     if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("{}", username_err.to_fluent_string());
+        println!("{}", i18n::localize(username_err));
     }
 
     for failed in errors.id().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 
     for failed in errors.username().all() {
-        println!("{}", failed.to_fluent_string());
+        println!("{}", i18n::localize(failed));
     }
 }
 ```
 
 `KorumaAllFluent` gives you an `all()` iterator whose elements can be converted with
-`ToFluentString`. Initialise your i18n manager and select a locale before rendering localised
-messages.
+`FluentMessage` + `FluentLocalizer`. Use the app-owned localizer directly, or
+wrap it in a small helper function, after selecting the locale you want to render.

@@ -14,7 +14,7 @@ use super::HasLen;
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(NonEmptyValidation<_>)]
+///     #[koruma(NonEmptyValidation::<_>::builder())]
 ///     name: String,
 /// }
 /// ```

@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Contact {
-///     #[koruma(PhoneNumberValidation<_>)]
+///     #[koruma(PhoneNumberValidation::<_>::builder())]
 ///     phone: String,
 /// }
 /// ```

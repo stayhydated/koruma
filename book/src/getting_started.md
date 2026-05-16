@@ -21,10 +21,9 @@ A typical `koruma` workflow looks like this:
 4. Derive `Koruma` on the struct you want to validate.
 5. Call `validate()` and inspect the generated error accessors.
 
-Validators in `#[koruma(...)]` can use either form and be mixed across fields:
+Validators in `#[koruma(...)]` use the same builder syntax you use in Rust code:
 
 ```rust
-#[koruma(NumberRangeValidation<_>(min = 0, max = 100))]
 #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
 ```
 
@@ -39,7 +38,7 @@ pub struct Item {
     #[koruma(NumberRangeValidation::<_>::builder().min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation(min = 1, max = 67))]
+    #[koruma(StringLengthValidation::builder().min(1).max(67))]
     pub name: String,
 
     // No #[koruma(...)] attribute -> not validated

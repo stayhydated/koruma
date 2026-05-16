@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(PatternValidation<_>(pattern = Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
+///     #[koruma(PatternValidation::<_>::builder().pattern(Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
 ///     username: String,
 /// }
 /// ```

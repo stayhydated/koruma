@@ -72,5 +72,5 @@ fn short_layout_preserves_core_sections() {
         &output,
         " Display (to_string()) "
     )));
-    assert!(!output.contains(" Fluent (to_fluent_string()) "));
+    assert!(!output.contains(" Fluent (localized) "));
 }

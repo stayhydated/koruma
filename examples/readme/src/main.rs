@@ -1,4 +1,3 @@
-use es_fluent::ToFluentString as _;
 use koruma_shared_lib::Languages;
 use readme::{
     Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8,
@@ -110,21 +109,19 @@ pub fn main() {
         println!(
             ">> Current Language: {:?} : {}",
             lang,
-            lang.to_fluent_string()
+            i18n::localize(&lang)
         );
 
         match user.validate() {
             Ok(()) => println!("User is valid!"),
             Err(errors) => {
-                use es_fluent::ToFluentString;
-
                 if let Some(id_err) = errors.id().is_even_number_validation() {
                     // This now prints in the language selected above
-                    println!("  - id: {}", id_err.to_fluent_string());
+                    println!("  - id: {}", i18n::localize(id_err));
                 }
 
                 if let Some(username_err) = errors.username().non_empty_string_validation() {
-                    println!("  - username: {}", username_err.to_fluent_string());
+                    println!("  - username: {}", i18n::localize(username_err));
                 }
             },
         }
@@ -151,21 +148,19 @@ pub fn main() {
         println!(
             ">> Current Language: {:?} : {}",
             lang,
-            lang.to_fluent_string()
+            i18n::localize(&lang)
         );
 
         match account.validate() {
             Ok(()) => println!("Account is valid!"),
             Err(errors) => {
-                use es_fluent::ToFluentString;
-
                 // Access top-level field errors
                 if let Some(id_err) = errors.id().is_even_number_validation() {
-                    println!("  - id: {}", id_err.to_fluent_string());
+                    println!("  - id: {}", i18n::localize(id_err));
                 }
 
                 if let Some(email_err) = errors.email().non_empty_string_validation() {
-                    println!("  - email: {}", email_err.to_fluent_string());
+                    println!("  - email: {}", i18n::localize(email_err));
                 }
 
                 // Access nested struct errors with i18n
@@ -178,7 +173,7 @@ pub fn main() {
                     {
                         println!(
                             "      - max_login_attempts: {}",
-                            attempts_err.to_fluent_string()
+                            i18n::localize(attempts_err)
                         );
                     }
 
@@ -186,7 +181,7 @@ pub fn main() {
                         .default_language()
                         .non_empty_string_validation()
                     {
-                        println!("      - default_language: {}", lang_err.to_fluent_string());
+                        println!("      - default_language: {}", i18n::localize(lang_err));
                     }
                 }
             },
@@ -262,22 +257,20 @@ pub fn main() {
         println!(
             ">> Current Language: {:?} : {}",
             lang,
-            lang.to_fluent_string()
+            i18n::localize(&lang)
         );
 
         // Constructor-time validation for the newtype itself
         match Email::try_new("".to_string()) {
             Ok(_) => println!("  - Email::try_new unexpectedly passed"),
             Err(email_errs) => {
-                use es_fluent::ToFluentString;
-
                 if let Some(err) = email_errs.non_empty_string_validation() {
-                    println!("  - email::try_new: {}", err.to_fluent_string());
+                    println!("  - email::try_new: {}", i18n::localize(err));
                 }
 
                 println!("  - all failed validators from Email::try_new:");
                 for err in email_errs.all() {
-                    println!("    - {}", err.to_fluent_string());
+                    println!("    - {}", i18n::localize(&err));
                 }
             },
         }
@@ -285,22 +278,20 @@ pub fn main() {
         match signup.validate() {
             Ok(()) => println!("Signup form is valid!"),
             Err(errors) => {
-                use es_fluent::ToFluentString;
-
                 if let Some(username_err) = errors.username().non_empty_string_validation() {
-                    println!("  - username: {}", username_err.to_fluent_string());
+                    println!("  - username: {}", i18n::localize(username_err));
                 }
 
                 if let Some(inner_err) = errors.email().non_empty_string_validation() {
-                    println!("  - email: {}", inner_err.to_fluent_string());
+                    println!("  - email: {}", i18n::localize(inner_err));
                 }
 
                 println!("  - all failed validators (via all()):");
                 for err in errors.username().all() {
-                    println!("    - username: {}", err.to_fluent_string());
+                    println!("    - username: {}", i18n::localize(&err));
                 }
                 for err in errors.email().all() {
-                    println!("    - email: {}", err.to_fluent_string());
+                    println!("    - email: {}", i18n::localize(&err));
                 }
             },
         }
@@ -321,7 +312,7 @@ pub fn main() {
             && let Some(email_errors) = errors.email()
             && let Some(email_err) = email_errors.non_empty_string_validation()
         {
-            println!("  - optional email: {}", email_err.to_fluent_string());
+            println!("  - optional email: {}", i18n::localize(email_err));
         }
 
         // Unnamed (tuple struct) newtype test
@@ -337,13 +328,13 @@ pub fn main() {
                 if let Some(username_err) = errors.username().non_empty_string_validation() {
                     println!(
                         "  - username (unnamed newtype): {}",
-                        username_err.to_fluent_string()
+                        i18n::localize(username_err)
                     );
                 }
 
                 println!("  - all failed validators (via all()):");
                 for err in errors.username().all() {
-                    println!("    - username: {}", err.to_fluent_string());
+                    println!("    - username: {}", i18n::localize(&err));
                 }
             },
         }
@@ -352,12 +343,12 @@ pub fn main() {
             Ok(_) => println!("  - Username::try_new unexpectedly passed"),
             Err(username_errs) => {
                 if let Some(err) = username_errs.non_empty_string_validation() {
-                    println!("  - Username::try_new: {}", err.to_fluent_string());
+                    println!("  - Username::try_new: {}", i18n::localize(err));
                 }
 
                 println!("  - all failed validators from Username::try_new:");
                 for err in username_errs.all() {
-                    println!("    - {}", err.to_fluent_string());
+                    println!("    - {}", i18n::localize(&err));
                 }
             },
         }
@@ -384,7 +375,7 @@ pub fn main() {
         Err(errors) => {
             println!("  - Only67u8::try_from(69) failed:");
             for failed in errors.all() {
-                println!("    - {}", failed.to_fluent_string());
+                println!("    - {}", i18n::localize(&failed));
             }
         },
     }
@@ -394,7 +385,7 @@ pub fn main() {
         Err(errors) => {
             println!("  - Only67u8::try_from(67) unexpectedly failed:");
             for failed in errors.all() {
-                println!("    - {}", failed.to_fluent_string());
+                println!("    - {}", i18n::localize(&failed));
             }
         },
     }

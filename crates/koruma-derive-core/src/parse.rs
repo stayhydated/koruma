@@ -3,8 +3,6 @@
 //! This module provides types and functions for parsing koruma validation
 //! attributes from syn AST nodes.
 
-use std::borrow::Cow;
-
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use syn::{
     Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
@@ -17,31 +15,32 @@ use syn::{
 
 use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
-/// Represents a single parsed validator: `ValidatorName(arg = value, ...)`,
-/// `ValidatorName<_>(arg = value, ...)`, or `ValidatorName<SomeType>(arg = value, ...)`.
-/// Also supports fully-qualified paths like `module::path::ValidatorName<_>`.
+/// Represents a single parsed validator builder chain.
 ///
-/// Uses angle bracket syntax (`<>`) for type parameters, which keeps the
-/// attribute surface compact while still naturally handling nested generics
-/// like `Validator<Option<Vec<T>>>`.
+/// Validator configuration uses standard Rust builder syntax and also supports
+/// fully-qualified validator paths like `module::path::ValidatorName::<_>`.
 ///
 /// # Examples
 ///
-/// ```ignore
-/// // Simple validator
-/// #[koruma(NonEmptyValidation)]
+/// ```rust
+/// use koruma_derive_core::ValidatorAttr;
 ///
-/// // Validator with type inference
-/// #[koruma(RangeValidation<_>(min = 0, max = 100))]
+/// let simple: ValidatorAttr = syn::parse_quote!(NonEmptyValidation::builder());
+/// assert_eq!(simple.name().to_string(), "NonEmptyValidation");
+/// assert!(!simple.uses_type_inference());
 ///
-/// // Validator with explicit type
-/// #[koruma(RangeValidation<i32>(min = 0, max = 100))]
+/// let inferred: ValidatorAttr =
+///     syn::parse_quote!(RangeValidation::<_>::builder().min(0).max(100));
+/// assert!(inferred.uses_type_inference());
+/// assert_eq!(inferred.setter_calls().len(), 2);
 ///
-/// // Full path
-/// #[koruma(validators::numeric::RangeValidation<_>(min = 0))]
+/// let explicit: ValidatorAttr =
+///     syn::parse_quote!(RangeValidation::<i32>::builder().min(0).max(100));
+/// assert!(explicit.has_explicit_type());
 ///
-/// // Standard Rust builder chain
-/// #[koruma(validators::numeric::RangeValidation::<_>::builder().min(0).max(100))]
+/// let full_path: ValidatorAttr =
+///     syn::parse_quote!(validators::numeric::RangeValidation::<_>::builder().min(0));
+/// assert_eq!(full_path.path_name(), "validators::numeric::RangeValidation");
 /// ```
 #[derive(Clone, Debug)]
 pub struct BuilderMethodCall {
@@ -60,13 +59,10 @@ pub struct ValidatorAttr {
     /// inference from the field type.
     /// When true, the field type is used (unwrapping Option if present).
     pub infer_type: bool,
-    /// Explicit type parameter if specified (e.g., `<f64>`, `<Vec<_>>`)
+    /// Explicit type parameter if specified (e.g., `::<f64>`, `::<Vec<_>>`)
     /// If this contains `_`, it will be substituted with the inner type from the field.
-    /// Use `<Option<_>>` to get the full Option type without unwrapping.
+    /// Use `::<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<Type>,
-    /// Key-value argument pairs passed to the validator.
-    /// Used by the shorthand `Validator(arg = value, ...)` syntax.
-    pub args: Vec<(Ident, Expr)>,
     /// Builder setter method calls collected from a standard Rust builder chain.
     /// Used by `Validator::builder().arg(value)...`.
     pub builder_methods: Vec<BuilderMethodCall>,
@@ -124,29 +120,12 @@ impl ValidatorAttr {
 
     /// Returns whether this validator has any arguments.
     pub fn has_args(&self) -> bool {
-        !self.args.is_empty() || !self.builder_methods.is_empty()
+        !self.builder_methods.is_empty()
     }
 
     /// Returns validator configuration as normalized builder setter calls.
-    ///
-    /// Shorthand args like `RangeValidation(min = 0, max = 10)` are exposed as
-    /// `min(0)` and `max(10)`, while explicit builder chains are returned as-is.
-    /// This gives downstream code a single representation to consume without
-    /// losing support for either attribute form.
-    pub fn setter_calls(&self) -> Cow<'_, [BuilderMethodCall]> {
-        if !self.builder_methods.is_empty() {
-            Cow::Borrowed(&self.builder_methods)
-        } else {
-            Cow::Owned(
-                self.args
-                    .iter()
-                    .map(|(name, value)| BuilderMethodCall {
-                        method: name.clone(),
-                        args: vec![value.clone()],
-                    })
-                    .collect(),
-            )
-        }
+    pub fn setter_calls(&self) -> &[BuilderMethodCall] {
+        &self.builder_methods
     }
 
     /// Returns whether this validator uses type inference (`<_>` syntax).
@@ -166,7 +145,7 @@ impl Parse for ValidatorAttr {
             return Ok(attr);
         }
 
-        parse_shorthand_validator(input)
+        Err(removed_shorthand_validator_error(input))
     }
 }
 
@@ -186,87 +165,24 @@ fn try_parse_builder_chain_validator(input: ParseStream) -> Result<Option<Valida
         return Err(Error::new(expr.span(), "expected validator builder chain"));
     };
 
-    let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator, true)?;
+    let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator)?;
 
     Ok(Some(ValidatorAttr {
         validator,
         infer_type,
         explicit_type,
-        args: Vec::new(),
         builder_methods,
     }))
 }
 
-fn parse_shorthand_validator(input: ParseStream) -> Result<ValidatorAttr> {
-    // Parse validator path first; bare `<...>` generic args remain in the token
-    // stream, while turbofish `::<...>` is rejected in this shorthand form.
-    let mut validator: Path = input.parse()?;
-    let validator_span = validator.span();
-    let last_segment = validator
-        .segments
-        .last_mut()
-        .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
-
-    if let PathArguments::AngleBracketed(angle_args) = &last_segment.arguments
-        && angle_args.colon2_token.is_some()
-    {
-        return Err(Error::new(
-            angle_args.span(),
-            "use angle bracket syntax `<...>` instead of turbofish `::<...>` in `#[koruma(...)]`",
-        ));
-    }
-
-    // Support `Validator<_>` by attaching the parsed generic args to the last
-    // path segment before extracting them into `ValidatorAttr`.
-    if input.peek(Token![<]) {
-        let angle_args: syn::AngleBracketedGenericArguments = input.parse()?;
-
-        if !matches!(last_segment.arguments, PathArguments::None) {
-            return Err(Error::new(
-                angle_args.span(),
-                "validator type syntax can only appear once",
-            ));
-        }
-
-        last_segment.arguments = PathArguments::AngleBracketed(angle_args);
-    }
-
-    let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator, false)?;
-
-    let args = if input.peek(token::Paren) {
-        let content;
-        parenthesized!(content in input);
-
-        let mut args = Vec::new();
-        while !content.is_empty() {
-            let name: Ident = content.parse()?;
-            content.parse::<Token![=]>()?;
-            let value: Expr = content.parse()?;
-
-            args.push((name, value));
-
-            if content.peek(Token![,]) {
-                content.parse::<Token![,]>()?;
-            }
-        }
-        args
-    } else {
-        Vec::new()
-    };
-
-    Ok(ValidatorAttr {
-        validator,
-        infer_type,
-        explicit_type,
-        args,
-        builder_methods: Vec::new(),
-    })
+fn removed_shorthand_validator_error(input: ParseStream) -> Error {
+    Error::new(
+        input.span(),
+        "validator syntax requires a builder chain such as `RequiredValidation::<Option<_>>::builder()` or `RangeValidation::<_>::builder().min(value).max(value)`; constructor-style validator args like `Validator(field = value)` and bare validators like `Validator` were removed",
+    )
 }
 
-fn split_validator_path_type_args(
-    mut validator: Path,
-    allow_turbofish: bool,
-) -> Result<(Path, bool, Option<Type>)> {
+fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, bool, Option<Type>)> {
     let validator_span = validator.span();
     let last_segment = validator
         .segments
@@ -277,13 +193,6 @@ fn split_validator_path_type_args(
     let (infer_type, explicit_type) = match args {
         PathArguments::None => (false, None),
         PathArguments::AngleBracketed(mut angle_args) => {
-            if !allow_turbofish && angle_args.colon2_token.is_some() {
-                return Err(Error::new(
-                    angle_args.span(),
-                    "use angle bracket syntax `<...>` instead of turbofish `::<...>` in `#[koruma(...)]`",
-                ));
-            }
-
             if angle_args.args.len() != 1 {
                 return Err(Error::new(
                     angle_args.span(),
@@ -389,7 +298,7 @@ fn analyze_builder_call_expr(
 }
 
 /// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
-/// separated by commas: `#[koruma(Validator1(a = 1), Validator2(b = 2))]`
+/// separated by commas: `#[koruma(Validator1::builder().a(1), Validator2::builder().b(2))]`
 ///
 /// Can also include:
 /// - `each(...)` modifier for collection validation
@@ -399,18 +308,27 @@ fn analyze_builder_call_expr(
 ///
 /// # Examples
 ///
-/// ```ignore
-/// // Multiple validators
-/// #[koruma(Validator1(a = 1), Validator2(b = 2))]
+/// ```rust
+/// use koruma_derive_core::KorumaAttr;
 ///
-/// // Element validation for collections
-/// #[koruma(VecValidator(min = 0), each(ElementValidator(max = 100)))]
+/// let multiple: KorumaAttr = syn::parse_quote!(
+///     Validator1::builder().a(1),
+///     Validator2::builder().b(2)
+/// );
+/// assert_eq!(multiple.field_validators.len(), 2);
 ///
-/// // Skip validation
-/// #[koruma(skip)]
+/// let with_each: KorumaAttr = syn::parse_quote!(
+///     VecValidator::builder().min(0),
+///     each(ElementValidator::builder().max(100))
+/// );
+/// assert_eq!(with_each.field_validators.len(), 1);
+/// assert_eq!(with_each.element_validators.len(), 1);
 ///
-/// // Nested Koruma struct
-/// #[koruma(nested)]
+/// let skip: KorumaAttr = syn::parse_quote!(skip);
+/// assert!(skip.is_skip);
+///
+/// let nested: KorumaAttr = syn::parse_quote!(nested);
+/// assert!(nested.is_nested);
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct KorumaAttr {
@@ -589,26 +507,41 @@ impl Parse for KorumaAttr {
 ///
 /// # Examples
 ///
-/// ```ignore
-/// // Generate try_new constructor
-/// #[koruma(try_new)]
-/// #[derive(Koruma)]
-/// struct User { ... }
+/// ```rust
+/// use koruma_derive_core::parse_struct_options;
+/// use syn::ItemStruct;
 ///
-/// // Newtype wrapper
-/// #[koruma(newtype)]
-/// #[derive(Koruma)]
-/// struct Email(String);
+/// let user: ItemStruct = syn::parse_quote! {
+///     #[koruma(try_new)]
+///     struct User { name: String }
+/// };
+/// let options = parse_struct_options(&user.attrs).unwrap();
+/// assert!(options.try_new);
+/// assert!(!options.newtype);
 ///
-/// // Both options
-/// #[koruma(try_new, newtype)]
-/// #[derive(Koruma)]
-/// struct Email(String);
+/// let email: ItemStruct = syn::parse_quote! {
+///     #[koruma(newtype)]
+///     struct Email(String);
+/// };
+/// let options = parse_struct_options(&email.attrs).unwrap();
+/// assert!(options.newtype);
+/// assert!(!options.try_from);
 ///
-/// // TryFrom impl for newtypes - converts inner type to validated wrapper
-/// #[koruma(newtype(try_from))]
-/// #[derive(Koruma)]
-/// struct Email(String);
+/// let checked_email: ItemStruct = syn::parse_quote! {
+///     #[koruma(try_new, newtype)]
+///     struct CheckedEmail(String);
+/// };
+/// let options = parse_struct_options(&checked_email.attrs).unwrap();
+/// assert!(options.try_new);
+/// assert!(options.newtype);
+///
+/// let convertible_email: ItemStruct = syn::parse_quote! {
+///     #[koruma(newtype(try_from))]
+///     struct ConvertibleEmail(String);
+/// };
+/// let options = parse_struct_options(&convertible_email.attrs).unwrap();
+/// assert!(options.newtype);
+/// assert!(options.try_from);
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct StructOptions {
@@ -902,7 +835,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
                 if koruma_attr.is_newtype {
                     is_newtype = true;
                     // Don't continue here - newtype can have validators too
-                    // e.g., #[koruma(newtype, RequiredValidation)]
+                    // e.g., #[koruma(newtype, RequiredValidation::builder())]
                 }
                 // Collect validators from this attribute, checking for duplicates
                 for validator in koruma_attr.field_validators {

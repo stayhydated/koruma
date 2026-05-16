@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Resource {
-///     #[koruma(UrlValidation<_>)]
+///     #[koruma(UrlValidation::<_>::builder())]
 ///     link: String,
 /// }
 /// ```

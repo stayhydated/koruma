@@ -27,7 +27,7 @@
   generated showcase impl.
 - `expand/derive.rs`: generates error structs, `validate()`, `try_new`, `TryFrom`, nested/newtype handling, and element validator errors for `each(...)`.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
-- `expand/fluent.rs`: implements `ToFluentString` for validator enums and error structs (feature `fluent`).
+- `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).
 - `expand/codegen.rs`: shared helpers for type resolution and argument transformations.
 
 ## Feature flags

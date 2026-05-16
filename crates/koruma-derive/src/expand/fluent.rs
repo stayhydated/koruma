@@ -14,8 +14,9 @@ use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(KorumaAllFluent)]` derive macro.
 ///
-/// Generates `ToFluentString` implementations for the `{Struct}{Field}KorumaValidator` enums
-/// returned by the `all()` method. Each variant delegates to its inner validator's ToFluentString.
+/// Generates `FluentMessage` implementations for the `{Struct}{Field}KorumaValidator` enums
+/// returned by the `all()` method. Each variant delegates to its inner validator's
+/// `FluentMessage` implementation.
 #[cfg(feature = "fluent")]
 pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
@@ -35,7 +36,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     // Parse all fields and extract validation info
     let field_infos: Vec<FieldInfo> = collect_field_infos(fields, Some(&struct_options))?;
 
-    // Generate ToFluentString impls for each field's validator enum
+    // Generate FluentMessage impls for each field's validator enum
     let fluent_impls: Vec<TokenStream2> = field_infos
         .iter()
         .filter(|f| !f.validation.field_validators.is_empty())
@@ -73,7 +74,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     let variant_name =
                         validator_variant_ident(v, &f.validation.field_validators);
                     quote! {
-                        #enum_name::#variant_name(v) => v.to_fluent_string()
+                        #enum_name::#variant_name(v) => v.to_fluent_string_with(localize)
                     }
                 })
                 .collect();
@@ -81,16 +82,23 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             // Add Inner variant arm for newtype fields with additional validators
             let inner_arm = if f.is_newtype() {
                 Some(quote! {
-                    #enum_name::Inner(inner) => inner.to_fluent_string()
+                    #enum_name::Inner(inner) => inner.to_fluent_string_with(localize)
                 })
             } else {
                 None
             };
 
             quote! {
-                impl #helper_impl_generics ::es_fluent::ToFluentString for #enum_name #helper_ty_generics #helper_where_clause {
-                    fn to_fluent_string(&self) -> String {
-                        use ::es_fluent::ToFluentString;
+                impl #helper_impl_generics ::es_fluent::FluentMessage for #enum_name #helper_ty_generics #helper_where_clause {
+                    fn to_fluent_string_with(
+                        &self,
+                        localize: &mut dyn for<'a> FnMut(
+                            &str,
+                            &str,
+                            Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+                        ) -> String,
+                    ) -> String {
+                        use ::es_fluent::FluentMessage;
                         match self {
                             #(#match_arms,)*
                             #inner_arm
@@ -101,7 +109,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
         })
         .collect();
 
-    // Generate ToFluentString impls for element validator enums (if any)
+    // Generate FluentMessage impls for element validator enums (if any)
     let element_fluent_impls: Vec<TokenStream2> = field_infos
         .iter()
         .filter(|f| !f.validation.element_validators.is_empty())
@@ -135,15 +143,22 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     let variant_name =
                         validator_variant_ident(v, &f.validation.element_validators);
                     quote! {
-                        #enum_name::#variant_name(v) => v.to_fluent_string()
+                        #enum_name::#variant_name(v) => v.to_fluent_string_with(localize)
                     }
                 })
                 .collect();
 
             quote! {
-                impl #helper_impl_generics ::es_fluent::ToFluentString for #enum_name #helper_ty_generics #helper_where_clause {
-                    fn to_fluent_string(&self) -> String {
-                        use ::es_fluent::ToFluentString;
+                impl #helper_impl_generics ::es_fluent::FluentMessage for #enum_name #helper_ty_generics #helper_where_clause {
+                    fn to_fluent_string_with(
+                        &self,
+                        localize: &mut dyn for<'a> FnMut(
+                            &str,
+                            &str,
+                            Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+                        ) -> String,
+                    ) -> String {
+                        use ::es_fluent::FluentMessage;
                         match self {
                             #(#match_arms),*
                         }
@@ -153,7 +168,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
         })
         .collect();
 
-    // Generate ToFluentString impls for error structs
+    // Generate FluentMessage impls for error structs
     let error_struct_impls: Vec<TokenStream2> = field_infos
         .iter()
         .filter(|f| !f.validation.field_validators.is_empty() || f.is_newtype())
@@ -194,7 +209,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                         validator_field_ident(v, &f.validation.field_validators);
                     quote! {
                         if let Some(v) = &self.#validator_snake {
-                            messages.push(v.to_fluent_string());
+                            messages.push(v.to_fluent_string_with(localize));
                         }
                     }
                 })
@@ -204,14 +219,14 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     Some(quote! {
                         if let Some(inner) = self.inner() {
                             if !inner.is_empty() {
-                                messages.push(inner.to_fluent_string());
+                                messages.push(inner.to_fluent_string_with(localize));
                             }
                         }
                     })
                 } else {
                     Some(quote! {
                         if !self.inner().is_empty() {
-                            messages.push(self.inner().to_fluent_string());
+                            messages.push(self.inner().to_fluent_string_with(localize));
                         }
                     })
                 }
@@ -220,9 +235,16 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             };
 
             quote! {
-                impl #helper_impl_generics ::es_fluent::ToFluentString for #error_struct_name #helper_ty_generics #helper_where_clause {
-                    fn to_fluent_string(&self) -> String {
-                        use ::es_fluent::ToFluentString;
+                impl #helper_impl_generics ::es_fluent::FluentMessage for #error_struct_name #helper_ty_generics #helper_where_clause {
+                    fn to_fluent_string_with(
+                        &self,
+                        localize: &mut dyn for<'a> FnMut(
+                            &str,
+                            &str,
+                            Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+                        ) -> String,
+                    ) -> String {
+                        use ::es_fluent::FluentMessage;
                         let mut messages = Vec::new();
                         #(#message_pushes)*
                         #inner_message_push

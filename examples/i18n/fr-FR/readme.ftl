@@ -4,11 +4,11 @@ is_even_number_validation = La valeur { $actual } n'est pas un nombre pair.
 
 ## NonEmptyStringValidation
 
-non_empty_string_validation = La chaîne d'entrée ne peut pas être vide.
+non_empty_string_validation = La chaîne d'entrée "{ $input }" ne peut pas être vide.
 
 ## Only67Validation
 
-only67_validation = pas 67 :(
+only67_validation = La valeur { $actual } n'est pas 67 :(
 
 ## PositiveNumberValidation
 

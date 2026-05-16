@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Order {
-///     #[koruma(PositiveValidation<_>)]
+///     #[koruma(PositiveValidation::<_>::builder())]
 ///     quantity: i32,
 /// }
 /// ```

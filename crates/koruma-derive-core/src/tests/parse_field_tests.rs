@@ -16,7 +16,7 @@ struct SnapshotValidator {
     name: String,
     infer_type: bool,
     explicit_type: Option<String>,
-    args: Vec<(String, String)>,
+    builder_methods: Vec<(String, Vec<String>)>,
 }
 
 #[allow(dead_code)]
@@ -54,10 +54,15 @@ fn snapshot_validator(validator: &ValidatorAttr) -> SnapshotValidator {
         name: validator.name().to_string(),
         infer_type: validator.infer_type,
         explicit_type: validator.explicit_type.as_ref().map(normalize_tokens),
-        args: validator
-            .args
+        builder_methods: validator
+            .builder_methods
             .iter()
-            .map(|(name, expr)| (name.to_string(), normalize_tokens(expr)))
+            .map(|method| {
+                (
+                    method.method.to_string(),
+                    method.args.iter().map(normalize_tokens).collect(),
+                )
+            })
             .collect(),
     }
 }
@@ -137,7 +142,7 @@ fn parse_field_snapshot(field: &syn::Field) -> Option<SnapshotFieldInfo> {
 #[test]
 fn test_parse_field_direct_single_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation(min = 0, max = 100))]
+        #[koruma(RangeValidation::builder().min(0).max(100))]
         pub age: i32
     };
 
@@ -147,7 +152,7 @@ fn test_parse_field_direct_single_validator() {
 #[test]
 fn test_parse_field_direct_multiple_validators() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation(min = 0, max = 100), EvenValidation)]
+        #[koruma(RangeValidation::builder().min(0).max(100), EvenValidation::builder())]
         pub value: i32
     };
 
@@ -157,7 +162,7 @@ fn test_parse_field_direct_multiple_validators() {
 #[test]
 fn test_parse_field_direct_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange<_>(min = 0.0, max = 1.0))]
+        #[koruma(GenericRange::<_>::builder().min(0.0).max(1.0))]
         pub score: f64
     };
 
@@ -167,7 +172,7 @@ fn test_parse_field_direct_generic_validator() {
 #[test]
 fn test_parse_field_direct_each() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(RangeValidation(min = 0, max = 100)))]
+        #[koruma(each(RangeValidation::builder().min(0).max(100)))]
         pub scores: Vec<i32>
     };
 
@@ -211,7 +216,7 @@ fn test_parse_field_direct_skip() {
 #[test]
 fn test_parse_field_cfg_attr_single_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(RangeValidation(min = 0, max = 100)))]
+        #[cfg_attr(feature = "validation", koruma(RangeValidation::builder().min(0).max(100)))]
         pub age: i32
     };
 
@@ -221,7 +226,7 @@ fn test_parse_field_cfg_attr_single_validator() {
 #[test]
 fn test_parse_field_cfg_attr_multiple_validators() {
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(RangeValidation(min = 0, max = 100), EvenValidation))]
+        #[cfg_attr(feature = "validation", koruma(RangeValidation::builder().min(0).max(100), EvenValidation::builder()))]
         pub value: i32
     };
 
@@ -231,7 +236,7 @@ fn test_parse_field_cfg_attr_multiple_validators() {
 #[test]
 fn test_parse_field_cfg_attr_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(GenericRange<_>(min = 0.0, max = 1.0)))]
+        #[cfg_attr(feature = "validation", koruma(GenericRange::<_>::builder().min(0.0).max(1.0)))]
         pub score: f64
     };
 
@@ -241,7 +246,7 @@ fn test_parse_field_cfg_attr_generic_validator() {
 #[test]
 fn test_parse_field_cfg_attr_each() {
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(each(RangeValidation(min = 0, max = 100))))]
+        #[cfg_attr(feature = "validation", koruma(each(RangeValidation::builder().min(0).max(100))))]
         pub scores: Vec<i32>
     };
 
@@ -297,7 +302,7 @@ fn test_parse_field_cfg_attr_with_other_derives() {
 fn test_parse_field_cfg_attr_koruma_first() {
     // koruma before other attrs in same cfg_attr
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(feature = "validation", koruma(RangeValidation(min = 0, max = 100)), some_other_attr)]
+        #[cfg_attr(feature = "validation", koruma(RangeValidation::builder().min(0).max(100)), some_other_attr)]
         pub age: i32
     };
 
@@ -323,7 +328,7 @@ fn test_parse_field_cfg_attr_complex_condition() {
 fn test_parse_field_cfg_attr_any_condition() {
     // any() condition
     let field: syn::Field = syn::parse_quote! {
-        #[cfg_attr(any(feature = "validation", feature = "full"), koruma(RangeValidation(min = 0, max = 100)))]
+        #[cfg_attr(any(feature = "validation", feature = "full"), koruma(RangeValidation::builder().min(0).max(100)))]
         pub age: i32
     };
 
@@ -600,7 +605,7 @@ fn test_parse_field_non_koruma_cfg_attr_skipped() {
 fn test_parse_field_mixed_attrs_only_koruma_parsed() {
     let field: syn::Field = syn::parse_quote! {
         #[cfg_attr(feature = "serde", serde(rename = "val"))]
-        #[cfg_attr(feature = "validation", koruma(RangeValidation(min = 0, max = 100)))]
+        #[cfg_attr(feature = "validation", koruma(RangeValidation::builder().min(0).max(100)))]
         #[doc = "Some documentation"]
         pub value: i32
     };
@@ -611,7 +616,7 @@ fn test_parse_field_mixed_attrs_only_koruma_parsed() {
 #[test]
 fn test_parse_field_unnamed() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(NonEmptyStringValidation)]
+        #[koruma(NonEmptyStringValidation::builder())]
         String
     };
 

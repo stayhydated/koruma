@@ -13,32 +13,28 @@ use koruma_collection::{collection, general, numeric, string};
 
 #[derive(Koruma)]
 pub struct Order {
-    #[koruma(each(validators::normal::NumberRangeValidation::<_>::builder().min(1).max(5)))]
+    #[koruma(each(validators::normal::NumberRangeValidation::<_>::min(1).max(5)))]
     pub quantities: Vec<i32>,
 }
 
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {
-    #[koruma(each(validators::normal::NumberRangeValidation::<_>::builder().min(1).max(5)))]
+    #[koruma(each(validators::normal::NumberRangeValidation::<_>::min(1).max(5)))]
     pub quantities: &'a [i32],
 }
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedUsername<'a> {
-    #[koruma(validators::normal::StartsWithValidation::<_>::builder().prefix("user:"))]
+    #[koruma(validators::normal::StartsWithValidation::<_>::prefix("user:"))]
     pub username: &'a str,
 }
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(
-        validators::normal::NumberRangeValidation::<_>::builder()
-            .min(0)
-            .max(100)
-    )]
+    #[koruma(validators::normal::NumberRangeValidation::<_>::min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation::builder().min(1).max(67))]
+    #[koruma(StringLengthValidation::min(1).max(67))]
     pub name: String,
 
     // This field is not validated
@@ -48,10 +44,10 @@ pub struct Item {
 /// Example struct using EsFluent-based validators.
 #[derive(Koruma)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation::<_>::builder())]
+    #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
 
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub username: String,
 }
 
@@ -63,13 +59,13 @@ pub struct User {
 /// Uses Display-based validators.
 #[derive(Clone, Koruma)]
 pub struct Address {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub street: String,
 
-    #[koruma(StringLengthValidation::builder().min(1).max(50))]
+    #[koruma(StringLengthValidation::min(1).max(50))]
     pub city: String,
 
-    #[koruma(ZipCodeValidation::builder())]
+    #[koruma(ZipCodeValidation)]
     pub zip_code: String,
 }
 
@@ -77,10 +73,10 @@ pub struct Address {
 /// Demonstrates `#[koruma(nested)]` for Display-based error messages.
 #[derive(Koruma)]
 pub struct Customer {
-    #[koruma(StringLengthValidation::builder().min(1).max(100))]
+    #[koruma(StringLengthValidation::min(1).max(100))]
     pub name: String,
 
-    #[koruma(NumberRangeValidation::<_>::builder().min(18).max(120))]
+    #[koruma(NumberRangeValidation::<_>::min(18).max(120))]
     pub age: i32,
 
     /// Nested struct - validation cascades automatically
@@ -96,10 +92,10 @@ pub struct Customer {
 /// Uses EsFluent-based validators for i18n support.
 #[derive(Clone, Koruma)]
 pub struct AccountSettings {
-    #[koruma(PositiveNumberValidation::<_>::builder())]
+    #[koruma(PositiveNumberValidation::<_>)]
     pub max_login_attempts: i32,
 
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub default_language: String,
 }
 
@@ -107,10 +103,10 @@ pub struct AccountSettings {
 /// Demonstrates `#[koruma(nested)]` for EsFluent-based error messages.
 #[derive(Koruma)]
 pub struct Account {
-    #[koruma(IsEvenNumberValidation::<_>::builder())]
+    #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
 
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub email: String,
 
     /// Nested struct - validation cascades automatically
@@ -129,7 +125,7 @@ pub struct Account {
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(try_new, newtype)]
 pub struct Email {
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub value: String,
 }
 
@@ -137,7 +133,7 @@ pub struct Email {
 /// Demonstrates `#[koruma(newtype)]` on a field to transparently access the inner validation errors.
 #[derive(Koruma, koruma::KorumaAllFluent)]
 pub struct SignupForm {
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub username: String,
 
     /// Newtype field - validation cascades, and errors are treated as if they were on this field
@@ -158,7 +154,7 @@ pub struct OptionalSignupForm {
 /// The field is accessed as `Username::try_new(value).unwrap().0` (tuple index 0).
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(try_new, newtype)]
-pub struct Username(#[koruma(NonEmptyStringValidation::builder())] pub String);
+pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
 
 /// A struct using the Username unnamed newtype.
 /// Works identically to named newtypes - errors delegate transparently.
@@ -170,19 +166,19 @@ pub struct LoginForm {
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation::<_>::builder())] pub u8);
+pub struct Only67u8(#[koruma(Only67Validation::<_>)] pub u8);
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct SignupInput {
-    #[koruma(collection::NonEmptyValidation::<_>::builder())]
+    #[koruma(collection::NonEmptyValidation::<_>)]
     pub username: String,
 
-    #[koruma(string::AsciiValidation::<_>::builder(), string::AlphanumericValidation::<_>::builder())]
+    #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
     pub handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>::builder().min(13_u8).max(120_u8))]
+    #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     pub age: u8,
 
-    #[koruma(general::RequiredValidation::<Option<_>>::builder())]
+    #[koruma(general::RequiredValidation::<Option<_>>)]
     pub display_name: Option<String>,
 }

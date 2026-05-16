@@ -621,7 +621,7 @@ fn test_koruma_expansion_field_arg_ident_transforms_to_self_clone() {
 fn test_koruma_expansion_builder_chain_uses_supplied_setters() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct BuilderSyntaxItem {
-            #[koruma(GenericRangeValidation::<_>::builder().min(0.0).max(100.0))]
+            #[koruma(GenericRangeValidation::<_>::min(0.0).max(100.0))]
             pub score: f64,
         }
     };
@@ -629,6 +629,20 @@ fn test_koruma_expansion_builder_chain_uses_supplied_setters() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("GenericRangeValidation::<f64>::builder().min(0.0).max(100.0)"));
+}
+
+#[test]
+fn test_koruma_expansion_implicit_builder_without_setters() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct ImplicitBuilderNoSetters {
+            #[koruma(RequiredValidation::<Option<_>>)]
+            pub value: Option<String>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("RequiredValidation::<Option<String>>::builder()"));
 }
 
 #[test]

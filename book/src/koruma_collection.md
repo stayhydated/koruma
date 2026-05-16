@@ -37,13 +37,13 @@ Validator-specific optional flags:
 
 | Validator                   | Rule                     | Example attribute                                                                                | Feature |
 | --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ------- |
-| `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation::<_>::builder())]`                                                   | always  |
-| `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation::<_>::builder())]`                                                          | always  |
-| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>::builder().substring("abc"))]`                                    | always  |
-| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>::builder().other("secret".to_string()))]`                          | always  |
-| `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation::<_>::builder().pattern(regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
-| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>::builder().prefix("usr_"))]`                                        | always  |
-| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>::builder().suffix(".rs"))]`                                         | always  |
+| `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation::<_>)]`                                                   | always  |
+| `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation::<_>)]`                                                          | always  |
+| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>::substring("abc"))]`                                    | always  |
+| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>::other("secret".to_string()))]`                          | always  |
+| `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation::<_>::pattern(regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
+| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>::prefix("usr_"))]`                                        | always  |
+| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>::suffix(".rs"))]`                                         | always  |
 
 `MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
 compared value or regex pattern. `PatternValidation` stores a compiled `regex::Regex`, so invalid
@@ -53,21 +53,21 @@ patterns fail during construction instead of during validation.
 
 | Validator                  | Rule                         | Example attribute                                               | Feature        |
 | -------------------------- | ---------------------------- | --------------------------------------------------------------- | -------------- |
-| `IpValidation<T>`          | Valid IP (`Any`, `V4`, `V6`) | `#[koruma(format::IpValidation::<_>::builder().kind(format::IpKind::V4))]` | always         |
-| `EmailValidation<T>`       | Valid email address          | `#[koruma(format::EmailValidation::<_>::builder())]`                         | `email`        |
-| `PhoneNumberValidation<T>` | Valid phone number           | `#[koruma(format::PhoneNumberValidation::<_>::builder())]`                   | `phone-number` |
-| `UrlValidation<T>`         | Valid URL                    | `#[koruma(format::UrlValidation::<_>::builder())]`                           | `url`          |
-| `CreditCardValidation<T>`  | Valid credit card number     | `#[koruma(format::CreditCardValidation::<_>::builder())]`                    | `credit-card`  |
+| `IpValidation<T>`          | Valid IP (`Any`, `V4`, `V6`) | `#[koruma(format::IpValidation::<_>::kind(format::IpKind::V4))]` | always         |
+| `EmailValidation<T>`       | Valid email address          | `#[koruma(format::EmailValidation::<_>)]`                         | `email`        |
+| `PhoneNumberValidation<T>` | Valid phone number           | `#[koruma(format::PhoneNumberValidation::<_>)]`                   | `phone-number` |
+| `UrlValidation<T>`         | Valid URL                    | `#[koruma(format::UrlValidation::<_>)]`                           | `url`          |
+| `CreditCardValidation<T>`  | Valid credit card number     | `#[koruma(format::CreditCardValidation::<_>)]`                    | `credit-card`  |
 
 ### Numeric validators (`koruma_collection::numeric`)
 
 | Validator                  | Rule                                           | Example attribute                                                                  | Feature |
 | -------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- | ------- |
-| `PositiveValidation<T>`    | `value > 0`                                    | `#[koruma(numeric::PositiveValidation::<_>::builder())]`                                        | always  |
-| `NonNegativeValidation<T>` | `value >= 0`                                   | `#[koruma(numeric::NonNegativeValidation::<_>::builder())]`                                     | always  |
-| `NonPositiveValidation<T>` | `value <= 0`                                   | `#[koruma(numeric::NonPositiveValidation::<_>::builder())]`                                     | always  |
-| `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation::<_>::builder())]`                                        | always  |
-| `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>::builder().min(0).max(100).exclusive_max(true))]` | always  |
+| `PositiveValidation<T>`    | `value > 0`                                    | `#[koruma(numeric::PositiveValidation::<_>)]`                                        | always  |
+| `NonNegativeValidation<T>` | `value >= 0`                                   | `#[koruma(numeric::NonNegativeValidation::<_>)]`                                     | always  |
+| `NonPositiveValidation<T>` | `value <= 0`                                   | `#[koruma(numeric::NonPositiveValidation::<_>)]`                                     | always  |
+| `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation::<_>)]`                                        | always  |
+| `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>::min(0).max(100).exclusive_max(true))]` | always  |
 
 Primitive integers and floats implement `numeric::Numeric` out of the box. Enable the `decimal`
 feature to add `rust_decimal::Decimal`. Custom numeric-like types can opt in by implementing
@@ -80,8 +80,8 @@ bounds are reflected directly in the rendered error.
 
 | Validator               | Rule                           | Example attribute                                            | Feature |
 | ----------------------- | ------------------------------ | ------------------------------------------------------------ | ------- |
-| `LenValidation<T>`      | Length within `[min, max]`     | `#[koruma(collection::LenValidation::<_>::builder().min(1).max(10))]` | always  |
-| `NonEmptyValidation<T>` | Collection/string is not empty | `#[koruma(collection::NonEmptyValidation::<_>::builder())]`               | always  |
+| `LenValidation<T>`      | Length within `[min, max]`     | `#[koruma(collection::LenValidation::<_>::min(1).max(10))]` | always  |
+| `NonEmptyValidation<T>` | Collection/string is not empty | `#[koruma(collection::NonEmptyValidation::<_>)]`               | always  |
 
 `collection::HasLen` is implemented for common standard types (`String`, `str`,
 arrays/slices, `Vec`, sets/maps, etc.) and optionally for `SmallVec` with the
@@ -92,10 +92,10 @@ values (`char`s), not UTF-8 bytes.
 
 | Validator                       | Rule                  | Example attribute                                   | Feature |
 | ------------------------------- | --------------------- | --------------------------------------------------- | ------- |
-| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation::<Option<_>>::builder())]` | always  |
+| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation::<Option<_>>)]` | always  |
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
-`collection::NonEmptyValidation::<_>::builder()` when you need an emptiness check. It uses
+`collection::NonEmptyValidation::<_>` when you need an emptiness check. It uses
 `#[koruma(value, skip_capture)]` internally, so `Option<NonCloneType>` fields do not need `Clone`
 just to report a missing-value error.
 
@@ -107,16 +107,16 @@ use koruma_collection::{collection, general, numeric, string};
 
 #[derive(Koruma, KorumaAllDisplay)]
 struct SignupInput {
-    #[koruma(collection::NonEmptyValidation::<_>::builder())]
+    #[koruma(collection::NonEmptyValidation::<_>)]
     username: String,
 
-    #[koruma(string::AsciiValidation::<_>::builder(), string::AlphanumericValidation::<_>::builder())]
+    #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
     handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>::builder().min(13_u8).max(120_u8))]
+    #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(general::RequiredValidation::<Option<_>>::builder())]
+    #[koruma(general::RequiredValidation::<Option<_>>)]
     display_name: Option<String>,
 }
 

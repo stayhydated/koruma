@@ -25,21 +25,21 @@ use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 /// ```rust
 /// use koruma_derive_core::ValidatorAttr;
 ///
-/// let simple: ValidatorAttr = syn::parse_quote!(NonEmptyValidation::builder());
+/// let simple: ValidatorAttr = syn::parse_quote!(NonEmptyValidation);
 /// assert_eq!(simple.name().to_string(), "NonEmptyValidation");
 /// assert!(!simple.uses_type_inference());
 ///
 /// let inferred: ValidatorAttr =
-///     syn::parse_quote!(RangeValidation::<_>::builder().min(0).max(100));
+///     syn::parse_quote!(RangeValidation::<_>::min(0).max(100));
 /// assert!(inferred.uses_type_inference());
 /// assert_eq!(inferred.setter_calls().len(), 2);
 ///
 /// let explicit: ValidatorAttr =
-///     syn::parse_quote!(RangeValidation::<i32>::builder().min(0).max(100));
+///     syn::parse_quote!(RangeValidation::<i32>::min(0).max(100));
 /// assert!(explicit.has_explicit_type());
 ///
 /// let full_path: ValidatorAttr =
-///     syn::parse_quote!(validators::numeric::RangeValidation::<_>::builder().min(0));
+///     syn::parse_quote!(validators::numeric::RangeValidation::<_>::min(0));
 /// assert_eq!(full_path.path_name(), "validators::numeric::RangeValidation");
 /// ```
 #[derive(Clone, Debug)]
@@ -63,8 +63,9 @@ pub struct ValidatorAttr {
     /// If this contains `_`, it will be substituted with the inner type from the field.
     /// Use `::<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<Type>,
-    /// Builder setter method calls collected from a standard Rust builder chain.
-    /// Used by `Validator::builder().arg(value)...`.
+    /// Builder setter method calls collected from validator syntax.
+    /// Used by `Validator::arg(value)...` (implicit builder) and
+    /// `Validator::builder().arg(value)...` (explicit builder).
     pub builder_methods: Vec<BuilderMethodCall>,
 }
 
@@ -178,7 +179,7 @@ fn try_parse_builder_chain_validator(input: ParseStream) -> Result<Option<Valida
 fn removed_shorthand_validator_error(input: ParseStream) -> Error {
     Error::new(
         input.span(),
-        "validator syntax requires a builder chain such as `RequiredValidation::<Option<_>>::builder()` or `RangeValidation::<_>::builder().min(value).max(value)`; constructor-style validator args like `Validator(field = value)` and bare validators like `Validator` were removed",
+        "validator syntax expects a validator path such as `RequiredValidation::<Option<_>>`, optional implicit setter chaining like `RangeValidation::<_>::min(value).max(value)`, or explicit `::builder()` chaining; constructor-style validator args like `Validator(field = value)` are not supported",
     )
 }
 
@@ -221,6 +222,20 @@ fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, bool, Op
     Ok((validator, infer_type, explicit_type))
 }
 
+fn ensure_supported_builder_method(method: &Ident) -> Result<()> {
+    let method_name = method.to_string();
+    if matches!(method_name.as_str(), "build" | "with_value" | "with_value_ref") {
+        return Err(Error::new(
+            method.span(),
+            format!(
+                "validator builder chains should stop before `.{method_name}(...)`; koruma injects value capture and `.build()` automatically"
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
 fn analyze_builder_chain_expr(expr: &Expr) -> Result<Option<(Path, Vec<BuilderMethodCall>)>> {
     match expr {
         Expr::Group(group) => analyze_builder_chain_expr(&group.expr),
@@ -232,18 +247,7 @@ fn analyze_builder_chain_expr(expr: &Expr) -> Result<Option<(Path, Vec<BuilderMe
                 return Ok(None);
             };
 
-            let method_name = method_call.method.to_string();
-            if matches!(
-                method_name.as_str(),
-                "build" | "with_value" | "with_value_ref"
-            ) {
-                return Err(Error::new(
-                    method_call.method.span(),
-                    format!(
-                        "validator builder chains should stop before `.{method_name}(...)`; koruma injects value capture and `.build()` automatically"
-                    ),
-                ));
-            }
+            ensure_supported_builder_method(&method_call.method)?;
 
             builder_methods.push(BuilderMethodCall {
                 method: method_call.method.clone(),
@@ -251,6 +255,7 @@ fn analyze_builder_chain_expr(expr: &Expr) -> Result<Option<(Path, Vec<BuilderMe
             });
             Ok(Some((validator, builder_methods)))
         },
+        Expr::Path(path_expr) => Ok(Some((path_expr.path.clone(), Vec::new()))),
         Expr::Call(call) => analyze_builder_call_expr(call),
         _ => Ok(None),
     }
@@ -274,31 +279,55 @@ fn analyze_builder_call_expr(
         return Ok(None);
     };
 
-    if last_segment.ident != "builder" {
+    if last_segment.ident == "builder" {
+        if !call.args.is_empty() {
+            return Err(Error::new(
+                call.args.span(),
+                "validator builder syntax expects `builder()` without arguments",
+            ));
+        }
+
+        builder_path.segments.pop();
+        builder_path.segments.pop_punct();
+        if builder_path.segments.is_empty() {
+            return Err(Error::new(
+                path_expr.path.span(),
+                "validator builder syntax expects a validator type before `::builder()`",
+            ));
+        }
+
+        return Ok(Some((builder_path, Vec::new())));
+    }
+
+    let Some(method_segment) = builder_path.segments.pop().map(|pair| pair.into_value()) else {
+        return Ok(None);
+    };
+    builder_path.segments.pop_punct();
+    if builder_path.segments.is_empty() {
         return Ok(None);
     }
 
-    if !call.args.is_empty() {
-        return Err(Error::new(
-            call.args.span(),
-            "validator builder syntax expects `builder()` without arguments",
-        ));
+    let method_name = method_segment.ident.to_string();
+    let Some(first_char) = method_name.chars().next() else {
+        return Ok(None);
+    };
+    if !(first_char.is_ascii_lowercase() || first_char == '_') {
+        return Ok(None);
     }
 
-    builder_path.segments.pop();
-    builder_path.segments.pop_punct();
-    if builder_path.segments.is_empty() {
-        return Err(Error::new(
-            path_expr.path.span(),
-            "validator builder syntax expects a validator type before `::builder()`",
-        ));
-    }
+    ensure_supported_builder_method(&method_segment.ident)?;
 
-    Ok(Some((builder_path, Vec::new())))
+    Ok(Some((
+        builder_path,
+        vec![BuilderMethodCall {
+            method: method_segment.ident,
+            args: call.args.iter().cloned().collect(),
+        }],
+    )))
 }
 
 /// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
-/// separated by commas: `#[koruma(Validator1::builder().a(1), Validator2::builder().b(2))]`
+/// separated by commas: `#[koruma(Validator1::a(1), Validator2::b(2))]`
 ///
 /// Can also include:
 /// - `each(...)` modifier for collection validation
@@ -312,14 +341,14 @@ fn analyze_builder_call_expr(
 /// use koruma_derive_core::KorumaAttr;
 ///
 /// let multiple: KorumaAttr = syn::parse_quote!(
-///     Validator1::builder().a(1),
-///     Validator2::builder().b(2)
+///     Validator1::a(1),
+///     Validator2::b(2)
 /// );
 /// assert_eq!(multiple.field_validators.len(), 2);
 ///
 /// let with_each: KorumaAttr = syn::parse_quote!(
-///     VecValidator::builder().min(0),
-///     each(ElementValidator::builder().max(100))
+///     VecValidator::min(0),
+///     each(ElementValidator::max(100))
 /// );
 /// assert_eq!(with_each.field_validators.len(), 1);
 /// assert_eq!(with_each.element_validators.len(), 1);

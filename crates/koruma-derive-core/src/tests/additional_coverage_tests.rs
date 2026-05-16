@@ -14,29 +14,27 @@ fn parse_field_info(field: &syn::Field) -> FieldInfo {
 
 #[test]
 fn validator_attr_helpers_and_error_paths() {
-    let plain: ValidatorAttr = syn::parse_quote!(RangeValidation::builder());
+    let plain: ValidatorAttr = syn::parse_quote!(RangeValidation);
     assert!(!plain.has_args());
     assert!(!plain.uses_type_inference());
     assert!(!plain.has_explicit_type());
 
-    let with_builder_methods: ValidatorAttr =
-        syn::parse_quote!(RangeValidation::builder().min(0).max(10));
+    let with_builder_methods: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0).max(10));
     assert!(with_builder_methods.has_args());
     let builder_calls = with_builder_methods.setter_calls();
     assert_eq!(builder_calls.len(), 2);
     assert_eq!(builder_calls[0].method.to_string(), "min");
     assert_eq!(builder_calls[1].method.to_string(), "max");
 
-    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>::builder());
+    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>);
     assert!(infer.uses_type_inference());
     assert!(!infer.has_explicit_type());
 
-    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>::builder());
+    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>);
     assert!(!explicit.uses_type_inference());
     assert!(explicit.has_explicit_type());
 
-    let too_many_types: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation::<i32, u32>::builder()");
+    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<i32, u32>");
     assert!(
         too_many_types
             .expect_err("expected parse error")
@@ -44,8 +42,7 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("exactly one type argument")
     );
 
-    let non_type_generic: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation::<1>::builder()");
+    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<1>");
     assert!(
         non_type_generic
             .expect_err("expected parse error")
@@ -53,13 +50,9 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("expects a type argument")
     );
 
-    let removed_shorthand: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<_>");
-    assert!(
-        removed_shorthand
-            .expect_err("expected shorthand syntax to be rejected")
-            .to_string()
-            .contains("requires a builder chain")
-    );
+    let shorthand: ValidatorAttr = syn::parse_str("GenericValidation::<_>")
+        .expect("expected implicit no-arg validator syntax to parse");
+    assert!(shorthand.uses_type_inference());
 
     let builder_with_build: Result<ValidatorAttr, _> =
         syn::parse_str("GenericValidation::builder().min(1).build()");

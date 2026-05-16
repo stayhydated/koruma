@@ -388,8 +388,8 @@ fn test_koruma_error_on_removed_constructor_style_validator_args() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("requires a builder chain"),
-        "expected builder-chain diagnostic, got: {}",
+        err.to_string().contains("constructor-style validator args"),
+        "expected constructor-style diagnostic, got: {}",
         err
     );
 }

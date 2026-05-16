@@ -15,7 +15,7 @@ use syn::{
 
 use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
-/// Represents a single parsed validator builder chain.
+/// Represents a single parsed validator configuration chain.
 ///
 /// Validator configuration uses standard Rust builder syntax and also supports
 /// fully-qualified validator paths like `module::path::ValidatorName::<_>`.
@@ -64,8 +64,7 @@ pub struct ValidatorAttr {
     /// Use `::<Option<_>>` to get the full Option type without unwrapping.
     pub explicit_type: Option<Type>,
     /// Builder setter method calls collected from validator syntax.
-    /// Used by `Validator::arg(value)...` (implicit builder) and
-    /// `Validator::builder().arg(value)...` (explicit builder).
+    /// Used by `Validator::arg(value)...` with implicit builder insertion.
     pub builder_methods: Vec<BuilderMethodCall>,
 }
 
@@ -163,7 +162,7 @@ fn try_parse_builder_chain_validator(input: ParseStream) -> Result<Option<Valida
     input.advance_to(&fork);
 
     let Some((validator, builder_methods)) = analyze_builder_chain_expr(&expr)? else {
-        return Err(Error::new(expr.span(), "expected validator builder chain"));
+        return Err(Error::new(expr.span(), "expected validator expression"));
     };
 
     let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator)?;
@@ -179,7 +178,7 @@ fn try_parse_builder_chain_validator(input: ParseStream) -> Result<Option<Valida
 fn removed_shorthand_validator_error(input: ParseStream) -> Error {
     Error::new(
         input.span(),
-        "validator syntax expects a validator path such as `RequiredValidation::<Option<_>>`, optional implicit setter chaining like `RangeValidation::<_>::min(value).max(value)`, or explicit `::builder()` chaining; constructor-style validator args like `Validator(field = value)` are not supported",
+        "validator syntax expects a validator path such as `RequiredValidation::<Option<_>>` with optional implicit setter chaining like `RangeValidation::<_>::min(value).max(value)`; explicit `::builder()` and constructor-style validator args like `Validator(field = value)` are not supported",
     )
 }
 
@@ -280,23 +279,10 @@ fn analyze_builder_call_expr(
     };
 
     if last_segment.ident == "builder" {
-        if !call.args.is_empty() {
-            return Err(Error::new(
-                call.args.span(),
-                "validator builder syntax expects `builder()` without arguments",
-            ));
-        }
-
-        builder_path.segments.pop();
-        builder_path.segments.pop_punct();
-        if builder_path.segments.is_empty() {
-            return Err(Error::new(
-                path_expr.path.span(),
-                "validator builder syntax expects a validator type before `::builder()`",
-            ));
-        }
-
-        return Ok(Some((builder_path, Vec::new())));
+        return Err(Error::new(
+            last_segment.ident.span(),
+            "explicit `::builder()` is not supported in `#[koruma(...)]`; use implicit syntax like `Validator::<_>::min(...).max(...)` or `Validator::<_>`",
+        ));
     }
 
     let Some(method_segment) = builder_path.segments.pop().map(|pair| pair.into_value()) else {
@@ -864,7 +850,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
                 if koruma_attr.is_newtype {
                     is_newtype = true;
                     // Don't continue here - newtype can have validators too
-                    // e.g., #[koruma(newtype, RequiredValidation::builder())]
+                    // e.g., #[koruma(newtype, RequiredValidation)]
                 }
                 // Collect validators from this attribute, checking for duplicates
                 for validator in koruma_attr.field_validators {

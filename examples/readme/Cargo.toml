@@ -13,7 +13,6 @@ koruma = { features = [ "derive", "fluent" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 rust-embed = { workspace = true }
 strum = { features = [ "derive" ], workspace = true }
-unic-langid = { workspace = true }
 koruma-collection = { features = [ "full" ], workspace = true }
 
 [build-dependencies]

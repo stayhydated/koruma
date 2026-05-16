@@ -533,7 +533,7 @@ dependencies = [
 
 [[package]]
 name = "collection-dioxus-web"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "console_error_panic_hook",
  "dioxus",
@@ -543,13 +543,12 @@ dependencies = [
  "koruma-collection",
  "koruma-shared-lib",
  "strum 0.27.2",
- "unic-langid",
  "wasm-bindgen",
 ]
 
 [[package]]
 name = "collection-ratatui-core"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "es-fluent",
@@ -559,12 +558,11 @@ dependencies = [
  "koruma-shared-lib",
  "ratatui",
  "strum 0.27.2",
- "unic-langid",
 ]
 
 [[package]]
 name = "collection-ratatui-native"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "collection-ratatui-core",
  "crossterm",
@@ -573,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "collection-ratatui-web"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "collection-ratatui-core",
  "console_error_panic_hook",
@@ -2968,7 +2966,7 @@ checksum = "a4933f3f57a8e9d9da04db23fb153356ecaf00cbd14aee46279c33dc80925c37"
 
 [[package]]
 name = "koruma"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "bon",
  "inventory",
@@ -2978,7 +2976,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-collection"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "card-validate",
@@ -2997,7 +2995,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-core"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "es-fluent",
@@ -3006,7 +3004,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "heck",
  "insta",
@@ -3021,7 +3019,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive-core"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "heck",
  "insta",
@@ -3032,7 +3030,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-shared-lib"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "es-fluent",
  "es-fluent-build",
@@ -4189,7 +4187,7 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
 name = "readme"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "es-fluent",
  "es-fluent-build",
@@ -4199,7 +4197,6 @@ dependencies = [
  "koruma-shared-lib",
  "rust-embed",
  "strum 0.27.2",
- "unic-langid",
 ]
 
 [[package]]
@@ -6121,7 +6118,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "clap",

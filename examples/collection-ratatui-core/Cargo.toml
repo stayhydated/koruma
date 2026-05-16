@@ -15,7 +15,3 @@ koruma-collection = { features = [ "internal-showcase" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 ratatui = { workspace = true }
 strum = { features = [ "derive" ], workspace = true }
-unic-langid = { workspace = true }
-
-[package.metadata.cargo-machete]
-ignored = [ "es-fluent" ]

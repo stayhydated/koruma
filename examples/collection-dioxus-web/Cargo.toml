@@ -18,5 +18,4 @@ koruma = { features = [ "internal-showcase", "derive", "fluent" ], workspace = t
 koruma-collection = { features = [ "internal-showcase" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }
 strum = { features = [ "derive" ], workspace = true }
-unic-langid = { workspace = true }
 wasm-bindgen = { workspace = true }

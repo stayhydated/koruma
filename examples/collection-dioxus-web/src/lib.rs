@@ -1,11 +1,11 @@
-mod i18n;
-
-use crate::i18n::localize_with_args;
 use dioxus::prelude::*;
+use es_fluent::{FluentLocalizer, FluentValue};
+use es_fluent_manager_dioxus::{DioxusI18n, I18nProvider, use_i18n};
 use koruma::showcase::{ValidatorShowcase, validators};
 use koruma_shared_lib::Languages;
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
+use unic_langid::LanguageIdentifier;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ValidatorModule {
@@ -64,14 +64,45 @@ fn filter_validators_by_module(
         .collect()
 }
 
+fn localize_with_args<'a>(
+    i18n: &DioxusI18n,
+    domain: &str,
+    id: &str,
+    args: Option<&HashMap<&str, FluentValue<'a>>>,
+) -> String {
+    i18n.localize_in_domain(domain, id, args)
+        .unwrap_or_else(|| id.to_string())
+}
+
 #[component]
 pub fn App() -> Element {
+    rsx! {
+        I18nProvider {
+            initial_language: Languages::default().into(),
+            Showcase {}
+        }
+    }
+}
+
+#[component]
+fn Showcase() -> Element {
     let mut inputs = use_signal(HashMap::<&'static str, String>::new);
-    let mut current_language = use_signal(Languages::default);
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
+        Err(error) => {
+            return rsx! {
+                div { class: "min-h-screen bg-black p-8 font-sans",
+                    style { {include_str!("styles.css")} }
+                    p { style: "color: #ff00a0;", "Failed to initialize i18n: {error}" }
+                }
+            };
+        },
+    };
 
     koruma_collection::__link_showcase_validators();
     let all_validators = validators();
     let available_modules = ValidatorModule::available_modules(&all_validators);
+    let requested_language = i18n.requested_language();
 
     rsx! {
         div { class: "min-h-screen bg-black p-8 font-sans",
@@ -83,18 +114,21 @@ pub fn App() -> Element {
                             class: "bg-black border rounded px-3 py-1 text-sm",
                             style: "color: #ff00a0; border-color: rgba(255, 0, 160, 0.5);",
                             onchange: move |e| {
-                                for lang in Languages::iter() {
-                                    if i18n::localize(&lang) == e.value() {
-                                        current_language.set(lang);
-                                        let _ = i18n::change_locale(lang);
-                                    }
+                                if let Ok(language) = e.value().parse::<Languages>() {
+                                    let _ = i18n.select_language(language);
                                 }
                             },
                             for lang in Languages::iter() {
-                                option {
-                                    value: i18n::localize(&lang),
-                                    selected: lang == current_language(),
-                                    {i18n::localize(&lang)}
+                                {
+                                    let language_id = LanguageIdentifier::from(lang);
+                                    let label = i18n.localize_message(&lang);
+                                    rsx! {
+                                        option {
+                                            value: "{language_id}",
+                                            selected: language_id == requested_language,
+                                            {label}
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -123,9 +157,15 @@ pub fn App() -> Element {
                                     Err(_) => ("#00f0ff", "#00f0ff", "box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), inset 0 0 5px rgba(0, 240, 255, 0.2);"),
                                 };
 
+                                let mut localize = |domain: &str,
+                                                    id: &str,
+                                                    args: Option<&HashMap<&str, FluentValue<'_>>>|
+                                 -> String {
+                                    localize_with_args(&i18n, domain, id, args)
+                                };
                                 let (status_emoji, display_msg, fluent_msg, error_msg) = match &current_validator {
-                                    Ok(v) if v.is_valid() => ("✓", v.display_string(), v.fluent_string_with(&mut localize_with_args), None),
-                                    Ok(v) => ("✗", v.display_string(), v.fluent_string_with(&mut localize_with_args), None),
+                                    Ok(v) if v.is_valid() => ("✓", v.display_string(), v.fluent_string_with(&mut localize), None),
+                                    Ok(v) => ("✗", v.display_string(), v.fluent_string_with(&mut localize), None),
                                     Err(e) => ("!", String::new(), String::new(), Some(format!("Error: {}", e))),
                                 };
 
@@ -183,7 +223,5 @@ pub fn App() -> Element {
 #[wasm_bindgen::prelude::wasm_bindgen(start)]
 pub fn start() {
     console_error_panic_hook::set_once();
-    i18n::init();
-    let _ = i18n::change_locale(Languages::default());
     dioxus::launch(App);
 }

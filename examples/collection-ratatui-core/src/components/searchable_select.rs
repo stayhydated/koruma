@@ -1,9 +1,9 @@
 use ratatui::{
-    Frame,
+    buffer::Buffer,
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Clear, Paragraph},
+    widgets::{Block, Borders, Clear, Paragraph, Widget},
 };
 
 /// SearchableSelect component for handling searchable lists
@@ -33,11 +33,20 @@ where
     pub fn toggle_search(&mut self) {
         self.show_search = !self.show_search;
         if !self.show_search {
-            self.search_query.clear();
-            self.filtered_items = self.items.clone();
-            if self.selected_idx >= self.filtered_items.len() {
-                self.selected_idx = 0;
-            }
+            self.clear_filter();
+        }
+    }
+
+    pub fn clear_search(&mut self) {
+        self.show_search = false;
+        self.clear_filter();
+    }
+
+    fn clear_filter(&mut self) {
+        self.search_query.clear();
+        self.filtered_items = self.items.clone();
+        if self.selected_idx >= self.filtered_items.len() {
+            self.selected_idx = 0;
         }
     }
 
@@ -102,6 +111,22 @@ where
         }
     }
 
+    pub fn set_selected_item(&mut self, item: &T) -> bool
+    where
+        T: PartialEq,
+    {
+        if let Some(idx) = self
+            .filtered_items
+            .iter()
+            .position(|candidate| candidate == item)
+        {
+            self.selected_idx = idx;
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn is_searching(&self) -> bool {
         self.show_search
     }
@@ -112,8 +137,8 @@ where
 
     pub fn render_searchable_select<F>(
         &self,
-        frame: &mut Frame,
         area: Rect,
+        buf: &mut Buffer,
         title: &str,
         render_item: F,
     ) where
@@ -128,7 +153,7 @@ where
             dialog_height,
         );
 
-        frame.render_widget(Clear, dialog_area);
+        Clear.render(dialog_area, buf);
 
         let mut lines: Vec<Line> = vec![
             Line::from(vec![Span::styled(
@@ -213,7 +238,6 @@ where
             .title_alignment(ratatui::layout::Alignment::Center);
 
         let paragraph = Paragraph::new(lines).block(block);
-
-        frame.render_widget(paragraph, dialog_area);
+        paragraph.render(dialog_area, buf);
     }
 }

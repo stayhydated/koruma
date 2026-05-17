@@ -89,6 +89,7 @@ mod tests {
         let negative = NegativeValidation::with_value(OffsetNumber(10)).build();
         let non_negative = NonNegativeValidation::with_value(OffsetNumber(10)).build();
 
+        assert_eq!(OffsetNumber(7).to_string(), "7");
         assert!(positive.validate(&OffsetNumber(11)));
         assert!(!positive.validate(&OffsetNumber(10)));
         assert!(negative.validate(&OffsetNumber(9)));

@@ -5,17 +5,19 @@ use crate::input::{Input, InputRequest};
 use koruma::showcase::{DynValidator, InputType, ValidatorShowcase, validators};
 use ratatui::{
     Frame,
+    buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Paragraph, Wrap},
+    widgets::{Block, Borders, Paragraph, Widget, Wrap},
 };
 
-use crate::i18n::{change_locale, localize, localize_with_args};
+use crate::i18n::{I18n, change_locale, init as create_i18n, localize, localize_with_args};
 use koruma_shared_lib::Languages;
 use strum::IntoEnumIterator as _;
 
 pub struct App {
+    i18n: I18n,
     input: Input,
     all_validators: Vec<&'static ValidatorShowcase>,
     current_module_validators: Vec<&'static ValidatorShowcase>,
@@ -33,6 +35,10 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
+        Self::with_i18n(create_i18n())
+    }
+
+    pub fn with_i18n(i18n: I18n) -> Self {
         koruma_collection::__link_showcase_validators();
         let all_validators = validators();
         let available_modules = ValidatorModule::available_modules(&all_validators);
@@ -46,28 +52,25 @@ impl App {
             )
         };
 
-        // Initialize language selector with all available languages
         let current_language = Languages::default();
+        change_locale(&i18n, current_language).expect("default language should be supported");
         let all_languages: Vec<Languages> = Languages::iter().collect();
 
-        // Set initial selection to current language before moving all_languages
         let initial_idx = all_languages
             .iter()
-            .position(|&lang| lang == Languages::default())
+            .position(|&lang| lang == current_language)
             .unwrap_or(0);
 
         let mut language_selector = SearchableSelect::new(all_languages);
         language_selector.set_selected_index(initial_idx);
+        language_selector.set_search_query("", |language| localize(&i18n, language));
 
-        // Initialize with proper filtering
-        language_selector.set_search_query("", localize);
-
-        // Initialize module selector with all available modules
         let mut module_selector = SearchableSelect::new(available_modules.clone());
         module_selector.set_selected_index(selected_module_idx);
         module_selector.set_search_query("", |module| module.name().to_string());
 
         let mut app = Self {
+            i18n,
             input: Input::default(),
             all_validators,
             current_module_validators,
@@ -106,6 +109,23 @@ impl App {
         self.available_modules
             .get(self.selected_module_idx)
             .copied()
+    }
+
+    fn language_label(&self, language: &Languages) -> String {
+        localize(&self.i18n, language)
+    }
+
+    fn set_language_search_query(&mut self, query: &str) {
+        let i18n = self.i18n.clone();
+        self.language_selector
+            .set_search_query(query, |language| localize(&i18n, language));
+    }
+
+    fn refresh_language_selector(&mut self) {
+        let query = self.language_selector.get_search_query().to_string();
+        self.set_language_search_query(&query);
+        self.language_selector
+            .set_selected_item(&self.current_language);
     }
 
     fn validate_input(&mut self) {
@@ -152,19 +172,7 @@ impl App {
     fn toggle_language_dialog(&mut self) {
         self.show_language_dialog = !self.show_language_dialog;
         if self.show_language_dialog {
-            // When opening the dialog, sync the dialog selection with current language
-            if let Some(current_idx) =
-                self.language_selector
-                    .get_selected_item()
-                    .and_then(|_selected_lang| {
-                        self.language_selector
-                            .items
-                            .iter()
-                            .position(|item| *item == self.current_language)
-                    })
-            {
-                self.language_selector.set_selected_index(current_idx);
-            }
+            self.refresh_language_selector();
         }
     }
 
@@ -244,7 +252,9 @@ impl App {
                 KeyCode::Enter => {
                     if let Some(selected_language) = self.language_selector.get_selected_item() {
                         self.current_language = *selected_language;
-                        change_locale(self.current_language).unwrap();
+                        change_locale(&self.i18n, self.current_language).unwrap();
+                        self.language_selector.clear_search();
+                        self.refresh_language_selector();
                     }
                     self.toggle_language_dialog();
                 },
@@ -257,14 +267,13 @@ impl App {
                 {
                     let current_query = self.language_selector.get_search_query().to_string();
                     let new_query = format!("{}{}", current_query, c);
-                    self.language_selector
-                        .set_search_query(&new_query, localize);
+                    self.set_language_search_query(&new_query);
                 },
                 KeyCode::Backspace if self.language_selector.is_searching() => {
                     let current_query = self.language_selector.get_search_query().to_string();
                     if !current_query.is_empty() {
                         let new_query = &current_query[..current_query.len() - 1];
-                        self.language_selector.set_search_query(new_query, localize);
+                        self.set_language_search_query(new_query);
                     }
                 },
                 _ => {},
@@ -318,12 +327,14 @@ impl App {
 
     pub fn render(&self, frame: &mut Frame) {
         let area = frame.area();
-        let content_area = Layout::horizontal([
-            Constraint::Min(0),
-            Constraint::Percentage(70),
-            Constraint::Min(0),
-        ])
-        .split(area)[1];
+        frame.render_widget(self, area);
+        if let Some(cursor_position) = self.cursor_position(area) {
+            frame.set_cursor_position(cursor_position);
+        }
+    }
+
+    fn render_area(&self, area: Rect, buf: &mut Buffer) {
+        let content_area = Self::content_area(area);
 
         if area.height >= 16 {
             let vertical = Layout::vertical([
@@ -336,12 +347,12 @@ impl App {
             ])
             .split(content_area);
 
-            self.render_module_selector(frame, vertical[0]);
-            self.render_validator_selector(frame, vertical[1]);
-            self.render_input(frame, vertical[2]);
-            self.render_display_output(frame, vertical[3]);
-            self.render_fluent_output(frame, vertical[4]);
-            self.render_help(frame, vertical[5]);
+            self.render_module_selector(vertical[0], buf);
+            self.render_validator_selector(vertical[1], buf);
+            self.render_input(vertical[2], buf);
+            self.render_display_output(vertical[3], buf);
+            self.render_fluent_output(vertical[4], buf);
+            self.render_help(vertical[5], buf);
         } else {
             let vertical = Layout::vertical([
                 Constraint::Length(3),
@@ -352,23 +363,67 @@ impl App {
             ])
             .split(content_area);
 
-            self.render_module_selector(frame, vertical[0]);
-            self.render_validator_selector(frame, vertical[1]);
-            self.render_input(frame, vertical[2]);
-            self.render_display_output(frame, vertical[3]);
-            self.render_help(frame, vertical[4]);
+            self.render_module_selector(vertical[0], buf);
+            self.render_validator_selector(vertical[1], buf);
+            self.render_input(vertical[2], buf);
+            self.render_display_output(vertical[3], buf);
+            self.render_help(vertical[4], buf);
         }
 
         if self.show_module_dialog {
-            self.render_module_dialog(frame, area);
+            self.render_module_dialog(area, buf);
         }
 
         if self.show_language_dialog {
-            self.render_language_dialog(frame, area);
+            self.render_language_dialog(area, buf);
         }
     }
 
-    fn render_module_selector(&self, frame: &mut Frame, area: Rect) {
+    fn content_area(area: Rect) -> Rect {
+        let content_area = Layout::horizontal([
+            Constraint::Min(0),
+            Constraint::Percentage(70),
+            Constraint::Min(0),
+        ])
+        .split(area)[1];
+
+        content_area
+    }
+
+    fn cursor_position(&self, area: Rect) -> Option<(u16, u16)> {
+        let content_area = Self::content_area(area);
+        let vertical = if area.height >= 16 {
+            Layout::vertical([
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Min(3),
+                Constraint::Min(3),
+                Constraint::Length(1),
+            ])
+            .split(content_area)
+        } else {
+            Layout::vertical([
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Min(3),
+                Constraint::Length(1),
+            ])
+            .split(content_area)
+        };
+        let input_area = vertical[2];
+        if input_area.width < 2 || input_area.height < 2 {
+            return None;
+        }
+
+        let emoji_width = 3u16;
+        let cursor_x = input_area.x + 1 + emoji_width + self.input.visual_cursor() as u16;
+        let cursor_y = input_area.y + 1;
+        Some((cursor_x.min(input_area.x + input_area.width - 2), cursor_y))
+    }
+
+    fn render_module_selector(&self, area: Rect, buf: &mut Buffer) {
         let text = if let Some(module) = self.current_module() {
             vec![Line::from(vec![Span::styled(
                 module.name(),
@@ -395,10 +450,10 @@ impl App {
             .block(block)
             .alignment(Alignment::Center);
 
-        frame.render_widget(paragraph, area);
+        paragraph.render(area, buf);
     }
 
-    fn render_validator_selector(&self, frame: &mut Frame, area: Rect) {
+    fn render_validator_selector(&self, area: Rect, buf: &mut Buffer) {
         let showcase = self.current_showcase();
         let (name, description) = showcase
             .map(|v| (v.name, v.description))
@@ -434,13 +489,13 @@ impl App {
             .block(block)
             .alignment(Alignment::Center);
 
-        frame.render_widget(paragraph, area);
+        paragraph.render(area, buf);
     }
 
-    fn render_module_dialog(&self, frame: &mut Frame, area: Rect) {
+    fn render_module_dialog(&self, area: Rect, buf: &mut Buffer) {
         self.module_selector.render_searchable_select(
-            frame,
             area,
+            buf,
             "Module",
             |module, is_selected| {
                 let style = if is_selected {
@@ -455,10 +510,10 @@ impl App {
         );
     }
 
-    fn render_language_dialog(&self, frame: &mut Frame, area: Rect) {
+    fn render_language_dialog(&self, area: Rect, buf: &mut Buffer) {
         self.language_selector.render_searchable_select(
-            frame,
             area,
+            buf,
             "Language",
             |language, is_selected| {
                 let style = if is_selected {
@@ -468,12 +523,12 @@ impl App {
                 } else {
                     Style::default().fg(Color::Gray)
                 };
-                vec![Span::styled(localize(language), style)]
+                vec![Span::styled(self.language_label(language), style)]
             },
         );
     }
 
-    fn render_input(&self, frame: &mut Frame, area: Rect) {
+    fn render_input(&self, area: Rect, buf: &mut Buffer) {
         let (emoji, border_color) = match &self.current_validator {
             Some(Ok(v)) if v.is_valid() => ("✅ ", Color::Green),
             Some(Ok(_)) => ("❌ ", Color::Red),
@@ -494,15 +549,10 @@ impl App {
         ]);
         let paragraph = Paragraph::new(text).block(block);
 
-        frame.render_widget(paragraph, area);
-
-        let emoji_width = 3u16;
-        let cursor_x = area.x + 1 + emoji_width + self.input.visual_cursor() as u16;
-        let cursor_y = area.y + 1;
-        frame.set_cursor_position((cursor_x.min(area.x + area.width - 2), cursor_y));
+        paragraph.render(area, buf);
     }
 
-    fn render_display_output(&self, frame: &mut Frame, area: Rect) {
+    fn render_display_output(&self, area: Rect, buf: &mut Buffer) {
         let (style, border_color, message) = match &self.current_validator {
             Some(Ok(v)) => {
                 let msg = v.display_string();
@@ -536,13 +586,16 @@ impl App {
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true });
 
-        frame.render_widget(paragraph, area);
+        paragraph.render(area, buf);
     }
 
-    fn render_fluent_output(&self, frame: &mut Frame, area: Rect) {
+    fn render_fluent_output(&self, area: Rect, buf: &mut Buffer) {
         let (style, border_color, message) = match &self.current_validator {
             Some(Ok(v)) => {
-                let msg = v.fluent_string_with(&mut localize_with_args);
+                let i18n = &self.i18n;
+                let msg = v.fluent_string_with(&mut |domain, id, args| {
+                    localize_with_args(i18n, domain, id, args)
+                });
                 if v.is_valid() {
                     (Style::default().fg(Color::Green), Color::Green, msg)
                 } else {
@@ -573,10 +626,10 @@ impl App {
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: true });
 
-        frame.render_widget(paragraph, area);
+        paragraph.render(area, buf);
     }
 
-    fn render_help(&self, frame: &mut Frame, area: Rect) {
+    fn render_help(&self, area: Rect, buf: &mut Buffer) {
         let help_text = Line::from(vec![
             Span::styled("▲/▼", Style::default().fg(Color::Cyan)),
             Span::raw(" validator  "),
@@ -589,7 +642,13 @@ impl App {
         ]);
 
         let paragraph = Paragraph::new(help_text).alignment(Alignment::Center);
-        frame.render_widget(paragraph, area);
+        paragraph.render(area, buf);
+    }
+}
+
+impl Widget for &App {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        self.render_area(area, buf);
     }
 }
 
@@ -597,9 +656,4 @@ impl Default for App {
     fn default() -> Self {
         Self::new()
     }
-}
-
-pub fn init_i18n() {
-    crate::i18n::init();
-    let _ = change_locale(Languages::default());
 }

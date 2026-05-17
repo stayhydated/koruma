@@ -1,8 +1,8 @@
 use crate::{
     FieldInfo, KorumaAttr, ParseFieldResult, ValidatorAttr, contains_infer_type,
-    expr_as_simple_ident, find_value_field, first_generic_arg, is_option_infer_type,
-    option_inner_type, parse_field, substitute_infer_type, substitute_infer_type_from_source,
-    type_to_ident, vec_inner_type,
+    expr_as_simple_ident, find_value_field, find_value_field_info, find_value_field_info_strict,
+    first_generic_arg, is_option_infer_type, option_inner_type, parse_field, parse_struct_options,
+    substitute_infer_type, substitute_infer_type_from_source, type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -361,6 +361,57 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     assert!(newtype_each_trailing_comma.is_newtype);
     assert_eq!(newtype_each_trailing_comma.element_validators.len(), 1);
     assert!(newtype_each_trailing_comma.field_validators.is_empty());
+
+    let newtype_each_then_field: KorumaAttr =
+        syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
+            .expect("newtype each followed by a field validator should parse");
+    assert!(newtype_each_then_field.is_newtype);
+    assert_eq!(newtype_each_then_field.element_validators.len(), 1);
+    assert_eq!(newtype_each_then_field.field_validators.len(), 1);
+
+    let newtype_options_with_trailing_comma = struct_options_from_attrs(&syn::parse_quote! {
+        #[koruma(newtype(try_from,))]
+        struct Demo(String);
+    });
+    assert!(newtype_options_with_trailing_comma.newtype);
+    assert!(newtype_options_with_trailing_comma.try_from);
+
+    let legacy_builder: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::builder()");
+    assert!(
+        legacy_builder
+            .expect_err("expected legacy builder syntax rejection")
+            .to_string()
+            .contains("legacy validator `::builder()` syntax is not supported")
+    );
+
+    let direct_with_value: Result<ValidatorAttr, _> =
+        syn::parse_str("RangeValidation::with_value(1)");
+    assert!(
+        direct_with_value
+            .expect_err("expected with_value syntax rejection")
+            .to_string()
+            .contains("chains should stop before `.with_value(...)`")
+    );
+
+    let uppercase_constructor: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::New(1)");
+    assert!(
+        uppercase_constructor
+            .expect_err("expected uppercase constructor syntax rejection")
+            .to_string()
+            .contains("requires a direct validator chain")
+    );
+
+    let free_function_call: Result<ValidatorAttr, _> = syn::parse_str("min(1)");
+    assert!(
+        free_function_call
+            .expect_err("expected free function syntax rejection")
+            .to_string()
+            .contains("requires a direct validator chain")
+    );
+}
+
+fn struct_options_from_attrs(item: &syn::ItemStruct) -> crate::StructOptions {
+    parse_struct_options(&item.attrs).expect("expected struct options to parse")
 }
 
 #[test]
@@ -437,6 +488,61 @@ fn utility_functions_cover_remaining_line_paths() {
         quote::quote!(#substituted).to_string(),
         "Wrapper < 'static , usize >"
     );
+}
+
+#[test]
+fn struct_options_report_duplicate_newtype_and_try_from() {
+    let duplicate_newtype: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(newtype)]
+        #[koruma(newtype)]
+        struct Demo(String);
+    };
+    assert!(
+        parse_struct_options(&duplicate_newtype.attrs)
+            .expect_err("expected duplicate newtype error")
+            .to_string()
+            .contains("duplicate struct-level koruma option `newtype`")
+    );
+
+    let duplicate_try_from: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        #[koruma(newtype(try_from))]
+        struct Demo(String);
+    };
+    assert!(
+        parse_struct_options(&duplicate_try_from.attrs)
+            .expect_err("expected duplicate newtype error")
+            .to_string()
+            .contains("duplicate struct-level koruma option `newtype`")
+    );
+}
+
+#[test]
+fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        struct Validator {
+            #[koruma(value)]
+            actual: String,
+        }
+    };
+
+    let info = find_value_field_info(&input).expect("expected value field info");
+    assert_eq!(info.name.to_string(), "actual");
+
+    let bad_input: syn::ItemStruct = syn::parse_quote! {
+        struct Validator {
+            #[koruma()]
+            actual: String,
+        }
+    };
+
+    assert!(
+        find_value_field_info_strict(&bad_input)
+            .expect_err("expected empty marker error")
+            .to_string()
+            .contains("validator fields only support")
+    );
+    assert!(find_value_field_info(&bad_input).is_none());
 }
 
 #[cfg(feature = "internal-showcase")]

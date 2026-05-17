@@ -776,6 +776,40 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
     assert!(!compact.contains("feature=\"fluent\""));
 }
 
+#[test]
+fn test_validator_expansion_respects_builder_field_attributes() {
+    let input: ItemStruct = syn::parse_quote! {
+        #[derive(Clone, Debug)]
+        pub struct BuilderAttrValidation<T> {
+            #[builder(into, name = label)]
+            pub title: String,
+            #[builder(required)]
+            pub required_limit: Option<usize>,
+            pub optional_limit: Option<usize>,
+            #[builder(default = 10)]
+            pub defaulted: usize,
+            #[builder(skip = 0)]
+            pub skipped: usize,
+            #[builder(field(value: usize))]
+            pub field_backed: usize,
+            #[koruma(value)]
+            actual: Option<T>,
+        }
+    };
+
+    let expanded = expand_validator(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+
+    assert!(compact.contains("pubfnlabel(value:impl::std::convert::Into<String>,)"));
+    assert!(compact.contains("pubfnrequired_limit(value:Option<usize>,)"));
+    assert!(!compact.contains("maybe_required_limit"));
+    assert!(compact.contains("pubfnoptional_limit(value:Option<usize>,)"));
+    assert!(compact.contains("pubfnmaybe_optional_limit(value:::std::option::Option<usize>,)"));
+    assert!(compact.contains("pubfndefaulted(value:usize,)"));
+    assert!(!compact.contains("pubfnskipped("));
+    assert!(!compact.contains("pubfnfield_backed("));
+}
+
 #[cfg(feature = "fluent")]
 #[test]
 fn test_koruma_all_fluent_expansion() {

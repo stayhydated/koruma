@@ -538,11 +538,12 @@ dependencies = [
  "console_error_panic_hook",
  "dioxus",
  "es-fluent",
- "es-fluent-manager-embedded",
+ "es-fluent-manager-dioxus",
  "koruma",
  "koruma-collection",
  "koruma-shared-lib",
  "strum 0.27.2",
+ "unic-langid",
  "wasm-bindgen",
 ]
 
@@ -1663,6 +1664,24 @@ dependencies = [
  "parking_lot",
  "rust-embed",
  "rustc-hash 2.1.2",
+ "tracing",
+ "unic-langid",
+]
+
+[[package]]
+name = "es-fluent-manager-dioxus"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb94c5efbb6cc1b0946999b660c9bc7bee5994430d10fa21462cfc832ccd5fe2"
+dependencies = [
+ "dioxus-core",
+ "dioxus-core-macro",
+ "dioxus-hooks",
+ "dioxus-signals",
+ "es-fluent",
+ "es-fluent-manager-core",
+ "es-fluent-manager-macros",
+ "parking_lot",
  "tracing",
  "unic-langid",
 ]

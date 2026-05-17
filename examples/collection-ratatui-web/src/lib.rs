@@ -14,12 +14,10 @@ pub fn start() {
 }
 
 fn run() -> io::Result<()> {
-    init_i18n();
-
     let backend = DomBackend::new()?;
     let terminal = Terminal::new(backend)?;
 
-    let app = Rc::new(RefCell::new(App::new()));
+    let app = Rc::new(RefCell::new(App::with_i18n(init_i18n())));
 
     terminal.on_key_event({
         let app = app.clone();

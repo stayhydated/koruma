@@ -95,12 +95,45 @@ pub fn __link_showcase_validators() {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+
     use super::HasLen;
+
+    #[test]
+    fn std_collection_lengths_use_runtime_length() {
+        let vec = vec![1_u8, 2, 3];
+        assert_eq!(HasLen::len(&vec), 3);
+
+        let mut deque = VecDeque::new();
+        deque.push_back(1_u8);
+        deque.push_back(2);
+        assert_eq!(HasLen::len(&deque), 2);
+
+        let hash_map = HashMap::from([("one", 1), ("two", 2)]);
+        assert_eq!(HasLen::len(&hash_map), 2);
+
+        let btree_map = BTreeMap::from([("one", 1), ("two", 2), ("three", 3)]);
+        assert_eq!(HasLen::len(&btree_map), 3);
+
+        let hash_set = HashSet::from([1_u8, 2, 3, 4]);
+        assert_eq!(HasLen::len(&hash_set), 4);
+
+        let btree_set = BTreeSet::from([1_u8, 2, 3, 4, 5]);
+        assert_eq!(HasLen::len(&btree_set), 5);
+    }
 
     #[test]
     fn array_len_matches_size() {
         let values = [1_u8, 2, 3];
         assert_eq!(HasLen::len(&values), 3);
+    }
+
+    #[test]
+    fn slice_len_uses_runtime_length() {
+        let values = [1_u8, 2, 3, 4];
+        assert_eq!(HasLen::len(&values[..2]), 2);
+        assert!(!HasLen::is_empty(&values[..2]));
+        assert!(HasLen::is_empty(&values[..0]));
     }
 
     #[test]

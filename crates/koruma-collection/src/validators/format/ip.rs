@@ -113,4 +113,11 @@ mod tests {
         assert!(v6_validator.validate(&"::1".to_string()));
         assert!(!v6_validator.validate(&"127.0.0.1".to_string()));
     }
+
+    #[test]
+    fn ip_kind_display_names_match_error_copy() {
+        assert_eq!(IpKind::Any.to_string(), "IP");
+        assert_eq!(IpKind::V4.to_string(), "IPv4");
+        assert_eq!(IpKind::V6.to_string(), "IPv6");
+    }
 }

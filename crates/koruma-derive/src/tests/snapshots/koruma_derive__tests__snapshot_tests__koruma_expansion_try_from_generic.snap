@@ -86,7 +86,7 @@ impl<T> Wrapper<T> {
             v.validate(t)
         }
         let validator = koruma::BuilderWithValueRef::with_value_ref(
-                GenericRange::<T>::builder().min(0).max(100),
+                GenericRange::<T>::min(0).max(100),
                 __field_value,
             )
             .build();

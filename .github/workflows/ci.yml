@@ -131,7 +131,7 @@ jobs:
         shell: bash
         run: |
           cargo llvm-cov clean --workspace
-          cargo llvm-cov --workspace --all-features --cobertura --output-path=target/cobertura.xml
+          cargo llvm-cov --workspace --all-features --cobertura --output-path=target/cobertura.xml --exclude xtask
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v7

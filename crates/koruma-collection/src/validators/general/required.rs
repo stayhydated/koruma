@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 /// #[derive(Koruma)]
 /// struct User {
 ///     // <Option<_>> substitutes `_` with the inner type (String), giving Option<String>
-///     #[koruma(RequiredValidation::<Option<_>>::builder())]
+///     #[koruma(RequiredValidation::<Option<_>>)]
 ///     name: Option<String>,
 /// }
 /// ```
@@ -77,5 +77,20 @@ mod tests {
     fn display_mentions_presence_not_emptiness() {
         let validator = RequiredValidation::<Option<String>> { actual: None };
         assert_eq!(validator.to_string(), "This field is required.");
+    }
+
+    #[test]
+    fn clone_and_debug_do_not_expose_the_skipped_value() {
+        let validator = RequiredValidation {
+            actual: Some("secret".to_string()),
+        };
+
+        let cloned = validator.clone();
+        assert!(cloned.actual.is_none());
+
+        let rendered = format!("{validator:?}");
+        assert!(rendered.contains("RequiredValidation"));
+        assert!(rendered.contains("<skipped>"));
+        assert!(!rendered.contains("secret"));
     }
 }

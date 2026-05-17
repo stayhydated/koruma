@@ -9,7 +9,7 @@ use super::validators::{NumberRangeValidation, RequiredValidation};
 #[derive(Clone, Debug, Koruma)]
 #[koruma(newtype)]
 pub struct Age {
-    #[koruma(NumberRangeValidation::builder().min(0).max(150))]
+    #[koruma(NumberRangeValidation::min(0).max(150))]
     pub value: i32,
 }
 
@@ -17,7 +17,7 @@ pub struct Age {
 /// This works correctly in Koruma today
 #[derive(Koruma)]
 pub struct ExplicitOptionForm {
-    #[koruma(newtype, RequiredValidation::<Option<_>>::builder())]
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<Age>,
 }
 

@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Payment {
-///     #[koruma(CreditCardValidation::<_>::builder())]
+///     #[koruma(CreditCardValidation::<_>)]
 ///     card_number: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(CreditCardValidation::builder()
-            .with_value(input.to_string())
+        Ok(CreditCardValidation::with_value(input.to_string())
             .build())
     }
 ))]

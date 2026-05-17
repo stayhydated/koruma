@@ -110,7 +110,7 @@ impl Order {
             };
             let mut element_has_error = false;
             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    RangeValidation::builder().min(0).max(100),
+                    RangeValidation::min(0).max(100),
                     __item_value,
                 )
                 .build();
@@ -119,7 +119,7 @@ impl Order {
                 element_has_error = true;
             }
             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    EvenValidation::builder(),
+                    EvenValidation::__koruma_builder(),
                     __item_value,
                 )
                 .build();

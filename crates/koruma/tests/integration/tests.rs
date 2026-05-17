@@ -3,13 +3,13 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername,
-    BuilderPasswordConfirmation, BuilderSyntaxItem, Company, ContainsNewtype, Customer,
-    CustomerWithOptionalAddress, Employee, ExplicitRequiredProfile, GenericItem, Item,
-    MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
-    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
-    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
-    QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
+    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
+    ContainsNewtype, Customer, CustomerWithOptionalAddress, DirectPasswordConfirmation,
+    DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem, Item, MultiAttrItem,
+    MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalElementMixedValidators,
+    OptionalElementPresenceOrder, OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation,
+    PositiveNumber, PresenceOnlyNonClone, QualifiedPathProfile, StaticSecretConfirmation,
+    UserProfile,
 };
 use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
@@ -88,8 +88,7 @@ fn test_multiple_field_errors() {
 
 #[test]
 fn test_generic_validator_i32() {
-    let validator = GenericRangeValidation::<i32>::builder()
-        .min(0)
+    let validator = GenericRangeValidation::<i32>::min(0)
         .max(100)
         .with_value(50)
         .build();
@@ -101,8 +100,7 @@ fn test_generic_validator_i32() {
 
 #[test]
 fn test_generic_validator_f64() {
-    let validator = GenericRangeValidation::<f64>::builder()
-        .min(0.0)
+    let validator = GenericRangeValidation::<f64>::min(0.0)
         .max(1.0)
         .with_value(0.5)
         .build();
@@ -155,8 +153,8 @@ fn test_generic_item_invalid_points() {
 }
 
 #[test]
-fn test_builder_syntax_item_invalid_score() {
-    let item = BuilderSyntaxItem { score: 150.0 };
+fn test_direct_syntax_item_invalid_score() {
+    let item = DirectSyntaxItem { score: 150.0 };
 
     let err = item.validate().unwrap_err();
     assert!(err.score().generic_range_validation().is_some());
@@ -167,8 +165,8 @@ fn test_builder_syntax_item_invalid_score() {
 }
 
 #[test]
-fn test_builder_password_confirmation_reuses_field_values() {
-    let item = BuilderPasswordConfirmation {
+fn test_direct_password_confirmation_reuses_field_values() {
+    let item = DirectPasswordConfirmation {
         password: "secret".to_string(),
         confirm: "different".to_string(),
     };
@@ -517,8 +515,7 @@ fn test_borrowed_direct_field_valid() {
 
 #[test]
 fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value() {
-    let validator = PrefixBytesValidation::builder()
-        .prefix(b"ab")
+    let validator = PrefixBytesValidation::prefix(b"ab")
         .with_value(*b"abcd")
         .build();
 
@@ -529,7 +526,7 @@ fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value()
 
 #[test]
 fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value_ref() {
-    let builder = PrefixBytesValidation::builder().prefix(b"ab");
+    let builder = PrefixBytesValidation::prefix(b"ab");
     let validator = koruma::BuilderWithValueRef::with_value_ref(builder, b"abcd").build();
 
     assert!(validator.validate(b"abcd"));

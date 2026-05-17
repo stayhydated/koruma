@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Order {
-///     #[koruma(PositiveValidation::<_>::builder())]
+///     #[koruma(PositiveValidation::<_>)]
 ///     quantity: i32,
 /// }
 /// ```
@@ -26,8 +26,7 @@ use super::Numeric;
     module = "numeric",
     create = |input: &str| -> anyhow::Result<_> {
         let num = input.parse::<f64>()?;
-        Ok(PositiveValidation::builder()
-            .with_value(num)
+        Ok(PositiveValidation::with_value(num)
             .build())
     }
 ))]

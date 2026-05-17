@@ -108,7 +108,7 @@ impl Scores {
                 v.validate(t)
             }
             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    RangeValidation::<i32>::builder().min(0).max(100),
+                    RangeValidation::<i32>::min(0).max(100),
                     __item_value,
                 )
                 .build();

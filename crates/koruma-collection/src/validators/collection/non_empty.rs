@@ -14,7 +14,7 @@ use super::HasLen;
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(NonEmptyValidation::<_>::builder())]
+///     #[koruma(NonEmptyValidation::<_>)]
 ///     name: String,
 /// }
 /// ```
@@ -29,8 +29,7 @@ use super::HasLen;
     input_type = Text,
     module = "collection",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(NonEmptyValidation::builder()
-            .with_value(input.to_string())
+        Ok(NonEmptyValidation::with_value(input.to_string())
             .build())
     }
 ))]

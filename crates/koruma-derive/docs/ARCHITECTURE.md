@@ -22,9 +22,9 @@
 
 ## Modules
 
-- `expand/validator.rs`: adds `bon` builders, `with_value`, hidden `with_value_ref`, and optional
-  showcase registration while preserving the validator's original bounds in the
-  generated showcase impl.
+- `expand/validator.rs`: adds hidden `bon` builder plumbing, direct setter entrypoints,
+  `with_value`, hidden `with_value_ref`, and optional showcase registration while preserving the
+  validator's original bounds in the generated showcase impl.
 - `expand/derive.rs`: generates error structs, `validate()`, `try_new`, `TryFrom`, nested/newtype handling, and element validator errors for `each(...)`.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
 - `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).

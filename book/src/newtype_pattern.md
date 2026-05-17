@@ -16,13 +16,13 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
 pub struct Email {
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub value: String,
 }
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct SignupForm {
-    #[koruma(NonEmptyStringValidation::builder())]
+    #[koruma(NonEmptyStringValidation)]
     pub username: String,
 
     #[koruma(newtype)]
@@ -92,7 +92,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
-pub struct Username(#[koruma(NonEmptyStringValidation::builder())] pub String);
+pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct LoginForm {
@@ -125,7 +125,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(newtype(try_from))]
-pub struct Only67u8(#[koruma(Only67Validation::<_>::builder())] u8);
+pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),

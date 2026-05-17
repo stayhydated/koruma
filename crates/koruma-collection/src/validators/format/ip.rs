@@ -30,7 +30,7 @@ impl std::fmt::Display for IpKind {
 ///
 /// #[derive(Koruma)]
 /// struct NetworkConfig {
-///     #[koruma(IpValidation::<_>::builder().kind(IpKind::V4))]
+///     #[koruma(IpValidation::<_>::kind(IpKind::V4))]
 ///     ip_address: String,
 /// }
 /// ```
@@ -43,8 +43,7 @@ impl std::fmt::Display for IpKind {
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(IpValidation::builder()
-            .kind(IpKind::Any)
+        Ok(IpValidation::kind(IpKind::Any)
             .with_value(input.to_string())
             .build())
     }
@@ -113,5 +112,12 @@ mod tests {
         };
         assert!(v6_validator.validate(&"::1".to_string()));
         assert!(!v6_validator.validate(&"127.0.0.1".to_string()));
+    }
+
+    #[test]
+    fn ip_kind_display_names_match_error_copy() {
+        assert_eq!(IpKind::Any.to_string(), "IP");
+        assert_eq!(IpKind::V4.to_string(), "IPv4");
+        assert_eq!(IpKind::V6.to_string(), "IPv6");
     }
 }

@@ -3,12 +3,33 @@ source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
 #[derive(koruma::bon::Builder)]
-#[builder(crate = ::koruma::bon)]
+#[builder(crate = ::koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
 #[derive(Clone, Debug)]
 pub struct PresenceOnlyValidation<T> {
     actual: Option<T>,
 }
 impl<T> PresenceOnlyValidation<T> {
+    #[doc(hidden)]
+    pub fn __koruma_builder() -> PresenceOnlyValidationBuilder<
+        T,
+        presence_only_validation_builder::Empty,
+    > {
+        Self::__koruma_bon_builder()
+    }
+    #[doc = concat!(
+        "Starts building [`", stringify!(PresenceOnlyValidation), "`] with the `",
+        "actual", "` value set."
+    )]
+    pub fn with_value(
+        value: T,
+    ) -> PresenceOnlyValidationBuilder<
+        T,
+        presence_only_validation_builder::SetActual<
+            presence_only_validation_builder::Empty,
+        >,
+    > {
+        Self::__koruma_builder().with_value(value)
+    }
     #[doc = concat!(
         "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
     )]

@@ -1,19 +1,19 @@
 use std::io;
 
-use collection_ratatui_core::{App, KeyCode, init_i18n};
+use collection_ratatui_core::{App, I18n, KeyCode, init_i18n};
 use crossterm::event::{self, Event, KeyCode as CrosstermKeyCode, KeyEvent, KeyEventKind};
 use ratatui::DefaultTerminal;
 
 fn main() -> io::Result<()> {
-    init_i18n();
+    let i18n = init_i18n();
     let mut terminal = ratatui::init();
-    let result = run_native(&mut terminal);
+    let result = run_native(&mut terminal, i18n);
     ratatui::restore();
     result
 }
 
-fn run_native(terminal: &mut DefaultTerminal) -> io::Result<()> {
-    let mut app = App::new();
+fn run_native(terminal: &mut DefaultTerminal, i18n: I18n) -> io::Result<()> {
+    let mut app = App::with_i18n(i18n);
 
     while !app.should_exit() {
         terminal.draw(|frame| app.render(frame))?;

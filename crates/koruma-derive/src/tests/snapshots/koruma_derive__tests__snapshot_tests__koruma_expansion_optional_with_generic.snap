@@ -80,7 +80,7 @@ impl Item {
                 v.validate(t)
             }
             let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    GenericRange::<i32>::builder().min(0).max(100),
+                    GenericRange::<i32>::min(0).max(100),
                     __field_value,
                 )
                 .build();

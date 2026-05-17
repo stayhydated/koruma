@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(EmailValidation::<_>::builder())]
+///     #[koruma(EmailValidation::<_>)]
 ///     email: String,
 /// }
 /// ```
@@ -23,8 +23,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(EmailValidation::builder()
-            .with_value(input.to_string())
+        Ok(EmailValidation::with_value(input.to_string())
             .build())
     }
 ))]

@@ -8,11 +8,12 @@ instead of using this crate directly.
 
 ## Macros
 
-- `#[koruma::validator]`: generates a `bon` builder and `with_value()` helper for validators, and
-  supports `#[koruma(value, skip_capture)]` on `Option<T>` value fields that should not retain the
-  validated input.
+- `#[koruma::validator]`: generates hidden `bon` builder plumbing, direct setter entrypoints such
+  as `RangeValidation::min(value)`, and `with_value()` helpers for validators. It supports
+  `#[koruma(value, skip_capture)]` on `Option<T>` value fields that should not retain the validated
+  input.
 - `#[derive(Koruma)]`: generates validation error structs and `validate()`, accepting Rust-native
-  validator builder chains like `RangeValidation::<_>::builder().min(0).max(10)`.
+  direct validator chains like `RangeValidation::<_>::min(0).max(10)`.
 - `#[derive(KorumaAllDisplay)]`: adds `Display` for `all()` validator enums.
 - `#[derive(KorumaAllFluent)]`: adds `FluentMessage` for `all()` validator enums (feature `fluent`).
 

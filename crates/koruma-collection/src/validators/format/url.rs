@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Resource {
-///     #[koruma(UrlValidation::<_>::builder())]
+///     #[koruma(UrlValidation::<_>)]
 ///     link: String,
 /// }
 /// ```
@@ -25,8 +25,7 @@ use koruma::{Validate, validator};
     input_type = Text,
     module = "format",
     create = |input: &str| -> anyhow::Result<_> {
-        Ok(UrlValidation::builder()
-            .with_value(input.to_string())
+        Ok(UrlValidation::with_value(input.to_string())
             .build())
     }
 ))]

@@ -16,9 +16,11 @@ use expand::{expand_koruma, expand_koruma_all_display, expand_validator};
 /// Attribute macro for validator structs.
 ///
 /// This automatically:
-/// - Adds `#[derive(bon::Builder)]` to the struct
-/// - Generates a `with_value` method on the builder that delegates to the field
-///   marked with `#[koruma(value)]`
+/// - Adds a hidden `bon` builder to the struct
+/// - Generates direct builder entrypoints on the validator type for each
+///   configurable field, such as `RangeValidation::min(value)`
+/// - Generates `with_value` methods that delegate to the field marked with
+///   `#[koruma(value)]`
 /// - Generates a getter on the validator type with the same name as the
 ///   `#[koruma(value)]` field
 ///
@@ -113,10 +115,10 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// ```ignore
 /// #[derive(Koruma)]
 /// struct Item {
-///     #[koruma(NumberRangeValidation::builder().min(0).max(100))]
+///     #[koruma(NumberRangeValidation::min(0).max(100))]
 ///     age: i32,
 ///
-///     #[koruma(StringLengthValidation::builder().min(1).max(50))]
+///     #[koruma(StringLengthValidation::min(1).max(50))]
 ///     name: String,
 ///
 ///     // No #[koruma(...)] attribute means field is not validated
@@ -158,7 +160,7 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllDisplay)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>::builder().min(5).max(20), PrefixValidation::<_>::builder().prefix("SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>::min(5).max(20), PrefixValidation::<_>::prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
@@ -193,7 +195,7 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
 ///
 /// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>::builder().min(5).max(20), PrefixValidation::<_>::builder().prefix("SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>::min(5).max(20), PrefixValidation::<_>::prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///

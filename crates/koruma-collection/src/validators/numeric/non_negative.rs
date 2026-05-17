@@ -12,7 +12,7 @@ use super::Numeric;
 ///
 /// #[derive(Koruma)]
 /// struct Account {
-///     #[koruma(NonNegativeValidation::<_>::builder())]
+///     #[koruma(NonNegativeValidation::<_>)]
 ///     balance: f64,
 /// }
 /// ```
@@ -26,8 +26,7 @@ use super::Numeric;
     module = "numeric",
     create = |input: &str| -> anyhow::Result<_> {
         let num = input.parse::<f64>()?;
-        Ok(NonNegativeValidation::builder()
-            .with_value(num)
+        Ok(NonNegativeValidation::with_value(num)
             .build())
     }
 ))]

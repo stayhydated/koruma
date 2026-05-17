@@ -1,8 +1,8 @@
 use crate::{
     FieldInfo, KorumaAttr, ParseFieldResult, ValidatorAttr, contains_infer_type,
-    expr_as_simple_ident, find_value_field, first_generic_arg, is_option_infer_type,
-    option_inner_type, parse_field, substitute_infer_type, substitute_infer_type_from_source,
-    type_to_ident, vec_inner_type,
+    expr_as_simple_ident, find_value_field, find_value_field_info, find_value_field_info_strict,
+    first_generic_arg, is_option_infer_type, option_inner_type, parse_field, parse_struct_options,
+    substitute_infer_type, substitute_infer_type_from_source, type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -14,29 +14,27 @@ fn parse_field_info(field: &syn::Field) -> FieldInfo {
 
 #[test]
 fn validator_attr_helpers_and_error_paths() {
-    let plain: ValidatorAttr = syn::parse_quote!(RangeValidation::builder());
+    let plain: ValidatorAttr = syn::parse_quote!(RangeValidation);
     assert!(!plain.has_args());
     assert!(!plain.uses_type_inference());
     assert!(!plain.has_explicit_type());
 
-    let with_builder_methods: ValidatorAttr =
-        syn::parse_quote!(RangeValidation::builder().min(0).max(10));
+    let with_builder_methods: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0).max(10));
     assert!(with_builder_methods.has_args());
     let builder_calls = with_builder_methods.setter_calls();
     assert_eq!(builder_calls.len(), 2);
     assert_eq!(builder_calls[0].method.to_string(), "min");
     assert_eq!(builder_calls[1].method.to_string(), "max");
 
-    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>::builder());
+    let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>);
     assert!(infer.uses_type_inference());
     assert!(!infer.has_explicit_type());
 
-    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>::builder());
+    let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>);
     assert!(!explicit.uses_type_inference());
     assert!(explicit.has_explicit_type());
 
-    let too_many_types: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation::<i32, u32>::builder()");
+    let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<i32, u32>");
     assert!(
         too_many_types
             .expect_err("expected parse error")
@@ -44,8 +42,7 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("exactly one type argument")
     );
 
-    let non_type_generic: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation::<1>::builder()");
+    let non_type_generic: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<1>");
     assert!(
         non_type_generic
             .expect_err("expected parse error")
@@ -58,16 +55,16 @@ fn validator_attr_helpers_and_error_paths() {
         removed_shorthand
             .expect_err("expected shorthand syntax to be rejected")
             .to_string()
-            .contains("requires a builder chain")
+            .contains("requires a direct validator chain")
     );
 
     let builder_with_build: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation::builder().min(1).build()");
+        syn::parse_str("GenericValidation::min(1).build()");
     assert!(
         builder_with_build
-            .expect_err("expected builder chains to reject .build()")
+            .expect_err("expected validator chains to reject .build()")
             .to_string()
-            .contains("injects value capture and `.build()` automatically")
+            .contains("injects builder creation, value capture, and `.build()` automatically")
     );
 
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("std::ops::Fn(i32)");
@@ -79,10 +76,8 @@ fn validator_attr_helpers_and_error_paths() {
 
 #[test]
 fn koruma_attr_helpers_and_newtype_parsing_paths() {
-    let attr: KorumaAttr = syn::parse_quote!(
-        RangeValidation::builder().min(0).max(10),
-        each(PositiveValidation::builder())
-    );
+    let attr: KorumaAttr =
+        syn::parse_quote!(RangeValidation::min(0).max(10), each(PositiveValidation));
     assert!(attr.has_validators());
     assert!(!attr.is_modifier());
 
@@ -100,8 +95,8 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 
     let newtype_with_validators: KorumaAttr = syn::parse_quote!(
         newtype,
-        each(PositiveValidation::builder()),
-        RangeValidation::builder().min(0).max(1)
+        each(PositiveValidation),
+        RangeValidation::min(0).max(1)
     );
     assert!(newtype_with_validators.is_newtype);
     assert!(newtype_with_validators.has_validators());
@@ -112,7 +107,7 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 #[test]
 fn field_info_and_parse_field_result_helpers() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::builder().min(0).max(10), each(PositiveValidation::builder()))]
+        #[koruma(RangeValidation::min(0).max(10), each(PositiveValidation))]
         value: Vec<i32>
     };
     let info = parse_field_info(&field);
@@ -148,7 +143,7 @@ fn field_info_and_parse_field_result_helpers() {
     assert!(skip_result.valid().is_none());
 
     let generic_field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::<_>::builder())]
+        #[koruma(RangeValidation::<_>)]
         broken: i32
     };
     let generic_result = parse_field(&generic_field, 0);
@@ -157,7 +152,7 @@ fn field_info_and_parse_field_result_helpers() {
     assert!(generic_info.validation.field_validators[0].infer_type);
 
     let explicit_field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::<i32>::builder().min(0).max(10))]
+        #[koruma(RangeValidation::<i32>::min(0).max(10))]
         constrained: i32
     };
     let explicit_result = parse_field(&explicit_field, 0);
@@ -176,7 +171,7 @@ fn field_info_and_parse_field_result_helpers() {
 #[test]
 fn parse_field_allows_distinct_fully_qualified_validators() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(foo::RangeValidation::builder().min(0).max(10), bar::RangeValidation::builder().min(11).max(20))]
+        #[koruma(foo::RangeValidation::min(0).max(10), bar::RangeValidation::min(11).max(20))]
         value: i32
     };
 
@@ -307,15 +302,16 @@ fn utility_functions_cover_non_happy_paths() {
 
 #[test]
 fn koruma_attr_newtype_parser_handles_trailing_commas() {
-    let with_trailing_commas: KorumaAttr =
-        syn::parse_str("newtype, each(RangeValidation::builder().min(0).max(1), PositiveValidation::builder(),), RequiredValidation::builder(),")
-            .expect("newtype parser should accept commas");
+    let with_trailing_commas: KorumaAttr = syn::parse_str(
+        "newtype, each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",
+    )
+    .expect("newtype parser should accept commas");
     assert!(with_trailing_commas.is_newtype);
     assert_eq!(with_trailing_commas.field_validators.len(), 1);
     assert_eq!(with_trailing_commas.element_validators.len(), 2);
 
     let plain_with_each: KorumaAttr = syn::parse_str(
-        "each(RangeValidation::builder().min(0).max(1), PositiveValidation::builder(),), RequiredValidation::builder(),",
+        "each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",
     )
     .expect("plain parser should accept commas");
     assert!(!plain_with_each.is_newtype);
@@ -325,10 +321,10 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
 
 #[test]
 fn parser_edge_cases_cover_remaining_parse_lines() {
-    let builder_with_spaces: ValidatorAttr =
-        syn::parse_str("RangeValidation :: < _ > :: builder()")
-            .expect("expected builder syntax to parse");
-    assert!(builder_with_spaces.infer_type);
+    let chain_with_spaces: ValidatorAttr = syn::parse_str("RangeValidation :: < _ > :: min(0)")
+        .expect("expected direct validator syntax to parse");
+    assert!(chain_with_spaces.infer_type);
+    assert_eq!(chain_with_spaces.setter_calls().len(), 1);
 
     // Parenthesized path arguments branch.
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("Fn(i32)");
@@ -336,17 +332,16 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
 
     // `newtype, each(...), ::Path` exercises comma continuation and non-ident validator path
     // in the newtype parser loop.
-    let newtype_with_each_and_path: KorumaAttr = syn::parse_str(
-        "newtype, each(::demo::ElemValidation::builder()), ::demo::FieldValidation::builder()",
-    )
-    .expect("newtype attr with `each` and absolute path should parse");
+    let newtype_with_each_and_path: KorumaAttr =
+        syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
+            .expect("newtype attr with `each` and absolute path should parse");
     assert!(newtype_with_each_and_path.is_newtype);
     assert_eq!(newtype_with_each_and_path.element_validators.len(), 1);
     assert_eq!(newtype_with_each_and_path.field_validators.len(), 1);
 
     // `newtype` followed by a path without a comma currently falls back to regular parsing.
     let newtype_without_comma_falls_through: KorumaAttr =
-        syn::parse_str("newtype::demo::FieldValidation::builder()")
+        syn::parse_str("newtype::demo::FieldValidation")
             .expect("fallback parser should still parse remaining validator path");
     assert!(!newtype_without_comma_falls_through.is_newtype);
     assert_eq!(
@@ -355,23 +350,74 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     );
 
     // Non-ident path in the non-newtype parser loop.
-    let absolute_path_only: KorumaAttr = syn::parse_str("::demo::FieldValidation::builder()")
-        .expect("absolute validator path should parse");
+    let absolute_path_only: KorumaAttr =
+        syn::parse_str("::demo::FieldValidation").expect("absolute validator path should parse");
     assert!(!absolute_path_only.is_newtype);
     assert_eq!(absolute_path_only.field_validators.len(), 1);
 
     let newtype_each_trailing_comma: KorumaAttr =
-        syn::parse_str("newtype, each(::demo::ElemValidation::builder()),")
+        syn::parse_str("newtype, each(::demo::ElemValidation),")
             .expect("newtype each with trailing comma should parse");
     assert!(newtype_each_trailing_comma.is_newtype);
     assert_eq!(newtype_each_trailing_comma.element_validators.len(), 1);
     assert!(newtype_each_trailing_comma.field_validators.is_empty());
+
+    let newtype_each_then_field: KorumaAttr =
+        syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
+            .expect("newtype each followed by a field validator should parse");
+    assert!(newtype_each_then_field.is_newtype);
+    assert_eq!(newtype_each_then_field.element_validators.len(), 1);
+    assert_eq!(newtype_each_then_field.field_validators.len(), 1);
+
+    let newtype_options_with_trailing_comma = struct_options_from_attrs(&syn::parse_quote! {
+        #[koruma(newtype(try_from,))]
+        struct Demo(String);
+    });
+    assert!(newtype_options_with_trailing_comma.newtype);
+    assert!(newtype_options_with_trailing_comma.try_from);
+
+    let legacy_builder: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::builder()");
+    assert!(
+        legacy_builder
+            .expect_err("expected legacy builder syntax rejection")
+            .to_string()
+            .contains("legacy validator `::builder()` syntax is not supported")
+    );
+
+    let direct_with_value: Result<ValidatorAttr, _> =
+        syn::parse_str("RangeValidation::with_value(1)");
+    assert!(
+        direct_with_value
+            .expect_err("expected with_value syntax rejection")
+            .to_string()
+            .contains("chains should stop before `.with_value(...)`")
+    );
+
+    let uppercase_constructor: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::New(1)");
+    assert!(
+        uppercase_constructor
+            .expect_err("expected uppercase constructor syntax rejection")
+            .to_string()
+            .contains("requires a direct validator chain")
+    );
+
+    let free_function_call: Result<ValidatorAttr, _> = syn::parse_str("min(1)");
+    assert!(
+        free_function_call
+            .expect_err("expected free function syntax rejection")
+            .to_string()
+            .contains("requires a direct validator chain")
+    );
+}
+
+fn struct_options_from_attrs(item: &syn::ItemStruct) -> crate::StructOptions {
+    parse_struct_options(&item.attrs).expect("expected struct options to parse")
 }
 
 #[test]
 fn field_info_has_validators_covers_element_only_branch() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(PositiveValidation::builder()))]
+        #[koruma(each(PositiveValidation))]
         values: Vec<i32>
     };
     let info = parse_field_info(&field);
@@ -384,7 +430,7 @@ fn field_info_has_validators_covers_element_only_branch() {
 fn parse_field_rejects_newtype_with_each_across_attributes() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(newtype)]
-        #[koruma(each(PositiveValidation::builder()))]
+        #[koruma(each(PositiveValidation))]
         wrapped: Wrapper
     };
 
@@ -442,6 +488,61 @@ fn utility_functions_cover_remaining_line_paths() {
         quote::quote!(#substituted).to_string(),
         "Wrapper < 'static , usize >"
     );
+}
+
+#[test]
+fn struct_options_report_duplicate_newtype_and_try_from() {
+    let duplicate_newtype: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(newtype)]
+        #[koruma(newtype)]
+        struct Demo(String);
+    };
+    assert!(
+        parse_struct_options(&duplicate_newtype.attrs)
+            .expect_err("expected duplicate newtype error")
+            .to_string()
+            .contains("duplicate struct-level koruma option `newtype`")
+    );
+
+    let duplicate_try_from: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        #[koruma(newtype(try_from))]
+        struct Demo(String);
+    };
+    assert!(
+        parse_struct_options(&duplicate_try_from.attrs)
+            .expect_err("expected duplicate newtype error")
+            .to_string()
+            .contains("duplicate struct-level koruma option `newtype`")
+    );
+}
+
+#[test]
+fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        struct Validator {
+            #[koruma(value)]
+            actual: String,
+        }
+    };
+
+    let info = find_value_field_info(&input).expect("expected value field info");
+    assert_eq!(info.name.to_string(), "actual");
+
+    let bad_input: syn::ItemStruct = syn::parse_quote! {
+        struct Validator {
+            #[koruma()]
+            actual: String,
+        }
+    };
+
+    assert!(
+        find_value_field_info_strict(&bad_input)
+            .expect_err("expected empty marker error")
+            .to_string()
+            .contains("validator fields only support")
+    );
+    assert!(find_value_field_info(&bad_input).is_none());
 }
 
 #[cfg(feature = "internal-showcase")]

@@ -297,9 +297,34 @@ pub(crate) fn validator_builder_expr(
     let validator = &v.validator;
     let effective_ty = effective_validation_type(field_ty, validate_each);
 
-    let builder_calls: Vec<TokenStream2> = v
-        .setter_calls()
+    let uses_infer = v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
+    let validator_path = if uses_infer {
+        let validator_ty = if v.explicit_type.is_some() {
+            let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
+                .expect("explicit infer types should be pre-validated")
+                .expect("explicit infer types should resolve to a concrete type");
+            quote! { #substituted }
+        } else {
+            quote! { #effective_ty }
+        };
+
+        quote! { #validator::<#validator_ty> }
+    } else {
+        quote! { #validator }
+    };
+
+    let mut setter_calls = v.setter_calls().iter();
+    let Some(first_method) = setter_calls.next() else {
+        return quote! { #validator_path::__koruma_builder() };
+    };
+
+    let first_method_name = &first_method.method;
+    let first_args: Vec<_> = first_method
+        .args
         .iter()
+        .map(|arg| transform_arg_value(arg, field_names))
+        .collect();
+    let rest_calls: Vec<TokenStream2> = setter_calls
         .map(|method| {
             let method_name = &method.method;
             let transformed_args: Vec<_> = method
@@ -311,26 +336,9 @@ pub(crate) fn validator_builder_expr(
         })
         .collect();
 
-    let uses_infer = v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
-    if uses_infer {
-        let validator_ty = if v.explicit_type.is_some() {
-            let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
-                .expect("explicit infer types should be pre-validated")
-                .expect("explicit infer types should resolve to a concrete type");
-            quote! { #substituted }
-        } else {
-            quote! { #effective_ty }
-        };
-
-        quote! {
-            #validator::<#validator_ty>::builder()
-                #(#builder_calls)*
-        }
-    } else {
-        quote! {
-            #validator::builder()
-                #(#builder_calls)*
-        }
+    quote! {
+        #validator_path::#first_method_name(#(#first_args),*)
+            #(#rest_calls)*
     }
 }
 

@@ -23,7 +23,7 @@
 //! }
 //!
 //! let field: Field = parse_quote! {
-//!     #[koruma(NonEmptyValidation::builder())]
+//!     #[koruma(NonEmptyValidation)]
 //!     username: String
 //! };
 //! assert_eq!(validator_count(&field), Some(1));

@@ -376,9 +376,9 @@ fn test_koruma_error_on_direct_chain_with_build_call() {
 }
 
 #[test]
-fn test_koruma_error_on_removed_constructor_style_validator_args() {
+fn test_koruma_error_on_constructor_style_args() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct RemovedConstructorStyleSyntax {
+        pub struct ConstructorStyleSyntax {
             #[koruma(NumberRangeValidation(min = 0, max = 100))]
             pub value: i32,
         }
@@ -410,7 +410,7 @@ fn test_koruma_error_on_each_non_vec_collection() {
     assert!(
         err.to_string()
             .contains("`each(...)` currently only supports `Vec<T>`, slice fields"),
-        "expected unsupported each(...) collection error, got: {err}",
+        "expected each(...) collection diagnostic, got: {err}",
     );
 }
 
@@ -508,7 +508,7 @@ fn test_koruma_error_on_nested_field_with_split_validators() {
     assert!(
         err.to_string()
             .contains("cannot also use validators or `each(...)`"),
-        "expected nested+validator compatibility error, got: {err}"
+        "expected nested+validator combination error, got: {err}"
     );
 }
 

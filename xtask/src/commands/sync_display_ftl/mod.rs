@@ -483,15 +483,15 @@ impl std::fmt::Display for IncludedValidation {
                 .is_none()
         );
 
-        let unsupported_slot_impl: ItemImpl = syn::parse_quote! {
+        let invalid_slot_impl: ItemImpl = syn::parse_quote! {
             impl std::fmt::Display for BrokenValidation {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     write!(f, "Value {name}", self.actual)
                 }
             }
         };
-        let err = parse_display_impl(&unsupported_slot_impl).expect_err("unsupported slot");
-        assert!(err.to_string().contains("unsupported format slot"));
+        let err = parse_display_impl(&invalid_slot_impl).expect_err("invalid slot");
+        assert!(err.to_string().contains("unrecognized format slot"));
     }
 
     #[test]
@@ -676,7 +676,7 @@ impl std::fmt::Display for IncludedValidation {
         let ftl = r#"
 -term = skip
 simple = Value { $actual }.
-unsupported = { "literal" }
+unrecognized = { "literal" }
 "#;
         let resource = parser::parse(ftl.to_string()).expect("valid ftl");
 
@@ -691,8 +691,8 @@ unsupported = { "literal" }
             ]
         );
 
-        let unsupported_pattern = nth_message_pattern(&resource, 1);
-        assert!(template_from_pattern(unsupported_pattern).is_err());
+        let unrecognized_pattern = nth_message_pattern(&resource, 1);
+        assert!(template_from_pattern(unrecognized_pattern).is_err());
 
         let inline_expr: ast::Expression<String> =
             ast::Expression::Inline(ast::InlineExpression::VariableReference {
@@ -951,22 +951,22 @@ impl std::fmt::Display for DisplayedValidation {
         let parse_err = collect_ftl_templates(parse_err_tmp.path()).expect_err("invalid ftl");
         assert!(parse_err.to_string().contains("Failed to parse FTL AST"));
 
-        let unsupported_tmp = tempfile::tempdir().expect("failed to create temp directory");
+        let unrecognized_tmp = tempfile::tempdir().expect("failed to create temp directory");
         write_file(
-            &unsupported_tmp.path().join("sample.ftl"),
+            &unrecognized_tmp.path().join("sample.ftl"),
             r#"
 -term = keep
 no_value =
     .attr = still ignored
-unsupported = { "literal" }
+unrecognized = { "literal" }
 "#,
         );
-        let unsupported =
-            collect_ftl_templates(unsupported_tmp.path()).expect_err("unsupported pattern");
+        let unrecognized =
+            collect_ftl_templates(unrecognized_tmp.path()).expect_err("unrecognized pattern");
         assert!(
-            unsupported
+            unrecognized
                 .to_string()
-                .contains("Unsupported message pattern")
+                .contains("Unrecognized message pattern")
         );
 
         let skip_tmp = tempfile::tempdir().expect("failed to create temp directory");

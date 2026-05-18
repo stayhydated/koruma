@@ -53,7 +53,7 @@ pub fn collect_ftl_templates(
 
             let template = template_from_pattern(&pattern).with_context(|| {
                 format!(
-                    "Unsupported message pattern for '{}' in {}",
+                    "Unrecognized message pattern for '{}' in {}",
                     message.id.name,
                     path.display()
                 )

@@ -183,7 +183,7 @@ fn test_validator_attr_parse_option_infer_type() {
 }
 
 #[test]
-fn test_validator_attr_parse_removed_shorthand_error() {
+fn test_validator_attr_parse_constructor_style_error() {
     let result: Result<ValidatorAttr, _> = syn::parse_str("Validator<_>");
     let err = result.expect_err("expected constructor-style syntax to be rejected");
     assert!(

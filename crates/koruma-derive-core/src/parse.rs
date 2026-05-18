@@ -146,7 +146,7 @@ impl Parse for ValidatorAttr {
             return Ok(attr);
         }
 
-        Err(removed_shorthand_validator_error(input))
+        Err(invalid_validator_syntax_error(input))
     }
 }
 
@@ -176,10 +176,10 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
     }))
 }
 
-fn removed_shorthand_validator_error(input: ParseStream) -> Error {
+fn invalid_validator_syntax_error(input: ParseStream) -> Error {
     Error::new(
         input.span(),
-        "validator syntax requires a direct validator chain such as `RequiredValidation::<Option<_>>` or `RangeValidation::<_>::min(value).max(value)`; legacy `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not supported",
+        "validator syntax requires a direct validator chain such as `RequiredValidation::<Option<_>>` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted",
     )
 }
 
@@ -288,7 +288,7 @@ fn analyze_direct_validator_call_expr(
     if method == "builder" {
         return Err(Error::new(
             path_expr.path.span(),
-            "legacy validator `::builder()` syntax is not supported; use direct syntax such as `Validator::min(value)` or bare `Validator` for validators without configuration fields",
+            "validator `::builder()` syntax is not supported; use direct syntax such as `Validator::min(value)` or bare `Validator` for validators without configuration fields",
         ));
     }
 
@@ -1118,14 +1118,35 @@ pub fn find_value_field_info(input: &ItemStruct) -> Option<ValueFieldInfo> {
 /// The `create` closure takes a `&str` and returns the validator instance.
 /// Required `input_type` must be `Text` or `Numeric`.
 /// Optional `module` can be "string", "format", "numeric", "collection", or "general".
+/// `module` defaults to `general` when omitted.
+#[cfg(feature = "internal-showcase")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ShowcaseInputType {
+    /// Showcases that expect text input.
+    Text,
+    /// Showcases that expect numeric input.
+    Numeric,
+}
+
+/// Parsed and validated `module` selector for showcase validators.
+#[cfg(feature = "internal-showcase")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ShowcaseModule {
+    String,
+    Format,
+    Numeric,
+    Collection,
+    General,
+}
+
 #[cfg(feature = "internal-showcase")]
 #[derive(Clone, Debug)]
 pub struct ShowcaseAttr {
     pub name: syn::LitStr,
     pub description: syn::LitStr,
     pub create: syn::ExprClosure,
-    pub input_type: Ident,
-    pub module: Option<syn::LitStr>,
+    pub input_type: ShowcaseInputType,
+    pub module: Option<ShowcaseModule>,
 }
 
 #[cfg(feature = "internal-showcase")]
@@ -1135,7 +1156,7 @@ impl Parse for ShowcaseAttr {
         let mut description: Option<syn::LitStr> = None;
         let mut create: Option<syn::ExprClosure> = None;
         let mut input_type: Option<Ident> = None;
-        let mut module: Option<syn::LitStr> = None;
+        let mut module: Option<ShowcaseModule> = None;
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
@@ -1155,7 +1176,8 @@ impl Parse for ShowcaseAttr {
                     input_type = Some(input.parse()?);
                 },
                 "module" => {
-                    module = Some(input.parse()?);
+                    let parsed_module: syn::LitStr = input.parse()?;
+                    module = Some(parse_showcase_module(parsed_module)?);
                 },
                 other => {
                     return Err(Error::new(
@@ -1179,17 +1201,7 @@ impl Parse for ShowcaseAttr {
             create: create
                 .ok_or_else(|| Error::new(input.span(), "showcase requires `create` attribute"))?,
             input_type: match input_type {
-                Some(input_type)
-                    if matches!(input_type.to_string().as_str(), "Text" | "Numeric") =>
-                {
-                    input_type
-                },
-                Some(input_type) => {
-                    return Err(Error::new(
-                        input_type.span(),
-                        "showcase `input_type` must be `Text` or `Numeric`",
-                    ));
-                },
+                Some(input_type) => parse_showcase_input_type(input_type)?,
                 None => {
                     return Err(Error::new(
                         input.span(),
@@ -1199,6 +1211,33 @@ impl Parse for ShowcaseAttr {
             },
             module,
         })
+    }
+}
+
+#[cfg(feature = "internal-showcase")]
+fn parse_showcase_input_type(input_type: Ident) -> Result<ShowcaseInputType> {
+    match input_type.to_string().as_str() {
+        "Text" => Ok(ShowcaseInputType::Text),
+        "Numeric" => Ok(ShowcaseInputType::Numeric),
+        _ => Err(Error::new(
+            input_type.span(),
+            "showcase `input_type` must be `Text` or `Numeric`",
+        )),
+    }
+}
+
+#[cfg(feature = "internal-showcase")]
+fn parse_showcase_module(module: syn::LitStr) -> Result<ShowcaseModule> {
+    match module.value().as_str() {
+        "string" => Ok(ShowcaseModule::String),
+        "format" => Ok(ShowcaseModule::Format),
+        "numeric" => Ok(ShowcaseModule::Numeric),
+        "collection" => Ok(ShowcaseModule::Collection),
+        "general" => Ok(ShowcaseModule::General),
+        _ => Err(Error::new(
+            module.span(),
+            "showcase `module` must be one of: \"string\", \"format\", \"numeric\", \"collection\", or \"general\"",
+        )),
     }
 }
 

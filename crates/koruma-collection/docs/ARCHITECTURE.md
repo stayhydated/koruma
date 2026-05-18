@@ -10,6 +10,9 @@
 - `crates/koruma-collection/src/validators/`: category modules (`string`, `format`, `numeric`, `collection`, `general`).
 - `crates/koruma-collection/src/i18n.rs`: embedded Fluent module via `es_fluent_manager_embedded::define_i18n_module!()`.
 - `crates/koruma-collection/i18n/`: Fluent resources by locale.
+- `crates/koruma-collection/src/validators/mod.rs`: declares validator category modules and,
+  under `internal-showcase`, calls `koruma_derive::showcase_modules!(...)` to emit a central
+  `__link_showcase_validators()` function that registers all showcase validators.
 
 ## Validator pattern
 
@@ -26,7 +29,8 @@
 - `fluent`: enables Fluent integration and embedded i18n assets.
 - `full-fluent`: `full` + `fluent`.
 - Per-validator and integration features: `email`, `url`, `phone-number`, `credit-card`, `regex`, `smallvec`, `decimal` (`rust_decimal::Decimal` support for `numeric::Numeric`).
-- `internal-showcase`: enables validator registry support via `koruma/internal-showcase`, turns on `full-fluent`, keeps `fmt`, and adds `anyhow` for showcase factory closures.
+- `internal-showcase`: enables validator registry support via `koruma/internal-showcase`, turns on
+  `full-fluent`, keeps `fmt`, and adds `anyhow` for showcase factory closures.
 
 ## Extending
 

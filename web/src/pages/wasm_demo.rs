@@ -4,77 +4,28 @@ use dioxus::events::FormData;
 use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
 use dioxus_primitives::tabs::{TabContent, TabList, TabTrigger, Tabs};
-use es_fluent::{FluentLocalizer, FluentValue};
+use es_fluent::{FluentLocalizer as _, FluentValue};
 use es_fluent_manager_dioxus::{DioxusI18n, use_i18n};
-use koruma::showcase::{ValidatorShowcase, validators};
+use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::site::i18n::DioxusShowcaseMessage;
 use crate::site::routing::PageKind;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ValidatorModule {
-    String,
-    Format,
-    Numeric,
-    Collection,
-    General,
-}
-
-impl ValidatorModule {
-    const ALL: [Self; 5] = [
-        Self::String,
-        Self::Format,
-        Self::Numeric,
-        Self::Collection,
-        Self::General,
-    ];
-
-    fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<Self> {
-        Self::ALL
-            .iter()
-            .filter(|&&m| all_validators.iter().any(|&v| m.contains_validator(v)))
-            .copied()
-            .collect()
-    }
-
-    fn name(self, i18n: &DioxusI18n) -> String {
-        match self {
-            Self::String => i18n.localize_message(&DioxusShowcaseMessage::ModuleString),
-            Self::Format => i18n.localize_message(&DioxusShowcaseMessage::ModuleFormat),
-            Self::Numeric => i18n.localize_message(&DioxusShowcaseMessage::ModuleNumeric),
-            Self::Collection => i18n.localize_message(&DioxusShowcaseMessage::ModuleCollection),
-            Self::General => i18n.localize_message(&DioxusShowcaseMessage::ModuleGeneral),
-        }
-    }
-
-    fn tab_value(self) -> &'static str {
-        match self {
-            Self::String => "string",
-            Self::Format => "format",
-            Self::Numeric => "numeric",
-            Self::Collection => "collection",
-            Self::General => "general",
-        }
-    }
-
-    fn contains_validator(self, showcase: &ValidatorShowcase) -> bool {
-        match self {
-            Self::String => showcase.module == "string",
-            Self::Format => showcase.module == "format",
-            Self::Numeric => showcase.module == "numeric",
-            Self::Collection => showcase.module == "collection",
-            Self::General => showcase.module == "general",
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 enum ValidatorState {
     Valid,
     Invalid,
     Error,
+}
+
+struct ValidatorRowMessages {
+    display_message: String,
+    fluent_message: String,
+    error_message: Option<String>,
+    input_placeholder: String,
+    message_heading: String,
 }
 
 impl ValidatorState {
@@ -158,10 +109,10 @@ fn CollectionDioxusShowcase() -> Element {
 
     __link_showcase_validators();
     let all_validators = validators();
-    let available_modules = ValidatorModule::available_modules(&all_validators);
+    let available_modules = available_modules(&all_validators);
     let default_module = available_modules
         .first()
-        .map(|module| module.tab_value())
+        .map(|module| module.as_str())
         .unwrap_or("string");
 
     rsx! {
@@ -180,12 +131,12 @@ fn CollectionDioxusShowcase() -> Element {
                         horizontal: true,
                         TabList {
                             class: "collection-module-tab-list",
-                            for (index, module) in available_modules.iter().enumerate() {
-                                TabTrigger {
-                                    value: module.tab_value().to_string(),
+                                for (index, module) in available_modules.iter().enumerate() {
+                                    TabTrigger {
+                                    value: module.as_str().to_string(),
                                     index: index,
                                     class: Some("collection-module-tab".to_string()),
-                                    "{module.name(&i18n)}"
+                                    "{module_name(*module, &i18n)}"
                                 }
                             }
                         }
@@ -193,17 +144,18 @@ fn CollectionDioxusShowcase() -> Element {
                             TabContent {
                                 class: Some("collection-module-content".to_string()),
                                 index: index,
-                                value: module.tab_value().to_string(),
+                                value: module.as_str().to_string(),
                                 div {
                                     class: "collection-module",
-                                    h2 { "{module.name(&i18n)}" }
+                                    h2 { "{module_name(*module, &i18n)}" }
                                     for validator in all_validators
                                         .iter()
-                                        .filter(|&validator| module.contains_validator(validator))
+                                        .filter(|&validator| validator.module == *module)
                                     {
                                         {
-                                            let name = validator.name;
-                                            let input = inputs.read().get(name).cloned().unwrap_or_default();
+                                            let validator_name = validator.name;
+                                            let input =
+                                                inputs.read().get(validator_name).cloned().unwrap_or_default();
                                             let current_validator = (validator.create_validator)(&input);
                                             let current_state = match &current_validator {
                                                 Ok(v) if v.is_valid() => ValidatorState::Valid,
@@ -233,29 +185,30 @@ fn CollectionDioxusShowcase() -> Element {
                                                         Some(format!("{error_prefix} {error}")),
                                                     ),
                                                 };
-                                            let module_key = module.tab_value();
+                                            let module_key = module.as_str();
                                             let input_id = format!(
                                                 "validator-{module_key}-{}",
-                                                name.to_lowercase().replace(' ', "-")
+                                                validator.name.to_lowercase().replace(' ', "-")
                                             );
                                             validator_row(
                                                 input_id,
-                                                *validator,
+                                                validator,
                                                 input,
-                                                EventHandler::new(
-                                                    {
-                                                        let name = name;
-                                                        move |event: Event<FormData>| {
-                                                            inputs.write().insert(name, event.value());
-                                                        }
-                                                    },
-                                                ),
+                                                EventHandler::new({
+                                                    move |event: Event<FormData>| {
+                                                        inputs
+                                                            .write()
+                                                            .insert(validator_name, event.value());
+                                                    }
+                                                }),
                                                 current_state,
-                                                display_msg,
-                                                fluent_msg,
-                                                error_msg,
-                                                validation_placeholder.clone(),
-                                                message_heading,
+                                                ValidatorRowMessages {
+                                                    display_message: display_msg,
+                                                    fluent_message: fluent_msg,
+                                                    error_message: error_msg,
+                                                    input_placeholder: validation_placeholder.clone(),
+                                                    message_heading,
+                                                },
                                             )
                                         }
                                     }
@@ -273,45 +226,44 @@ fn CollectionDioxusShowcase() -> Element {
 
 fn validator_row(
     input_id: String,
-    validator: &'static ValidatorShowcase,
+    validator: &ValidatorShowcase,
     input: String,
     on_input: EventHandler<Event<FormData>>,
     state: ValidatorState,
-    display_msg: String,
-    fluent_msg: String,
-    error_msg: Option<String>,
-    input_placeholder: String,
-    message_heading: String,
+    messages: ValidatorRowMessages,
 ) -> Element {
     rsx! {
-        div { class: state.status_class(),
-            div { class: "validator-row-head",
-                Label {
-                    html_for: input_id.clone(),
-                    class: "validator-row-label".to_string(),
-                    "{validator.name}"
-                }
-                span { class: "validator-status", "{state.status_emoji()}" }
+    div { class: state.status_class(),
+        div { class: "validator-row-head",
+            Label {
+                html_for: input_id.clone(),
+                class: "validator-row-label".to_string(),
+                "{validator.name}"
             }
-            p { class: "validator-row-description", "{validator.description}" }
-            input {
-                id: input_id,
-                class: "validator-input",
-                r#type: "text",
-                value: input,
-                placeholder: input_placeholder,
-                oninput: on_input,
-            }
-            p { class: "validator-message-heading", "{message_heading}:" }
+            span { class: "validator-status", "{state.status_emoji()}" }
+        }
+        p { class: "validator-row-description", "{validator.description}" }
+        input {
+            id: input_id,
+            class: "validator-input",
+            r#type: "text",
+            value: input,
+            placeholder: messages.input_placeholder,
+            oninput: on_input,
+        }
+            p { class: "validator-message-heading", "{messages.message_heading}:" }
             {
-                match error_msg {
+                match messages.error_message {
                     Some(error) => rsx! {
                         p { class: "validator-message validator-message-error", "{error}" }
                     },
                     None => rsx! {
-                        p { class: "validator-message", "{display_msg}" }
-                        if !fluent_msg.is_empty() {
-                            p { class: "validator-message validator-message-subtle", "{fluent_msg}" }
+                        p { class: "validator-message", "{messages.display_message}" }
+                        if !messages.fluent_message.is_empty() {
+                            p {
+                                class: "validator-message validator-message-subtle",
+                                "{messages.fluent_message}"
+                            }
                         }
                     },
                 }
@@ -328,4 +280,27 @@ fn localize_with_args<'a>(
 ) -> String {
     i18n.localize_in_domain(domain, id, args)
         .unwrap_or(id.to_string())
+}
+fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<ValidatorModule> {
+    ValidatorModule::ALL
+        .iter()
+        .filter(|&&module| {
+            all_validators
+                .iter()
+                .any(|showcase| showcase.module == module)
+        })
+        .copied()
+        .collect()
+}
+
+fn module_name(module: ValidatorModule, i18n: &DioxusI18n) -> String {
+    match module {
+        ValidatorModule::String => i18n.localize_message(&DioxusShowcaseMessage::ModuleString),
+        ValidatorModule::Format => i18n.localize_message(&DioxusShowcaseMessage::ModuleFormat),
+        ValidatorModule::Numeric => i18n.localize_message(&DioxusShowcaseMessage::ModuleNumeric),
+        ValidatorModule::Collection => {
+            i18n.localize_message(&DioxusShowcaseMessage::ModuleCollection)
+        },
+        ValidatorModule::General => i18n.localize_message(&DioxusShowcaseMessage::ModuleGeneral),
+    }
 }

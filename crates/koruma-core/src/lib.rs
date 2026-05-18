@@ -126,6 +126,8 @@ pub mod showcase {
         Numeric,
     }
 
+    koruma_derive::showcase_module_enum!(string, format, numeric, collection, general);
+
     /// Information about a validator for showcase purposes.
     ///
     /// This struct is registered via `inventory` when a validator uses
@@ -137,8 +139,8 @@ pub mod showcase {
         pub description: &'static str,
         /// The type of input expected by the validator
         pub input_type: InputType,
-        /// The module/category this validator belongs to (e.g., "string", "format", "numeric", "collection", "general")
-        pub module: &'static str,
+        /// The module/category this validator belongs to.
+        pub module: ValidatorModule,
         /// Factory function that creates a validator from string input.
         /// Returns Ok(validator) on success, or Err(error) if input cannot be parsed.
         pub create_validator: fn(&str) -> ::anyhow::Result<Box<dyn DynValidator>>,

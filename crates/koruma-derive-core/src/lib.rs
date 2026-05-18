@@ -43,7 +43,7 @@ pub use parse::{
 };
 
 #[cfg(feature = "internal-showcase")]
-pub use parse::{ShowcaseAttr, find_showcase_attr};
+pub use parse::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_attr};
 
 // Re-export utility functions
 pub use utils::{

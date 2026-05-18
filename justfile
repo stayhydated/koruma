@@ -21,7 +21,7 @@ test:
     cargo test --workspace --all-features
 
 cov:
-    cargo llvm-cov --workspace --exclude xtask --all-features --all-targets
+    cargo llvm-cov --workspace --exclude xtask --exclude web --all-features --all-targets
 
 test-publish:
     cargo publish --workspace --dry-run --allow-dirty

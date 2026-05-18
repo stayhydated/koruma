@@ -21,6 +21,10 @@
 - `fluent`: re-exports `KorumaAllFluent` when `derive` is enabled and forwards fluent support to `koruma-derive`.
 - `internal-showcase`: enables `koruma_core::showcase`, forwards showcase support to `koruma-core` and `koruma-derive`, and re-exports `inventory` for registry submission.
 
+  The showcase feature also enables macro-generated registry wiring: `koruma-collection` uses
+  `koruma_derive::showcase_modules!` to emit a module linker and `koruma-core` uses
+  `koruma_derive::showcase_module_enum!` for `ValidatorModule`.
+
 ## Control flow
 
 - Users derive `Koruma` and annotate fields with `#[koruma(...)]`.

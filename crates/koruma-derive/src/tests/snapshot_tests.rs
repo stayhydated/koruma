@@ -245,7 +245,7 @@ fn test_koruma_expansion_combined_field_and_element_validators() {
 
 #[test]
 fn test_koruma_expansion_only_element_validators() {
-    // Only element validators (no field-level validators) - backwards compatible with existing each()
+    // Only element validators (no field-level validators)
     let input: DeriveInput = syn::parse_quote! {
         pub struct Scores {
             #[koruma(each(RangeValidation::<_>::min(0).max(100)))]
@@ -763,7 +763,7 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
     let expanded = expand_validator(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("input_type:::koruma::showcase::InputType::Text"));
-    assert!(compact.contains("module:\"general\""));
+    assert!(compact.contains("module:::koruma::showcase::ValidatorModule::General"));
     assert!(compact.contains("showcase_validation_builder::State"));
     assert!(compact.contains("S::Actual:koruma::bon::IsUnset"));
     assert!(compact.contains("DynValidatorforShowcaseValidation"));

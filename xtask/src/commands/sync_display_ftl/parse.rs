@@ -193,7 +193,7 @@ pub fn parse_slot_index(spec: &str, next_arg: usize) -> Result<(usize, bool)> {
         return Ok((index, true));
     }
 
-    bail!("unsupported format slot '{{{spec}}}'")
+    bail!("unrecognized format slot '{{{spec}}}'")
 }
 
 pub fn parse_format_chunks(format_str: &str) -> Result<Vec<FormatChunk>> {

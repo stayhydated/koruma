@@ -106,7 +106,6 @@ fn LocaleSwitcher() -> Element {
         .find(|language| language.lang() == requested_language)
         .unwrap_or_default();
     let mut selected_language = use_signal(|| Some(current_language));
-    let i18n_for_language_change = i18n.clone();
     let selected_language_for_effect = current_language;
 
     use_effect(move || {
@@ -125,7 +124,7 @@ fn LocaleSwitcher() -> Element {
         }
 
         selected_language.set(Some(next_language));
-        let _ = i18n_for_language_change.select_language(next_language.lang());
+        let _ = i18n.select_language(next_language.lang());
     };
 
     rsx! {

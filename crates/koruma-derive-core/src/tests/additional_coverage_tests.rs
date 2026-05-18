@@ -50,9 +50,9 @@ fn validator_attr_helpers_and_error_paths() {
             .contains("expects a type argument")
     );
 
-    let removed_shorthand: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<_>");
+    let rejected_shorthand: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation<_>");
     assert!(
-        removed_shorthand
+        rejected_shorthand
             .expect_err("expected shorthand syntax to be rejected")
             .to_string()
             .contains("requires a direct validator chain")
@@ -376,12 +376,13 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     assert!(newtype_options_with_trailing_comma.newtype);
     assert!(newtype_options_with_trailing_comma.try_from);
 
-    let legacy_builder: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::builder()");
+    let disallowed_builder_chain: Result<ValidatorAttr, _> =
+        syn::parse_str("RangeValidation::builder()");
     assert!(
-        legacy_builder
-            .expect_err("expected legacy builder syntax rejection")
+        disallowed_builder_chain
+            .expect_err("expected builder chain syntax rejection")
             .to_string()
-            .contains("legacy validator `::builder()` syntax is not supported")
+            .contains("validator `::builder()` syntax is not supported")
     );
 
     let direct_with_value: Result<ValidatorAttr, _> =
@@ -548,7 +549,7 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
 #[cfg(feature = "internal-showcase")]
 #[test]
 fn showcase_attr_errors_are_reported() {
-    use crate::{ShowcaseAttr, find_showcase_attr};
+    use crate::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_attr};
 
     let unknown: Result<ShowcaseAttr, _> = syn::parse_str(
         r#"name = "n", description = "d", create = |input: &str| input, nope = "x""#,
@@ -592,11 +593,21 @@ fn showcase_attr_errors_are_reported() {
         #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text)]
         struct Demo;
     };
-    assert!(
-        find_showcase_attr(&input)
-            .expect("valid showcase attr")
-            .is_some()
-    );
+    let parsed = find_showcase_attr(&input)
+        .expect("valid showcase attr")
+        .expect("showcase attr should be present");
+    assert_eq!(parsed.input_type, ShowcaseInputType::Text);
+    assert_eq!(parsed.module, None);
+
+    let input_with_module: syn::ItemStruct = syn::parse_quote! {
+        #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Numeric, module = "format")]
+        struct DemoWithModule;
+    };
+    let parsed = find_showcase_attr(&input_with_module)
+        .expect("valid showcase attr with module")
+        .expect("showcase attr with module should be present");
+    assert_eq!(parsed.input_type, ShowcaseInputType::Numeric);
+    assert_eq!(parsed.module, Some(ShowcaseModule::Format));
 
     let invalid_input: syn::ItemStruct = syn::parse_quote! {
         #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text, modul = "oops")]
@@ -607,5 +618,16 @@ fn showcase_attr_errors_are_reported() {
             .expect_err("expected showcase attr parse error")
             .to_string()
             .contains("unknown showcase attribute: modul")
+    );
+
+    let invalid_module: syn::ItemStruct = syn::parse_quote! {
+        #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text, module = "oops")]
+        struct BadDemoModule;
+    };
+    assert!(
+        find_showcase_attr(&invalid_module)
+            .expect_err("expected showcase attr parse error for module")
+            .to_string()
+            .contains("showcase `module` must be one of")
     );
 }

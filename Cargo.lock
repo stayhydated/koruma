@@ -3225,6 +3225,7 @@ dependencies = [
  "es-fluent-build",
  "es-fluent-manager-embedded",
  "koruma",
+ "koruma-derive",
  "phonenumber",
  "regex",
  "rust-embed",
@@ -3240,6 +3241,7 @@ dependencies = [
  "anyhow",
  "es-fluent",
  "inventory",
+ "koruma-derive",
 ]
 
 [[package]]

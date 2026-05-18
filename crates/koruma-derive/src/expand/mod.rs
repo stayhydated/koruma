@@ -31,15 +31,15 @@ pub(crate) use codegen::{
 // Re-export parsing types from koruma-derive-core
 #[cfg(feature = "internal-showcase")]
 #[allow(unused_imports)]
-pub(crate) use koruma_derive_core::ShowcaseAttr;
-#[cfg(feature = "internal-showcase")]
-#[allow(unused_imports)]
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
     FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo, ValidatorAttr,
     find_value_field, find_value_field_strict, parse_field, parse_struct_options,
 };
+#[cfg(feature = "internal-showcase")]
+#[allow(unused_imports)]
+pub(crate) use koruma_derive_core::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule};
 
 // Re-export utility functions from koruma-derive-core
 #[allow(unused_imports)]

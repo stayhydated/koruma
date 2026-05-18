@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 
 mod expand;
+#[cfg(feature = "internal-showcase")]
+mod showcase_modules;
 #[cfg(test)]
 mod tests;
 
@@ -12,6 +14,8 @@ use syn::{DeriveInput, Fields, Item, parse_macro_input};
 #[cfg(feature = "fluent")]
 use expand::expand_koruma_all_fluent;
 use expand::{expand_koruma, expand_koruma_all_display, expand_validator};
+#[cfg(feature = "internal-showcase")]
+use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_modules_macro};
 
 /// Attribute macro for validator structs.
 ///
@@ -212,6 +216,28 @@ pub fn derive_koruma_all_fluent(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     match expand_koruma_all_fluent(input) {
+        Ok(tokens) => TokenStream::from(tokens),
+        Err(e) => TokenStream::from(e.to_compile_error()),
+    }
+}
+
+/// Internal helper macro for generating showcase module declarations and linker functions.
+#[cfg(feature = "internal-showcase")]
+#[proc_macro_error]
+#[proc_macro]
+pub fn showcase_modules(input: TokenStream) -> TokenStream {
+    match expand_showcase_modules_macro(input) {
+        Ok(tokens) => TokenStream::from(tokens),
+        Err(e) => TokenStream::from(e.to_compile_error()),
+    }
+}
+
+/// Internal helper macro for generating `ValidatorModule`.
+#[cfg(feature = "internal-showcase")]
+#[proc_macro_error]
+#[proc_macro]
+pub fn showcase_module_enum(input: TokenStream) -> TokenStream {
+    match expand_showcase_module_enum_macro(input) {
         Ok(tokens) => TokenStream::from(tokens),
         Err(e) => TokenStream::from(e.to_compile_error()),
     }

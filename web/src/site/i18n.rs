@@ -54,6 +54,7 @@ pub(crate) enum HomeMessage {
 }
 
 #[derive(Clone, Copy, Debug, EsFluent)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum DemosPageMessage {
     DioxusLabel,
     DioxusTitle,
@@ -73,6 +74,7 @@ pub(crate) enum ContributeMessage {
 }
 
 #[derive(Clone, Copy, Debug, EsFluent)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum SiteFooterMessage {
     CratesLabel,
     CratesTextPrefix,

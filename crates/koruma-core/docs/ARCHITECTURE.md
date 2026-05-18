@@ -26,6 +26,8 @@
 - `InputType`: expected input classification (text or numeric).
 - `ValidatorShowcase`: metadata collected via `inventory`.
 - `validators()`: returns all registered validators.
+- `ValidatorModule`: generated via `koruma_derive::showcase_module_enum!(...)` under
+  `internal-showcase` to keep module names centralized with validator declarations.
 
 ## Control flow
 
@@ -36,7 +38,8 @@
 
 ## Feature flags
 
-- `internal-showcase`: enables the showcase registry types and `inventory` integration.
+- `internal-showcase`: enables the showcase registry types, `inventory` integration, and
+  `ValidatorModule` generation.
 
 ## Tests
 

@@ -1,3 +1,5 @@
+#[cfg(feature = "internal-showcase")]
+use super::{ShowcaseInputType, ShowcaseModule};
 use heck::{ToSnakeCase, ToUpperCamelCase};
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
@@ -242,11 +244,22 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             struct_name.to_string().to_snake_case()
         );
         let input_type = &showcase.input_type;
-        let input_type_tokens = quote! { ::koruma::showcase::InputType::#input_type };
-        let module_tokens = if let Some(ref m) = showcase.module {
-            quote! { #m }
+        let input_type_tokens = match input_type {
+            ShowcaseInputType::Text => quote! { ::koruma::showcase::InputType::Text },
+            ShowcaseInputType::Numeric => quote! { ::koruma::showcase::InputType::Numeric },
+        };
+        let module_tokens = if let Some(module) = showcase.module {
+            match module {
+                ShowcaseModule::String => quote! { ::koruma::showcase::ValidatorModule::String },
+                ShowcaseModule::Format => quote! { ::koruma::showcase::ValidatorModule::Format },
+                ShowcaseModule::Numeric => quote! { ::koruma::showcase::ValidatorModule::Numeric },
+                ShowcaseModule::Collection => {
+                    quote! { ::koruma::showcase::ValidatorModule::Collection }
+                },
+                ShowcaseModule::General => quote! { ::koruma::showcase::ValidatorModule::General },
+            }
         } else {
-            quote! { "general" }
+            quote! { ::koruma::showcase::ValidatorModule::General }
         };
 
         let mut showcase_generics = input.generics.clone();

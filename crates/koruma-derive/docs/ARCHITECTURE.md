@@ -25,6 +25,11 @@
 - `expand/validator.rs`: adds hidden `bon` builder plumbing, direct setter entrypoints,
   `with_value`, hidden `with_value_ref`, and optional showcase registration while preserving the
   validator's original bounds in the generated showcase impl.
+- `showcase_modules.rs` (feature `internal-showcase`): generates the linker shim used for
+  pulling in all showcase-annotated validators from `koruma-collection` without requiring
+  per-module `pub mod` generation in macro output.
+- `lib.rs` (feature `internal-showcase`): also exports the `showcase_module_enum!` macro that
+  expands `koruma::showcase::ValidatorModule` in a shared crate feature pass.
 - `expand/derive.rs`: generates error structs, `validate()`, `try_new`, `TryFrom`, nested/newtype handling, and element validator errors for `each(...)`.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
 - `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).

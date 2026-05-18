@@ -10,24 +10,21 @@ use es_fluent_manager_dioxus::use_i18n;
 
 #[component]
 pub(crate) fn PageHeader(current_page: PageKind) -> Element {
-    let (brand_kicker, site_name, nav_home, nav_demos, nav_docs, nav_source) = match use_i18n() {
-        Ok(i18n) => (
-            i18n.localize_message(&SiteChromeMessage::BrandKicker),
-            i18n.localize_message(&SiteChromeMessage::SiteName),
-            i18n.localize_message(&SiteChromeMessage::NavHome),
-            i18n.localize_message(&SiteChromeMessage::NavDemos),
-            i18n.localize_message(&SiteChromeMessage::NavDocs),
-            i18n.localize_message(&SiteChromeMessage::NavSource),
-        ),
-        Err(_) => (
-            "Rust validation".to_string(),
-            "koruma".to_string(),
-            "Home".to_string(),
-            "Demos".to_string(),
-            "Book".to_string(),
-            "Source".to_string(),
-        ),
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
+        Err(error) => {
+            return rsx! {
+                div { "Failed to initialize i18n: {error}" }
+            };
+        },
     };
+
+    let brand_kicker = i18n.localize_message(&SiteChromeMessage::BrandKicker);
+    let site_name = i18n.localize_message(&SiteChromeMessage::SiteName);
+    let nav_home = i18n.localize_message(&SiteChromeMessage::NavHome);
+    let nav_demos = i18n.localize_message(&SiteChromeMessage::NavDemos);
+    let nav_docs = i18n.localize_message(&SiteChromeMessage::NavDocs);
+    let nav_source = i18n.localize_message(&SiteChromeMessage::NavSource);
 
     let is_home_active = current_page == PageKind::Home;
     let is_demos_active = matches!(current_page, PageKind::Demos | PageKind::CollectionDioxus);
@@ -164,27 +161,26 @@ fn LocaleSwitcher() -> Element {
 
 #[component]
 pub(crate) fn ContributePanel() -> Element {
-    let (label, headline, body_prefix, project_fluent, body_crowdin, body_github, dot) =
-        match use_i18n() {
-            Ok(i18n) => (
-                i18n.localize_message(&ContributeMessage::Label),
-                i18n.localize_message(&ContributeMessage::Headline),
-                i18n.localize_message(&ContributeMessage::BodyPrefix),
-                i18n.localize_message(&ContributeMessage::BodyProjectFluent),
-                i18n.localize_message(&ContributeMessage::BodyCrowdin),
-                i18n.localize_message(&ContributeMessage::BodyGithub),
-                i18n.localize_message(&ContributeMessage::FooterDot),
-            ),
-            Err(_) => (
-                "Help translate".to_string(),
-                "Improve".to_string(),
-                " ships ".to_string(),
-                " messages. Add missing translations through ".to_string(),
-                "Crowdin".to_string(),
-                " or contribute directly on ".to_string(),
-                ".".to_string(),
-            ),
-        };
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
+        Err(error) => {
+            return rsx! {
+                section { class: "contribute-panel",
+                    div { class: "contribute-copy", "Failed to initialize i18n: {error}" }
+                }
+            };
+        },
+    };
+
+    let (label, headline, body_prefix, project_fluent, body_crowdin, body_github, dot) = (
+        i18n.localize_message(&ContributeMessage::Label),
+        i18n.localize_message(&ContributeMessage::Headline),
+        i18n.localize_message(&ContributeMessage::BodyPrefix),
+        i18n.localize_message(&ContributeMessage::BodyProjectFluent),
+        i18n.localize_message(&ContributeMessage::BodyCrowdin),
+        i18n.localize_message(&ContributeMessage::BodyGithub),
+        i18n.localize_message(&ContributeMessage::FooterDot),
+    );
 
     rsx! {
         section { class: "contribute-panel",
@@ -236,20 +232,19 @@ pub(crate) fn ContributePanel() -> Element {
 
 #[component]
 pub(crate) fn FooterPanel() -> Element {
-    let (label, crates_text_prefix, crates_text_middle, crates_text_suffix) = match use_i18n() {
-        Ok(i18n) => (
-            i18n.localize_message(&SiteFooterMessage::CratesLabel),
-            i18n.localize_message(&SiteFooterMessage::CratesTextPrefix),
-            i18n.localize_message(&SiteFooterMessage::CratesTextMiddle),
-            i18n.localize_message(&SiteFooterMessage::CratesTextSuffix),
-        ),
-        Err(_) => (
-            "Crates".to_string(),
-            "".to_string(),
-            " and ".to_string(),
-            " are published on crates.io.".to_string(),
-        ),
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
+        Err(error) => {
+            return rsx! {
+                footer { class: "site-footer", "Failed to initialize i18n: {error}" }
+            };
+        },
     };
+
+    let label = i18n.localize_message(&SiteFooterMessage::CratesLabel);
+    let crates_text_prefix = i18n.localize_message(&SiteFooterMessage::CratesTextPrefix);
+    let crates_text_middle = i18n.localize_message(&SiteFooterMessage::CratesTextMiddle);
+    let crates_text_suffix = i18n.localize_message(&SiteFooterMessage::CratesTextSuffix);
 
     rsx! {
         footer { class: "site-footer",

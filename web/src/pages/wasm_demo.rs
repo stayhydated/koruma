@@ -57,10 +57,10 @@ impl ValidatorState {
 
 #[component]
 pub(crate) fn CollectionDioxusPage() -> Element {
-    match use_i18n() {
-        Ok(_) => rsx! { CollectionDioxusShowcase {} },
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
         Err(error) => {
-            rsx! {
+            return rsx! {
                 div { class: "page-shell",
                     PageHeader { current_page: PageKind::CollectionDioxus }
                     main { class: "stack",
@@ -72,9 +72,13 @@ pub(crate) fn CollectionDioxusPage() -> Element {
                     }
                     FooterPanel {}
                 }
-            }
+            };
         },
-    }
+    };
+
+    let _ = &i18n;
+
+    rsx! { CollectionDioxusShowcase {} }
 }
 
 #[component]

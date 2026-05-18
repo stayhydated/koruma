@@ -33,31 +33,11 @@ impl PageKind {
         }
     }
 
-    pub(crate) fn title(self) -> &'static str {
-        match self {
-            Self::Home => "koruma",
-            Self::Demos => "koruma - Demos",
-            Self::CollectionDioxus => "Dioxus Collection Example - koruma",
-        }
-    }
-
     pub(crate) fn title_i18n(self, i18n: &DioxusI18n) -> String {
         match self {
             Self::Home => i18n.localize_message(&PageMetadataMessage::HomeTitle),
             Self::Demos => i18n.localize_message(&PageMetadataMessage::DemosTitle),
             Self::CollectionDioxus => i18n.localize_message(&PageMetadataMessage::DioxusDemoTitle),
-        }
-    }
-
-    pub(crate) fn description(self) -> &'static str {
-        match self {
-            Self::Home => {
-                "Type-safe per-field validation for Rust with derive macros, validator attributes, typed error accessors, and Fluent-ready rendering."
-            },
-            Self::Demos => "Interactive koruma-collection validator demos.",
-            Self::CollectionDioxus => {
-                "A Dioxus koruma-collection validator browser with localized validation output."
-            },
         }
     }
 
@@ -159,10 +139,23 @@ fn page_from_segments(segments: &[&str]) -> PageKind {
 }
 
 fn route_element(page: PageKind) -> Element {
-    let (title, description) = match use_i18n() {
-        Ok(i18n) => (page.title_i18n(&i18n), page.description_i18n(&i18n)),
-        Err(_) => (page.title().to_string(), page.description().to_string()),
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
+        Err(error) => {
+            return rsx! {
+                Title { "koruma" }
+                Meta {
+                    name: "description",
+                    content: "Failed to initialize i18n",
+                }
+                div { class: "page-shell", "Failed to initialize i18n: {error}" }
+                {pages::route_content(page)}
+            };
+        },
     };
+
+    let title = page.title_i18n(&i18n);
+    let description = page.description_i18n(&i18n);
 
     rsx! {
         Title { "{title}" }

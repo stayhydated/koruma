@@ -166,21 +166,9 @@ flags, or usage guidance changes.
 - `examples/i18n`
   Shared Fluent translation assets used by the examples.
 
-- `examples/collection-ratatui-core`
-  Shared ratatui showcase logic used by the native and web demos.
-
-- `examples/collection-ratatui-native`
-  Native ratatui showcase app for browsing registered validators.
-
-- `examples/collection-ratatui-web`
-  WebAssembly ratatui showcase app.
-
-- `examples/collection-dioxus-web`
-  Dioxus-based web showcase app.
-
 - `web`
   Audience: **User-facing**
-  Role: Astro-based GitHub Pages site hosting demos and the mdBook.
+  Role: Dioxus-based GitHub Pages site hosting demos and the mdBook.
 
 - `book`
   Audience: **User-facing**

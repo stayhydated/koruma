@@ -28,8 +28,9 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Install wasm-pack
-        run: cargo install wasm-pack
+      - name: Install Dioxus CLI
+        run: |
+          cargo install dioxus-cli --version 0.7.9
         env:
           SCCACHE_GHA_ENABLED: "true"
           RUSTC_WRAPPER: "sccache"
@@ -50,13 +51,7 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build WASM items
-        run: bun run build:wasm
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
-
-      - name: Build Astro site
+      - name: Build Dioxus site
         run: bun run build:web
 
       - name: Setup Pages

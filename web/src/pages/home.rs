@@ -1,0 +1,149 @@
+use crate::components::{FeatureCard, FooterPanel, PageHeader, PageLink};
+use crate::site::i18n::HomeMessage;
+use crate::site::routing::PageKind;
+use dioxus::prelude::*;
+use es_fluent_manager_dioxus::use_i18n;
+
+#[component]
+pub(crate) fn HomePage() -> Element {
+    let (
+        eyebrow,
+        title,
+        body,
+        primary_action,
+        secondary_action,
+        workflow_panel_label,
+        step_define_title,
+        step_define_body,
+        step_attach_title,
+        step_attach_body,
+        step_inspect_title,
+        step_inspect_body,
+        surface_panel_label,
+        surface_title,
+        surface_card_one_title,
+        surface_card_one_body,
+        surface_card_two_title,
+        surface_card_two_body,
+        surface_card_three_title,
+        surface_card_three_body,
+    ) = match use_i18n() {
+        Ok(i18n) => (
+            i18n.localize_message(&HomeMessage::HeroEyebrow),
+            i18n.localize_message(&HomeMessage::HeroTitle),
+            i18n.localize_message(&HomeMessage::HeroBody),
+            i18n.localize_message(&HomeMessage::HeroPrimaryAction),
+            i18n.localize_message(&HomeMessage::HeroSecondaryAction),
+            i18n.localize_message(&HomeMessage::WorkflowPanelLabel),
+            i18n.localize_message(&HomeMessage::WorkflowStepDefineTitle),
+            i18n.localize_message(&HomeMessage::WorkflowStepDefineBody),
+            i18n.localize_message(&HomeMessage::WorkflowStepAttachTitle),
+            i18n.localize_message(&HomeMessage::WorkflowStepAttachBody),
+            i18n.localize_message(&HomeMessage::WorkflowStepInspectTitle),
+            i18n.localize_message(&HomeMessage::WorkflowStepInspectBody),
+            i18n.localize_message(&HomeMessage::SurfacePanelLabel),
+            i18n.localize_message(&HomeMessage::SurfaceTitle),
+            i18n.localize_message(&HomeMessage::SurfaceDescribeTitle),
+            i18n.localize_message(&HomeMessage::SurfaceDescribeBody),
+            i18n.localize_message(&HomeMessage::SurfaceReusableTitle),
+            i18n.localize_message(&HomeMessage::SurfaceReusableBody),
+            i18n.localize_message(&HomeMessage::SurfaceI18nTitle),
+            i18n.localize_message(&HomeMessage::SurfaceI18nBody),
+        ),
+        Err(_) => (
+            "per-field validation".to_string(),
+            "koruma".to_string(),
+            "Type-safe Rust validation built around explicit validator types, derive macros, generated error accessors, and optional Fluent messages.".to_string(),
+            "Read the book".to_string(),
+            "Open demos".to_string(),
+            "Validation flow".to_string(),
+            "Define".to_string(),
+            "validators as ordinary Rust structs.".to_string(),
+            "Attach".to_string(),
+            "validators to fields with #[koruma(...)].".to_string(),
+            "Inspect".to_string(),
+            "typed accessors on generated error structs.".to_string(),
+            "Core surfaces".to_string(),
+            "A small API with typed failure data".to_string(),
+            "Generated accessors".to_string(),
+            "Koruma derives field-level error types so application code can match the exact validator that failed."
+                .to_string(),
+            "Reusable structs".to_string(),
+            "Validator definitions stay explicit, testable, and shareable across fields and data models."
+                .to_string(),
+            "Fluent-ready output".to_string(),
+            "Display messages and Project Fluent messages can be generated from the same validation model."
+                .to_string(),
+        ),
+    };
+
+    rsx! {
+        div { class: "page-shell",
+            PageHeader { current_page: PageKind::Home }
+            main { class: "stack",
+                section { class: "hero",
+                    div { class: "hero-copy",
+                        div { class: "eyebrow", "{eyebrow}" }
+                        h1 { "{title}" }
+                        p { "{body}" }
+                        div { class: "hero-actions",
+                            a {
+                                class: "button-link primary",
+                                href: crate::site::routing::book_href(),
+                                "{primary_action}"
+                            }
+                            PageLink {
+                                page: PageKind::Demos,
+                                class: "button-link secondary".to_string(),
+                                label: secondary_action,
+                            }
+                        }
+                    }
+                    aside { class: "workflow-panel",
+                        span { class: "panel-label", "{workflow_panel_label}" }
+                        ol { class: "workflow-list",
+                            li {
+                                strong { "{step_define_title}" }
+                                span { "{step_define_body}" }
+                            }
+                            li {
+                                strong { "{step_attach_title}" }
+                                span { "{step_attach_body}" }
+                            }
+                            li {
+                                strong { "{step_inspect_title}" }
+                                span { "{step_inspect_body}" }
+                            }
+                        }
+                    }
+                }
+
+                section { class: "section-band",
+                    div { class: "section-heading",
+                        span { class: "panel-label", "{surface_panel_label}" }
+                        h2 { "{surface_title}" }
+                    }
+                    div { class: "feature-grid",
+                        FeatureCard {
+                            label: "derive".to_string(),
+                            title: surface_card_one_title,
+                            body: surface_card_one_body,
+                        }
+                        FeatureCard {
+                            label: "validators".to_string(),
+                            title: surface_card_two_title,
+                            body: surface_card_two_body,
+                        }
+                        FeatureCard {
+                            label: "i18n".to_string(),
+                            title: surface_card_three_title,
+                            body: surface_card_three_body,
+                        }
+                    }
+                }
+
+            }
+            FooterPanel {}
+        }
+    }
+}

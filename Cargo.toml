@@ -1,17 +1,14 @@
 [workspace]
-default-members = [ "examples/collection-ratatui-native" ]
+default-members = [ "crates/koruma" ]
 members = [
   "crates/koruma",
   "crates/koruma-collection",
   "crates/koruma-core",
   "crates/koruma-derive",
   "crates/koruma-derive-core",
-  "examples/collection-ratatui-core",
-  "examples/collection-ratatui-native",
-  "examples/collection-ratatui-web",
-  "examples/collection-dioxus-web",
   "examples/readme",
   "examples/shared-lib",
+  "web",
   "xtask",
 ]
 resolver = "3"
@@ -30,11 +27,11 @@ anyhow = "1.0"
 bon = "3.9"
 card-validate = "2.4"
 clap = "4.5"
-console_error_panic_hook = "0.1"
-crossterm = "0.29"
 derive-getters = "0.5"
-dioxus = "0.7"
+dioxus = "0.7.9"
+dioxus-free-icons = { default-features = false, features = [ "lucide" ], version = "0.10.0" }
 dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
+dioxus-server = { default-features = false, version = "0.7.9" }
 email_address = "0.2"
 es-fluent = "0.16"
 es-fluent-build = "0.16"
@@ -59,8 +56,6 @@ prettyplease = "0.2"
 proc-macro-error2 = "2.0"
 proc-macro2 = "1.0"
 quote = "1.0"
-ratatui = { default-features = false, version = "0.30" }
-ratzilla = "0.3"
 regex = "1.12"
 rust-embed = "8.11"
 rust_decimal = "1.40"
@@ -71,7 +66,8 @@ syn-cfg-attr = "0.1"
 tempfile = "3"
 unic-langid = "0.9"
 url = "2.5"
-wasm-bindgen = "0.2"
+walkdir = "2.5"
+web = { path = "web" }
 
 [profile.dev]
 codegen-units = 16

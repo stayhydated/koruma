@@ -7,8 +7,10 @@
 ## CLI commands
 
 - `sync-display-ftl`: synchronizes English FTL messages with `std::fmt::Display` implementations in `koruma-collection` validators.
-- `build-book`: builds mdBook documentation to `web/public/book`.
-- `build-llms-txt`: builds `web/public/llms.txt` and `web/public/llms-full.txt` from the mdBook for LLM consumption.
+- `build`: collection of subcommands:
+  - `build book`: builds mdBook documentation to `web/public/book`.
+  - `build llms-txt`: builds `web/public/llms.txt` and `web/public/llms-full.txt` from the mdBook for LLM consumption.
+  - `build web`: builds the Dioxus site into `web/dist` for GitHub Pages.
 
 ### sync-display-ftl
 
@@ -49,3 +51,7 @@ flowchart TD
 ### build-llms-txt
 
 - `xtask/src/commands/build_llms_txt.rs`: loads the mdBook, skips draft chapters, writes a linked chapter index to `llms.txt`, and writes the expanded chapter content to `llms-full.txt`.
+
+### build-web
+
+- `xtask/src/commands/build_web.rs`: runs `dx build --platform web --ssg --release`, copies Dioxus SSG output to `web/dist`, overlays the mdBook and llms files, then writes `404.html` and `sitemap.xml`.

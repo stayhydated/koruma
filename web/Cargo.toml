@@ -1,0 +1,31 @@
+[package]
+name = "web"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[features]
+default = [  ]
+server = [ "dioxus/server", "dep:dioxus-server" ]
+web = [ "dioxus/web" ]
+
+[dependencies]
+dioxus = { features = [ "router", "launch", "lib", "fullstack" ], workspace = true }
+dioxus-free-icons = { workspace = true }
+dioxus-primitives = { workspace = true }
+dioxus-server = { optional = true, workspace = true }
+es-fluent = { workspace = true }
+es-fluent-lang = { workspace = true }
+es-fluent-manager-dioxus = { features = [ "client", "debug-embed", "ssr" ], workspace = true }
+koruma = { features = [ "internal-showcase", "derive", "fluent" ], workspace = true }
+koruma-collection = { features = [ "internal-showcase" ], workspace = true }
+strum = { features = [ "derive" ], workspace = true }
+unic-langid = { workspace = true }
+
+[build-dependencies]
+es-fluent-build = { workspace = true }
+
+[lints]
+workspace = true

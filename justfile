@@ -35,6 +35,13 @@ ci: fmt check clippy test cov
 book:
     mdbook serve book
 
-web:
-    bun run build
-    bun run dev
+web-build:
+    cargo xtask build book
+    cargo xtask build llms-txt
+    cargo xtask build web
+
+web: web-build
+    dx serve --package web
+
+web-preview: web-build
+    cd web && bun run preview

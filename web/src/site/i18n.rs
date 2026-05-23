@@ -60,6 +60,10 @@ pub(crate) enum DemosPageMessage {
     DioxusTitle,
     DioxusBody,
     DioxusAction,
+    SalesLabel,
+    SalesTitle,
+    SalesBody,
+    SalesAction,
 }
 
 #[derive(Clone, Copy, Debug, EsFluent)]
@@ -100,6 +104,56 @@ pub(crate) enum DioxusShowcaseMessage {
 
 #[derive(Clone, Copy, Debug, EsFluent)]
 #[allow(clippy::enum_variant_names)]
+pub(crate) enum SalesFormMessage {
+    PanelLabel,
+    IntroTitle,
+    IntroBody,
+    CompanyLabel,
+    CompanyPlaceholder,
+    ContactNameLabel,
+    ContactNamePlaceholder,
+    EmailLabel,
+    EmailPlaceholder,
+    PhoneLabel,
+    PhonePlaceholder,
+    PhoneHint,
+    DealValueLabel,
+    DealValuePlaceholder,
+    StageLabel,
+    StagePlaceholder,
+    SourceUrlLabel,
+    SourceUrlPlaceholder,
+    SourceUrlHint,
+    NextStepLabel,
+    NextStepPlaceholder,
+    ValidSampleAction,
+    InvalidSampleAction,
+    ClearAction,
+    SubmitAction,
+    FieldStatusValid,
+    FieldStatusInvalid,
+    FieldStatusOptional,
+    SummaryTitle,
+    SummaryValidTitle,
+    SummaryInvalidTitle,
+    SummaryValidBody,
+    SummaryInvalidBody,
+    SummaryProgressLabel,
+    RulesTitle,
+    RuleRequired,
+    RuleOptional,
+    FieldCompany,
+    FieldContactName,
+    FieldEmail,
+    FieldPhone,
+    FieldDealValue,
+    FieldStage,
+    FieldSourceUrl,
+    FieldNextStep,
+}
+
+#[derive(Clone, Copy, Debug, EsFluent)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum PageMetadataMessage {
     HomeTitle,
     HomeDescription,
@@ -107,4 +161,6 @@ pub(crate) enum PageMetadataMessage {
     DemosDescription,
     DioxusDemoTitle,
     DioxusDemoDescription,
+    SalesFormDemoTitle,
+    SalesFormDemoDescription,
 }

@@ -1,4 +1,4 @@
-use crate::components::{ContributePanel, DemoCardLink, FooterPanel, PageHeader};
+use crate::components::{DemoCardLink, FooterPanel, PageHeader};
 use crate::site::i18n::DemosPageMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
@@ -17,25 +17,44 @@ pub(crate) fn DemosPage() -> Element {
         },
     };
 
-    let (dioxus_label, dioxus_title, dioxus_body, dioxus_action) = (
+    let (
+        dioxus_label,
+        dioxus_title,
+        dioxus_body,
+        dioxus_action,
+        sales_label,
+        sales_title,
+        sales_body,
+        sales_action,
+    ) = (
         i18n.localize_message(&DemosPageMessage::DioxusLabel),
         i18n.localize_message(&DemosPageMessage::DioxusTitle),
         i18n.localize_message(&DemosPageMessage::DioxusBody),
         i18n.localize_message(&DemosPageMessage::DioxusAction),
+        i18n.localize_message(&DemosPageMessage::SalesLabel),
+        i18n.localize_message(&DemosPageMessage::SalesTitle),
+        i18n.localize_message(&DemosPageMessage::SalesBody),
+        i18n.localize_message(&DemosPageMessage::SalesAction),
     );
 
     rsx! {
             div { class: "page-shell",
             PageHeader { current_page: PageKind::Demos }
             main { class: "stack",
-                ContributePanel {}
-                section { class: "grid",
+                section { class: "grid columns-2",
                     DemoCardLink {
                         page: PageKind::CollectionDioxus,
                         label: dioxus_label,
                         title: dioxus_title,
                         body: dioxus_body,
                         action: dioxus_action,
+                    }
+                    DemoCardLink {
+                        page: PageKind::SalesForm,
+                        label: sales_label,
+                        title: sales_title,
+                        body: sales_body,
+                        action: sales_action,
                     }
                 }
             }

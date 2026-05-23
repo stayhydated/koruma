@@ -9,18 +9,25 @@ pub(crate) enum PageKind {
     Home,
     Demos,
     CollectionDioxus,
+    SalesForm,
 }
 
 impl PageKind {
-    pub(crate) fn all() -> [Self; 3] {
-        [Self::Home, Self::Demos, Self::CollectionDioxus]
+    pub(crate) fn all() -> [Self; 4] {
+        [
+            Self::Home,
+            Self::Demos,
+            Self::CollectionDioxus,
+            Self::SalesForm,
+        ]
     }
 
     pub(crate) fn route(self) -> &'static str {
         match self {
             Self::Home => "",
             Self::Demos => "demos",
-            Self::CollectionDioxus => "collection-dioxus-web",
+            Self::CollectionDioxus => "demos/koruma-collection",
+            Self::SalesForm => "demos/sales-form",
         }
     }
 
@@ -38,6 +45,7 @@ impl PageKind {
             Self::Home => i18n.localize_message(&PageMetadataMessage::HomeTitle),
             Self::Demos => i18n.localize_message(&PageMetadataMessage::DemosTitle),
             Self::CollectionDioxus => i18n.localize_message(&PageMetadataMessage::DioxusDemoTitle),
+            Self::SalesForm => i18n.localize_message(&PageMetadataMessage::SalesFormDemoTitle),
         }
     }
 
@@ -47,6 +55,9 @@ impl PageKind {
             Self::Demos => i18n.localize_message(&PageMetadataMessage::DemosDescription),
             Self::CollectionDioxus => {
                 i18n.localize_message(&PageMetadataMessage::DioxusDemoDescription)
+            },
+            Self::SalesForm => {
+                i18n.localize_message(&PageMetadataMessage::SalesFormDemoDescription)
             },
         }
     }
@@ -59,8 +70,10 @@ pub(crate) enum AppRoute {
     Home {},
     #[route("/demos/", DemosRoute)]
     Demos {},
-    #[route("/collection-dioxus-web/", CollectionDioxusRoute)]
+    #[route("/demos/koruma-collection/", CollectionDioxusRoute)]
     CollectionDioxus {},
+    #[route("/demos/sales-form/", SalesFormRoute)]
+    SalesForm {},
 }
 
 pub(crate) fn app_route(page: PageKind) -> AppRoute {
@@ -68,6 +81,7 @@ pub(crate) fn app_route(page: PageKind) -> AppRoute {
         PageKind::Home => AppRoute::Home {},
         PageKind::Demos => AppRoute::Demos {},
         PageKind::CollectionDioxus => AppRoute::CollectionDioxus {},
+        PageKind::SalesForm => AppRoute::SalesForm {},
     }
 }
 
@@ -133,7 +147,8 @@ fn page_from_segments(segments: &[&str]) -> PageKind {
     match segments {
         [] => PageKind::Home,
         ["demos"] => PageKind::Demos,
-        ["collection-dioxus-web"] => PageKind::CollectionDioxus,
+        ["demos", "koruma-collection"] => PageKind::CollectionDioxus,
+        ["demos", "sales-form"] => PageKind::SalesForm,
         _ => PageKind::Home,
     }
 }
@@ -185,4 +200,9 @@ fn DemosRoute() -> Element {
 #[component]
 fn CollectionDioxusRoute() -> Element {
     route_element(PageKind::CollectionDioxus)
+}
+
+#[component]
+fn SalesFormRoute() -> Element {
+    route_element(PageKind::SalesForm)
 }

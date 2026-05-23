@@ -27,7 +27,10 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
     let nav_source = i18n.localize_message(&SiteChromeMessage::NavSource);
 
     let is_home_active = current_page == PageKind::Home;
-    let is_demos_active = matches!(current_page, PageKind::Demos | PageKind::CollectionDioxus);
+    let is_demos_active = matches!(
+        current_page,
+        PageKind::Demos | PageKind::CollectionDioxus | PageKind::SalesForm
+    );
 
     rsx! {
         header { class: "page-header",
@@ -181,6 +184,9 @@ pub(crate) fn ContributePanel() -> Element {
         i18n.localize_message(&ContributeMessage::BodyGithub),
         i18n.localize_message(&ContributeMessage::FooterDot),
     );
+    let body_prefix = body_prefix.trim().to_string();
+    let project_fluent = project_fluent.trim().to_string();
+    let body_github = body_github.trim().to_string();
 
     rsx! {
         section { class: "contribute-panel",
@@ -202,21 +208,27 @@ pub(crate) fn ContributePanel() -> Element {
                         rel: "noreferrer",
                         "koruma-collection"
                     }
-                    "{body_prefix} "
+                    " "
+                    "{body_prefix}"
+                    " "
                     a {
                         href: PROJECT_FLUENT_URL,
                         target: "_blank",
                         rel: "noreferrer",
                         "Project Fluent"
                     }
+                    " "
                     "{project_fluent}"
+                    " "
                     a {
                         href: KORUMA_COLLECTION_CROWDIN_URL,
                         target: "_blank",
                         rel: "noreferrer",
                         "{body_crowdin}"
                     }
+                    " "
                     "{body_github}"
+                    " "
                     a {
                         href: KORUMA_GITHUB_URL,
                         target: "_blank",
@@ -245,6 +257,8 @@ pub(crate) fn FooterPanel() -> Element {
     let crates_text_prefix = i18n.localize_message(&SiteFooterMessage::CratesTextPrefix);
     let crates_text_middle = i18n.localize_message(&SiteFooterMessage::CratesTextMiddle);
     let crates_text_suffix = i18n.localize_message(&SiteFooterMessage::CratesTextSuffix);
+    let crates_text_middle = crates_text_middle.trim().to_string();
+    let crates_text_suffix = crates_text_suffix.trim().to_string();
 
     rsx! {
         footer { class: "site-footer",
@@ -258,13 +272,16 @@ pub(crate) fn FooterPanel() -> Element {
                         rel: "noreferrer",
                         "koruma"
                     }
+                    " "
                     "{crates_text_middle}"
+                    " "
                     a {
                         href: KORUMA_COLLECTION_CRATES_URL,
                         target: "_blank",
                         rel: "noreferrer",
                         "koruma-collection"
                     }
+                    " "
                     "{crates_text_suffix}"
                 }
             }

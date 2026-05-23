@@ -18,6 +18,11 @@ mod tests {
     fn computes_links_without_cli_base_path() {
         assert_eq!(page_href(PageKind::Home), "/");
         assert_eq!(page_href(PageKind::Demos), "/demos/");
+        assert_eq!(
+            page_href(PageKind::CollectionDioxus),
+            "/demos/koruma-collection/"
+        );
+        assert_eq!(page_href(PageKind::SalesForm), "/demos/sales-form/");
     }
 
     #[test]
@@ -27,8 +32,12 @@ mod tests {
             PageKind::Demos
         );
         assert_eq!(
-            site_route_from_path_with_base_path("/koruma/collection-dioxus-web/", Some("koruma")),
+            site_route_from_path_with_base_path("/koruma/demos/koruma-collection/", Some("koruma")),
             PageKind::CollectionDioxus
+        );
+        assert_eq!(
+            site_route_from_path_with_base_path("/koruma/demos/sales-form/", Some("koruma")),
+            PageKind::SalesForm
         );
         assert_eq!(
             site_route_from_path_with_base_path("/unknown", None),
@@ -42,8 +51,12 @@ mod tests {
         assert!(sitemap.contains("<loc>https://stayhydated.github.io/koruma/</loc>"));
         assert!(sitemap.contains("<loc>https://stayhydated.github.io/koruma/book/</loc>"));
         assert!(
-            sitemap
-                .contains("<loc>https://stayhydated.github.io/koruma/collection-dioxus-web/</loc>")
+            sitemap.contains(
+                "<loc>https://stayhydated.github.io/koruma/demos/koruma-collection/</loc>"
+            )
+        );
+        assert!(
+            sitemap.contains("<loc>https://stayhydated.github.io/koruma/demos/sales-form/</loc>")
         );
     }
 

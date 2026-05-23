@@ -43,13 +43,13 @@ Validator-specific optional flags:
 
 | Validator                   | Rule                     | Example attribute                                                                                | Feature |
 | --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ------- |
-| `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation::<_>)]`                                                   | always  |
-| `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation::<_>)]`                                                          | always  |
-| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>::substring("abc"))]`                                    | always  |
-| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>::other("secret".to_string()))]`                          | always  |
+| `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation::<_>)]`                                                   | `default`  |
+| `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation::<_>)]`                                                          | `default`  |
+| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>::substring("abc"))]`                                    | `default`  |
+| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>::other("secret".to_string()))]`                          | `default`  |
 | `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation::<_>::pattern(regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
-| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>::prefix("usr_"))]`                                        | always  |
-| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>::suffix(".rs"))]`                                         | always  |
+| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>::prefix("usr_"))]`                                        | `default`  |
+| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>::suffix(".rs"))]`                                         | `default`  |
 
 `MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
 compared value or regex pattern. `PatternValidation` stores a compiled `regex::Regex`, so invalid
@@ -59,7 +59,7 @@ patterns fail during construction instead of during validation.
 
 | Validator                  | Rule                         | Example attribute                                               | Feature        |
 | -------------------------- | ---------------------------- | --------------------------------------------------------------- | -------------- |
-| `IpValidation<T>`          | Valid IP (`Any`, `V4`, `V6`) | `#[koruma(format::IpValidation::<_>::kind(format::IpKind::V4))]` | always         |
+| `IpValidation<T>`          | Valid IP (`Any`, `V4`, `V6`) | `#[koruma(format::IpValidation::<_>::kind(format::IpKind::V4))]` | `default`       |
 | `EmailValidation<T>`       | Valid email address          | `#[koruma(format::EmailValidation::<_>)]`                         | `email`        |
 | `PhoneNumberValidation<T>` | Valid phone number           | `#[koruma(format::PhoneNumberValidation::<_>)]`                   | `phone-number` |
 | `UrlValidation<T>`         | Valid URL                    | `#[koruma(format::UrlValidation::<_>)]`                           | `url`          |
@@ -69,11 +69,11 @@ patterns fail during construction instead of during validation.
 
 | Validator                  | Rule                                           | Example attribute                                                                  | Feature |
 | -------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- | ------- |
-| `PositiveValidation<T>`    | `value > 0`                                    | `#[koruma(numeric::PositiveValidation::<_>)]`                                        | always  |
-| `NonNegativeValidation<T>` | `value >= 0`                                   | `#[koruma(numeric::NonNegativeValidation::<_>)]`                                     | always  |
-| `NonPositiveValidation<T>` | `value <= 0`                                   | `#[koruma(numeric::NonPositiveValidation::<_>)]`                                     | always  |
-| `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation::<_>)]`                                        | always  |
-| `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>::min(0).max(100).exclusive_max(true))]` | always  |
+| `PositiveValidation<T>`    | `value > 0`                                    | `#[koruma(numeric::PositiveValidation::<_>)]`                                        | `default`  |
+| `NonNegativeValidation<T>` | `value >= 0`                                   | `#[koruma(numeric::NonNegativeValidation::<_>)]`                                     | `default`  |
+| `NonPositiveValidation<T>` | `value <= 0`                                   | `#[koruma(numeric::NonPositiveValidation::<_>)]`                                     | `default`  |
+| `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation::<_>)]`                                        | `default`  |
+| `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>::min(0).max(100).exclusive_max(true))]` | `default`  |
 
 Primitive integers and floats implement `numeric::Numeric` out of the box. Enable the `decimal`
 feature to add `rust_decimal::Decimal`. Custom numeric-like types can opt in by implementing
@@ -86,8 +86,8 @@ bounds are reflected directly in the rendered error.
 
 | Validator               | Rule                           | Example attribute                                            | Feature |
 | ----------------------- | ------------------------------ | ------------------------------------------------------------ | ------- |
-| `LenValidation<T>`      | Length within `[min, max]`     | `#[koruma(collection::LenValidation::<_>::min(1).max(10))]` | always  |
-| `NonEmptyValidation<T>` | Collection/string is not empty | `#[koruma(collection::NonEmptyValidation::<_>)]`               | always  |
+| `LenValidation<T>`      | Length within `[min, max]`     | `#[koruma(collection::LenValidation::<_>::min(1).max(10))]` | `default`  |
+| `NonEmptyValidation<T>` | Collection/string is not empty | `#[koruma(collection::NonEmptyValidation::<_>)]`               | `default`  |
 
 `collection::HasLen` is implemented for common standard types (`String`, `str`,
 arrays/slices, `Vec`, sets/maps, etc.) and optionally for `SmallVec` with the
@@ -98,7 +98,7 @@ values (`char`s), not UTF-8 bytes.
 
 | Validator                       | Rule                  | Example attribute                                   | Feature |
 | ------------------------------- | --------------------- | --------------------------------------------------- | ------- |
-| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation::<Option<_>>)]` | always  |
+| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation::<Option<_>>)]` | `default`  |
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
 `collection::NonEmptyValidation::<_>` when you need an emptiness check. It uses

@@ -1,4 +1,4 @@
-use crate::components::{FeatureCard, FooterPanel, PageHeader, PageLink};
+use crate::components::{ContributePanel, FeatureCard, FooterPanel, PageHeader, PageLink};
 use crate::site::i18n::HomeMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
@@ -124,6 +124,7 @@ pub(crate) fn HomePage() -> Element {
                     }
                 }
 
+                ContributePanel {}
             }
             FooterPanel {}
         }

@@ -24,7 +24,7 @@ use koruma_collection::{collection, format, general, numeric, string};
 ## Feature flags
 
 - `fmt` (default): `Display` messages for validators.
-- `full`: enables optional validator dependencies (`url`, `credit-card`, `phone-number`, `email`, `regex`, `smallvec`).
+- `full`: enables optional validator dependencies (`url`, `credit-card`, `phone-number`, `email`, `regex`, `smallvec`, `rust_decimal`).
 - `fluent`: enables i18n integration with [es-fluent](https://github.com/stayhydated/es-fluent).
 - `full-fluent`: `full` + `fluent`.
 
@@ -36,6 +36,7 @@ Validator-specific optional flags:
 - `url` for `format::UrlValidation`
 - `regex` for `string::PatternValidation`
 - `smallvec` for `collection::HasLen` support on `SmallVec`
+- `rust_decimal` for `numeric::Numeric` support on `rust_decimal::Decimal`
 
 ## Complete validator catalog
 

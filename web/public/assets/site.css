@@ -14,10 +14,20 @@
   --amber: #ffd400;
   --violet: #8a5cff;
   --panel-bg:
-    linear-gradient(145deg, rgba(0, 246, 255, 0.08), rgba(255, 0, 230, 0.055) 42%, rgba(182, 255, 0, 0.04)),
+    linear-gradient(
+      145deg,
+      rgba(0, 246, 255, 0.08),
+      rgba(255, 0, 230, 0.055) 42%,
+      rgba(182, 255, 0, 0.04)
+    ),
     #000;
   --panel-bg-hover:
-    linear-gradient(145deg, rgba(0, 246, 255, 0.14), rgba(255, 0, 230, 0.08) 42%, rgba(182, 255, 0, 0.07)),
+    linear-gradient(
+      145deg,
+      rgba(0, 246, 255, 0.14),
+      rgba(255, 0, 230, 0.08) 42%,
+      rgba(182, 255, 0, 0.07)
+    ),
     #000;
   --field-bg: linear-gradient(180deg, rgba(0, 246, 255, 0.065), rgba(0, 0, 0, 0) 72%), #000;
   --glow-cyan: 0 0 18px rgba(0, 246, 255, 0.36), 0 0 44px rgba(0, 246, 255, 0.16);
@@ -25,14 +35,11 @@
   --glow-magenta: 0 0 18px rgba(255, 0, 230, 0.34), 0 0 44px rgba(255, 0, 230, 0.14);
   --glow-amber: 0 0 18px rgba(255, 212, 0, 0.3), 0 0 40px rgba(255, 212, 0, 0.12);
   --shadow:
-    0 0 0 1px rgba(0, 246, 255, 0.16),
-    0 0 28px rgba(0, 246, 255, 0.15),
+    0 0 0 1px rgba(0, 246, 255, 0.16), 0 0 28px rgba(0, 246, 255, 0.15),
     0 18px 72px rgba(0, 0, 0, 0.92);
   --shadow-strong:
-    0 0 0 1px rgba(0, 246, 255, 0.24),
-    0 0 34px rgba(0, 246, 255, 0.28),
-    0 0 76px rgba(255, 0, 230, 0.14),
-    0 24px 90px rgba(0, 0, 0, 0.95);
+    0 0 0 1px rgba(0, 246, 255, 0.24), 0 0 34px rgba(0, 246, 255, 0.28),
+    0 0 76px rgba(255, 0, 230, 0.14), 0 24px 90px rgba(0, 0, 0, 0.95);
   --radius: 8px;
   color-scheme: dark;
 }
@@ -46,9 +53,18 @@ html {
   background:
     linear-gradient(rgba(0, 246, 255, 0.115) 1px, transparent 1px),
     linear-gradient(90deg, rgba(182, 255, 0, 0.085) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255, 0, 230, 0.08), rgba(0, 0, 0, 0) 32%, rgba(0, 246, 255, 0.045)),
+    linear-gradient(
+      180deg,
+      rgba(255, 0, 230, 0.08),
+      rgba(0, 0, 0, 0) 32%,
+      rgba(0, 246, 255, 0.045)
+    ),
     #000;
-  background-size: 32px 32px, 32px 32px, auto, auto;
+  background-size:
+    32px 32px,
+    32px 32px,
+    auto,
+    auto;
   color: var(--text);
   font-family:
     Inter,
@@ -66,9 +82,18 @@ body {
   background:
     linear-gradient(rgba(0, 246, 255, 0.115) 1px, transparent 1px),
     linear-gradient(90deg, rgba(182, 255, 0, 0.085) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(255, 0, 230, 0.08), rgba(0, 0, 0, 0) 32%, rgba(0, 246, 255, 0.045)),
+    linear-gradient(
+      180deg,
+      rgba(255, 0, 230, 0.08),
+      rgba(0, 0, 0, 0) 32%,
+      rgba(0, 246, 255, 0.045)
+    ),
     #000;
-  background-size: 32px 32px, 32px 32px, auto, auto;
+  background-size:
+    32px 32px,
+    32px 32px,
+    auto,
+    auto;
   color: var(--text);
 }
 
@@ -369,7 +394,12 @@ pre {
   border: 1px solid rgba(182, 255, 0, 0.56);
   border-radius: var(--radius);
   background:
-    linear-gradient(135deg, rgba(0, 246, 255, 0.15), rgba(255, 0, 230, 0.07) 46%, rgba(182, 255, 0, 0.1)),
+    linear-gradient(
+      135deg,
+      rgba(0, 246, 255, 0.15),
+      rgba(255, 0, 230, 0.07) 46%,
+      rgba(182, 255, 0, 0.1)
+    ),
     #000;
   box-shadow: var(--glow-lime);
 }
@@ -668,7 +698,9 @@ textarea.sales-control {
 .sales-control:focus {
   outline: none;
   border-color: rgba(182, 255, 0, 0.9);
-  box-shadow: 0 0 0 3px rgba(182, 255, 0, 0.16), var(--glow-lime);
+  box-shadow:
+    0 0 0 3px rgba(182, 255, 0, 0.16),
+    var(--glow-lime);
 }
 
 .sales-control.is-valid {
@@ -989,7 +1021,9 @@ textarea.sales-control {
 .validator-input:focus {
   outline: none;
   border-color: rgba(0, 246, 255, 0.9);
-  box-shadow: 0 0 0 3px rgba(0, 246, 255, 0.16), var(--glow-cyan);
+  box-shadow:
+    0 0 0 3px rgba(0, 246, 255, 0.16),
+    var(--glow-cyan);
 }
 
 .validator-message-heading {

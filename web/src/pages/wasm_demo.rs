@@ -83,6 +83,8 @@ pub(crate) fn CollectionDioxusPage() -> Element {
 
 #[component]
 fn CollectionDioxusShowcase() -> Element {
+    let title_style = crate::components::use_reveal_style(0, 24.0);
+    let showcase_style = crate::components::use_reveal_style(90, 18.0);
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -123,12 +125,14 @@ fn CollectionDioxusShowcase() -> Element {
         div { class: "page-shell",
             PageHeader { current_page: PageKind::CollectionDioxus }
             main { class: "stack",
-                section { class: "page-title-band",
+                section { class: "page-title-band motion-reveal",
+                    style: title_style,
                     span { class: "panel-label", "{panel_label}" }
                     h1 { "{page_title}" }
                     p { "{page_intro_body}" }
                 }
-                section { class: "section-band",
+                section { class: "section-band motion-reveal",
+                    style: showcase_style,
                     Tabs {
                         class: "collection-module-tabs",
                         default_value: default_module.to_string(),

@@ -164,6 +164,7 @@ fn LocaleSwitcher() -> Element {
 
 #[component]
 pub(crate) fn ContributePanel() -> Element {
+    let reveal_style = crate::components::use_reveal_style(370, 16.0);
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -189,7 +190,8 @@ pub(crate) fn ContributePanel() -> Element {
     let body_github = body_github.trim().to_string();
 
     rsx! {
-        section { class: "contribute-panel",
+        section { class: "contribute-panel motion-reveal",
+            style: reveal_style,
             div { class: "contribute-copy",
                 span { class: "panel-label", "{label}" }
                 h2 {

@@ -255,19 +255,23 @@ pub(crate) fn SalesFormPage() -> Element {
     let status_valid = i18n.localize_message(&SalesFormMessage::FieldStatusValid);
     let status_invalid = i18n.localize_message(&SalesFormMessage::FieldStatusInvalid);
     let status_optional = i18n.localize_message(&SalesFormMessage::FieldStatusOptional);
+    let title_style = crate::components::use_reveal_style(0, 24.0);
+    let demo_style = crate::components::use_reveal_style(90, 18.0);
 
     rsx! {
         div { class: "page-shell",
             PageHeader { current_page: PageKind::SalesForm }
             main { class: "stack",
-                section { class: "page-title-band",
+                section { class: "page-title-band motion-reveal",
+                    style: title_style,
                     span { class: "panel-label",
                         "{i18n.localize_message(&SalesFormMessage::PanelLabel)}"
                     }
                     h1 { "{i18n.localize_message(&SalesFormMessage::IntroTitle)}" }
                     p { "{i18n.localize_message(&SalesFormMessage::IntroBody)}" }
                 }
-                section { class: "sales-demo-shell",
+                section { class: "sales-demo-shell motion-reveal",
+                    style: demo_style,
                     div { class: "sales-form-panel",
                         div { class: "sales-action-row",
                             button {

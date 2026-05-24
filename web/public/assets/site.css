@@ -1085,6 +1085,42 @@ textarea.sales-control {
   box-shadow: var(--glow-cyan);
 }
 
+.route-container {
+  min-height: 100vh;
+  overflow: hidden !important;
+}
+
+.route-content {
+  width: 100%;
+}
+
+.route-content.from {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.route-content.to {
+  position: relative;
+  z-index: 1;
+}
+
+.motion-reveal {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  transform-origin: center;
+  will-change: opacity, transform;
+  animation: motion-reveal-in 420ms cubic-bezier(0.16, 1, 0.3, 1) var(--motion-delay, 0ms) both;
+}
+
+@keyframes motion-reveal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--motion-distance, 0px), 0) scale(0.985);
+  }
+}
+
 @media (max-width: 960px) {
   .hero,
   .feature-grid,
@@ -1230,6 +1266,13 @@ textarea.sales-control {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .motion-reveal {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+  }
+
   .hero-actions,
   .section-band,
   .code-band,

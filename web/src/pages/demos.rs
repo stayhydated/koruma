@@ -6,6 +6,7 @@ use es_fluent_manager_dioxus::use_i18n;
 
 #[component]
 pub(crate) fn DemosPage() -> Element {
+    let demos_style = crate::components::use_reveal_style(0, 24.0);
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -41,7 +42,8 @@ pub(crate) fn DemosPage() -> Element {
             div { class: "page-shell",
             PageHeader { current_page: PageKind::Demos }
             main { class: "stack",
-                section { class: "grid columns-2",
+                section { class: "grid columns-2 motion-reveal",
+                    style: demos_style,
                     DemoCardLink {
                         page: PageKind::CollectionDioxus,
                         label: dioxus_label,

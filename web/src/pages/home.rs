@@ -6,6 +6,11 @@ use es_fluent_manager_dioxus::use_i18n;
 
 #[component]
 pub(crate) fn HomePage() -> Element {
+    let hero_style = crate::components::use_reveal_style(0, 24.0);
+    let surface_style = crate::components::use_reveal_style(90, 18.0);
+    let first_card_style = crate::components::use_reveal_style(160, 16.0);
+    let second_card_style = crate::components::use_reveal_style(230, 16.0);
+    let third_card_style = crate::components::use_reveal_style(300, 16.0);
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -63,7 +68,8 @@ pub(crate) fn HomePage() -> Element {
         div { class: "page-shell",
             PageHeader { current_page: PageKind::Home }
             main { class: "stack",
-                section { class: "hero",
+                section { class: "hero motion-reveal",
+                    style: hero_style,
                     div { class: "hero-copy",
                         div { class: "eyebrow", "{eyebrow}" }
                         h1 { "{title}" }
@@ -100,7 +106,8 @@ pub(crate) fn HomePage() -> Element {
                     }
                 }
 
-                section { class: "section-band",
+                section { class: "section-band motion-reveal",
+                    style: surface_style,
                     div { class: "section-heading",
                         span { class: "panel-label", "{surface_panel_label}" }
                         h2 { "{surface_title}" }
@@ -110,16 +117,19 @@ pub(crate) fn HomePage() -> Element {
                             label: "derive".to_string(),
                             title: surface_card_one_title,
                             body: surface_card_one_body,
+                            style: first_card_style,
                         }
                         FeatureCard {
                             label: "validators".to_string(),
                             title: surface_card_two_title,
                             body: surface_card_two_body,
+                            style: second_card_style,
                         }
                         FeatureCard {
                             label: "i18n".to_string(),
                             title: surface_card_three_title,
                             body: surface_card_three_body,
+                            style: third_card_style,
                         }
                     }
                 }

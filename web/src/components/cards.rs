@@ -2,9 +2,10 @@ use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 
 #[component]
-pub(crate) fn FeatureCard(label: String, title: String, body: String) -> Element {
+pub(crate) fn FeatureCard(label: String, title: String, body: String, style: String) -> Element {
     rsx! {
-        article { class: "feature-card",
+        article { class: "feature-card motion-reveal",
+            style,
             span { class: "card-label", "{label}" }
             h3 { "{title}" }
             p { "{body}" }

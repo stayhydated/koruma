@@ -5002,6 +5002,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
+source = "git+https://github.com/stayhydated/stayhydated#8de85bff8e3fd3a9bb29bfb6aad4d4b06572fecd"
 dependencies = [
  "bon",
  "dioxus",
@@ -5012,6 +5013,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-site"
 version = "0.1.0"
+source = "git+https://github.com/stayhydated/stayhydated#8de85bff8e3fd3a9bb29bfb6aad4d4b06572fecd"
 dependencies = [
  "dioxus",
  "dioxus-server",
@@ -5020,6 +5022,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-xtask"
 version = "0.1.0"
+source = "git+https://github.com/stayhydated/stayhydated#8de85bff8e3fd3a9bb29bfb6aad4d4b06572fecd"
 dependencies = [
  "anyhow",
  "bon",

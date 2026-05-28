@@ -1079,7 +1079,7 @@ dependencies = [
 [[package]]
 name = "dioxus-attributes"
 version = "0.1.0"
-source = "git+https://github.com/DioxusLabs/components#c6ea7b0fa00af1e556865654db9871b12c83e005"
+source = "git+https://github.com/DioxusLabs/components#837c9d4c1c9f99b19de7a3f087d8af1b0538dcae"
 dependencies = [
  "dioxus-rsx",
  "proc-macro2",
@@ -1446,7 +1446,7 @@ dependencies = [
 [[package]]
 name = "dioxus-primitives"
 version = "0.0.1"
-source = "git+https://github.com/DioxusLabs/components#c6ea7b0fa00af1e556865654db9871b12c83e005"
+source = "git+https://github.com/DioxusLabs/components#837c9d4c1c9f99b19de7a3f087d8af1b0538dcae"
 dependencies = [
  "dioxus",
  "dioxus-attributes",
@@ -5002,7 +5002,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/stayhydated#8de85bff8e3fd3a9bb29bfb6aad4d4b06572fecd"
+source = "git+https://github.com/stayhydated/stayhydated#1c7656fd0ca75e26ea6d97488d7a0735e0ce10d1"
 dependencies = [
  "bon",
  "dioxus",
@@ -5013,7 +5013,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-site"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/stayhydated#8de85bff8e3fd3a9bb29bfb6aad4d4b06572fecd"
+source = "git+https://github.com/stayhydated/stayhydated#1c7656fd0ca75e26ea6d97488d7a0735e0ce10d1"
 dependencies = [
  "dioxus",
  "dioxus-server",
@@ -5022,7 +5022,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-xtask"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/stayhydated#8de85bff8e3fd3a9bb29bfb6aad4d4b06572fecd"
+source = "git+https://github.com/stayhydated/stayhydated#1c7656fd0ca75e26ea6d97488d7a0735e0ce10d1"
 dependencies = [
  "anyhow",
  "bon",

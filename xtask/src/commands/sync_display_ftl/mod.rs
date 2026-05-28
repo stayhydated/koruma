@@ -13,7 +13,6 @@ use std::{
 use anyhow::{Context, Result, bail};
 
 use crate::cli::SyncArgs;
-use crate::util::workspace_root;
 use collect::{collect_display_info, collect_rs_files, collect_validator_info};
 use ftl::collect_ftl_templates;
 use template::{
@@ -23,7 +22,7 @@ use template::{
 use types::{DisplayInfo, Replacement, SyncTarget, ValidatorInfo};
 
 pub fn run(options: SyncArgs) -> Result<()> {
-    let workspace_root = workspace_root()?;
+    let workspace_root = stayhydated_xtask::workspace_root_from_xtask_manifest()?;
     let validators_root = workspace_root.join("crates/koruma-collection/src/validators");
     let ftl_root = workspace_root.join("crates/koruma-collection/i18n/en/koruma-collection");
 
@@ -829,9 +828,7 @@ ip_validation =
 
     #[test]
     fn workspace_wrapper_and_root_paths_are_reachable() {
-        use crate::util::workspace_root;
-
-        let root = workspace_root().unwrap();
+        let root = stayhydated_xtask::workspace_root_from_xtask_manifest().unwrap();
         assert!(root.ends_with("koruma"));
         let _ = run(SyncArgs {
             check: true,

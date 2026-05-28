@@ -3,6 +3,7 @@ use crate::site::i18n::PageMetadataMessage;
 use dioxus::cli_config;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::{DioxusI18n, use_i18n};
+use std::path::Path;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PageKind {
@@ -38,6 +39,10 @@ impl PageKind {
         } else {
             format!("/{route}/")
         }
+    }
+
+    pub(crate) fn output_dir(self) -> &'static str {
+        self.route()
     }
 
     pub(crate) fn title_i18n(self, i18n: &DioxusI18n) -> String {
@@ -86,30 +91,42 @@ pub(crate) fn app_route(page: PageKind) -> AppRoute {
 }
 
 pub(crate) fn app_base_href() -> String {
-    match cli_config::base_path() {
-        Some(base_path) => {
-            let base_path = base_path.trim_matches('/');
-            if base_path.is_empty() {
-                "/".to_string()
-            } else {
-                format!("/{base_path}/")
-            }
-        },
-        None => "/".to_string(),
-    }
+    let base_path = cli_config::base_path();
+    stayhydated_site::routing::base_href(base_path.as_deref())
 }
 
 pub(crate) fn page_href(page: PageKind) -> String {
-    let route = page.route();
-    if route.is_empty() {
-        app_base_href()
-    } else {
-        format!("{}{route}/", app_base_href())
-    }
+    stayhydated_site::routing::href(&app_base_href(), page.route())
 }
 
 pub(crate) fn book_href() -> String {
-    format!("{}book/", app_base_href())
+    stayhydated_site::routing::href(&app_base_href(), "book")
+}
+
+const GENERATED_ROUTE_CACHE_MARKER: &str = ".koruma-generated-route-cache";
+
+pub(crate) fn mark_generated_route_cache(public_dir: &Path) -> std::io::Result<()> {
+    stayhydated_site::route_cache::mark_generated_route_cache(
+        public_dir,
+        GENERATED_ROUTE_CACHE_MARKER,
+        "Generated route cache owned by koruma web server.\n",
+    )
+}
+
+pub(crate) fn cleanup_generated_route_cache(public_dir: &Path) -> std::io::Result<()> {
+    let generated_top_level_dirs = PageKind::all().into_iter().filter_map(|page| {
+        page.output_dir()
+            .split('/')
+            .next()
+            .filter(|segment| !segment.is_empty())
+    });
+
+    stayhydated_site::route_cache::cleanup_generated_route_cache(
+        public_dir,
+        GENERATED_ROUTE_CACHE_MARKER,
+        generated_top_level_dirs,
+        |_, _| false,
+    )
 }
 
 #[cfg(test)]
@@ -120,26 +137,7 @@ pub(crate) fn site_route_from_path_with_base_path(path: &str, base_path: Option<
 
 #[cfg(test)]
 fn normalized_path_segments<'a>(path: &'a str, base_path: Option<&str>) -> Vec<&'a str> {
-    let segments = path
-        .split('/')
-        .filter(|segment| !segment.is_empty())
-        .collect::<Vec<_>>();
-
-    let base_path_segments = base_path
-        .into_iter()
-        .flat_map(|base_path| base_path.trim_matches('/').split('/'))
-        .filter(|segment| !segment.is_empty())
-        .collect::<Vec<_>>();
-
-    if base_path_segments.is_empty()
-        || !segments
-            .as_slice()
-            .starts_with(base_path_segments.as_slice())
-    {
-        segments
-    } else {
-        segments[base_path_segments.len()..].to_vec()
-    }
+    stayhydated_site::routing::normalized_path_segments(path, base_path)
 }
 
 #[cfg(test)]

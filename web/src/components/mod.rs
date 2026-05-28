@@ -1,10 +1,9 @@
-mod cards;
 mod layout;
 mod links;
-mod motion;
-mod select;
 
-pub(crate) use cards::{DemoCardLink, FeatureCard};
 pub(crate) use layout::{ContributePanel, FooterPanel, PageHeader};
-pub(crate) use links::PageLink;
-pub(crate) use motion::use_reveal_style;
+pub(crate) use links::{PageCardLink, PageLink};
+pub(crate) use stayhydated_dioxus::use_reveal_style;
+pub(crate) use stayhydated_dioxus::{
+    FeatureCard, LanguageSelect, ProjectOption, ProjectSelect, stayhydated_project_options,
+};

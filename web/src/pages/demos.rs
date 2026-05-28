@@ -1,4 +1,4 @@
-use crate::components::{DemoCardLink, FooterPanel, PageHeader};
+use crate::components::{FooterPanel, PageCardLink, PageHeader};
 use crate::site::i18n::DemosPageMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
@@ -44,14 +44,14 @@ pub(crate) fn DemosPage() -> Element {
             main { class: "stack",
                 section { class: "grid columns-2 motion-reveal",
                     style: demos_style,
-                    DemoCardLink {
+                    PageCardLink {
                         page: PageKind::CollectionDioxus,
                         label: dioxus_label,
                         title: dioxus_title,
                         body: dioxus_body,
                         action: dioxus_action,
                     }
-                    DemoCardLink {
+                    PageCardLink {
                         page: PageKind::SalesForm,
                         label: sales_label,
                         title: sales_title,

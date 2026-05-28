@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use dioxus::events::FormData;
 use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
-use dioxus_primitives::tabs::{TabContent, TabList, TabTrigger, Tabs};
 use es_fluent::{FluentLocalizer as _, FluentValue};
 use es_fluent_manager_dioxus::{DioxusI18n, use_i18n};
 use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
+use stayhydated_dioxus::{TabContent, TabList, TabTrigger, Tabs};
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::site::i18n::DioxusShowcaseMessage;
@@ -134,23 +134,19 @@ fn CollectionDioxusShowcase() -> Element {
                 section { class: "section-band motion-reveal",
                     style: showcase_style,
                     Tabs {
-                        class: "collection-module-tabs",
                         default_value: default_module.to_string(),
                         horizontal: true,
                         TabList {
-                            class: "collection-module-tab-list",
                                 for (index, module) in available_modules.iter().enumerate() {
                                     TabTrigger {
                                     value: module.as_str().to_string(),
                                     index: index,
-                                    class: Some("collection-module-tab".to_string()),
                                     "{module_name(*module, &i18n)}"
                                 }
                             }
                         }
                         for (index, module) in available_modules.iter().enumerate() {
                             TabContent {
-                                class: Some("collection-module-content".to_string()),
                                 index: index,
                                 value: module.as_str().to_string(),
                                 div {

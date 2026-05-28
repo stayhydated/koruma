@@ -13,7 +13,7 @@
     "//#build:llms-txt": {
       "cache": true,
       "inputs": ["book/src/**", "xtask/templates/llms-header.md"],
-      "outputs": ["web/public/llms.txt", "web/public/llms-full.txt"]
+      "outputs": ["web/public/llms.txt", "web/public/llms-full.txt", "web/public/llms/**"]
     },
     "dev": {
       "cache": false,

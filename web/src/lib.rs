@@ -3,9 +3,18 @@ mod pages;
 mod site;
 
 pub use site::app::App;
+use std::path::Path;
 
 pub fn sitemap_xml() -> String {
     site::render::render_sitemap()
+}
+
+pub fn cleanup_generated_route_cache(public_dir: impl AsRef<Path>) -> std::io::Result<()> {
+    site::routing::cleanup_generated_route_cache(public_dir.as_ref())
+}
+
+pub fn mark_generated_route_cache(public_dir: impl AsRef<Path>) -> std::io::Result<()> {
+    site::routing::mark_generated_route_cache(public_dir.as_ref())
 }
 
 #[cfg(test)]
@@ -13,6 +22,7 @@ mod tests {
     use crate::site::i18n::SiteLanguage;
     use crate::site::routing::{PageKind, page_href, site_route_from_path_with_base_path};
     use es_fluent_manager_dioxus::ManagedI18n;
+    use std::fs;
 
     #[test]
     fn computes_links_without_cli_base_path() {
@@ -78,5 +88,33 @@ mod tests {
             Ok(_) => println!("managed init ok"),
             Err(error) => panic!("managed init failed: {error}"),
         }
+    }
+
+    #[test]
+    fn cleans_generated_route_cache_without_touching_static_assets() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let public_dir = temp.path();
+
+        fs::write(public_dir.join("index.html"), "root").expect("write root index");
+        fs::write(public_dir.join("404.html"), "not found").expect("write root 404");
+        fs::create_dir_all(public_dir.join("demos")).expect("create demos dir");
+        fs::write(public_dir.join("demos").join("index.html"), "stale demos")
+            .expect("write demos index");
+        fs::create_dir_all(public_dir.join("book")).expect("create book dir");
+        fs::write(public_dir.join("book").join("index.html"), "book").expect("write book");
+        fs::create_dir_all(public_dir.join("llms")).expect("create llms dir");
+        fs::write(public_dir.join("llms").join("getting-started.md"), "llms").expect("write llms");
+        fs::create_dir_all(public_dir.join("assets")).expect("create assets dir");
+        fs::write(public_dir.join("assets").join("site.css"), "body {}").expect("write asset");
+
+        crate::mark_generated_route_cache(public_dir).expect("mark route cache");
+        crate::cleanup_generated_route_cache(public_dir).expect("cleanup route cache");
+
+        assert!(!public_dir.join("index.html").exists());
+        assert!(!public_dir.join("404.html").exists());
+        assert!(!public_dir.join("demos").exists());
+        assert!(public_dir.join("book").join("index.html").exists());
+        assert!(public_dir.join("llms").join("getting-started.md").exists());
+        assert!(public_dir.join("assets").join("site.css").exists());
     }
 }

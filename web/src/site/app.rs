@@ -11,6 +11,7 @@ pub fn App() -> Element {
     let components_theme_href = format!("{}dx-components-theme.css", app_base_href());
 
     rsx! {
+        stayhydated_dioxus::SharedStyles {}
         document::Stylesheet { href: stylesheet_href }
         document::Stylesheet { href: components_theme_href }
         I18nProvider {

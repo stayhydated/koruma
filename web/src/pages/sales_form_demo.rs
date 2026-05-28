@@ -57,7 +57,8 @@ struct SalesLeadForm {
     next_step: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(bon::Builder, Clone, Debug, Eq, PartialEq)]
+#[builder(on(String, into))]
 struct SalesLeadDraft {
     company: String,
     contact_name: String,
@@ -71,42 +72,42 @@ struct SalesLeadDraft {
 
 impl SalesLeadDraft {
     fn valid_sample() -> Self {
-        Self {
-            company: "Northwind Robotics".to_string(),
-            contact_name: "Ava Patel".to_string(),
-            email: "ava.patel@northwind.example".to_string(),
-            phone: "+14155552671".to_string(),
-            deal_value: "82000".to_string(),
-            stage: "Proposal".to_string(),
-            source_url: "https://northwind.example/security-review".to_string(),
-            next_step: "Send procurement package before Friday.".to_string(),
-        }
+        Self::builder()
+            .company("Northwind Robotics")
+            .contact_name("Ava Patel")
+            .email("ava.patel@northwind.example")
+            .phone("+14155552671")
+            .deal_value("82000")
+            .stage("Proposal")
+            .source_url("https://northwind.example/security-review")
+            .next_step("Send procurement package before Friday.")
+            .build()
     }
 
     fn invalid_sample() -> Self {
-        Self {
-            company: String::new(),
-            contact_name: "A".to_string(),
-            email: "vp@".to_string(),
-            phone: "555".to_string(),
-            deal_value: "250".to_string(),
-            stage: String::new(),
-            source_url: "northwind".to_string(),
-            next_step: String::new(),
-        }
+        Self::builder()
+            .company("")
+            .contact_name("A")
+            .email("vp@")
+            .phone("555")
+            .deal_value("250")
+            .stage("")
+            .source_url("northwind")
+            .next_step("")
+            .build()
     }
 
     fn empty() -> Self {
-        Self {
-            company: String::new(),
-            contact_name: String::new(),
-            email: String::new(),
-            phone: String::new(),
-            deal_value: String::new(),
-            stage: String::new(),
-            source_url: String::new(),
-            next_step: String::new(),
-        }
+        Self::builder()
+            .company("")
+            .contact_name("")
+            .email("")
+            .phone("")
+            .deal_value("")
+            .stage("")
+            .source_url("")
+            .next_step("")
+            .build()
     }
 }
 
@@ -185,7 +186,8 @@ impl SalesFeedback {
     }
 }
 
-#[derive(Clone)]
+#[derive(bon::Builder, Clone)]
+#[builder(on(String, into))]
 struct SalesFieldLabels {
     company: String,
     contact_name: String,
@@ -238,16 +240,16 @@ pub(crate) fn SalesFormPage() -> Element {
     let mut draft = use_signal(SalesLeadDraft::default);
     let current = draft.read().clone();
     let feedback = validate_sales_draft(&current);
-    let field_labels = SalesFieldLabels {
-        company: i18n.localize_message(&SalesFormMessage::FieldCompany),
-        contact_name: i18n.localize_message(&SalesFormMessage::FieldContactName),
-        email: i18n.localize_message(&SalesFormMessage::FieldEmail),
-        phone: i18n.localize_message(&SalesFormMessage::FieldPhone),
-        deal_value: i18n.localize_message(&SalesFormMessage::FieldDealValue),
-        stage: i18n.localize_message(&SalesFormMessage::FieldStage),
-        source_url: i18n.localize_message(&SalesFormMessage::FieldSourceUrl),
-        next_step: i18n.localize_message(&SalesFormMessage::FieldNextStep),
-    };
+    let field_labels = SalesFieldLabels::builder()
+        .company(i18n.localize_message(&SalesFormMessage::FieldCompany))
+        .contact_name(i18n.localize_message(&SalesFormMessage::FieldContactName))
+        .email(i18n.localize_message(&SalesFormMessage::FieldEmail))
+        .phone(i18n.localize_message(&SalesFormMessage::FieldPhone))
+        .deal_value(i18n.localize_message(&SalesFormMessage::FieldDealValue))
+        .stage(i18n.localize_message(&SalesFormMessage::FieldStage))
+        .source_url(i18n.localize_message(&SalesFormMessage::FieldSourceUrl))
+        .next_step(i18n.localize_message(&SalesFormMessage::FieldNextStep))
+        .build();
     let issue_groups = feedback.issue_groups(&field_labels);
     let valid_fields = feedback.valid_count();
     let is_valid = feedback.is_valid();

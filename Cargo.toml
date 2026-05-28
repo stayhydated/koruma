@@ -48,9 +48,7 @@ koruma-collection = { path = "crates/koruma-collection", version = "0.9.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.9.0" }
 koruma-derive = { path = "crates/koruma-derive", version = "0.9.0" }
 koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.9.0" }
-mdbook-driver = "0.5"
 paste = "1.0"
-path-slash = "0.2"
 phonenumber = "0.3"
 prettyplease = "0.2"
 proc-macro-error2 = "2.0"
@@ -60,13 +58,15 @@ regex = "1.12"
 rust-embed = "8.11"
 rust_decimal = "1.40"
 smallvec = "1.15"
+stayhydated-dioxus = { git = "https://github.com/stayhydated/stayhydated" }
+stayhydated-site = { git = "https://github.com/stayhydated/stayhydated" }
+stayhydated-xtask = { git = "https://github.com/stayhydated/stayhydated" }
 strum = "0.27"
 syn = "2.0"
 syn-cfg-attr = "0.1"
 tempfile = "3"
 unic-langid = "0.9"
 url = "2.5"
-walkdir = "2.5"
 web = { path = "web" }
 
 [profile.dev]

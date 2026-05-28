@@ -11,12 +11,10 @@ anyhow = { workspace = true }
 clap = { features = [ "derive" ], workspace = true }
 fluent-syntax = { workspace = true }
 heck = { workspace = true }
-mdbook-driver = { workspace = true }
-path-slash = { workspace = true }
 proc-macro2 = { features = [ "span-locations" ], workspace = true }
 quote = { workspace = true }
+stayhydated-xtask = { workspace = true }
 syn = { features = [ "full" ], workspace = true }
-walkdir = { workspace = true }
 web = { workspace = true }
 
 [dev-dependencies]

@@ -1,4 +1,6 @@
-use crate::components::select;
+use crate::components::{
+    LanguageSelect, ProjectOption, ProjectSelect, stayhydated_project_options,
+};
 use crate::site::constants::{
     KORUMA_COLLECTION_CRATES_URL, KORUMA_COLLECTION_CROWDIN_URL, KORUMA_CRATES_URL,
     KORUMA_GITHUB_URL, PROJECT_FLUENT_URL,
@@ -34,14 +36,16 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
 
     rsx! {
         header { class: "page-header",
-            a {
-                class: "brand",
-                href: crate::site::routing::page_href(PageKind::Home),
-                span { class: "brand-mark", "K" }
-                span { class: "brand-copy",
-                    span { class: "brand-kicker", "{brand_kicker}" }
-                    span { class: "brand-title", "{site_name}" }
-                }
+            ProjectSelect {
+                selected: ProjectOption::builder()
+                    .id("koruma")
+                    .mark("K")
+                    .name(site_name)
+                    .description(brand_kicker)
+                    .href(crate::site::routing::page_href(PageKind::Home))
+                    .build(),
+                projects: stayhydated_project_options(),
+                label: "Project selector".to_string(),
             }
             div { class: "header-cluster",
                 nav { class: "header-nav-links", "aria-label": "Primary navigation",
@@ -105,59 +109,16 @@ fn LocaleSwitcher() -> Element {
     let current_language = SiteLanguage::all()
         .find(|language| language.lang() == requested_language)
         .unwrap_or_default();
-    let mut selected_language = use_signal(|| Some(current_language));
-    let selected_language_for_effect = current_language;
-
-    use_effect(move || {
-        if selected_language() != Some(selected_language_for_effect) {
-            selected_language.set(Some(selected_language_for_effect));
-        }
-    });
-
-    let on_locale_changed = move |next_language: Option<SiteLanguage>| {
-        let Some(next_language) = next_language else {
-            return;
-        };
-
-        if Some(next_language) == selected_language() {
-            return;
-        }
-
-        selected_language.set(Some(next_language));
+    let on_locale_changed = move |next_language: SiteLanguage| {
         let _ = i18n.select_language(next_language.lang());
     };
 
     rsx! {
-        div { class: "locale-switcher-dropdown",
-            span { class: "locale-label", "{locale_label}" }
-            select::Select::<SiteLanguage> {
-                value: Some(selected_language.into()),
-                on_value_change: on_locale_changed,
-                select::SelectTrigger {
-                    select::SelectValue {
-                        placeholder: locale_label,
-                        class: Some("header-locale-value".to_string()),
-                    }
-                }
-                select::SelectList {
-                    for (index, (language, language_name)) in language_options.iter().enumerate() {
-                        select::SelectOption::<SiteLanguage> {
-                            index,
-                            value: *language,
-                            text_value: Some(language_name.clone()),
-                            class: Some(if Some(*language) == selected_language() {
-                                "header-locale-option is-active".to_string()
-                            } else {
-                                "header-locale-option".to_string()
-                            }),
-                            "{language_name}"
-                            if Some(*language) == selected_language() {
-                                select::SelectItemIndicator {}
-                            }
-                        }
-                    }
-                }
-            }
+        LanguageSelect::<SiteLanguage> {
+            label: locale_label,
+            selected: current_language,
+            options: language_options,
+            on_change: on_locale_changed,
         }
     }
 }

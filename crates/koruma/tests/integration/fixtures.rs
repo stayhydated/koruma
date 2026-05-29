@@ -98,6 +98,13 @@ pub struct BorrowedUsername<'a> {
     pub username: &'a str,
 }
 
+/// Example struct demonstrating explicit reference-wrapper type inference.
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct BorrowedUsernameExplicitInfer<'a> {
+    #[koruma(StartsWithValidation::<&_>::prefix("user:"))]
+    pub username: &'a str,
+}
+
 /// Example struct demonstrating borrowed string element validation with `each`.
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedTags<'a> {

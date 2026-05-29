@@ -3,13 +3,13 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
-    ContainsNewtype, Customer, CustomerWithOptionalAddress, DirectPasswordConfirmation,
-    DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem, Item, MultiAttrItem,
-    MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalElementMixedValidators,
-    OptionalElementPresenceOrder, OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation,
-    PositiveNumber, PresenceOnlyNonClone, QualifiedPathProfile, StaticSecretConfirmation,
-    UserProfile,
+    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername,
+    BorrowedUsernameExplicitInfer, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
+    DirectPasswordConfirmation, DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem,
+    Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
+    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
+    QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
 };
 use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
@@ -537,6 +537,23 @@ fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value_r
 #[test]
 fn test_borrowed_direct_field_invalid() {
     let user = BorrowedUsername { username: "guest" };
+
+    let err = user.validate().unwrap_err();
+    let validator = err
+        .username()
+        .starts_with_validation()
+        .expect("expected username prefix validation error");
+
+    assert_eq!(*validator.actual(), "guest");
+    assert_eq!(
+        err.username().all()[0].to_string(),
+        "Must start with 'user:'"
+    );
+}
+
+#[test]
+fn test_borrowed_direct_field_explicit_reference_infer_invalid() {
+    let user = BorrowedUsernameExplicitInfer { username: "guest" };
 
     let err = user.validate().unwrap_err();
     let validator = err

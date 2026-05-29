@@ -301,6 +301,46 @@ fn utility_functions_cover_non_happy_paths() {
 }
 
 #[test]
+fn infer_type_substitution_recurses_through_non_path_types() {
+    let infer_target: syn::Type = syn::parse_quote!(String);
+    let explicit: syn::Type = syn::parse_quote!((Option<&_>, [_; 4], fn(_) -> _));
+    assert!(contains_infer_type(&explicit));
+
+    let substituted = substitute_infer_type(&explicit, &infer_target);
+    let expected: syn::Type =
+        syn::parse_quote!((Option<&String>, [String; 4], fn(String) -> String));
+    assert_eq!(substituted, expected);
+    assert!(!contains_infer_type(&substituted));
+}
+
+#[test]
+fn source_infer_type_substitution_uses_matching_non_path_shape() {
+    let explicit: syn::Type = syn::parse_quote!((&_, Vec<_>, [_; 2], fn(_) -> _));
+    let source: syn::Type = syn::parse_quote!((&'a str, Vec<u8>, [bool; 2], fn(char) -> usize));
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("expected tuple-shaped source inference");
+    let expected: syn::Type = syn::parse_quote!((&'a str, Vec<u8>, [bool; 2], fn(char) -> usize));
+    assert_eq!(substituted, expected);
+}
+
+#[test]
+fn source_infer_type_substitution_reaches_associated_type_bounds() {
+    let explicit: syn::Type = syn::parse_quote!(Box<dyn Iterator<Item = _>>);
+    let source: syn::Type = syn::parse_quote!(String);
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("expected associated type infer substitution");
+    let expected: syn::Type = syn::parse_quote!(Box<dyn Iterator<Item = String>>);
+    assert_eq!(substituted, expected);
+
+    let explicit: syn::Type = syn::parse_quote!(Box<dyn Iterator<Item = _>>);
+    let source: syn::Type = syn::parse_quote!(Box<dyn Iterator<Item = u8>>);
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("expected associated type inference from matching trait object");
+    let expected: syn::Type = syn::parse_quote!(Box<dyn Iterator<Item = u8>>);
+    assert_eq!(substituted, expected);
+}
+
+#[test]
 fn koruma_attr_newtype_parser_handles_trailing_commas() {
     let with_trailing_commas: KorumaAttr = syn::parse_str(
         "newtype, each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",

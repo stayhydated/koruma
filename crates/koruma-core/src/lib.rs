@@ -23,13 +23,6 @@ pub trait ValidationError {
     }
 }
 
-/// Trait for validator builders that can receive the value being validated.
-///
-/// This trait is useful for simple owned-value builder APIs.
-pub trait BuilderWithValue<T> {
-    fn with_value(self, value: T) -> Self;
-}
-
 /// Hidden trait used by derived validation code to pass borrowed values into
 /// validator builders.
 ///

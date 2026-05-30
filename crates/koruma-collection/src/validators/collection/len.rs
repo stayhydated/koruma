@@ -40,9 +40,9 @@ use super::HasLen;
 #[cfg_attr(feature = "fluent", fluent(namespace = "collection"))]
 pub struct LenValidation<T: HasLen> {
     /// Minimum allowed length (inclusive)
-    pub min: usize,
+    min: usize,
     /// Maximum allowed length (inclusive)
-    pub max: usize,
+    max: usize,
     /// The collection being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]

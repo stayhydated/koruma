@@ -52,8 +52,8 @@ fn normalize_tokens<T: ToTokens>(value: &T) -> String {
 fn snapshot_validator(validator: &ValidatorAttr) -> SnapshotValidator {
     SnapshotValidator {
         name: validator.name().to_string(),
-        infer_type: validator.infer_type,
-        explicit_type: validator.explicit_type.as_ref().map(normalize_tokens),
+        infer_type: validator.uses_type_inference(),
+        explicit_type: validator.explicit_type().map(normalize_tokens),
         builder_methods: validator
             .builder_methods
             .iter()
@@ -79,8 +79,8 @@ fn snapshot_validation(validation: &ValidationInfo) -> SnapshotValidationInfo {
             .iter()
             .map(snapshot_validator)
             .collect(),
-        is_nested: validation.is_nested,
-        is_newtype: validation.is_newtype,
+        is_nested: validation.mode == crate::FieldMode::Nested,
+        is_newtype: validation.mode == crate::FieldMode::Newtype,
     }
 }
 
@@ -105,7 +105,7 @@ fn parse_field_result(field: &syn::Field) -> SnapshotParseFieldResult {
 
 fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), String> {
     match parse_struct_options(&item.attrs) {
-        Ok(options) => Ok((options.try_new, options.newtype)),
+        Ok(options) => Ok((options.try_new, options.is_newtype())),
         Err(err) => Err(err.to_string()),
     }
 }

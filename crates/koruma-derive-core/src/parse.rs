@@ -51,19 +51,27 @@ pub struct BuilderMethodCall {
     pub args: Vec<Expr>,
 }
 
+/// Type argument syntax used by a validator path.
+#[derive(Clone, Debug)]
+pub enum ValidatorTypeArg {
+    /// No validator type argument was supplied.
+    None,
+    /// The validator used `::<_>` and should infer from the validation target.
+    Infer,
+    /// The validator supplied an explicit type argument.
+    Explicit(Type),
+}
+
 #[derive(Clone, Debug)]
 pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
     /// Examples: `StringLengthValidation`, `validators::normal::NumberRangeValidation`
     pub validator: Path,
-    /// Whether the validator uses generic placeholder syntax like `<_>` for type
-    /// inference from the field type.
-    /// When true, the field type is used (unwrapping Option if present).
-    pub infer_type: bool,
-    /// Explicit type parameter if specified (e.g., `::<f64>`, `::<Vec<_>>`)
-    /// If this contains `_`, it will be substituted with the inner type from the field.
-    /// Use `::<Option<_>>` to get the full Option type without unwrapping.
-    pub explicit_type: Option<Type>,
+    /// Parsed validator type argument syntax.
+    pub type_arg: ValidatorTypeArg,
+    /// Whether this validator must receive the full field/element target instead
+    /// of koruma's default optional unwrapping behavior.
+    pub full_target: bool,
     /// Builder setter method calls collected from a direct validator chain.
     /// Used by `Validator::arg(value)...`.
     pub builder_methods: Vec<BuilderMethodCall>,
@@ -131,23 +139,79 @@ impl ValidatorAttr {
 
     /// Returns whether this validator uses type inference (`<_>` syntax).
     pub fn uses_type_inference(&self) -> bool {
-        self.infer_type
+        matches!(self.type_arg, ValidatorTypeArg::Infer)
     }
 
     /// Returns whether this validator has an explicit type parameter.
     pub fn has_explicit_type(&self) -> bool {
-        self.explicit_type.is_some()
+        self.explicit_type().is_some()
+    }
+
+    /// Returns the explicit validator type parameter when one was supplied.
+    pub fn explicit_type(&self) -> Option<&Type> {
+        match &self.type_arg {
+            ValidatorTypeArg::Explicit(ty) => Some(ty),
+            ValidatorTypeArg::None | ValidatorTypeArg::Infer => None,
+        }
+    }
+
+    /// Returns whether this validator was wrapped in `full(...)`.
+    pub fn wants_full_target(&self) -> bool {
+        self.full_target
     }
 }
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
+        if let Some(attr) = try_parse_full_validator(input)? {
+            return Ok(attr);
+        }
+
         if let Some(attr) = try_parse_direct_validator(input)? {
             return Ok(attr);
         }
 
         Err(invalid_validator_syntax_error(input))
     }
+}
+
+fn try_parse_full_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
+    if !input.peek(Ident) {
+        return Ok(None);
+    }
+
+    let fork = input.fork();
+    let ident: Ident = fork.parse()?;
+    if ident != "full" || !fork.peek(token::Paren) {
+        return Ok(None);
+    }
+
+    input.parse::<Ident>()?;
+    let content;
+    parenthesized!(content in input);
+    if content.is_empty() {
+        return Err(Error::new(
+            content.span(),
+            "`full(...)` must contain exactly one validator",
+        ));
+    }
+
+    let mut attr = content.parse::<ValidatorAttr>()?;
+    if attr.full_target {
+        return Err(Error::new(
+            ident.span(),
+            "`full(...)` cannot be nested inside another `full(...)` wrapper",
+        ));
+    }
+    if !content.is_empty() {
+        return Err(Error::new(
+            content.span(),
+            "`full(...)` must contain exactly one validator",
+        ));
+    }
+
+    attr.full_target = true;
+    Ok(Some(attr))
 }
 
 fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
@@ -166,12 +230,12 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
         return Err(Error::new(expr.span(), "expected validator chain"));
     };
 
-    let (validator, infer_type, explicit_type) = split_validator_path_type_args(validator)?;
+    let (validator, type_arg) = split_validator_path_type_args(validator)?;
 
     Ok(Some(ValidatorAttr {
         validator,
-        infer_type,
-        explicit_type,
+        type_arg,
+        full_target: false,
         builder_methods,
     }))
 }
@@ -179,11 +243,11 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
 fn invalid_validator_syntax_error(input: ParseStream) -> Error {
     Error::new(
         input.span(),
-        "validator syntax requires a direct validator chain such as `RequiredValidation::<Option<_>>` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted",
+        "validator syntax requires a direct validator chain such as `full(RequiredValidation::<_>)` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted",
     )
 }
 
-fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, bool, Option<Type>)> {
+fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, ValidatorTypeArg)> {
     let validator_span = validator.span();
     let last_segment = validator
         .segments
@@ -191,8 +255,8 @@ fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, bool, Op
         .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
 
     let args = std::mem::replace(&mut last_segment.arguments, PathArguments::None);
-    let (infer_type, explicit_type) = match args {
-        PathArguments::None => (false, None),
+    let type_arg = match args {
+        PathArguments::None => ValidatorTypeArg::None,
         PathArguments::AngleBracketed(mut angle_args) => {
             if angle_args.args.len() != 1 {
                 return Err(Error::new(
@@ -203,8 +267,8 @@ fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, bool, Op
 
             let arg = angle_args.args.pop().expect("len checked").into_value();
             match arg {
-                GenericArgument::Type(Type::Infer(_)) => (true, None),
-                GenericArgument::Type(ty) => (false, Some(ty)),
+                GenericArgument::Type(Type::Infer(_)) => ValidatorTypeArg::Infer,
+                GenericArgument::Type(ty) => ValidatorTypeArg::Explicit(ty),
                 _ => Err(Error::new(
                     arg.span(),
                     "validator type syntax expects a type argument",
@@ -219,7 +283,7 @@ fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, bool, Op
         },
     };
 
-    Ok((validator, infer_type, explicit_type))
+    Ok((validator, type_arg))
 }
 
 fn analyze_direct_validator_expr(expr: &Expr) -> Result<Option<(Path, Vec<BuilderMethodCall>)>> {
@@ -319,6 +383,24 @@ fn analyze_direct_validator_call_expr(
     )))
 }
 
+/// Field-level validation mode parsed from `#[koruma(...)]`.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum FieldMode {
+    #[default]
+    Plain,
+    Skip,
+    Nested,
+    Newtype,
+}
+
+/// A single item inside `#[koruma(...)]`.
+#[derive(Clone, Debug)]
+pub enum KorumaItem {
+    Modifier(FieldMode),
+    FieldValidator(ValidatorAttr),
+    Each(Vec<ValidatorAttr>),
+}
+
 /// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
 /// separated by commas: `#[koruma(Validator1::a(1), Validator2)]`
 ///
@@ -337,177 +419,129 @@ fn analyze_direct_validator_call_expr(
 ///     Validator1::a(1),
 ///     Validator2::b(2)
 /// );
-/// assert_eq!(multiple.field_validators.len(), 2);
+/// assert_eq!(multiple.field_validator_count(), 2);
 ///
 /// let with_each: KorumaAttr = syn::parse_quote!(
 ///     VecValidator::min(0),
 ///     each(ElementValidator::max(100))
 /// );
-/// assert_eq!(with_each.field_validators.len(), 1);
-/// assert_eq!(with_each.element_validators.len(), 1);
+/// assert_eq!(with_each.field_validator_count(), 1);
+/// assert_eq!(with_each.element_validator_count(), 1);
 ///
 /// let skip: KorumaAttr = syn::parse_quote!(skip);
-/// assert!(skip.is_skip);
+/// assert!(skip.is_skip());
 ///
 /// let nested: KorumaAttr = syn::parse_quote!(nested);
-/// assert!(nested.is_nested);
+/// assert!(nested.is_nested());
 /// ```
 #[derive(Clone, Debug, Default)]
-pub struct KorumaAttr {
-    /// Validators applied to the field/collection itself
-    pub field_validators: Vec<ValidatorAttr>,
-    /// Validators applied to each element in a collection (from `each(...)`)
-    pub element_validators: Vec<ValidatorAttr>,
-    /// Whether this field should be skipped
-    pub is_skip: bool,
-    /// Whether this field is a nested Koruma struct
-    pub is_nested: bool,
-    /// Whether this field is a newtype wrapper (single-field struct deriving Koruma).
-    /// Similar to nested, but generates a wrapper error struct with Deref for transparent access.
-    pub is_newtype: bool,
+pub struct ParsedFieldAttr {
+    pub items: Vec<KorumaItem>,
 }
 
-impl KorumaAttr {
+/// Backwards-compatible name for parsed field attributes.
+pub type KorumaAttr = ParsedFieldAttr;
+
+impl ParsedFieldAttr {
     /// Returns whether this attribute has any validators (field or element).
     pub fn has_validators(&self) -> bool {
-        !self.field_validators.is_empty() || !self.element_validators.is_empty()
+        self.items.iter().any(|item| match item {
+            KorumaItem::FieldValidator(_) => true,
+            KorumaItem::Each(validators) => !validators.is_empty(),
+            KorumaItem::Modifier(_) => false,
+        })
     }
 
     /// Returns whether this attribute represents a modifier (skip, nested, newtype).
     pub fn is_modifier(&self) -> bool {
-        self.is_skip || self.is_nested || self.is_newtype
+        self.items
+            .iter()
+            .any(|item| matches!(item, KorumaItem::Modifier(_)))
+    }
+
+    pub fn is_skip(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| matches!(item, KorumaItem::Modifier(FieldMode::Skip)))
+    }
+
+    pub fn is_nested(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| matches!(item, KorumaItem::Modifier(FieldMode::Nested)))
+    }
+
+    pub fn is_newtype(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| matches!(item, KorumaItem::Modifier(FieldMode::Newtype)))
+    }
+
+    pub fn field_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
+        self.items.iter().filter_map(|item| match item {
+            KorumaItem::FieldValidator(validator) => Some(validator),
+            KorumaItem::Modifier(_) | KorumaItem::Each(_) => None,
+        })
+    }
+
+    pub fn element_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
+        self.items.iter().flat_map(|item| {
+            match item {
+                KorumaItem::Each(validators) => validators.as_slice(),
+                KorumaItem::Modifier(_) | KorumaItem::FieldValidator(_) => &[],
+            }
+            .iter()
+        })
+    }
+
+    pub fn field_validator_count(&self) -> usize {
+        self.field_validators().count()
+    }
+
+    pub fn element_validator_count(&self) -> usize {
+        self.element_validators().count()
+    }
+
+    pub fn has_field_validators(&self) -> bool {
+        self.field_validators().next().is_some()
+    }
+
+    pub fn has_element_validators(&self) -> bool {
+        self.element_validators().next().is_some()
     }
 }
 
-impl Parse for KorumaAttr {
+impl KorumaItem {
+    pub fn modifier(&self) -> Option<FieldMode> {
+        match self {
+            KorumaItem::Modifier(mode) => Some(*mode),
+            KorumaItem::FieldValidator(_) | KorumaItem::Each(_) => None,
+        }
+    }
+}
+
+impl Parse for ParsedFieldAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        // Check for skip, nested, or newtype
-        if input.peek(Ident) {
-            let fork = input.fork();
-            let ident: Ident = fork.parse()?;
-            if ident == "skip" && fork.is_empty() {
-                input.parse::<Ident>()?; // consume "skip"
-                return Ok(KorumaAttr {
-                    field_validators: Vec::new(),
-                    element_validators: Vec::new(),
-                    is_skip: true,
-                    is_nested: false,
-                    is_newtype: false,
-                });
-            }
-            // Check for nested
-            if ident == "nested" && fork.is_empty() {
-                input.parse::<Ident>()?; // consume "nested"
-                return Ok(KorumaAttr {
-                    field_validators: Vec::new(),
-                    element_validators: Vec::new(),
-                    is_skip: false,
-                    is_nested: true,
-                    is_newtype: false,
-                });
-            }
-            // Check for newtype - can be standalone or followed by validators
-            if ident == "newtype" {
-                // Check if newtype is followed by a comma or end of input
-                input.parse::<Ident>()?; // consume "newtype"
-
-                // Check for comma followed by validators
-                if input.peek(Token![,]) {
-                    input.parse::<Token![,]>()?; // consume comma
-                    // Continue parsing validators below
-                    let mut field_validators = Vec::new();
-                    let mut element_validators = Vec::new();
-
-                    while !input.is_empty() {
-                        // Check if this is an `each(...)` block
-                        if input.peek(Ident) {
-                            let fork = input.fork();
-                            let ident: Ident = fork.parse()?;
-                            if ident == "each" && fork.peek(token::Paren) {
-                                input.parse::<Ident>()?; // consume "each"
-                                let content;
-                                parenthesized!(content in input);
-
-                                while !content.is_empty() {
-                                    element_validators.push(content.parse::<ValidatorAttr>()?);
-                                    if content.peek(Token![,]) {
-                                        content.parse::<Token![,]>()?;
-                                    } else {
-                                        break;
-                                    }
-                                }
-
-                                if input.peek(Token![,]) {
-                                    input.parse::<Token![,]>()?;
-                                }
-                                continue;
-                            }
-                        }
-
-                        field_validators.push(input.parse::<ValidatorAttr>()?);
-                        if input.peek(Token![,]) {
-                            input.parse::<Token![,]>()?;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    return Ok(KorumaAttr {
-                        field_validators,
-                        element_validators,
-                        is_skip: false,
-                        is_nested: false,
-                        is_newtype: true,
-                    });
-                }
-
-                // Standalone newtype
-                if input.is_empty() {
-                    return Ok(KorumaAttr {
-                        field_validators: Vec::new(),
-                        element_validators: Vec::new(),
-                        is_skip: false,
-                        is_nested: false,
-                        is_newtype: true,
-                    });
-                }
-            }
+        if input.is_empty() {
+            return Err(Error::new(
+                input.span(),
+                "`#[koruma(...)]` must contain a modifier, validator, or `each(...)` block",
+            ));
         }
 
-        let mut field_validators = Vec::new();
-        let mut element_validators = Vec::new();
+        let mut attr = ParsedFieldAttr::default();
 
         // Parse comma-separated items (validators or each(...))
         while !input.is_empty() {
-            // Check if this is an `each(...)` block
-            if input.peek(Ident) {
-                let fork = input.fork();
-                let ident: Ident = fork.parse()?;
-                if ident == "each" && fork.peek(token::Paren) {
-                    input.parse::<Ident>()?; // consume "each"
-                    let content;
-                    parenthesized!(content in input);
-
-                    // Parse validators inside each(...)
-                    while !content.is_empty() {
-                        element_validators.push(content.parse::<ValidatorAttr>()?);
-                        if content.peek(Token![,]) {
-                            content.parse::<Token![,]>()?;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    // Continue parsing after each(...)
-                    if input.peek(Token![,]) {
-                        input.parse::<Token![,]>()?;
-                    }
-                    continue;
-                }
+            if let Some(mode) = try_parse_field_mode(input)? {
+                attr.items.push(KorumaItem::Modifier(mode));
+            } else if let Some(item) = try_parse_each(input)? {
+                attr.items.push(item);
+            } else {
+                attr.items
+                    .push(KorumaItem::FieldValidator(input.parse::<ValidatorAttr>()?));
             }
 
-            // Regular validator
-            field_validators.push(input.parse::<ValidatorAttr>()?);
             if input.peek(Token![,]) {
                 input.parse::<Token![,]>()?;
             } else {
@@ -515,14 +549,76 @@ impl Parse for KorumaAttr {
             }
         }
 
-        Ok(KorumaAttr {
-            field_validators,
-            element_validators,
-            is_skip: false,
-            is_nested: false,
-            is_newtype: false,
-        })
+        Ok(attr)
     }
+}
+
+fn try_parse_field_mode(input: ParseStream) -> Result<Option<FieldMode>> {
+    if !input.peek(Ident) {
+        return Ok(None);
+    }
+
+    let fork = input.fork();
+    let ident: Ident = fork.parse()?;
+    let mode = if ident == "skip" {
+        FieldMode::Skip
+    } else if ident == "nested" {
+        FieldMode::Nested
+    } else if ident == "newtype" {
+        FieldMode::Newtype
+    } else {
+        return Ok(None);
+    };
+
+    if fork.peek(Token![::]) {
+        return Err(Error::new(
+            ident.span(),
+            format!(
+                "`{ident}` is a reserved koruma field modifier; use a different validator path or separate `newtype` from validators with a comma"
+            ),
+        ));
+    }
+
+    if !fork.is_empty() && !fork.peek(Token![,]) {
+        return Ok(None);
+    }
+
+    input.parse::<Ident>()?;
+    Ok(Some(mode))
+}
+
+fn try_parse_each(input: ParseStream) -> Result<Option<KorumaItem>> {
+    if !input.peek(Ident) {
+        return Ok(None);
+    }
+
+    let fork = input.fork();
+    let ident: Ident = fork.parse()?;
+    if ident != "each" || !fork.peek(token::Paren) {
+        return Ok(None);
+    }
+
+    input.parse::<Ident>()?;
+    let content;
+    parenthesized!(content in input);
+    if content.is_empty() {
+        return Err(Error::new(
+            content.span(),
+            "`each(...)` must contain at least one validator",
+        ));
+    }
+
+    let mut validators = Vec::new();
+    while !content.is_empty() {
+        validators.push(content.parse::<ValidatorAttr>()?);
+        if content.peek(Token![,]) {
+            content.parse::<Token![,]>()?;
+        } else {
+            break;
+        }
+    }
+
+    Ok(Some(KorumaItem::Each(validators)))
 }
 
 /// Struct-level options parsed from `#[koruma(...)]`
@@ -539,15 +635,15 @@ impl Parse for KorumaAttr {
 /// };
 /// let options = parse_struct_options(&user.attrs).unwrap();
 /// assert!(options.try_new);
-/// assert!(!options.newtype);
+/// assert!(!options.is_newtype());
 ///
 /// let email: ItemStruct = syn::parse_quote! {
 ///     #[koruma(newtype)]
 ///     struct Email(String);
 /// };
 /// let options = parse_struct_options(&email.attrs).unwrap();
-/// assert!(options.newtype);
-/// assert!(!options.try_from);
+/// assert!(options.is_newtype());
+/// assert!(!options.try_from());
 ///
 /// let checked_email: ItemStruct = syn::parse_quote! {
 ///     #[koruma(try_new, newtype)]
@@ -555,27 +651,47 @@ impl Parse for KorumaAttr {
 /// };
 /// let options = parse_struct_options(&checked_email.attrs).unwrap();
 /// assert!(options.try_new);
-/// assert!(options.newtype);
+/// assert!(options.is_newtype());
 ///
 /// let convertible_email: ItemStruct = syn::parse_quote! {
 ///     #[koruma(newtype(try_from))]
 ///     struct ConvertibleEmail(String);
 /// };
 /// let options = parse_struct_options(&convertible_email.attrs).unwrap();
-/// assert!(options.newtype);
-/// assert!(options.try_from);
+/// assert!(options.is_newtype());
+/// assert!(options.try_from());
 /// ```
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct StructOptions {
     /// Generate a `try_new` function that validates on construction
     pub try_new: bool,
-    /// Treat this struct as a newtype (single-field wrapper).
-    /// Generates an `.all()` method on the error struct that aggregates
-    /// all validators from the single field.
-    pub newtype: bool,
-    /// Generate a `TryFrom<Inner>` impl for newtype structs.
-    /// Set via `newtype(try_from)`. Implies `newtype`. Does NOT imply `try_new`.
-    pub try_from: bool,
+    /// Struct-level newtype behavior.
+    pub newtype: StructNewtype,
+}
+
+impl Default for StructOptions {
+    fn default() -> Self {
+        Self {
+            try_new: false,
+            newtype: StructNewtype::No,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StructNewtype {
+    No,
+    Yes { try_from: bool },
+}
+
+impl StructOptions {
+    pub fn is_newtype(&self) -> bool {
+        matches!(self.newtype, StructNewtype::Yes { .. })
+    }
+
+    pub fn try_from(&self) -> bool {
+        matches!(self.newtype, StructNewtype::Yes { try_from: true })
+    }
 }
 
 /// Options for the `newtype(...)` attribute.
@@ -618,14 +734,15 @@ impl Parse for StructOptions {
             match ident.to_string().as_str() {
                 "try_new" => options.try_new = true,
                 "newtype" => {
-                    options.newtype = true;
+                    let mut try_from = false;
                     // Check for nested options: newtype(try_from)
                     if input.peek(syn::token::Paren) {
                         let content;
                         syn::parenthesized!(content in input);
                         let newtype_opts: NewtypeOptions = content.parse()?;
-                        options.try_from = newtype_opts.try_from;
+                        try_from = newtype_opts.try_from;
                     }
+                    options.newtype = StructNewtype::Yes { try_from };
                 },
                 other => {
                     return Err(Error::new(
@@ -666,24 +783,14 @@ pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
             merged.try_new = true;
         }
 
-        if parsed.newtype {
-            if merged.newtype {
+        if parsed.is_newtype() {
+            if merged.is_newtype() {
                 return Err(Error::new(
                     attr.path().span(),
                     "duplicate struct-level koruma option `newtype`",
                 ));
             }
-            merged.newtype = true;
-        }
-
-        if parsed.try_from {
-            if merged.try_from {
-                return Err(Error::new(
-                    attr.path().span(),
-                    "duplicate struct-level koruma option `newtype(try_from)`",
-                ));
-            }
-            merged.try_from = true;
+            merged.newtype = parsed.newtype;
         }
     }
 
@@ -697,10 +804,8 @@ pub struct ValidationInfo {
     pub field_validators: Vec<ValidatorAttr>,
     /// Validators for each element in a collection
     pub element_validators: Vec<ValidatorAttr>,
-    /// Whether this field is a nested Koruma struct
-    pub is_nested: bool,
-    /// Whether this field is a newtype wrapper
-    pub is_newtype: bool,
+    /// Field validation mode.
+    pub mode: FieldMode,
 }
 
 /// Field information extracted from parsing `#[koruma(...)]` attributes.
@@ -733,12 +838,12 @@ impl FieldInfo {
 
     /// Returns true if this field is a nested Koruma struct
     pub fn is_nested(&self) -> bool {
-        self.validation.is_nested
+        self.validation.mode == FieldMode::Nested
     }
 
     /// Returns true if this field is a newtype wrapper
     pub fn is_newtype(&self) -> bool {
-        self.validation.is_newtype
+        self.validation.mode == FieldMode::Newtype
     }
 
     /// Returns an iterator over all validator names on this field.
@@ -826,57 +931,72 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
     };
     let ty = field.ty.clone();
 
-    // Collect validators from ALL #[koruma(...)] attributes on this field
+    // Collect items from ALL #[koruma(...)] attributes on this field.
+    let mut items = Vec::new();
+
+    for attr in field.attrs.to_vec().find_attribute("koruma") {
+        match attr.parse_args::<ParsedFieldAttr>() {
+            Ok(koruma_attr) => items.extend(koruma_attr.items),
+            Err(e) => return ParseFieldResult::Error(e),
+        }
+    }
+
+    let validation = match normalize_field_items(field, &name, items) {
+        Ok(Some(validation)) => validation,
+        Ok(None) => return ParseFieldResult::Skip,
+        Err(e) => return ParseFieldResult::Error(e),
+    };
+
+    ParseFieldResult::Valid(Box::new(FieldInfo {
+        name,
+        member,
+        ty,
+        validation,
+    }))
+}
+
+fn normalize_field_items(
+    field: &Field,
+    name: &Ident,
+    items: Vec<KorumaItem>,
+) -> Result<Option<ValidationInfo>> {
     let mut all_field_validators = Vec::new();
     let mut all_element_validators = Vec::new();
-    let mut is_skip = false;
-    let mut is_nested = false;
-    let mut is_newtype = false;
+    let mut mode = FieldMode::Plain;
 
     // Track seen validator names to detect duplicates
     let mut seen_field_validators = std::collections::HashSet::new();
     let mut seen_element_validators = std::collections::HashSet::new();
 
-    for attr in field.attrs.to_vec().find_attribute("koruma") {
-        // Parse the attribute content
-        let parsed: Result<KorumaAttr> = attr.parse_args::<KorumaAttr>();
-
-        match parsed {
-            Ok(koruma_attr) => {
-                // Check for skip - if any attribute says skip, skip the field
-                if koruma_attr.is_skip {
-                    is_skip = true;
-                    continue;
+    for item in items {
+        match item {
+            KorumaItem::Modifier(next_mode) => {
+                if mode != FieldMode::Plain {
+                    return Err(Error::new_spanned(
+                        field,
+                        "duplicate or conflicting field modifier across `#[koruma(...)]` attributes",
+                    ));
                 }
-                // Check for nested
-                if koruma_attr.is_nested {
-                    is_nested = true;
-                    continue;
+                mode = next_mode;
+            },
+            KorumaItem::FieldValidator(validator) => {
+                let validator_name = validator.path_name();
+                if !seen_field_validators.insert(validator_name.clone()) {
+                    return Err(Error::new(
+                        validator.validator.span(),
+                        format!(
+                            "duplicate validator `{}` on field `{}`",
+                            validator_name, name
+                        ),
+                    ));
                 }
-                // Check for newtype
-                if koruma_attr.is_newtype {
-                    is_newtype = true;
-                    // Don't continue here - newtype can have validators too
-                    // e.g., #[koruma(newtype, RequiredValidation)]
-                }
-                // Collect validators from this attribute, checking for duplicates
-                for validator in koruma_attr.field_validators {
-                    let validator_name = validator.path_name();
-                    if !seen_field_validators.insert(validator_name.clone()) {
-                        return ParseFieldResult::Error(Error::new(
-                            validator.validator.span(),
-                            format!(
-                                "duplicate validator `{}` on field `{}`",
-                                validator_name, name
-                            ),
-                        ));
-                    }
-                    all_field_validators.push(validator);
-                }
-                for validator in koruma_attr.element_validators {
+                all_field_validators.push(validator);
+            },
+            KorumaItem::Each(validators) => {
+                for validator in validators {
                     let validator_name = validator.path_name();
                     if !seen_element_validators.insert(validator_name.clone()) {
-                        return ParseFieldResult::Error(Error::new(
+                        return Err(Error::new(
                             validator.validator.span(),
                             format!(
                                 "duplicate element validator `{}` on field `{}`",
@@ -887,76 +1007,50 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
                     all_element_validators.push(validator);
                 }
             },
-            Err(e) => {
-                return ParseFieldResult::Error(e);
-            },
         }
     }
 
-    // If skip was specified, skip the field
-    if is_skip {
-        return ParseFieldResult::Skip;
-    }
-
-    if is_nested && is_newtype {
-        return ParseFieldResult::Error(Error::new_spanned(
+    if mode == FieldMode::Skip
+        && (!all_field_validators.is_empty() || !all_element_validators.is_empty())
+    {
+        return Err(Error::new_spanned(
             field,
-            "fields cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`, even across multiple `#[koruma(...)]` attributes",
+            "fields marked `#[koruma(skip)]` cannot also use validators or `each(...)`",
         ));
     }
 
-    if is_newtype && !all_element_validators.is_empty() {
-        return ParseFieldResult::Error(Error::new_spanned(
+    if mode == FieldMode::Skip {
+        return Ok(None);
+    }
+
+    if mode == FieldMode::Nested
+        && (!all_field_validators.is_empty() || !all_element_validators.is_empty())
+    {
+        return Err(Error::new_spanned(
+            field,
+            "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`, even across multiple `#[koruma(...)]` attributes",
+        ));
+    }
+
+    if mode == FieldMode::Newtype && !all_element_validators.is_empty() {
+        return Err(Error::new_spanned(
             field,
             "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers",
         ));
     }
 
-    // Check for nested
-    if is_nested {
-        return ParseFieldResult::Valid(Box::new(FieldInfo {
-            name,
-            member,
-            ty,
-            validation: ValidationInfo {
-                field_validators: all_field_validators,
-                element_validators: all_element_validators,
-                is_nested: true,
-                is_newtype: false,
-            },
-        }));
-    }
-
-    // Check for newtype
-    if is_newtype {
-        return ParseFieldResult::Valid(Box::new(FieldInfo {
-            name,
-            member,
-            ty,
-            validation: ValidationInfo {
-                field_validators: all_field_validators,
-                element_validators: all_element_validators,
-                is_nested: false,
-                is_newtype: true,
-            },
-        }));
-    }
-
     // Must have at least one validator or modifier
-    if all_field_validators.is_empty() && all_element_validators.is_empty() {
-        return ParseFieldResult::Skip;
+    if mode == FieldMode::Plain
+        && all_field_validators.is_empty()
+        && all_element_validators.is_empty()
+    {
+        return Ok(None);
     }
 
-    ParseFieldResult::Valid(Box::new(FieldInfo {
-        name,
-        member,
-        ty,
-        validation: ValidationInfo {
-            field_validators: all_field_validators,
-            element_validators: all_element_validators,
-            is_nested: false,
-            is_newtype: false,
-        },
+    Ok(Some(ValidationInfo {
+        field_validators: all_field_validators,
+        element_validators: all_element_validators,
+        mode,
     }))
 }
 

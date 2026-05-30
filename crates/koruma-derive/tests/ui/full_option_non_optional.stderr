@@ -1,0 +1,5 @@
+error: explicit `Option<...>` validator types require an optional validation target, but the field `value` is `String`
+ --> tests/ui/full_option_non_optional.rs:5:35
+  |
+5 |     #[koruma(RequiredValidation::<Option<_>>)]
+  |                                   ^^^^^^^^^

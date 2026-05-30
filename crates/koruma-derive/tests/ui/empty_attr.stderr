@@ -1,0 +1,5 @@
+error: `#[koruma(...)]` must contain a modifier, validator, or `each(...)` block
+ --> tests/ui/empty_attr.rs:5:14
+  |
+5 |     #[koruma()]
+  |              ^

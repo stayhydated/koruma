@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 /// #[derive(Koruma)]
 /// struct User {
 ///     password: String,
-///     #[koruma(MatchesValidation::<_>::other(password))]
+///     #[koruma(MatchesValidation::<_>::other(self.password.clone()))]
 ///     confirm_password: String,
 /// }
 /// ```

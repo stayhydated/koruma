@@ -593,7 +593,7 @@ fn test_each_borrowed_str_items_invalid() {
 }
 
 #[test]
-fn test_cross_field_arg_identifier_still_rewrites_to_field_access() {
+fn test_cross_field_arg_uses_explicit_field_access() {
     let confirmation = PasswordConfirmation {
         password: "secret".to_string(),
         confirm: "different".to_string(),

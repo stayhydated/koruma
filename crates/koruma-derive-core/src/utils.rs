@@ -824,8 +824,8 @@ fn return_type_contains_infer(return_type: &ReturnType) -> bool {
 
 /// Check if a type is `Option<_>` (Option wrapping an infer placeholder).
 ///
-/// This is used when a validator explicitly wants the full Option type,
-/// like `RequiredValidation::<Option<_>>`.
+/// This supports the legacy full-`Option` validator syntax. New user-facing
+/// examples prefer `full(RequiredValidation::<_>)`.
 ///
 /// # Examples
 ///

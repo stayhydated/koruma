@@ -9,7 +9,7 @@ fn test_validator_attr_parse_simple() {
     assert_eq!(attr.path_name(), "RangeValidation");
     assert_eq!(attr.codegen_snake_name(), "range_validation");
     assert_eq!(attr.codegen_upper_camel_name(), "RangeValidation");
-    assert!(!attr.infer_type);
+    assert!(!attr.uses_type_inference());
     assert!(attr.builder_methods.is_empty());
 }
 
@@ -17,7 +17,7 @@ fn test_validator_attr_parse_simple() {
 fn test_validator_attr_parse_with_args() {
     let attr: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0).max(100));
     assert_eq!(attr.name().to_string(), "RangeValidation");
-    assert!(!attr.infer_type);
+    assert!(!attr.uses_type_inference());
     assert_eq!(attr.builder_methods.len(), 2);
     assert_eq!(attr.builder_methods[0].method.to_string(), "min");
     assert_eq!(attr.builder_methods[1].method.to_string(), "max");
@@ -27,7 +27,7 @@ fn test_validator_attr_parse_with_args() {
 fn test_validator_attr_parse_generic() {
     let attr: ValidatorAttr = syn::parse_quote!(GenericRange::<_>::min(0.0).max(1.0));
     assert_eq!(attr.name().to_string(), "GenericRange");
-    assert!(attr.infer_type);
+    assert!(attr.uses_type_inference());
     assert_eq!(attr.builder_methods.len(), 2);
 }
 
@@ -36,7 +36,7 @@ fn test_validator_attr_parse_direct_chain() {
     let attr: ValidatorAttr =
         syn::parse_quote!(RangeValidation::min(0).max(100).exclusive_max(true));
     assert_eq!(attr.name().to_string(), "RangeValidation");
-    assert!(!attr.infer_type);
+    assert!(!attr.uses_type_inference());
     assert_eq!(attr.builder_methods.len(), 3);
     assert_eq!(attr.builder_methods[0].method.to_string(), "min");
     assert_eq!(attr.builder_methods[1].method.to_string(), "max");
@@ -49,7 +49,7 @@ fn test_validator_attr_parse_direct_chain_with_turbofish_inference() {
         syn::parse_quote!(validators::numeric::RangeValidation::<_>::min(0).max(100));
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert_eq!(attr.path_name(), "validators::numeric::RangeValidation");
-    assert!(attr.infer_type);
+    assert!(attr.uses_type_inference());
     assert_eq!(attr.builder_methods.len(), 2);
 }
 
@@ -57,36 +57,52 @@ fn test_validator_attr_parse_direct_chain_with_turbofish_inference() {
 fn test_validator_attr_parse_direct_chain_with_explicit_option_type() {
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
     assert_eq!(attr.name().to_string(), "RequiredValidation");
-    assert!(!attr.infer_type);
-    assert!(attr.explicit_type.is_some());
+    assert!(!attr.uses_type_inference());
+    assert!(attr.explicit_type().is_some());
+    assert!(!attr.wants_full_target());
+    assert!(attr.builder_methods.is_empty());
+}
+
+#[test]
+fn test_validator_attr_parse_full_wrapper() {
+    let attr: ValidatorAttr = syn::parse_quote!(full(RequiredValidation::<_>));
+    assert_eq!(attr.name().to_string(), "RequiredValidation");
+    assert!(attr.uses_type_inference());
+    assert!(attr.wants_full_target());
     assert!(attr.builder_methods.is_empty());
 }
 
 #[test]
 fn test_koruma_attr_parse_skip() {
     let attr: KorumaAttr = syn::parse_quote!(skip);
-    assert!(attr.is_skip);
-    assert!(attr.field_validators.is_empty());
-    assert!(attr.element_validators.is_empty());
+    assert!(attr.is_skip());
+    assert!(!attr.has_field_validators());
+    assert!(!attr.has_element_validators());
 }
 
 #[test]
 fn test_koruma_attr_parse_each() {
-    let attr: KorumaAttr = syn::parse_quote!(each(RangeValidation::min(0).max(100)));
-    assert!(!attr.is_skip);
-    assert!(attr.field_validators.is_empty());
-    assert_eq!(attr.element_validators.len(), 1);
+    let attr: KorumaAttr = syn::parse_quote!(each(
+        RangeValidation::min(0).max(100),
+        full(RequiredValidation::<_>)
+    ));
+    assert!(!attr.is_skip());
+    assert!(!attr.has_field_validators());
+    assert_eq!(attr.element_validator_count(), 2);
+    let element_validators: Vec<_> = attr.element_validators().collect();
+    assert!(element_validators[1].wants_full_target());
 }
 
 #[test]
 fn test_koruma_attr_parse_multiple_validators() {
     let attr: KorumaAttr = syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));
-    assert!(!attr.is_skip);
-    assert_eq!(attr.field_validators.len(), 3);
-    assert!(attr.element_validators.is_empty());
-    assert!(!attr.field_validators[0].infer_type);
-    assert!(!attr.field_validators[1].infer_type);
-    assert!(attr.field_validators[2].infer_type);
+    assert!(!attr.is_skip());
+    assert_eq!(attr.field_validator_count(), 3);
+    assert!(!attr.has_element_validators());
+    let field_validators: Vec<_> = attr.field_validators().collect();
+    assert!(!field_validators[0].uses_type_inference());
+    assert!(!field_validators[1].uses_type_inference());
+    assert!(field_validators[2].uses_type_inference());
 }
 
 #[test]
@@ -96,15 +112,14 @@ fn test_koruma_attr_parse_combined_field_and_each() {
         LenValidator::min(1).max(10),
         each(RangeValidation::<_>::min(0).max(100))
     );
-    assert!(!attr.is_skip);
-    assert_eq!(attr.field_validators.len(), 1);
-    assert_eq!(attr.field_validators[0].name().to_string(), "LenValidator");
-    assert_eq!(attr.element_validators.len(), 1);
-    assert_eq!(
-        attr.element_validators[0].name().to_string(),
-        "RangeValidation"
-    );
-    assert!(attr.element_validators[0].infer_type);
+    assert!(!attr.is_skip());
+    assert_eq!(attr.field_validator_count(), 1);
+    let field_validators: Vec<_> = attr.field_validators().collect();
+    assert_eq!(field_validators[0].name().to_string(), "LenValidator");
+    assert_eq!(attr.element_validator_count(), 1);
+    let element_validators: Vec<_> = attr.element_validators().collect();
+    assert_eq!(element_validators[0].name().to_string(), "RangeValidation");
+    assert!(element_validators[0].uses_type_inference());
 }
 
 #[test]
@@ -112,19 +127,19 @@ fn test_koruma_attr_parse_each_then_field() {
     // each() can come before field validators too
     let attr: KorumaAttr =
         syn::parse_quote!(each(RangeValidation::min(0).max(100)), LenValidator::min(1));
-    assert!(!attr.is_skip);
-    assert_eq!(attr.field_validators.len(), 1);
-    assert_eq!(attr.element_validators.len(), 1);
+    assert!(!attr.is_skip());
+    assert_eq!(attr.field_validator_count(), 1);
+    assert_eq!(attr.element_validator_count(), 1);
 }
 
 #[test]
 fn test_validator_attr_parse_nested_generic() {
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
     assert_eq!(attr.name().to_string(), "RequiredValidation");
-    assert!(!attr.infer_type);
-    assert!(attr.explicit_type.is_some());
+    assert!(!attr.uses_type_inference());
+    assert!(attr.explicit_type().is_some());
 
-    let explicit_ty = attr.explicit_type.unwrap();
+    let explicit_ty = attr.explicit_type().unwrap();
     let ty_str = quote::quote!(#explicit_ty).to_string();
     assert!(
         ty_str.contains("Option"),
@@ -137,10 +152,10 @@ fn test_validator_attr_parse_nested_generic() {
 fn test_validator_attr_parse_nested_generic_concrete() {
     let attr: ValidatorAttr = syn::parse_quote!(SomeValidator::<Vec<String>>);
     assert_eq!(attr.name().to_string(), "SomeValidator");
-    assert!(!attr.infer_type);
-    assert!(attr.explicit_type.is_some());
+    assert!(!attr.uses_type_inference());
+    assert!(attr.explicit_type().is_some());
 
-    let explicit_ty = attr.explicit_type.unwrap();
+    let explicit_ty = attr.explicit_type().unwrap();
     let ty_str = quote::quote!(#explicit_ty).to_string();
     assert!(
         ty_str.contains("Vec") && ty_str.contains("String"),
@@ -153,8 +168,8 @@ fn test_validator_attr_parse_nested_generic_concrete() {
 fn test_validator_attr_parse_deeply_nested_generic() {
     let attr: ValidatorAttr = syn::parse_quote!(DeepValidator::<Option<Vec<_>>>);
     assert_eq!(attr.name().to_string(), "DeepValidator");
-    assert!(!attr.infer_type);
-    assert!(attr.explicit_type.is_some());
+    assert!(!attr.uses_type_inference());
+    assert!(attr.explicit_type().is_some());
 }
 
 #[test]
@@ -171,9 +186,9 @@ fn test_validator_attr_parse_option_infer_type() {
     // ::<Option<_>> syntax for full Option type (no unwrapping)
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
     assert_eq!(attr.name().to_string(), "RequiredValidation");
-    assert!(!attr.infer_type);
-    assert!(attr.explicit_type.is_some());
-    let explicit_ty = attr.explicit_type.unwrap();
+    assert!(!attr.uses_type_inference());
+    assert!(attr.explicit_type().is_some());
+    let explicit_ty = attr.explicit_type().unwrap();
     let ty_str = quote::quote!(#explicit_ty).to_string();
     assert!(
         ty_str.contains("Option"),

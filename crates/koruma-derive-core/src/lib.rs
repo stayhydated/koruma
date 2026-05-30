@@ -37,8 +37,9 @@ mod tests;
 
 // Re-export parsing types
 pub use parse::{
-    BuilderMethodCall, FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo,
-    ValidatorAttr, ValueFieldCapture, ValueFieldInfo, find_value_field, find_value_field_info,
+    BuilderMethodCall, FieldInfo, FieldMode, KorumaAttr, KorumaItem, ParseFieldResult,
+    ParsedFieldAttr, StructNewtype, StructOptions, ValidationInfo, ValidatorAttr, ValidatorTypeArg,
+    ValueFieldCapture, ValueFieldInfo, find_value_field, find_value_field_info,
     find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
 };
 

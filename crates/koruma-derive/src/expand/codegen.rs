@@ -3,10 +3,11 @@ use koruma_derive_core::{
     ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_type, option_inner_type,
     substitute_infer_type_from_source, vec_inner_type,
 };
-use proc_macro2::{TokenStream as TokenStream2, TokenTree};
+use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeSet;
-use syn::{Error, Expr, GenericParam, Generics, Ident, Type};
+use syn::visit::{self, Visit};
+use syn::{Error, Expr, ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath};
 
 pub(crate) struct HelperGenerics {
     pub definition: Generics,
@@ -30,60 +31,150 @@ fn generic_param_key(param: &GenericParam) -> String {
     }
 }
 
-fn collect_matching_generic_names(
-    tokens: &TokenStream2,
-    param_names: &BTreeSet<String>,
-) -> BTreeSet<String> {
-    fn walk(tokens: TokenStream2, param_names: &BTreeSet<String>, used: &mut BTreeSet<String>) {
-        let mut iter = tokens.into_iter().peekable();
-        while let Some(token) = iter.next() {
-            match token {
-                TokenTree::Ident(ident) => {
-                    let key = ident.to_string();
-                    if param_names.contains(&key) {
-                        used.insert(key);
-                    }
-                },
-                TokenTree::Punct(punct) if punct.as_char() == '\'' => {
-                    if let Some(TokenTree::Ident(ident)) = iter.peek() {
-                        let key = format!("'{}", ident);
-                        if param_names.contains(&key) {
-                            used.insert(key);
-                        }
-                    }
-                },
-                TokenTree::Group(group) => walk(group.stream(), param_names, used),
-                _ => {},
-            }
+struct GenericUsageVisitor<'a> {
+    type_params: &'a BTreeSet<String>,
+    const_params: &'a BTreeSet<String>,
+    lifetime_params: &'a BTreeSet<String>,
+    used: BTreeSet<String>,
+}
+
+impl<'a> GenericUsageVisitor<'a> {
+    fn new(
+        type_params: &'a BTreeSet<String>,
+        const_params: &'a BTreeSet<String>,
+        lifetime_params: &'a BTreeSet<String>,
+    ) -> Self {
+        Self {
+            type_params,
+            const_params,
+            lifetime_params,
+            used: BTreeSet::new(),
         }
     }
 
-    let mut used = BTreeSet::new();
-    walk(tokens.clone(), param_names, &mut used);
-    used
+    fn visit_path_arguments(&mut self, path: &syn::Path) {
+        for segment in &path.segments {
+            visit::visit_path_arguments(self, &segment.arguments);
+        }
+    }
+}
+
+impl<'ast> Visit<'ast> for GenericUsageVisitor<'_> {
+    fn visit_type_path(&mut self, type_path: &'ast TypePath) {
+        if let Some(qself) = &type_path.qself {
+            self.visit_type(&qself.ty);
+        } else if type_path.path.leading_colon.is_none()
+            && type_path.path.segments.len() == 1
+            && let Some(segment) = type_path.path.segments.first()
+            && matches!(segment.arguments, syn::PathArguments::None)
+            && self.type_params.contains(&segment.ident.to_string())
+        {
+            self.used.insert(segment.ident.to_string());
+        }
+
+        self.visit_path_arguments(&type_path.path);
+    }
+
+    fn visit_expr_path(&mut self, expr_path: &'ast ExprPath) {
+        if expr_path.qself.is_none()
+            && expr_path.path.leading_colon.is_none()
+            && expr_path.path.segments.len() == 1
+            && let Some(segment) = expr_path.path.segments.first()
+            && matches!(segment.arguments, syn::PathArguments::None)
+            && self.const_params.contains(&segment.ident.to_string())
+        {
+            self.used.insert(segment.ident.to_string());
+        }
+
+        self.visit_path_arguments(&expr_path.path);
+    }
+
+    fn visit_lifetime(&mut self, lifetime: &'ast Lifetime) {
+        let key = lifetime.to_token_stream().to_string();
+        if self.lifetime_params.contains(&key) {
+            self.used.insert(key);
+        }
+    }
+}
+
+fn collect_generic_params(
+    source_generics: &Generics,
+) -> (BTreeSet<String>, BTreeSet<String>, BTreeSet<String>) {
+    let mut type_params = BTreeSet::new();
+    let mut const_params = BTreeSet::new();
+    let mut lifetime_params = BTreeSet::new();
+
+    for param in &source_generics.params {
+        match param {
+            GenericParam::Lifetime(param) => {
+                lifetime_params.insert(param.lifetime.to_token_stream().to_string());
+            },
+            GenericParam::Type(param) => {
+                type_params.insert(param.ident.to_string());
+            },
+            GenericParam::Const(param) => {
+                const_params.insert(param.ident.to_string());
+            },
+        }
+    }
+
+    (type_params, const_params, lifetime_params)
+}
+
+fn collect_matching_generic_names_from_type(
+    ty: &Type,
+    type_params: &BTreeSet<String>,
+    const_params: &BTreeSet<String>,
+    lifetime_params: &BTreeSet<String>,
+) -> BTreeSet<String> {
+    let mut visitor = GenericUsageVisitor::new(type_params, const_params, lifetime_params);
+    visitor.visit_type(ty);
+    visitor.used
+}
+
+fn collect_matching_generic_names_from_predicate(
+    predicate: &syn::WherePredicate,
+    type_params: &BTreeSet<String>,
+    const_params: &BTreeSet<String>,
+    lifetime_params: &BTreeSet<String>,
+) -> BTreeSet<String> {
+    let mut visitor = GenericUsageVisitor::new(type_params, const_params, lifetime_params);
+    visitor.visit_where_predicate(predicate);
+    visitor.used
 }
 
 pub(crate) fn helper_generics_for_usages(
     source_generics: &Generics,
     usages: &[TokenStream2],
 ) -> HelperGenerics {
-    let param_names: BTreeSet<String> = source_generics
-        .params
-        .iter()
-        .map(generic_param_key)
-        .collect();
+    let (type_params, const_params, lifetime_params) = collect_generic_params(source_generics);
     let mut used: BTreeSet<String> = usages
         .iter()
-        .flat_map(|usage| collect_matching_generic_names(usage, &param_names))
+        .map(|usage| {
+            syn::parse2::<Type>(usage.clone()).unwrap_or_else(|err| {
+                panic!("helper generic usage should be a Rust type, got `{usage}`: {err}")
+            })
+        })
+        .flat_map(|ty| {
+            collect_matching_generic_names_from_type(
+                &ty,
+                &type_params,
+                &const_params,
+                &lifetime_params,
+            )
+        })
         .collect();
 
     if let Some(where_clause) = &source_generics.where_clause {
         loop {
             let mut changed = false;
             for predicate in &where_clause.predicates {
-                let predicate_tokens = quote! { #predicate };
-                let predicate_names =
-                    collect_matching_generic_names(&predicate_tokens, &param_names);
+                let predicate_names = collect_matching_generic_names_from_predicate(
+                    predicate,
+                    &type_params,
+                    &const_params,
+                    &lifetime_params,
+                );
                 if !predicate_names.is_empty() && !predicate_names.is_disjoint(&used) {
                     for name in predicate_names {
                         changed |= used.insert(name);
@@ -109,8 +200,13 @@ pub(crate) fn helper_generics_for_usages(
             .predicates
             .iter()
             .filter(|predicate| {
-                let predicate_tokens = quote! { #predicate };
-                !collect_matching_generic_names(&predicate_tokens, &param_names).is_disjoint(&used)
+                !collect_matching_generic_names_from_predicate(
+                    predicate,
+                    &type_params,
+                    &const_params,
+                    &lifetime_params,
+                )
+                .is_disjoint(&used)
             })
             .cloned()
             .collect();
@@ -148,7 +244,7 @@ pub(crate) fn helper_generics_for_usages(
 /// Any explicit `Option<...>` validator type takes the full-type path so derived
 /// validation passes `&Option<T>` instead of unwrapping to `&T`.
 pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
-    v.explicit_type.as_ref().is_some_and(is_option_type)
+    v.wants_full_target() || v.explicit_type().is_some_and(is_option_type)
 }
 
 /// Returns the collection type that `each(...)` should iterate over.
@@ -220,7 +316,7 @@ pub(crate) fn resolve_explicit_infer_type(
     field_ty: &Type,
     validate_each: bool,
 ) -> Result<Option<Type>, syn::Error> {
-    let Some(explicit_ty) = v.explicit_type.as_ref() else {
+    let Some(explicit_ty) = v.explicit_type() else {
         return Ok(None);
     };
 
@@ -266,8 +362,7 @@ pub(crate) fn validate_full_type_option_target(
     };
 
     Err(Error::new_spanned(
-        v.explicit_type
-            .as_ref()
+        v.explicit_type()
             .expect("full-type validators should always have an explicit type"),
         format!(
             "explicit `Option<...>` validator types require an optional validation target, but the {target_context} is `{rendered_target}`"
@@ -276,15 +371,24 @@ pub(crate) fn validate_full_type_option_target(
 }
 
 /// Transform a validator arg value for use in generated code.
-/// If the expression is a simple identifier that matches a struct field name,
-/// transform it to `self.field.clone()`. Otherwise, use the expression as-is.
-pub(crate) fn transform_arg_value(arg_value: &Expr, field_names: &[Ident]) -> TokenStream2 {
+///
+/// Bare identifiers that match struct fields are rejected so cross-field
+/// validator arguments stay explicit at the call site.
+pub(crate) fn transform_arg_value(
+    arg_value: &Expr,
+    field_names: &[Ident],
+) -> Result<TokenStream2, syn::Error> {
     if let Some(field_ident) = expr_as_simple_ident(arg_value)
         && field_names.iter().any(|name| name == field_ident)
     {
-        quote! { self.#field_ident.clone() }
+        Err(syn::Error::new_spanned(
+            arg_value,
+            format!(
+                "bare field argument `{field_ident}` is ambiguous; use `self.{field_ident}.clone()` explicitly"
+            ),
+        ))
     } else {
-        quote! { #arg_value }
+        Ok(quote! { #arg_value })
     }
 }
 
@@ -293,13 +397,13 @@ pub(crate) fn validator_builder_expr(
     field_ty: &Type,
     validate_each: bool,
     field_names: &[Ident],
-) -> TokenStream2 {
+) -> Result<TokenStream2, syn::Error> {
     let validator = &v.validator;
-    let effective_ty = effective_validation_type(field_ty, validate_each);
+    let effective_ty = validator_infer_source_type(v, field_ty, validate_each);
 
-    let uses_infer = v.infer_type || v.explicit_type.as_ref().is_some_and(contains_infer_type);
+    let uses_infer = v.uses_type_inference() || v.explicit_type().is_some_and(contains_infer_type);
     let validator_path = if uses_infer {
-        let validator_ty = if v.explicit_type.is_some() {
+        let validator_ty = if v.has_explicit_type() {
             let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
                 .expect("explicit infer types should be pre-validated")
                 .expect("explicit infer types should resolve to a concrete type");
@@ -315,7 +419,7 @@ pub(crate) fn validator_builder_expr(
 
     let mut setter_calls = v.setter_calls().iter();
     let Some(first_method) = setter_calls.next() else {
-        return quote! { #validator_path::__koruma_builder() };
+        return Ok(quote! { #validator_path::__koruma_builder() });
     };
 
     let first_method_name = &first_method.method;
@@ -323,7 +427,7 @@ pub(crate) fn validator_builder_expr(
         .args
         .iter()
         .map(|arg| transform_arg_value(arg, field_names))
-        .collect();
+        .collect::<Result<_, _>>()?;
     let rest_calls: Vec<TokenStream2> = setter_calls
         .map(|method| {
             let method_name = &method.method;
@@ -331,15 +435,15 @@ pub(crate) fn validator_builder_expr(
                 .args
                 .iter()
                 .map(|arg| transform_arg_value(arg, field_names))
-                .collect();
-            quote! { .#method_name(#(#transformed_args),*) }
+                .collect::<Result<_, _>>()?;
+            Ok(quote! { .#method_name(#(#transformed_args),*) })
         })
-        .collect();
+        .collect::<Result<_, syn::Error>>()?;
 
-    quote! {
+    Ok(quote! {
         #validator_path::#first_method_name(#(#first_args),*)
             #(#rest_calls)*
-    }
+    })
 }
 
 fn stable_hash_hex(input: &str) -> String {
@@ -409,7 +513,7 @@ pub(crate) fn validator_variant_ident(v: &ValidatorAttr, siblings: &[ValidatorAt
 /// Helper to generate the type for a validator
 ///
 /// Type inference behavior:
-/// - `<_>`: uses the full field type (unwrapping Option if present)
+/// - `<_>`: uses the validation target type (unwrapping Option unless `full(...)` is used)
 /// - Explicit types containing `_`: infer from the field/element type using generic shape matching
 /// - `<SomeType>`: uses the explicit type directly
 /// - For `each` validation on `Vec<T>`: uses T
@@ -422,7 +526,7 @@ pub(crate) fn validator_type_for_field(
     let validator = &v.validator;
 
     // If explicit type is provided, check if it contains `_` for substitution
-    if let Some(ref explicit_ty) = v.explicit_type {
+    if let Some(explicit_ty) = v.explicit_type() {
         if contains_infer_type(explicit_ty) {
             let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
                 .expect("explicit infer types should be pre-validated")
@@ -432,19 +536,8 @@ pub(crate) fn validator_type_for_field(
         return quote! { #validator<#explicit_ty> };
     }
 
-    // For `each` validation, unwrap outer Option<Collection<T>> first,
-    // then unwrap the collection element type.
-    let after_each = if validate_each {
-        each_element_type(field_ty)
-    } else {
-        field_ty
-    };
-
-    // Unwrap Option<T> for optional field validation
-    let effective_ty = option_inner_type(after_each).unwrap_or(after_each);
-
-    if v.infer_type {
-        // <_> means use the field type (after unwrapping Option)
+    if v.uses_type_inference() {
+        let effective_ty = validator_infer_source_type(v, field_ty, validate_each);
         quote! { #validator<#effective_ty> }
     } else {
         quote! { #validator }

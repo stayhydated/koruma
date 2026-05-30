@@ -11,6 +11,7 @@ pub(crate) mod derive;
 pub(crate) mod display;
 #[cfg(feature = "fluent")]
 pub(crate) mod fluent;
+pub(crate) mod plan;
 pub(crate) mod validator;
 
 pub use derive::expand_koruma;
@@ -63,7 +64,7 @@ pub(crate) fn collect_field_infos(
         }
     }
 
-    if struct_options.is_some_and(|options| options.newtype)
+    if struct_options.is_some_and(|options| options.is_newtype())
         && fields.len() == 1
         && field_infos.is_empty()
     {
@@ -83,22 +84,13 @@ pub(crate) fn collect_field_infos(
         field_infos.push(synthetic_struct_newtype_field_info(field, index));
     }
 
-    for field_info in &field_infos {
-        if field_info.is_nested() && field_info.has_validators() {
-            return Err(syn::Error::new_spanned(
-                &field_info.ty,
-                "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`, even across multiple `#[koruma(...)]` attributes",
-            ));
-        }
-    }
-
     Ok(field_infos)
 }
 
 fn has_explicit_koruma_skip(field: &Field) -> Result<bool, syn::Error> {
     for attr in field.attrs.to_vec().find_attribute("koruma") {
         let parsed: KorumaAttr = attr.parse_args()?;
-        if parsed.is_skip {
+        if parsed.is_skip() {
             return Ok(true);
         }
     }
@@ -122,8 +114,7 @@ fn synthetic_struct_newtype_field_info(field: &Field, index: usize) -> FieldInfo
         validation: ValidationInfo {
             field_validators: Vec::new(),
             element_validators: Vec::new(),
-            is_nested: false,
-            is_newtype: true,
+            mode: koruma_derive_core::FieldMode::Newtype,
         },
     }
 }

@@ -37,7 +37,7 @@ use koruma::{Validate, validator};
 pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
     /// Minimum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
-    pub min: T,
+    min: T,
     /// Whether the minimum value is exclusive
     #[cfg_attr(
         feature = "fluent",
@@ -47,10 +47,10 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
         )
     )]
     #[builder(default = false)]
-    pub exclusive_min: bool,
+    exclusive_min: bool,
     /// Maximum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
-    pub max: T,
+    max: T,
     /// Whether the maximum value is exclusive
     #[cfg_attr(
         feature = "fluent",
@@ -60,7 +60,7 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
         )
     )]
     #[builder(default = false)]
-    pub exclusive_max: bool,
+    exclusive_max: bool,
     /// The value being validated (stored for error context)
     #[koruma(value)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
@@ -165,17 +165,19 @@ mod tests {
 
     #[cfg(feature = "fmt")]
     #[test]
-    fn display_uses_the_current_exclusivity_flags() {
-        let mut validator = RangeValidation::min(1_i32)
+    fn display_uses_builder_configured_exclusivity_flags() {
+        let inclusive = RangeValidation::min(1_i32)
             .max(3_i32)
             .with_value(0_i32)
             .build();
+        let exclusive = RangeValidation::min(1_i32)
+            .max(3_i32)
+            .exclusive_min(true)
+            .exclusive_max(true)
+            .with_value(0_i32)
+            .build();
 
-        assert_eq!(validator.to_string(), "Must be in the range [1, 3].");
-
-        validator.exclusive_min = true;
-        validator.exclusive_max = true;
-
-        assert_eq!(validator.to_string(), "Must be in the range (1, 3).");
+        assert_eq!(inclusive.to_string(), "Must be in the range [1, 3].");
+        assert_eq!(exclusive.to_string(), "Must be in the range (1, 3).");
     }
 }

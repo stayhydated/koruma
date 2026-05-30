@@ -112,12 +112,12 @@ pub struct BorrowedTags<'a> {
     pub tags: &'a [&'a str],
 }
 
-/// Example struct demonstrating cross-field setter arguments.
+/// Example struct demonstrating explicit cross-field setter arguments.
 #[derive(Koruma)]
 pub struct PasswordConfirmation {
     pub password: String,
 
-    #[koruma(MatchesStringValidation::expected(password))]
+    #[koruma(MatchesStringValidation::expected(self.password.clone()))]
     pub confirm: String,
 }
 
@@ -128,12 +128,12 @@ pub struct DirectSyntaxItem {
     pub score: f64,
 }
 
-/// Example struct demonstrating cross-field references inside direct-chain syntax.
+/// Example struct demonstrating explicit cross-field references inside direct-chain syntax.
 #[derive(Koruma)]
 pub struct DirectPasswordConfirmation {
     pub password: String,
 
-    #[koruma(MatchesStringValidation::expected(password))]
+    #[koruma(MatchesStringValidation::expected(self.password.clone()))]
     pub confirm: String,
 }
 
@@ -165,24 +165,24 @@ pub struct NonCloneSecret {
     pub raw: String,
 }
 
-/// Example struct demonstrating explicit concrete Option<T> full-type validation.
+/// Example struct demonstrating explicit full-target validation.
 #[derive(Koruma)]
 pub struct ExplicitRequiredProfile {
-    #[koruma(RequiredValidation::<Option<String>>)]
+    #[koruma(full(RequiredValidation::<_>))]
     pub bio: Option<String>,
 }
 
 /// Example struct demonstrating full-type element validation for optional elements.
 #[derive(Koruma)]
 pub struct OptionalElementPresenceOrder {
-    #[koruma(each(RequiredValidation::<Option<_>>))]
+    #[koruma(each(full(RequiredValidation::<_>)))]
     pub values: Vec<Option<i32>>,
 }
 
 /// Example struct demonstrating mixed full-type and unwrapped element validators.
 #[derive(Koruma)]
 pub struct OptionalElementMixedValidators {
-    #[koruma(each(RequiredValidation::<Option<_>>, GenericRangeValidation::<_>::min(0).max(10)))]
+    #[koruma(each(full(RequiredValidation::<_>), GenericRangeValidation::<_>::min(0).max(10)))]
     pub values: Vec<Option<i32>>,
 }
 
@@ -190,7 +190,7 @@ pub struct OptionalElementMixedValidators {
 /// without forcing clone capture in the derive expansion.
 #[derive(Koruma)]
 pub struct PresenceOnlyNonClone {
-    #[koruma(RequiredValidation::<Option<_>>)]
+    #[koruma(full(RequiredValidation::<_>))]
     pub token: Option<NonCloneSecret>,
 }
 
@@ -295,14 +295,14 @@ pub struct ContainsNewtype {
 /// This tests the new functionality where newtype fields can have additional validators.
 #[derive(Koruma)]
 pub struct ContainsRequiredNewtype {
-    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    #[koruma(newtype, full(RequiredValidation::<_>))]
     pub age: Option<PositiveNumber>,
 }
 
 /// Example struct containing an optional newtype field with multiple validators.
 #[derive(Koruma)]
 pub struct ContainsNewtypeWithValidators {
-    #[koruma(newtype, RequiredValidation::<Option<_>>)]
+    #[koruma(newtype, full(RequiredValidation::<_>))]
     pub age: Option<PositiveNumber>,
     #[allow(dead_code)]
     pub name: String,

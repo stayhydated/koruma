@@ -5,7 +5,9 @@ use crate::expand::{
         helper_generics_for_usages, resolve_explicit_infer_type, validate_each_collection_type,
         validator_builder_expr, validator_field_ident, validator_variant_ident,
     },
-    effective_validation_type, validator_wants_full_type,
+    effective_validation_type,
+    plan::{PlannedValidatorTypeArg, ValidationPlan, ValidationTarget},
+    validator_wants_full_type,
 };
 use koruma_derive_core::*;
 
@@ -165,6 +167,9 @@ fn test_validator_wants_full_type_for_explicit_option_type() {
 
     let non_option_attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<String>);
     assert!(!validator_wants_full_type(&non_option_attr));
+
+    let full_attr: ValidatorAttr = syn::parse_quote!(full(RequiredValidation::<_>));
+    assert!(validator_wants_full_type(&full_attr));
 }
 
 #[test]
@@ -198,6 +203,36 @@ fn test_helper_generics_tracks_lifetimes_consts_and_where_dependencies() {
         "Helper < 'a , T , U , N >"
     );
     assert!(helper.where_clause.to_string().contains("T : Into < U >"));
+}
+
+#[test]
+fn test_helper_generics_ignores_non_generic_path_segments() {
+    let item: ItemStruct = syn::parse_quote! {
+        struct Demo<T, U, Result, const N: usize>
+        where
+            U: Iterator<Item = T>,
+            Result: Default,
+        {
+            value: U,
+        }
+    };
+
+    let helper = helper_generics_for_usages(
+        &item.generics,
+        &[quote! { (::std::result::Result<U, ()>, [u8; N]) }],
+    );
+    let definition_generics = &helper.definition;
+    let definition = quote!(#definition_generics).to_string();
+    assert!(definition.contains("T"));
+    assert!(definition.contains("U"));
+    assert!(definition.contains("N"));
+    assert!(!definition.contains("Result : Default"));
+
+    let helper_ident = format_ident!("Helper");
+    assert_eq!(
+        helper.type_path(&helper_ident).to_string(),
+        "Helper < T , U , N >"
+    );
 }
 
 #[test]
@@ -249,7 +284,7 @@ fn test_codegen_names_use_hash_when_flattened_paths_collide() {
 fn test_validator_builder_expr_without_setters_uses_hidden_builder() {
     let attr: ValidatorAttr = syn::parse_quote!(BareValidation::<_>);
     let field_ty: syn::Type = syn::parse_quote!(Option<String>);
-    let expr = validator_builder_expr(&attr, &field_ty, false, &[]);
+    let expr = validator_builder_expr(&attr, &field_ty, false, &[]).unwrap();
 
     assert_eq!(
         quote!(#expr).to_string(),
@@ -304,7 +339,7 @@ fn test_parse_field_with_single_validator() {
         info.validation.field_validators[0].name().to_string(),
         "RangeValidation"
     );
-    assert!(!info.validation.field_validators[0].infer_type);
+    assert!(!info.validation.field_validators[0].uses_type_inference());
     assert_eq!(info.validation.field_validators[0].builder_methods.len(), 2);
     assert!(info.validation.element_validators.is_empty());
 }
@@ -320,7 +355,7 @@ fn test_parse_field_with_generic_validator() {
     let ParseFieldResult::Valid(info) = result else {
         panic!("expected Valid result");
     };
-    assert!(info.validation.field_validators[0].infer_type);
+    assert!(info.validation.field_validators[0].uses_type_inference());
 }
 
 #[test]
@@ -355,4 +390,57 @@ fn test_parse_field_without_koruma_returns_skip() {
     };
 
     assert!(matches!(parse_field(&field, 0), ParseFieldResult::Skip));
+}
+
+#[test]
+fn test_validation_plan_resolves_targets_names_and_type_args() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        struct Planned {
+            #[koruma(RequiredValidation::<Option<_>>, LengthValidation::<_>::min(1))]
+            name: Option<String>,
+            #[koruma(each(ItemRequired::<Option<_>>, ItemLength::<_>::min(1)))]
+            tags: Vec<Option<String>>,
+        }
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    assert_eq!(plan.fields.len(), 2);
+    assert_eq!(
+        plan.fields[0]
+            .generated_names
+            .field_error_struct
+            .to_string(),
+        "PlannedNameKorumaValidationError"
+    );
+    assert_eq!(
+        plan.fields[1]
+            .generated_names
+            .element_validator_enum
+            .to_string(),
+        "PlannedTagsElementKorumaValidator"
+    );
+
+    assert_eq!(
+        plan.fields[0].field_validators[0].target,
+        ValidationTarget::FieldFull
+    );
+    assert_eq!(
+        plan.fields[0].field_validators[1].target,
+        ValidationTarget::FieldOptionalInner
+    );
+    assert_eq!(
+        plan.fields[1].element_validators[0].target,
+        ValidationTarget::ElementFull
+    );
+    assert_eq!(
+        plan.fields[1].element_validators[1].target,
+        ValidationTarget::ElementOptionalInner
+    );
+
+    let PlannedValidatorTypeArg::Resolved(resolved_ty) =
+        &plan.fields[1].element_validators[1].resolved_type_arg
+    else {
+        panic!("expected inferred element validator type");
+    };
+    assert_eq!(quote!(#resolved_ty).to_string(), "String");
 }

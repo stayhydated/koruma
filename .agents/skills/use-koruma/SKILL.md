@@ -85,7 +85,7 @@ struct SignupInput {
     #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(general::RequiredValidation::<Option<_>>)]
+    #[koruma(full(general::RequiredValidation::<_>))]
     display_name: Option<String>,
 }
 ```

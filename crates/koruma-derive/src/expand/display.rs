@@ -1,12 +1,9 @@
-use heck::ToUpperCamelCase;
-use koruma_derive_core::{FieldInfo, ValidatorAttr, option_inner_type, parse_struct_options};
+use koruma_derive_core::option_inner_type;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
+use quote::quote;
 
-use crate::expand::codegen::{
-    helper_generics_for_usages, validator_type_for_field, validator_variant_ident,
-};
-use crate::expand::collect_field_infos;
+use crate::expand::codegen::helper_generics_for_usages;
+use crate::expand::plan::ValidationPlan;
 use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(KorumaAllDisplay)]` derive macro.
@@ -14,41 +11,24 @@ use syn::DeriveInput;
 /// Generates `Display` implementations for the `{Struct}{Field}KorumaValidator` enums
 /// returned by the `all()` method. Each variant delegates to its inner validator's Display.
 pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
-    let struct_name = &input.ident;
     let generics = &input.generics;
-    let struct_options = parse_struct_options(&input.attrs)?;
 
-    let fields = match &input.data {
-        syn::Data::Struct(data) => &data.fields,
-        _ => {
-            return Err(syn::Error::new_spanned(
-                &input,
-                "KorumaAllDisplay can only be derived for structs",
-            ));
-        },
-    };
-
-    // Parse all fields and extract validation info
-    let field_infos: Vec<FieldInfo> = collect_field_infos(fields, Some(&struct_options))?;
+    let plan = ValidationPlan::build(&input, "KorumaAllDisplay")?;
 
     // Generate Display impls for each field's validator enum
-    let display_impls: Vec<TokenStream2> = field_infos
+    let display_impls: Vec<TokenStream2> = plan
+        .fields
         .iter()
-        .filter(|f| !f.validation.field_validators.is_empty())
-        .map(|f| {
-            let field_name = &f.name;
+        .zip(plan.field_infos())
+        .filter(|(field_plan, _)| !field_plan.field_validators.is_empty())
+        .map(|(field_plan, f)| {
             let field_ty = &f.ty;
-            let enum_name = format_ident!(
-                "{}{}KorumaValidator",
-                struct_name,
-                field_name.to_string().to_upper_camel_case()
-            );
-            let mut helper_usages: Vec<TokenStream2> = f
-                .validation
+            let enum_name = &field_plan.generated_names.field_validator_enum;
+            let mut helper_usages: Vec<TokenStream2> = field_plan
                 .field_validators
                 .iter()
-                .map(|v| {
-                    let vtype = validator_type_for_field(v, field_ty, false);
+                .map(|planned| {
+                    let vtype = &planned.validator_type;
                     quote! { #vtype }
                 })
                 .collect();
@@ -61,13 +41,11 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
             let helper_ty_generics = &helper_generics.ty_generics;
             let helper_where_clause = &helper_generics.where_clause;
 
-            let match_arms: Vec<TokenStream2> = f
-                .validation
+            let match_arms: Vec<TokenStream2> = field_plan
                 .field_validators
                 .iter()
-                .map(|v: &ValidatorAttr| {
-                    let variant_name =
-                        validator_variant_ident(v, &f.validation.field_validators);
+                .map(|planned| {
+                    let variant_name = &planned.variant_ident;
                     quote! {
                         #enum_name::#variant_name(v) => ::std::fmt::Display::fmt(v, f)
                     }
@@ -97,23 +75,17 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
         .collect();
 
     // Generate Display impls for element validator enums (if any)
-    let element_display_impls: Vec<TokenStream2> = field_infos
+    let element_display_impls: Vec<TokenStream2> = plan
+        .fields
         .iter()
-        .filter(|f| !f.validation.element_validators.is_empty())
-        .map(|f| {
-            let field_name = &f.name;
-            let field_ty = &f.ty;
-            let enum_name = format_ident!(
-                "{}{}ElementKorumaValidator",
-                struct_name,
-                field_name.to_string().to_upper_camel_case()
-            );
-            let helper_usages: Vec<TokenStream2> = f
-                .validation
+        .filter(|field_plan| !field_plan.element_validators.is_empty())
+        .map(|field_plan| {
+            let enum_name = &field_plan.generated_names.element_validator_enum;
+            let helper_usages: Vec<TokenStream2> = field_plan
                 .element_validators
                 .iter()
-                .map(|v| {
-                    let vtype = validator_type_for_field(v, field_ty, true);
+                .map(|planned| {
+                    let vtype = &planned.validator_type;
                     quote! { #vtype }
                 })
                 .collect();
@@ -122,13 +94,11 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
             let helper_ty_generics = &helper_generics.ty_generics;
             let helper_where_clause = &helper_generics.where_clause;
 
-            let match_arms: Vec<TokenStream2> = f
-                .validation
+            let match_arms: Vec<TokenStream2> = field_plan
                 .element_validators
                 .iter()
-                .map(|v: &ValidatorAttr| {
-                    let variant_name =
-                        validator_variant_ident(v, &f.validation.element_validators);
+                .map(|planned| {
+                    let variant_name = &planned.variant_ident;
                     quote! {
                         #enum_name::#variant_name(v) => ::std::fmt::Display::fmt(v, f)
                     }

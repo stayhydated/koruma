@@ -1,0 +1,6 @@
+error: duplicate or conflicting field modifier across `#[koruma(...)]` attributes
+ --> tests/ui/duplicate_modifiers.rs:5:5
+  |
+5 | /     #[koruma(nested, nested)]
+6 | |     value: String,
+  | |_________________^

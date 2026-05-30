@@ -10,13 +10,14 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     // <Option<_>> substitutes `_` with the inner type (String), giving Option<String>
-///     #[koruma(RequiredValidation::<Option<_>>)]
+///     #[koruma(full(RequiredValidation::<_>))]
 ///     name: Option<String>,
 /// }
 /// ```
 ///
-/// Validates that a value is present (not None for Option types).
+/// Validates that a value is present (not `None` for `Option` types). The
+/// `full(...)` wrapper tells koruma to pass the whole `Option<T>` to the
+/// validator instead of unwrapping `Some(T)`.
 #[validator]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "general"))]

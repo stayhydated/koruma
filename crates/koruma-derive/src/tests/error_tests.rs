@@ -547,7 +547,7 @@ fn test_koruma_error_on_field_with_nested_and_newtype() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`"),
+            .contains("duplicate or conflicting field modifier"),
         "expected nested + newtype rejection, got: {err}"
     );
 }

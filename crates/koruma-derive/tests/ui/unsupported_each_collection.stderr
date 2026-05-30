@@ -1,0 +1,5 @@
+error: `each(...)` currently only supports `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those, found `std :: collections :: HashMap < String, String >`
+ --> tests/ui/unsupported_each_collection.rs:6:12
+  |
+6 |     value: std::collections::HashMap<String, String>,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

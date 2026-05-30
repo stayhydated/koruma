@@ -24,12 +24,13 @@ koruma-derive-core = { features = [  ], workspace = true }
 proc-macro-error2 = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
-syn = { features = [ "full", "extra-traits" ], workspace = true }
+syn = { features = [ "full", "extra-traits", "visit" ], workspace = true }
 syn-cfg-attr = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
 prettyplease = { workspace = true }
+trybuild = { workspace = true }
 
 [package.metadata.docs.rs]
 features = [ "fluent" ]

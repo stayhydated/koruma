@@ -512,7 +512,7 @@ fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
 }
 
 #[test]
-fn test_koruma_expansion_empty_koruma_attr_still_expands() {
+fn test_koruma_expansion_empty_koruma_attr_is_rejected() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct EmptyKorumaAttrField {
             #[koruma()]
@@ -520,9 +520,12 @@ fn test_koruma_expansion_empty_koruma_attr_still_expands() {
         }
     };
 
-    let expanded = expand_koruma(input).unwrap();
-    let rendered = pretty_print(expanded);
-    assert!(rendered.contains("struct EmptyKorumaAttrFieldKorumaValidationError"));
+    let err = expand_koruma(input).expect_err("empty koruma attributes should be rejected");
+    assert!(
+        err.to_string()
+            .contains("must contain a modifier, validator, or `each(...)` block"),
+        "expected empty attribute rejection, got: {err}"
+    );
 }
 
 #[test]
@@ -622,7 +625,7 @@ fn test_koruma_expansion_multi_generic_explicit_type_infers_per_slot() {
 }
 
 #[test]
-fn test_koruma_expansion_field_arg_ident_transforms_to_self_clone() {
+fn test_koruma_expansion_field_arg_ident_is_rejected() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MatchesValidationInput {
             pub password: String,
@@ -631,9 +634,11 @@ fn test_koruma_expansion_field_arg_ident_transforms_to_self_clone() {
         }
     };
 
-    let expanded = expand_koruma(input).unwrap();
-    let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("MatchesValidation::matches(self.password.clone())"));
+    let err = expand_koruma(input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("bare field argument `password` is ambiguous")
+    );
 }
 
 #[test]
@@ -651,11 +656,11 @@ fn test_koruma_expansion_direct_chain_uses_supplied_setters() {
 }
 
 #[test]
-fn test_koruma_expansion_direct_chain_field_arg_ident_transforms_to_self_clone() {
+fn test_koruma_expansion_direct_chain_field_arg_requires_explicit_self() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct BuilderMatchesValidationInput {
             pub password: String,
-            #[koruma(MatchesValidation::matches(password))]
+            #[koruma(MatchesValidation::matches(self.password.clone()))]
             pub confirm: String,
         }
     };

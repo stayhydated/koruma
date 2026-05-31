@@ -8,8 +8,10 @@ Some(
         member: "value",
         ty: "i32",
         validation: SnapshotValidationInfo {
+            shape: "regular",
             field_validators: [
                 SnapshotValidator {
+                    label: None,
                     name: "RangeValidation",
                     infer_type: false,
                     explicit_type: None,
@@ -29,6 +31,7 @@ Some(
                     ],
                 },
                 SnapshotValidator {
+                    label: None,
                     name: "EvenValidation",
                     infer_type: false,
                     explicit_type: None,
@@ -36,8 +39,6 @@ Some(
                 },
             ],
             element_validators: [],
-            is_nested: false,
-            is_newtype: false,
         },
     },
 )

@@ -78,12 +78,21 @@ with `#[koruma(value)]`, implement `Validate<T>`, and optionally implement `Disp
 error messages. External callers can read the captured value through the generated getter
 (`validator.actual()`, `validator.input()`, and so on).
 
-For direct setter generation, `#[validator]` supports only the `#[builder(...)]` field keys
-`into`, `required`, `name`, and `default`. Other builder field settings such as `skip`, `field`,
-and `start_fn` are rejected on validator configuration fields.
+For direct setter generation, use `#[koruma(setter(...))]` on configuration fields. Supported
+setter options are `into`, `required`, `name`, and `default`:
+
+```rust
+#[validator]
+pub struct PrefixValidation<T> {
+    #[koruma(setter(into))]
+    prefix: String,
+    #[koruma(value(capture = skip))]
+    actual: Option<T>,
+}
+```
 
 For validators that do not need to retain the failing input, use
-`#[koruma(value, skip_capture)]` on an `Option<T>` field. During derived validation, koruma leaves
+`#[koruma(value(capture = skip))]` on an `Option<T>` field. During derived validation, koruma leaves
 that field at `None` instead of cloning the input into the error value. If the validator still
 needs `Clone` or `Debug`, implement those manually so the skipped field does not reintroduce type
 bounds.

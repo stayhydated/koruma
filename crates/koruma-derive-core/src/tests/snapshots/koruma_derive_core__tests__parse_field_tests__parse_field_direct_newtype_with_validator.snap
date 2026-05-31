@@ -1,0 +1,24 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_field_snapshot(&field)
+---
+Some(
+    SnapshotFieldInfo {
+        name: "index",
+        member: "index",
+        ty: "Option < CommonVariableIndex >",
+        validation: SnapshotValidationInfo {
+            shape: "newtype",
+            field_validators: [
+                SnapshotValidator {
+                    label: None,
+                    name: "RequiredValidation",
+                    infer_type: true,
+                    explicit_type: None,
+                    builder_methods: [],
+                },
+            ],
+            element_validators: [],
+        },
+    },
+)

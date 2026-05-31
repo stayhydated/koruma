@@ -23,7 +23,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "general"))]
 pub struct RequiredValidation<T> {
     /// Presence-only validation does not need to retain the input in errors.
-    #[koruma(value, skip_capture)]
+    #[koruma(value(capture = skip))]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

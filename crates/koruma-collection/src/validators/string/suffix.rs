@@ -33,10 +33,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct SuffixValidation<T: AsRef<str>> {
     /// The suffix to check for
-    #[builder(into)]
+    #[koruma(setter(into))]
     pub suffix: String,
     /// The string being validated.
-    #[koruma(value, skip_capture)]
+    #[koruma(value(capture = skip))]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

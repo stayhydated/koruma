@@ -1,0 +1,137 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: printed
+---
+#[doc = concat!(
+    "Element validators for the `", "tags", "` field of [`", "LabeledTags", "`]: [`",
+    "tag_prefix", "`]."
+)]
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+pub enum LabeledTagsTagsElementKorumaValidatorRef<'koruma> {
+    TagPrefix(&'koruma PrefixValidation<String>),
+}
+#[doc = concat!(
+    "Per-element validation errors for the `", "tags", "` field of [`", "LabeledTags",
+    "`]."
+)]
+#[derive(Debug, Default)]
+pub struct LabeledTagsTagsElementKorumaValidationError {
+    tag_prefix: Option<PrefixValidation<String>>,
+}
+impl LabeledTagsTagsElementKorumaValidationError {
+    #[doc = concat!("Returns the failed `", "tag_prefix", "` validator, if any.")]
+    pub fn tag_prefix(&self) -> Option<&PrefixValidation<String>> {
+        self.tag_prefix.as_ref()
+    }
+    #[doc = concat!("Returns all failed element validators for `", "tags", "`.")]
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = LabeledTagsTagsElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .tag_prefix
+                .as_ref()
+                .map(LabeledTagsTagsElementKorumaValidatorRef::TagPrefix),
+        ]
+            .into_iter()
+            .flatten()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.tag_prefix.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for the `", "tags", "` field of [`", "LabeledTags",
+    "`] (element validators only)."
+)]
+#[derive(Debug, Default)]
+pub struct LabeledTagsTagsKorumaValidationError {
+    element_errors: Vec<(usize, LabeledTagsTagsElementKorumaValidationError)>,
+}
+impl LabeledTagsTagsKorumaValidationError {
+    #[doc = concat!(
+        "Returns all element validation errors for `", "tags", "` of [`", "LabeledTags",
+        "`] with their indices."
+    )]
+    pub fn element_errors(
+        &self,
+    ) -> &[(usize, LabeledTagsTagsElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    pub fn is_empty(&self) -> bool {
+        self.element_errors.is_empty()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for [`", "LabeledTags",
+    "`].\n\nContains per-field error structs for ", "field: `tags`", "."
+)]
+#[derive(Debug, Default)]
+pub struct LabeledTagsKorumaValidationError {
+    tags: LabeledTagsTagsKorumaValidationError,
+}
+impl LabeledTagsKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "tags", "` field of [`", "LabeledTags",
+        "`]."
+    )]
+    pub fn tags(&self) -> &LabeledTagsTagsKorumaValidationError {
+        &self.tags
+    }
+}
+impl ::renamed_koruma::ValidationError for LabeledTagsKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.tags.is_empty()
+    }
+}
+impl LabeledTags {
+    #[doc = concat!(
+        "Validates all fields of `", "LabeledTags",
+        "` and returns an error struct containing all validation failures."
+    )]
+    pub fn validate(&self) -> Result<(), LabeledTagsKorumaValidationError> {
+        let mut error = LabeledTagsKorumaValidationError {
+            tags: LabeledTagsTagsKorumaValidationError {
+                element_errors: Vec::new(),
+            },
+        };
+        let mut has_error = false;
+        for (idx, __item_value) in self.tags.iter().enumerate() {
+            let mut element_error = LabeledTagsTagsElementKorumaValidationError {
+                tag_prefix: None,
+            };
+            let mut element_has_error = false;
+            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+                    PrefixValidation::<String>::prefix("tag:"),
+                    __item_value,
+                )
+                .build();
+            if !<PrefixValidation<
+                String,
+            > as ::renamed_koruma::Validate<
+                String,
+            >>::validate(&validator, __item_value) {
+                element_error.tag_prefix = Some(validator);
+                element_has_error = true;
+            }
+            if element_has_error {
+                error.tags.element_errors.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl ::renamed_koruma::ValidateExt for LabeledTags {
+    type Error = LabeledTagsKorumaValidationError;
+    fn validate(&self) -> Result<(), LabeledTagsKorumaValidationError> {
+        Self::validate(self)
+    }
+}

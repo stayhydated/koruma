@@ -14,7 +14,7 @@
 //!
 //! fn validator_count(field: &Field) -> syn::Result<Option<usize>> {
 //!     Ok(parse_field(field, 0)?
-//!         .map(|info| info.validation.field_validators.len()))
+//!         .map(|info| info.field_validators().len()))
 //! }
 //!
 //! let field: Field = parse_quote! {
@@ -32,12 +32,12 @@ mod tests;
 
 // Re-export parsing types
 pub use parse::{
-    BuilderMethodCall, DataFieldKorumaAttr, DataFieldKorumaItem, ElementValidationSpec, FieldInfo,
-    FieldMode, FieldModifier, FieldValidationSpec, KorumaAttrContext, NormalizedFieldSpec,
-    StructConstructor, StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions,
-    TargetPolicy, ValidatorAttr, ValidatorFieldKorumaItem, ValidatorTypeArg, ValueFieldCapture,
-    ValueFieldInfo, find_value_field_info_strict, find_value_field_strict, parse_field,
-    parse_struct_options,
+    BuilderMethodCall, CapturePolicy, DataFieldKorumaAttr, DataFieldKorumaItem,
+    ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldValidationSpec,
+    KorumaAttrContext, ParsedFieldSpec, ParsedValidatorUse, StructConstructor, StructKorumaAttr,
+    StructKorumaItem, StructNewtypeOptions, StructOptions, TargetPolicy, ValidatorAttr,
+    ValidatorFieldKorumaItem, ValidatorTypeArg, ValueFieldInfo, find_value_field_info_strict,
+    find_value_field_strict, parse_field, parse_struct_options,
 };
 
 #[cfg(feature = "internal-showcase")]

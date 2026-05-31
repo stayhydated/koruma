@@ -2,23 +2,133 @@
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
 expression: pretty_print(expanded)
 ---
-#[derive(::renamed_koruma::bon::Builder)]
-#[builder(
-    crate = ::renamed_koruma::bon,
-    start_fn(name = __koruma_bon_builder, vis = "")
-)]
 #[derive(Clone, Debug)]
 pub struct NumberRangeValidation {
     min: i32,
     max: i32,
     actual: Option<i32>,
 }
+#[doc(hidden)]
+pub mod number_range_validation_builder {
+    pub struct Empty;
+    pub struct Set;
+}
+pub struct NumberRangeValidationBuilder<
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> {
+    min: ::std::option::Option<i32>,
+    max: ::std::option::Option<i32>,
+    actual: ::std::option::Option<Option<i32>>,
+    _state: ::std::marker::PhantomData<
+        (__KorumaMinState, __KorumaMaxState, __KorumaActualState),
+    >,
+}
+impl<
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> NumberRangeValidationBuilder<__KorumaMinState, __KorumaMaxState, __KorumaActualState> {
+    fn new() -> Self {
+        Self {
+            min: ::std::option::Option::None,
+            max: ::std::option::Option::None,
+            actual: ::std::option::Option::None,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn min(
+        self,
+        value: i32,
+    ) -> NumberRangeValidationBuilder<
+        number_range_validation_builder::Set,
+        __KorumaMaxState,
+        __KorumaActualState,
+    > {
+        NumberRangeValidationBuilder {
+            min: ::std::option::Option::Some(value),
+            max: self.max,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn max(
+        self,
+        value: i32,
+    ) -> NumberRangeValidationBuilder<
+        __KorumaMinState,
+        number_range_validation_builder::Set,
+        __KorumaActualState,
+    > {
+        NumberRangeValidationBuilder {
+            min: self.min,
+            max: ::std::option::Option::Some(value),
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn with_value(
+        self,
+        value: i32,
+    ) -> NumberRangeValidationBuilder<
+        __KorumaMinState,
+        __KorumaMaxState,
+        number_range_validation_builder::Set,
+    > {
+        NumberRangeValidationBuilder {
+            min: self.min,
+            max: self.max,
+            actual: ::std::option::Option::Some(::std::option::Option::Some(value)),
+            _state: ::std::marker::PhantomData,
+        }
+    }
+}
+impl NumberRangeValidationBuilder<
+    number_range_validation_builder::Set,
+    number_range_validation_builder::Set,
+    number_range_validation_builder::Set,
+> {
+    pub fn build(self) -> NumberRangeValidation {
+        NumberRangeValidation {
+            min: self
+                .min
+                .expect("required koruma validator builder field should be set"),
+            max: self
+                .max
+                .expect("required koruma validator builder field should be set"),
+            actual: self
+                .actual
+                .expect("required koruma validator builder field should be set"),
+        }
+    }
+}
+impl<
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> ::renamed_koruma::CaptureValueRef<i32>
+for NumberRangeValidationBuilder<__KorumaMinState, __KorumaMaxState, __KorumaActualState>
+where
+    i32: ::std::clone::Clone,
+{
+    type Output = NumberRangeValidationBuilder<
+        __KorumaMinState,
+        __KorumaMaxState,
+        number_range_validation_builder::Set,
+    >;
+    fn capture_value_ref(self, value: &i32) -> Self::Output {
+        self.with_value(value.clone())
+    }
+}
 impl NumberRangeValidation {
     #[doc(hidden)]
     pub fn __koruma_builder() -> NumberRangeValidationBuilder<
         number_range_validation_builder::Empty,
+        number_range_validation_builder::Empty,
+        number_range_validation_builder::Empty,
     > {
-        Self::__koruma_bon_builder()
+        NumberRangeValidationBuilder::new()
     }
     #[doc = concat!(
         "Starts building [`", stringify!(NumberRangeValidation), "`] with the `",
@@ -27,9 +137,9 @@ impl NumberRangeValidation {
     pub fn with_value(
         value: i32,
     ) -> NumberRangeValidationBuilder<
-        number_range_validation_builder::SetActual<
-            number_range_validation_builder::Empty,
-        >,
+        number_range_validation_builder::Empty,
+        number_range_validation_builder::Empty,
+        number_range_validation_builder::Set,
     > {
         Self::__koruma_builder().with_value(value)
     }
@@ -43,7 +153,9 @@ impl NumberRangeValidation {
     pub fn min(
         value: i32,
     ) -> NumberRangeValidationBuilder<
-        number_range_validation_builder::SetMin<number_range_validation_builder::Empty>,
+        number_range_validation_builder::Set,
+        number_range_validation_builder::Empty,
+        number_range_validation_builder::Empty,
     > {
         Self::__koruma_builder().min(value)
     }
@@ -51,34 +163,10 @@ impl NumberRangeValidation {
     pub fn max(
         value: i32,
     ) -> NumberRangeValidationBuilder<
-        number_range_validation_builder::SetMax<number_range_validation_builder::Empty>,
+        number_range_validation_builder::Empty,
+        number_range_validation_builder::Set,
+        number_range_validation_builder::Empty,
     > {
         Self::__koruma_builder().max(value)
-    }
-}
-impl<S: number_range_validation_builder::State> NumberRangeValidationBuilder<S>
-where
-    S::Actual: ::renamed_koruma::bon::IsUnset,
-{
-    /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
-    pub fn with_value(
-        self,
-        value: i32,
-    ) -> NumberRangeValidationBuilder<number_range_validation_builder::SetActual<S>> {
-        self.actual(value)
-    }
-}
-impl<
-    S: number_range_validation_builder::State,
-> ::renamed_koruma::BuilderWithValueRef<i32> for NumberRangeValidationBuilder<S>
-where
-    S::Actual: ::renamed_koruma::bon::IsUnset,
-    i32: ::std::clone::Clone,
-{
-    type Output = NumberRangeValidationBuilder<
-        number_range_validation_builder::SetActual<S>,
-    >;
-    fn with_value_ref(self, value: &i32) -> Self::Output {
-        self.with_value(value.clone())
     }
 }

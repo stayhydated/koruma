@@ -1,5 +1,5 @@
 use crate::expand::derive_shared::validator_builder_expr;
-use crate::expand::plan::{PlannedValidator, ValidationPlan};
+use crate::expand::plan::{PlannedValidator, TargetAccess, ValidationPlan};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::Ident;
@@ -7,7 +7,6 @@ use syn::Ident;
 pub(crate) struct ValidationCheck<'a> {
     pub validator: &'a PlannedValidator,
     pub target_expr: TokenStream2,
-    pub target_ref: TargetReference,
     pub sink: ErrorSink<'a>,
 }
 
@@ -16,20 +15,15 @@ pub(crate) enum ErrorSink<'a> {
     ElementValidator { slot: &'a Ident },
 }
 
-pub(crate) enum TargetReference {
-    AlreadyReference,
-    BorrowExpression,
-}
-
 fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) -> TokenStream2 {
     let validator = check.validator;
     let builder_expr = validator_builder_expr(validator);
     let validator_ty = &validator.validator_type;
-    let validation_target_ty = &validator.validation_target_type;
+    let validation_target_ty = &validator.target.validate_type;
     let target_expr = check.target_expr;
-    let target_ref = match check.target_ref {
-        TargetReference::AlreadyReference => quote! { #target_expr },
-        TargetReference::BorrowExpression => quote! { &#target_expr },
+    let target_ref = match validator.target.access {
+        TargetAccess::AlreadyBorrowedLocal => quote! { #target_expr },
+        TargetAccess::BorrowField | TargetAccess::BorrowLocal => quote! { &#target_expr },
     };
     let error_assignment = match check.sink {
         ErrorSink::FieldValidator { field, slot } => {
@@ -47,7 +41,7 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     };
 
     quote! {
-        let validator = #koruma::BuilderWithValueRef::with_value_ref(
+        let validator = #koruma::CaptureValueRef::capture_value_ref(
             #builder_expr,
             #target_ref,
         )
@@ -67,12 +61,11 @@ pub(crate) fn render_validation_checks(
 ) -> Result<Vec<TokenStream2>, syn::Error> {
     let struct_is_newtype = plan.struct_newtype().is_some();
 
-    plan.field_infos()
+    plan.fields
         .iter()
-        .zip(plan.fields.iter())
-        .map(|(f, field_plan)| -> Result<TokenStream2, syn::Error> {
-            let field_name = &f.name;
-            let field_member = &f.member;
+        .map(|field_plan| -> Result<TokenStream2, syn::Error> {
+            let field_name = &field_plan.name;
+            let field_member = &field_plan.source.member;
 
             if field_plan.is_nested() {
                 let field_is_optional = field_plan.field_optional();
@@ -124,7 +117,6 @@ pub(crate) fn render_validation_checks(
                                 ValidationCheck {
                                     validator: v,
                                     target_expr: quote! { self.#field_member },
-                                    target_ref: TargetReference::BorrowExpression,
                                     sink: ErrorSink::FieldValidator {
                                         field: field_name,
                                         slot: &v.field_ident,
@@ -142,7 +134,6 @@ pub(crate) fn render_validation_checks(
                                 ValidationCheck {
                                     validator: v,
                                     target_expr: quote! { __newtype_value },
-                                    target_ref: TargetReference::AlreadyReference,
                                     sink: ErrorSink::FieldValidator {
                                         field: field_name,
                                         slot: &v.field_ident,
@@ -216,7 +207,6 @@ pub(crate) fn render_validation_checks(
                         ValidationCheck {
                             validator: v,
                             target_expr: quote! { self.#field_member },
-                            target_ref: TargetReference::BorrowExpression,
                             sink: ErrorSink::FieldValidator {
                                 field: field_name,
                                 slot: &v.field_ident,
@@ -234,7 +224,6 @@ pub(crate) fn render_validation_checks(
                         ValidationCheck {
                             validator: v,
                             target_expr: quote! { __field_value },
-                            target_ref: TargetReference::AlreadyReference,
                             sink: ErrorSink::FieldValidator {
                                 field: field_name,
                                 slot: &v.field_ident,
@@ -262,7 +251,6 @@ pub(crate) fn render_validation_checks(
                             ValidationCheck {
                                 validator: v,
                                 target_expr: quote! { item },
-                                target_ref: TargetReference::AlreadyReference,
                                 sink: ErrorSink::ElementValidator {
                                     slot: &v.field_ident,
                                 },
@@ -279,7 +267,6 @@ pub(crate) fn render_validation_checks(
                             ValidationCheck {
                                 validator: v,
                                 target_expr: quote! { __item_value },
-                                target_ref: TargetReference::AlreadyReference,
                                 sink: ErrorSink::ElementValidator {
                                     slot: &v.field_ident,
                                 },

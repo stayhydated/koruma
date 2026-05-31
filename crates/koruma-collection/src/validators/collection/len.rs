@@ -44,7 +44,7 @@ pub struct LenValidation<T: HasLen> {
     /// Maximum allowed length (inclusive)
     max: usize,
     /// The collection being validated.
-    #[koruma(value, skip_capture)]
+    #[koruma(value(capture = skip))]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

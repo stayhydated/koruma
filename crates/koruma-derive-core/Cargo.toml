@@ -18,6 +18,7 @@ internal-showcase = [  ]
 [dependencies]
 heck = { workspace = true }
 quote = { workspace = true }
+proc-macro2 = { workspace = true }
 syn = { features = [ "full", "extra-traits" ], workspace = true }
 syn-cfg-attr = { workspace = true }
 

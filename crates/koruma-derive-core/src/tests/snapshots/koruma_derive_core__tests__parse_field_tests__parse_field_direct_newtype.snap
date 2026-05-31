@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-assertion_line: 175
 expression: parse_field_snapshot(&field)
 ---
 Some(
@@ -9,10 +8,9 @@ Some(
         member: "index",
         ty: "CommonVariableIndex",
         validation: SnapshotValidationInfo {
+            shape: "newtype",
             field_validators: [],
             element_validators: [],
-            is_nested: false,
-            is_newtype: true,
         },
     },
 )

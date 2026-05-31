@@ -34,6 +34,9 @@ adds `koruma-collection` when built-in validators fit the rule:
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use
    `TypeName::<_>` for zero-configuration generic validators or
    `TypeName::<_>::first_setter(...)` when configuring generic validators.
+   Add lower-snake labels with `label_name = Validator::<_>` when you need
+   descriptive stable accessors or when validators would otherwise generate the
+   same getter/variant name; labels work inside `each(...)` too.
 6. Derive `Koruma` on the validated type. Add `KorumaAllDisplay` for `all()`
    iterators over borrowed `Display`-renderable validators, or `KorumaAllFluent`
    for localized borrowed `FluentMessage` values. Failed-validator inspection
@@ -129,15 +132,14 @@ impl fmt::Display for StringLengthValidation {
 
 Keep `#[koruma(value)]` fields private and use the generated getter when
 external code needs the captured input. For validators that do not need to store
-the failing input, use `#[koruma(value, skip_capture)]` on an `Option<T>` value
+the failing input, use `#[koruma(value(capture = skip))]` on an `Option<T>` value
 field so derived validation does not clone the original value. Built-in
 collection, string, format, and numeric validators that do not render the
 failing input use this pattern internally.
 
-For direct setter generation on custom validators, `#[validator]` supports only
-the `#[builder(...)]` field keys `into`, `required`, `name`, and `default`.
-Other builder field settings such as `skip`, `field`, and `start_fn` are
-rejected on validator configuration fields.
+For direct setter generation on custom validators, use
+`#[koruma(setter(...))]` on configuration fields. Supported setter options are
+`into`, `required`, `name`, and `default`.
 
 Read generated errors through field and validator accessors:
 
@@ -162,13 +164,17 @@ if let Err(errors) = item.validate() {
 }
 ```
 
-Generated validator accessors are snake_case versions of validator type names.
+Generated validator accessors are snake_case versions of validator type names
+unless the validator is labeled with `label_name = Validator`, in which case
+the generated accessor is `label_name()` and the `all()` enum variant uses
+`LabelName`.
 Fields without `#[koruma(...)]` are ignored. Multiple validators run in the
 order listed, and all configured validators are evaluated.
 
 Common patterns:
 
 - Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>::first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those.
+- Use `#[koruma(label_name = Validator::<_>)]` or `#[koruma(each(label_name = Validator::<_>))]` to select generated getter and `all()` variant names explicitly.
 - Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree. Handwritten `ValidateExt` integrations must use an associated error type implementing `ValidationError + Default`.
 - Use `#[koruma(newtype)]` for transparent error access through newtype wrappers.
 - Add `#[koruma(try_new, newtype)]` to generate a checked `try_new` constructor.

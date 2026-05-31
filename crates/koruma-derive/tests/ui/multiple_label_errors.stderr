@@ -1,0 +1,11 @@
+error: `all` is reserved by generated Koruma error APIs; use a different validator label
+ --> tests/ui/multiple_label_errors.rs:5:14
+  |
+5 |     #[koruma(all = RequiredValidation, inner = RequiredValidation)]
+  |              ^^^
+
+error: `inner` is reserved by generated Koruma error APIs; use a different validator label
+ --> tests/ui/multiple_label_errors.rs:5:40
+  |
+5 |     #[koruma(all = RequiredValidation, inner = RequiredValidation)]
+  |                                        ^^^^^

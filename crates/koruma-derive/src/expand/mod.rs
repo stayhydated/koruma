@@ -16,8 +16,10 @@ pub(crate) mod derive_newtype;
 pub(crate) mod derive_shared;
 pub(crate) mod derive_validation;
 pub(crate) mod display;
+pub(crate) mod error_bag;
 #[cfg(feature = "fluent")]
 pub(crate) mod fluent;
+pub(crate) mod names;
 pub(crate) mod plan;
 pub(crate) mod validator;
 
@@ -26,17 +28,18 @@ pub use derive::expand_koruma;
 pub use display::expand_koruma_all_display;
 #[cfg(feature = "fluent")]
 pub use fluent::expand_koruma_all_fluent;
+use names::tuple_field_ident;
 pub use validator::expand_validator;
 
+use self::error_bag::ErrorBag;
+
 // Re-exports for tests and internal usage
+#[allow(unused_imports)]
+pub(crate) use codegen::classify_each_collection;
 #[cfg(test)]
 pub(crate) use codegen::effective_validation_type;
 #[allow(unused_imports)]
-pub(crate) use codegen::{
-    classify_each_collection, reject_ambiguous_option_target_type_arg, resolve_explicit_infer_type,
-    validator_field_ident, validator_infer_source_type, validator_variant_ident,
-    validator_wants_full_type,
-};
+pub(crate) use names::validator_names;
 
 // Re-export parsing types from koruma-derive-core
 #[cfg(feature = "internal-showcase")]
@@ -44,7 +47,7 @@ pub(crate) use codegen::{
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    DataFieldKorumaAttr, FieldInfo, NormalizedFieldSpec, StructOptions, ValidatorAttr,
+    DataFieldKorumaAttr, FieldInfo, ParsedFieldSpec, StructOptions, ValidatorAttr,
     find_value_field_strict, parse_field, parse_struct_options,
 };
 #[cfg(feature = "internal-showcase")]
@@ -63,12 +66,15 @@ pub(crate) fn collect_field_infos(
     struct_options: Option<&StructOptions>,
 ) -> Result<Vec<FieldInfo>, syn::Error> {
     let mut field_infos = Vec::new();
+    let mut errors = ErrorBag::new();
 
     for (i, field) in fields.iter().enumerate() {
-        if let Some(info) = parse_field(field, i)? {
+        if let Some(info) = errors.push_result(parse_field(field, i)).flatten() {
             field_infos.push(info);
         }
     }
+
+    errors.finish()?;
 
     if struct_options.is_some_and(|options| options.is_newtype())
         && fields.len() == 1
@@ -106,7 +112,7 @@ fn synthetic_struct_newtype_field_info(field: &Field, index: usize) -> FieldInfo
     let (name, member) = match field.ident.clone() {
         Some(ident) => (ident.clone(), Member::Named(ident)),
         None => (
-            format_ident!("_{}", index),
+            tuple_field_ident(index),
             Member::Unnamed(syn::Index::from(index)),
         ),
     };
@@ -115,10 +121,10 @@ fn synthetic_struct_newtype_field_info(field: &Field, index: usize) -> FieldInfo
         name,
         member,
         ty: field.ty.clone(),
-        validation: NormalizedFieldSpec {
+        index,
+        validation: ParsedFieldSpec::Newtype {
+            marker: format_ident!("newtype"),
             field_validators: Vec::new(),
-            element_validators: Vec::new(),
-            mode: koruma_derive_core::FieldMode::Newtype,
         },
     }
 }

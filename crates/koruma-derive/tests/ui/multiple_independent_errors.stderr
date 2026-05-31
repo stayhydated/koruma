@@ -1,0 +1,11 @@
+error: duplicate or conflicting field modifier across `#[koruma(...)]` attributes
+ --> tests/ui/multiple_independent_errors.rs:5:20
+  |
+5 |     #[koruma(skip, nested)]
+  |                    ^^^^^^
+
+error: fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers
+ --> tests/ui/multiple_independent_errors.rs:7:23
+  |
+7 |     #[koruma(newtype, each(RequiredValidation))]
+  |                       ^^^^

@@ -60,19 +60,16 @@ pub(crate) fn field_error_type_path(
     generics: &Generics,
     field_plan: &FieldPlan,
     koruma: &TokenStream2,
-) -> Option<TokenStream2> {
-    field_error_type(generics, field_plan, koruma).map(|ty| quote! { #ty })
+) -> TokenStream2 {
+    let ty = field_error_type(generics, field_plan, koruma);
+    quote! { #ty }
 }
 
 pub(crate) fn field_error_type(
     generics: &Generics,
     field_plan: &FieldPlan,
     koruma: &TokenStream2,
-) -> Option<Type> {
-    if field_plan.is_nested() {
-        return None;
-    }
-
+) -> Type {
     let field_error_struct_name = &field_plan.generated_names.field_error_struct;
 
     let mut usages = validator_type_usages(field_plan.field_validators());
@@ -90,5 +87,5 @@ pub(crate) fn field_error_type(
     }
 
     let helper = helper_generics_for_usages(generics, &usages);
-    Some(helper.type_path_type(field_error_struct_name))
+    helper.type_path_type(field_error_struct_name)
 }

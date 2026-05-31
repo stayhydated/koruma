@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`koruma` is the public facade crate. It re-exports the core traits from `koruma-core`, the derive macros from `koruma-derive`, and the `bon` builder API as `koruma::bon`. It also owns feature gates that enable optional i18n with [Project Fluent](https://projectfluent.org/) and the internal showcase registry support used by workspace demos.
+`koruma` is the public facade crate. It re-exports the core traits from `koruma-core` and the derive macros from `koruma-derive`. It also owns feature gates that enable optional i18n with [Project Fluent](https://projectfluent.org/) and the internal showcase registry support used by workspace demos.
 
 ## Key entry points
 
@@ -11,7 +11,6 @@
 ## Dependency edges
 
 - Always depends on `koruma-core` for the core traits.
-- Always depends on `bon` and re-exports it as `koruma::bon` for builder generation.
 - Optionally depends on `koruma-derive` (feature `derive`, enabled by default).
 - Optionally depends on `inventory` (feature `internal-showcase`) and re-exports it for registry submission.
 
@@ -29,7 +28,7 @@
 
 - Users derive `Koruma` and annotate fields with `#[koruma(...)]`.
 - The derive macro generates `validate()` implementations and typed error structs using `koruma-core` traits.
-- Validators annotated with `#[koruma::validator]` get hidden `bon` builder plumbing, direct setter
+- Validators annotated with `#[koruma::validator]` get Koruma-owned builder plumbing, direct setter
   entrypoints, and `with_value()` helpers.
 - When `internal-showcase` is enabled, validators can register metadata for discovery via `inventory`.
 

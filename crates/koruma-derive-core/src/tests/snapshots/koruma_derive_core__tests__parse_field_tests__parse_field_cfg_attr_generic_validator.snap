@@ -8,8 +8,10 @@ Some(
         member: "score",
         ty: "f64",
         validation: SnapshotValidationInfo {
+            shape: "regular",
             field_validators: [
                 SnapshotValidator {
+                    label: None,
                     name: "GenericRange",
                     infer_type: true,
                     explicit_type: None,
@@ -30,8 +32,6 @@ Some(
                 },
             ],
             element_validators: [],
-            is_nested: false,
-            is_newtype: false,
         },
     },
 )

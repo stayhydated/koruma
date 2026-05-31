@@ -94,6 +94,43 @@ fn test_koruma_attr_parse_each() {
 }
 
 #[test]
+fn test_koruma_attr_parse_labeled_field_validator() {
+    let attr: DataFieldKorumaAttr =
+        syn::parse_quote!(username_prefix = string::PrefixValidation::<_>::prefix("user:"));
+
+    let DataFieldKorumaItem::FieldValidation(spec) = &attr.items[0] else {
+        panic!("expected field validator");
+    };
+    assert_eq!(
+        spec.validator.label.as_ref().map(ToString::to_string),
+        Some("username_prefix".to_string())
+    );
+    assert_eq!(
+        spec.validator.validator.name().to_string(),
+        "PrefixValidation"
+    );
+}
+
+#[test]
+fn test_koruma_attr_parse_labeled_element_validator() {
+    let attr: DataFieldKorumaAttr = syn::parse_quote!(each(
+        tag_prefix = string::PrefixValidation::<_>::prefix("tag:")
+    ));
+
+    let DataFieldKorumaItem::ElementValidation(spec) = &attr.items[0] else {
+        panic!("expected element validator");
+    };
+    assert_eq!(
+        spec.validators[0].label.as_ref().map(ToString::to_string),
+        Some("tag_prefix".to_string())
+    );
+    assert_eq!(
+        spec.validators[0].validator.name().to_string(),
+        "PrefixValidation"
+    );
+}
+
+#[test]
 fn test_koruma_attr_parse_multiple_validators() {
     let attr: DataFieldKorumaAttr =
         syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));

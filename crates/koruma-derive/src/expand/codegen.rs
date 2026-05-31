@@ -1,15 +1,9 @@
-use heck::{ToSnakeCase, ToUpperCamelCase};
-use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_type, option_inner_type,
-    substitute_infer_type_from_source, vec_inner_type,
-};
+use koruma_derive_core::{expr_as_simple_ident, is_option_type, option_inner_type, vec_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{ToTokens, format_ident, quote};
+use quote::{ToTokens, quote};
 use std::collections::BTreeSet;
 use syn::visit::{self, Visit};
-use syn::{
-    Error, Expr, ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath, parse_quote,
-};
+use syn::{Expr, ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath, parse_quote};
 
 pub(crate) struct HelperGenerics {
     pub definition: Generics,
@@ -308,17 +302,15 @@ pub(crate) fn ref_enum_generics_for_usages(
     }
 }
 
-/// Check if a validator wants the full field type (not unwrapped from Option).
-pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
-    v.wants_full_target()
-}
-
+#[cfg(test)]
+#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ValidationSite {
     Field,
     Element,
 }
 
+#[cfg(test)]
 impl ValidationSite {
     pub(crate) fn is_element(self) -> bool {
         self == Self::Element
@@ -398,85 +390,6 @@ fn unsupported_each_collection_error(field_ty: &Type, collection_ty: &Type) -> s
     )
 }
 
-pub(crate) fn validator_infer_source_type<'a>(
-    v: &ValidatorAttr,
-    field_ty: &'a Type,
-    site: ValidationSite,
-) -> Result<&'a Type, syn::Error> {
-    let raw_source = if site.is_element() {
-        classify_each_collection(field_ty)?.element_ty
-    } else {
-        field_ty
-    };
-
-    let source = if validator_wants_full_type(v) {
-        raw_source
-    } else {
-        option_inner_type(raw_source).unwrap_or(raw_source)
-    };
-
-    Ok(source)
-}
-
-pub(crate) fn resolve_explicit_infer_type(
-    v: &ValidatorAttr,
-    field_ty: &Type,
-    site: ValidationSite,
-) -> Result<Option<Type>, syn::Error> {
-    let Some(explicit_ty) = v.explicit_type() else {
-        return Ok(None);
-    };
-
-    if !contains_infer_type(explicit_ty) {
-        return Ok(None);
-    }
-
-    let infer_source = validator_infer_source_type(v, field_ty, site)?;
-    substitute_infer_type_from_source(explicit_ty, infer_source)
-        .map(Some)
-        .ok_or_else(|| {
-            let rendered_explicit = quote! { #explicit_ty }.to_string();
-            let rendered_source = quote! { #infer_source }.to_string();
-            syn::Error::new_spanned(
-                explicit_ty,
-                format!(
-                    "cannot infer `_` in `{rendered_explicit}` from `{rendered_source}`; use concrete type arguments or a matching generic shape"
-                ),
-            )
-        })
-}
-
-pub(crate) fn reject_ambiguous_option_target_type_arg(
-    v: &ValidatorAttr,
-    site: ValidationSite,
-    field_name: &Ident,
-) -> Result<(), Error> {
-    if v.wants_full_target() {
-        return Ok(());
-    }
-
-    let Some(explicit_ty) = v.explicit_type() else {
-        return Ok(());
-    };
-    if option_inner_type(explicit_ty).is_none() {
-        return Ok(());
-    }
-
-    let target_context = if site.is_element() {
-        format!("element validators on field `{field_name}`")
-    } else {
-        format!("field `{field_name}`")
-    };
-    let validator_name = v.path_name();
-
-    Err(Error::new_spanned(
-        explicit_ty,
-        format!(
-            "explicit `Option<...>` validator type arguments do not request full-target validation for {target_context}; use `full({validator_name}::<_>)` instead"
-        ),
-    ))
-}
-
 /// Transform a validator arg value for use in generated code.
 ///
 /// Bare identifiers that match struct fields are rejected so cross-field
@@ -497,70 +410,6 @@ pub(crate) fn validate_validator_arg_value(
     } else {
         Ok(())
     }
-}
-
-fn stable_hash_hex(input: &str) -> String {
-    let mut hash: u64 = 0xcbf29ce484222325;
-    for byte in input.as_bytes() {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    format!("{:08x}", (hash & 0xffff_ffff) as u32)
-}
-
-fn has_name_collision(
-    target_name: &str,
-    siblings: &[ValidatorAttr],
-    name_fn: impl Fn(&ValidatorAttr) -> String,
-) -> bool {
-    siblings
-        .iter()
-        .filter(|sibling| name_fn(sibling) == target_name)
-        .nth(1)
-        .is_some()
-}
-
-pub(crate) fn validator_field_ident(v: &ValidatorAttr, siblings: &[ValidatorAttr]) -> Ident {
-    let simple = v.name().to_string().to_snake_case();
-    if !has_name_collision(&simple, siblings, |sibling| {
-        sibling.name().to_string().to_snake_case()
-    }) {
-        return format_ident!("{}", simple);
-    }
-
-    let fallback = v.codegen_snake_name();
-    let resolved =
-        if has_name_collision(&fallback, siblings, |sibling| sibling.codegen_snake_name()) {
-            format!("{}_{}", fallback, stable_hash_hex(&v.path_name()))
-        } else {
-            fallback
-        };
-
-    format_ident!("{}", resolved)
-}
-
-pub(crate) fn validator_variant_ident(v: &ValidatorAttr, siblings: &[ValidatorAttr]) -> Ident {
-    let simple = v.name().to_string().to_upper_camel_case();
-    if !has_name_collision(&simple, siblings, |sibling| {
-        sibling.name().to_string().to_upper_camel_case()
-    }) {
-        return format_ident!("{}", simple);
-    }
-
-    let fallback = v.codegen_upper_camel_name();
-    let resolved = if has_name_collision(&fallback, siblings, |sibling| {
-        sibling.codegen_upper_camel_name()
-    }) {
-        format!(
-            "{}H{}",
-            fallback,
-            stable_hash_hex(&v.path_name()).to_ascii_uppercase()
-        )
-    } else {
-        fallback
-    };
-
-    format_ident!("{}", resolved)
 }
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)

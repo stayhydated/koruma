@@ -174,7 +174,11 @@ fn field_info_and_parse_field_option_result_helpers() {
     let generic_info = parse_field(&generic_field, 0)
         .expect("expected field parse")
         .expect("expected parsed field info");
-    assert!(generic_info.validation.field_validators[0].uses_type_inference());
+    assert!(
+        generic_info.field_validators()[0]
+            .validator
+            .uses_type_inference()
+    );
 
     let explicit_field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::<i32>::min(0).max(10))]
@@ -184,7 +188,8 @@ fn field_info_and_parse_field_option_result_helpers() {
         .expect("expected field parse")
         .expect("expected parsed field info");
     assert!(
-        explicit_info.validation.field_validators[0]
+        explicit_info.field_validators()[0]
+            .validator
             .explicit_type()
             .is_some()
     );
@@ -202,10 +207,9 @@ fn parse_field_allows_distinct_fully_qualified_validators() {
 
     let info = parse_field_info(&field);
     let validator_paths: Vec<_> = info
-        .validation
-        .field_validators
+        .field_validators()
         .iter()
-        .map(ValidatorAttr::path_name)
+        .map(|validator_use| validator_use.validator.path_name())
         .collect();
     assert_eq!(
         validator_paths,
@@ -505,8 +509,8 @@ fn field_info_has_validators_covers_element_only_branch() {
         values: Vec<i32>
     };
     let info = parse_field_info(&field);
-    assert!(info.validation.field_validators.is_empty());
-    assert!(!info.validation.element_validators.is_empty());
+    assert!(info.field_validators().is_empty());
+    assert!(!info.element_validators().is_empty());
     assert!(info.has_validators());
 }
 
@@ -612,7 +616,9 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
         find_value_field_info_strict(&bad_input)
             .expect_err("expected empty marker error")
             .to_string()
-            .contains("validator fields must contain `value` or `skip_capture`")
+            .contains(
+                "validator fields must contain `value`, `value(capture = skip)`, or `setter(...)`",
+            )
     );
 }
 

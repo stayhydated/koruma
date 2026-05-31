@@ -35,7 +35,7 @@ use super::Numeric;
 #[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
 pub struct NonNegativeValidation<T: Numeric> {
     /// The value being validated.
-    #[koruma(value, skip_capture)]
+    #[koruma(value(capture = skip))]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

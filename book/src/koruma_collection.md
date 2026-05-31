@@ -90,7 +90,7 @@ arrays/slices, `Vec`, sets/maps, etc.) and optionally for `SmallVec` with the
 values (`char`s), not UTF-8 bytes.
 
 Built-in validators in the collection, string, format, and numeric modules that
-do not render the failing input use `#[koruma(value, skip_capture)]` internally,
+do not render the failing input use `#[koruma(value(capture = skip))]` internally,
 so derived validation does not require input types to implement `Clone` just to
 store an error.
 
@@ -102,7 +102,7 @@ store an error.
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
 `collection::NonEmptyValidation::<_>` when you need an emptiness check. It also uses
-`#[koruma(value, skip_capture)]` internally, so `Option<NonCloneType>` fields do not need `Clone`
+`#[koruma(value(capture = skip))]` internally, so `Option<NonCloneType>` fields do not need `Clone`
 just to report a missing-value error. Wrap it in `full(...)` so koruma validates the whole
 `Option<T>` instead of unwrapping `Some(T)`.
 

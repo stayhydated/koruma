@@ -21,9 +21,8 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
     let display_impls: Vec<TokenStream2> = plan
         .fields
         .iter()
-        .zip(plan.field_infos())
-        .filter(|(field_plan, _)| field_plan.has_field_validators())
-        .map(|(field_plan, _)| {
+        .filter(|field_plan| field_plan.has_field_validators())
+        .map(|field_plan| {
             let enum_name = &field_plan.generated_names.field_validator_ref_enum;
             let mut helper_usages: Vec<Type> = field_plan
                 .field_validators()

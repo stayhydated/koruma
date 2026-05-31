@@ -21,11 +21,11 @@ pub struct OrderValuesElementKorumaValidationError {
     even_validation: Option<EvenValidation>,
 }
 impl OrderValuesElementKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
-    #[doc = concat!("Returns the failed [`", "EvenValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "EvenValidation", "` validator, if any.")]
     pub fn even_validation(&self) -> Option<&EvenValidation> {
         self.even_validation.as_ref()
     }
@@ -115,7 +115,7 @@ impl Order {
                 even_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     RangeValidation::min(0).max(100),
                     __item_value,
                 )
@@ -126,7 +126,7 @@ impl Order {
                 element_error.range_validation = Some(validator);
                 element_has_error = true;
             }
-            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     EvenValidation::__koruma_builder(),
                     __item_value,
                 )

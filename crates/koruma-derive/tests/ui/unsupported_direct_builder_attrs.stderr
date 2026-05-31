@@ -1,23 +1,23 @@
-error: `#[koruma::validator]` does not support `#[builder(skip)]` on direct builder fields; supported builder keys are `into`, `required`, `name`, and `default`
- --> tests/ui/unsupported_direct_builder_attrs.rs:5:15
+error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+ --> tests/ui/unsupported_direct_builder_attrs.rs:5:5
   |
 5 |     #[builder(skip = 0)]
-  |               ^^^^
+  |     ^^^^^^^^^^^^^^^^^^^^
 
-error: `#[koruma::validator]` does not support `#[builder(field)]` on direct builder fields; supported builder keys are `into`, `required`, `name`, and `default`
-  --> tests/ui/unsupported_direct_builder_attrs.rs:13:15
+error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+  --> tests/ui/unsupported_direct_builder_attrs.rs:13:5
    |
 13 |     #[builder(field(value: usize))]
-   |               ^^^^^
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: `#[koruma::validator]` does not support `#[builder(start_fn)]` on direct builder fields; supported builder keys are `into`, `required`, `name`, and `default`
-  --> tests/ui/unsupported_direct_builder_attrs.rs:21:15
+error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+  --> tests/ui/unsupported_direct_builder_attrs.rs:21:5
    |
 21 |     #[builder(start_fn = custom)]
-   |               ^^^^^^^^
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: `#[koruma::validator]` does not support `#[builder(getter)]` on direct builder fields; supported builder keys are `into`, `required`, `name`, and `default`
-  --> tests/ui/unsupported_direct_builder_attrs.rs:29:15
+error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+  --> tests/ui/unsupported_direct_builder_attrs.rs:29:5
    |
 29 |     #[builder(getter)]
-   |               ^^^^^^
+   |     ^^^^^^^^^^^^^^^^^^

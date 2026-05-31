@@ -20,7 +20,7 @@ pub struct ItemScoreKorumaValidationError {
     generic_range: Option<GenericRange<i32>>,
 }
 impl ItemScoreKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "GenericRange", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "GenericRange", "` validator, if any.")]
     pub fn generic_range(&self) -> Option<&GenericRange<i32>> {
         self.generic_range.as_ref()
     }
@@ -71,7 +71,7 @@ impl Item {
         };
         let mut has_error = false;
         if let Some(ref __field_value) = self.score {
-            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     GenericRange::<i32>::min(0).max(100),
                     __field_value,
                 )

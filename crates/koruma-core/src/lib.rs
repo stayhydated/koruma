@@ -23,18 +23,18 @@ pub trait ValidationError {
     }
 }
 
-/// Hidden trait used by derived validation code to pass borrowed values into
-/// validator builders.
+/// Hidden trait used by derived validation code to apply borrowed values to
+/// validator builders according to their capture policy.
 ///
 /// Validators that capture the input clone from the borrowed value inside the
-/// builder impl. Validators marked with `#[koruma(value, skip_capture)]` on an
-/// `Option<T>` value field can ignore the borrowed input and keep their default
-/// value instead.
+/// generated impl. Validators marked with `#[koruma(value(capture = skip))]` on
+/// an `Option<T>` value field can ignore the borrowed input and keep their
+/// default value instead.
 #[doc(hidden)]
-pub trait BuilderWithValueRef<T> {
+pub trait CaptureValueRef<T> {
     type Output;
 
-    fn with_value_ref(self, value: &T) -> Self::Output;
+    fn capture_value_ref(self, value: &T) -> Self::Output;
 }
 
 /// Trait for structs that derive `Koruma` and have a `validate()` method.

@@ -46,7 +46,7 @@ pub struct RangeValidation<T: PartialOrd + std::fmt::Display> {
             value(|x: &bool| if *x { "(" } else { "[" })
         )
     )]
-    #[builder(default = false)]
+    #[koruma(setter(default = false))]
     exclusive_min: bool,
     /// Maximum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
@@ -59,10 +59,10 @@ pub struct RangeValidation<T: PartialOrd + std::fmt::Display> {
             value(|x: &bool| if *x { ")" } else { "]" })
         )
     )]
-    #[builder(default = false)]
+    #[koruma(setter(default = false))]
     exclusive_max: bool,
     /// The value being validated.
-    #[koruma(value, skip_capture)]
+    #[koruma(value(capture = skip))]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

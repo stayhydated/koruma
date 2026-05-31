@@ -10,12 +10,11 @@ pub(crate) fn render_field_error_structs(
     generics: &Generics,
     koruma: &TokenStream2,
 ) -> Vec<TokenStream2> {
-    plan.field_infos()
+    plan.fields
         .iter()
-        .zip(plan.fields.iter())
-        .filter(|(_, field_plan)| !field_plan.is_nested())
-        .map(|(f, field_plan)| {
-            let field_name = &f.name;
+        .filter(|field_plan| !field_plan.is_nested())
+        .map(|field_plan| {
+            let field_name = &field_plan.name;
             let field_error_struct_name = &field_plan.generated_names.field_error_struct;
 
             if field_plan.is_newtype() {
@@ -97,11 +96,10 @@ pub(crate) fn render_field_error_structs(
                     };
                 }
 
-                let field_validator_names: Vec<String> = f
-                    .validation
-                    .field_validators
+                let field_validator_names: Vec<String> = field_plan
+                    .field_validators()
                     .iter()
-                    .map(|v| v.path_name())
+                    .map(|v| v.doc_name())
                     .collect();
                 let validators_list = field_validator_names.join("`], `[");
                 let mut helper_usages: Vec<Type> = field_plan
@@ -133,7 +131,7 @@ pub(crate) fn render_field_error_structs(
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
-                        let validator_name = v.attr.path_name();
+                        let validator_name = v.doc_name();
                         let vtype = &v.validator_type;
                         quote! {
                             #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
@@ -281,10 +279,10 @@ pub(crate) fn render_field_error_structs(
                 .iter()
                 .map(|v| {
                     let validator_snake = &v.field_ident;
-                    let validator_name = v.attr.path_name();
+                    let validator_name = v.doc_name();
                     let vtype = &v.validator_type;
                     quote! {
-                        #[doc = concat!("Returns the failed [`", #validator_name, "`] validator, if any.")]
+                        #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
                         pub fn #validator_snake(&self) -> Option<&#vtype> {
                             self.#validator_snake.as_ref()
                         }
@@ -343,7 +341,7 @@ pub(crate) fn render_field_error_structs(
                 let element_validator_names: Vec<String> = field_plan
                     .element_validators()
                     .iter()
-                    .map(|v| v.attr.path_name())
+                    .map(|v| v.doc_name())
                     .collect();
                 let element_validators_list = element_validator_names.join("`], `[");
                 let field_name_str = field_name.to_string();
@@ -364,10 +362,10 @@ pub(crate) fn render_field_error_structs(
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
-                        let validator_name = v.attr.path_name();
+                        let validator_name = v.doc_name();
                         let vtype = &v.validator_type;
                         quote! {
-                            #[doc = concat!("Returns the failed [`", #validator_name, "`] validator, if any.")]
+                            #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
                             pub fn #validator_snake(&self) -> Option<&#vtype> {
                                 self.#validator_snake.as_ref()
                             }
@@ -501,7 +499,7 @@ pub(crate) fn render_field_error_structs(
                 let validator_names: Vec<String> = field_plan
                     .field_validators()
                     .iter()
-                    .map(|v| v.attr.path_name())
+                    .map(|v| v.doc_name())
                     .collect();
                 let validators_list = validator_names.join("`], `[");
                 let field_name_str = field_name.to_string();
@@ -545,13 +543,13 @@ pub(crate) fn render_field_error_structs(
                     let field_validator_names: Vec<String> = field_plan
                         .field_validators()
                         .iter()
-                        .map(|v| v.attr.path_name())
+                        .map(|v| v.doc_name())
                         .collect();
                     let field_validators = field_validator_names.join("`], `[");
                     let element_validator_names: Vec<String> = field_plan
                         .element_validators()
                         .iter()
-                        .map(|v| v.attr.path_name())
+                        .map(|v| v.doc_name())
                         .collect();
                     let element_validators = element_validator_names.join("`], `[");
                     quote! {
@@ -565,7 +563,7 @@ pub(crate) fn render_field_error_structs(
                     let field_validator_names: Vec<String> = field_plan
                         .field_validators()
                         .iter()
-                        .map(|v| v.attr.path_name())
+                        .map(|v| v.doc_name())
                         .collect();
                     let field_validators = field_validator_names.join("`], `[");
                     quote! {

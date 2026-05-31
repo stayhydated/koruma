@@ -20,7 +20,7 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 /// Attribute macro for validator structs.
 ///
 /// This automatically:
-/// - Adds a hidden `bon` builder to the struct
+/// - Generates Koruma-owned builder plumbing for the struct
 /// - Generates direct builder entrypoints on the validator type for each
 ///   configurable field, such as `RangeValidation::min(value)`
 /// - Generates `with_value` methods that delegate to the field marked with
@@ -138,7 +138,7 @@ pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// The macro captures validator values through a hidden borrowed builder hook.
 /// Validators that keep the default `#[koruma(value)]` behavior still clone the
 /// input into the error value; validators marked with
-/// `#[koruma(value, skip_capture)]` on an `Option<T>` value field can opt out
+/// `#[koruma(value(capture = skip))]` on an `Option<T>` value field can opt out
 /// when they do not need to store the validated value.
 #[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]

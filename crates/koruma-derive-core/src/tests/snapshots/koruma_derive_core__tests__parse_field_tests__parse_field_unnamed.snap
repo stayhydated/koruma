@@ -8,8 +8,10 @@ Some(
         member: "0",
         ty: "String",
         validation: SnapshotValidationInfo {
+            shape: "regular",
             field_validators: [
                 SnapshotValidator {
+                    label: None,
                     name: "NonEmptyStringValidation",
                     infer_type: false,
                     explicit_type: None,
@@ -17,8 +19,6 @@ Some(
                 },
             ],
             element_validators: [],
-            is_nested: false,
-            is_newtype: false,
         },
     },
 )

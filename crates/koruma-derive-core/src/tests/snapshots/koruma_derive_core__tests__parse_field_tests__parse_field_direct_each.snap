@@ -8,9 +8,11 @@ Some(
         member: "scores",
         ty: "Vec < i32 >",
         validation: SnapshotValidationInfo {
+            shape: "regular",
             field_validators: [],
             element_validators: [
                 SnapshotValidator {
+                    label: None,
                     name: "RangeValidation",
                     infer_type: false,
                     explicit_type: None,
@@ -30,8 +32,6 @@ Some(
                     ],
                 },
             ],
-            is_nested: false,
-            is_newtype: false,
         },
     },
 )

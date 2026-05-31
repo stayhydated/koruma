@@ -88,12 +88,12 @@ pub(crate) fn render_try_from_impl(
         return quote! {};
     }
 
-    let Some((field_info, _field_plan)) = plan.struct_newtype() else {
+    let Some(field_plan) = plan.struct_newtype() else {
         return quote! {};
     };
-    let inner_ty = &field_info.ty;
+    let inner_ty = &field_plan.source.ty;
 
-    let struct_init = match &field_info.member {
+    let struct_init = match &field_plan.source.member {
         syn::Member::Named(ident) => {
             quote! { Self { #ident: value } }
         },

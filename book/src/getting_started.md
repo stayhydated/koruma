@@ -66,7 +66,7 @@ The validator definitions themselves come next. If you want to inspect the captu
 validator error, call the generated getter that matches the `#[koruma(value)]` field name.
 
 For validators that do not need to store the input, an `Option<T>` value field can use
-`#[koruma(value, skip_capture)]` to avoid derive-generated capture clones. If that field would
+`#[koruma(value(capture = skip))]` to avoid derive-generated capture clones. If that field would
 still impose `Clone` or `Debug` bounds on the validator type, use manual impls to avoid
 reintroducing those bounds.
 

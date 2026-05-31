@@ -8,7 +8,7 @@ use crate::{
     },
     validators::normal::{NumberRangeValidation, StringLengthValidation, ZipCodeValidation},
 };
-use koruma::{Koruma, Validate};
+use koruma::Koruma;
 use koruma_collection::{collection, general, numeric, string};
 
 #[derive(Koruma)]
@@ -176,7 +176,10 @@ pub struct SignupInput {
     #[koruma(collection::NonEmptyValidation::<_>)]
     pub username: String,
 
-    #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
+    #[koruma(
+        handle_ascii = string::AsciiValidation::<_>,
+        handle_alphanumeric = string::AlphanumericValidation::<_>,
+    )]
     pub handle: String,
 
     #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]

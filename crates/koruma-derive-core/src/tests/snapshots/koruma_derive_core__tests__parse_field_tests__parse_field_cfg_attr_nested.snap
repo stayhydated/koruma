@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-assertion_line: 239
 expression: parse_field_snapshot(&field)
 ---
 Some(
@@ -9,10 +8,9 @@ Some(
         member: "inner",
         ty: "InnerStruct",
         validation: SnapshotValidationInfo {
+            shape: "nested",
             field_validators: [],
             element_validators: [],
-            is_nested: true,
-            is_newtype: false,
         },
     },
 )

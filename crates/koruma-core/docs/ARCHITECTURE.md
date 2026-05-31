@@ -13,7 +13,7 @@
 
 - `Validate<T>`: implemented by validator structs; returns `true`/`false`.
 - `ValidationError`: implemented by generated error structs; supplies `is_empty()` and `has_errors()`.
-- `BuilderWithValueRef<T>`: hidden borrowed-value hook used by derived validation to pass field values into builders while letting validators decide whether to clone or skip capture.
+- `CaptureValueRef<T>`: hidden borrowed-value hook used by derived validation to apply field values to validator builders while letting generated capture-policy impls decide whether to clone or skip capture.
 - `ValidateExt`: implemented by `#[derive(Koruma)]` for nested/newtype validation.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.
 
@@ -34,7 +34,7 @@
 - Derive macros emit error types implementing `ValidationError` and `ValidateExt`.
 - `#[koruma::validator]` emits inherent `with_value(...)` methods for validator
   builders that capture the validated value.
-- Derived validation code uses `BuilderWithValueRef` to feed borrowed field values into validator builders.
+- Derived validation code uses `CaptureValueRef` to feed borrowed field values through validator capture policies.
 - Nested/newtype validation relies on `ValidateExt::Error` for typed error state.
 
 ## Feature flags

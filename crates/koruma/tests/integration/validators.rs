@@ -144,7 +144,7 @@ impl<T> VecLenValidation<T> {
 /// Works with Option<T> types.
 #[validator]
 pub struct RequiredValidation<T> {
-    #[koruma(value, skip_capture)]
+    #[koruma(value(capture = skip))]
     #[allow(dead_code)]
     actual: Option<T>,
 }

@@ -23,9 +23,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     let fluent_impls: Vec<TokenStream2> = plan
         .fields
         .iter()
-        .zip(plan.field_infos())
-        .filter(|(field_plan, _)| field_plan.has_field_validators())
-        .map(|(field_plan, _)| {
+        .filter(|field_plan| field_plan.has_field_validators())
+        .map(|field_plan| {
             let enum_name = &field_plan.generated_names.field_validator_ref_enum;
             let mut helper_usages: Vec<Type> = field_plan
                 .field_validators()
@@ -135,17 +134,16 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     let error_struct_impls: Vec<TokenStream2> = plan
         .fields
         .iter()
-        .zip(plan.field_infos())
-        .filter(|(field_plan, f)| field_plan.has_field_validators() || f.is_newtype())
-        .map(|(field_plan, f)| {
-            let field_ty = &f.ty;
+        .filter(|field_plan| field_plan.has_field_validators() || field_plan.is_newtype())
+        .map(|field_plan| {
+            let field_ty = &field_plan.source.ty;
             let error_struct_name = &field_plan.generated_names.field_error_struct;
             let mut helper_usages: Vec<Type> = field_plan
                 .field_validators()
                 .iter()
                 .map(|planned| planned.validator_type.as_type())
                 .collect();
-            if f.is_newtype() {
+            if field_plan.is_newtype() {
                 let inner_ty = field_plan.inner_type();
                 helper_usages
                     .push(syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error });
@@ -169,7 +167,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     }
                 })
                 .collect();
-            let inner_message_push = if f.is_newtype() {
+            let inner_message_push = if field_plan.is_newtype() {
                 if is_option_type(field_ty) {
                     Some(quote! {
                         if let Some(inner) = self.inner() {

@@ -77,6 +77,45 @@ fn test_koruma_expansion_multiple_validators() {
 }
 
 #[test]
+fn test_koruma_expansion_labeled_field_validators() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct LabeledItem {
+            #[koruma(
+                min_len = LengthValidation::<_>::min(3),
+                max_len = LengthValidation::<_>::max(30),
+            )]
+            pub value: String,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let printed = pretty_print(expanded);
+    assert!(printed.contains("pub fn min_len"));
+    assert!(printed.contains("pub fn max_len"));
+    assert!(printed.contains("MinLen"));
+    assert!(printed.contains("MaxLen"));
+    assert_snapshot!(printed);
+}
+
+#[test]
+fn test_koruma_expansion_labeled_element_validators() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct LabeledTags {
+            #[koruma(each(
+                tag_prefix = PrefixValidation::<_>::prefix("tag:"),
+            ))]
+            pub tags: Vec<String>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let printed = pretty_print(expanded);
+    assert!(printed.contains("pub fn tag_prefix"));
+    assert!(printed.contains("TagPrefix"));
+    assert_snapshot!(printed);
+}
+
+#[test]
 fn test_koruma_expansion_generic_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct GenericItem {
@@ -135,11 +174,11 @@ fn test_validator_expansion_non_option_value() {
 }
 
 #[test]
-fn test_validator_expansion_skip_capture() {
+fn test_validator_expansion_capture_skip_policy() {
     let input: ItemStruct = syn::parse_quote! {
         #[derive(Clone, Debug)]
         pub struct PresenceOnlyValidation<T> {
-            #[koruma(value, skip_capture)]
+            #[koruma(value(capture = skip))]
             actual: Option<T>,
         }
     };
@@ -331,24 +370,21 @@ fn test_koruma_all_display_expansion_newtype_inner_arm() {
 }
 
 #[test]
-fn test_koruma_all_display_expansion_uses_path_aware_variant_names() {
+fn test_koruma_all_display_expansion_uses_labeled_variant_names() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayQualifiedValidators {
-            #[koruma(foo::RangeValidation::min(0).max(10), bar::RangeValidation::min(11).max(20))]
+            #[koruma(
+                low_range = foo::RangeValidation::min(0).max(10),
+                high_range = bar::RangeValidation::min(11).max(20),
+            )]
             pub value: i32,
         }
     };
 
     let expanded = expand_koruma_all_display(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(
-        compact
-            .contains("DisplayQualifiedValidatorsValueKorumaValidatorRef::FooRangeValidation(v)")
-    );
-    assert!(
-        compact
-            .contains("DisplayQualifiedValidatorsValueKorumaValidatorRef::BarRangeValidation(v)")
-    );
+    assert!(compact.contains("DisplayQualifiedValidatorsValueKorumaValidatorRef::LowRange(v)"));
+    assert!(compact.contains("DisplayQualifiedValidatorsValueKorumaValidatorRef::HighRange(v)"));
 }
 
 #[test]
@@ -410,7 +446,7 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("::renamed_koruma::Validate<Option<WrappedValue>,>"));
     assert!(compact.contains("::validate(&validator,&self.wrapped)"));
-    assert!(compact.contains("BuilderWithValueRef::with_value_ref("));
+    assert!(compact.contains("CaptureValueRef::capture_value_ref("));
     assert!(compact.contains("PlainValidation::min(1)"));
     assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
     assert!(compact.contains("self.inner.as_ref()"));
@@ -435,20 +471,23 @@ fn test_koruma_expansion_newtype_non_optional_with_validators_uses_direct_inner_
 }
 
 #[test]
-fn test_koruma_expansion_qualified_validators_generate_distinct_members() {
+fn test_koruma_expansion_labeled_qualified_validators_generate_distinct_members() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct QualifiedValidators {
-            #[koruma(foo::RangeValidation::min(0).max(10), bar::RangeValidation::min(11).max(20))]
+            #[koruma(
+                low_range = foo::RangeValidation::min(0).max(10),
+                high_range = bar::RangeValidation::min(11).max(20),
+            )]
             pub value: i32,
         }
     };
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("foo_range_validation:Option<foo::RangeValidation>"));
-    assert!(compact.contains("bar_range_validation:Option<bar::RangeValidation>"));
-    assert!(compact.contains("FooRangeValidation(&'korumafoo::RangeValidation)"));
-    assert!(compact.contains("BarRangeValidation(&'korumabar::RangeValidation)"));
+    assert!(compact.contains("low_range:Option<foo::RangeValidation>"));
+    assert!(compact.contains("high_range:Option<bar::RangeValidation>"));
+    assert!(compact.contains("LowRange(&'korumafoo::RangeValidation)"));
+    assert!(compact.contains("HighRange(&'korumabar::RangeValidation)"));
 }
 
 #[test]
@@ -479,7 +518,7 @@ fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("required_validation:Option<RequiredValidation<Option<String>>>"));
     assert!(compact.contains(
-        "BuilderWithValueRef::with_value_ref(RequiredValidation::__koruma_builder(),&self.value,)"
+        "CaptureValueRef::capture_value_ref(RequiredValidation::__koruma_builder(),&self.value,)"
     ));
     assert!(compact.contains("::renamed_koruma::Validate<Option<String>,>"));
     assert!(compact.contains("::validate(&validator,&self.value)"));
@@ -500,7 +539,7 @@ fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     assert!(compact.contains("RequiredValidation::<Option<i32>>"));
     assert!(
         compact.contains(
-            "BuilderWithValueRef::with_value_ref(RequiredValidation::<Option<i32>>::__koruma_builder(),item,)"
+            "CaptureValueRef::capture_value_ref(RequiredValidation::<Option<i32>>::__koruma_builder(),item,)"
         )
     );
     assert!(
@@ -781,8 +820,8 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("input_type:::renamed_koruma::showcase::InputType::Text"));
     assert!(compact.contains("module:::renamed_koruma::showcase::ValidatorModule::General"));
-    assert!(compact.contains("showcase_validation_builder::State"));
-    assert!(compact.contains("S::Actual:::renamed_koruma::bon::IsUnset"));
+    assert!(compact.contains("ShowcaseValidationBuilder<"));
+    assert!(!compact.contains("::renamed_koruma::bon"));
     assert!(compact.contains("DynValidatorforShowcaseValidation"));
     assert!(compact.contains("whereU:Default"));
     assert!(compact.contains("Self:::std::marker::Send+::std::marker::Sync"));
@@ -794,16 +833,16 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
 }
 
 #[test]
-fn test_validator_expansion_respects_builder_field_attributes() {
+fn test_validator_expansion_respects_setter_metadata() {
     let input: ItemStruct = syn::parse_quote! {
         #[derive(Clone, Debug)]
-        pub struct BuilderAttrValidation<T> {
-            #[builder(into, name = label)]
+        pub struct SetterMetadataValidation<T> {
+            #[koruma(setter(into, name = label))]
             pub title: String,
-            #[builder(required)]
+            #[koruma(setter(required))]
             pub required_limit: Option<usize>,
             pub optional_limit: Option<usize>,
-            #[builder(default = 10)]
+            #[koruma(setter(default = 10))]
             pub defaulted: usize,
             #[koruma(value)]
             actual: Option<T>,

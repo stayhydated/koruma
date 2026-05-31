@@ -3,8 +3,8 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    FieldInfo, NormalizedFieldSpec, ValidatorAttr, ValueFieldCapture, find_value_field_info_strict,
-    find_value_field_strict, parse_field, parse_struct_options,
+    CapturePolicy, FieldInfo, ParsedFieldSpec, ParsedValidatorUse, ValidatorAttr,
+    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -12,6 +12,7 @@ use quote::ToTokens;
 #[allow(dead_code)]
 #[derive(Debug)]
 struct SnapshotValidator {
+    label: Option<String>,
     name: String,
     infer_type: bool,
     explicit_type: Option<String>,
@@ -21,10 +22,9 @@ struct SnapshotValidator {
 #[allow(dead_code)]
 #[derive(Debug)]
 struct SnapshotValidationInfo {
+    shape: String,
     field_validators: Vec<SnapshotValidator>,
     element_validators: Vec<SnapshotValidator>,
-    is_nested: bool,
-    is_newtype: bool,
 }
 
 #[allow(dead_code)]
@@ -48,8 +48,9 @@ fn normalize_tokens<T: ToTokens>(value: &T) -> String {
     value.to_token_stream().to_string()
 }
 
-fn snapshot_validator(validator: &ValidatorAttr) -> SnapshotValidator {
+fn snapshot_validator(label: Option<&syn::Ident>, validator: &ValidatorAttr) -> SnapshotValidator {
     SnapshotValidator {
+        label: label.map(ToString::to_string),
         name: validator.name().to_string(),
         infer_type: validator.uses_type_inference(),
         explicit_type: validator.explicit_type().map(normalize_tokens),
@@ -66,20 +67,46 @@ fn snapshot_validator(validator: &ValidatorAttr) -> SnapshotValidator {
     }
 }
 
-fn snapshot_validation(validation: &NormalizedFieldSpec) -> SnapshotValidationInfo {
-    SnapshotValidationInfo {
-        field_validators: validation
-            .field_validators
-            .iter()
-            .map(snapshot_validator)
-            .collect(),
-        element_validators: validation
-            .element_validators
-            .iter()
-            .map(snapshot_validator)
-            .collect(),
-        is_nested: validation.mode == crate::FieldMode::Nested,
-        is_newtype: validation.mode == crate::FieldMode::Newtype,
+fn snapshot_validator_use(validator_use: &ParsedValidatorUse) -> SnapshotValidator {
+    snapshot_validator(validator_use.label.as_ref(), &validator_use.validator)
+}
+
+fn snapshot_validation(validation: &ParsedFieldSpec) -> SnapshotValidationInfo {
+    match validation {
+        ParsedFieldSpec::Regular {
+            field_validators,
+            element_validators,
+        } => SnapshotValidationInfo {
+            shape: "regular".to_owned(),
+            field_validators: field_validators
+                .iter()
+                .map(snapshot_validator_use)
+                .collect(),
+            element_validators: element_validators
+                .iter()
+                .map(snapshot_validator_use)
+                .collect(),
+        },
+        ParsedFieldSpec::Nested { .. } => SnapshotValidationInfo {
+            shape: "nested".to_owned(),
+            field_validators: Vec::new(),
+            element_validators: Vec::new(),
+        },
+        ParsedFieldSpec::Newtype {
+            field_validators, ..
+        } => SnapshotValidationInfo {
+            shape: "newtype".to_owned(),
+            field_validators: field_validators
+                .iter()
+                .map(snapshot_validator_use)
+                .collect(),
+            element_validators: Vec::new(),
+        },
+        ParsedFieldSpec::Skipped => SnapshotValidationInfo {
+            shape: "skipped".to_owned(),
+            field_validators: Vec::new(),
+            element_validators: Vec::new(),
+        },
     }
 }
 
@@ -122,7 +149,7 @@ fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<Option<String
 
 fn find_value_field_capture_strict(
     input: &syn::ItemStruct,
-) -> Result<Option<ValueFieldCapture>, String> {
+) -> Result<Option<CapturePolicy>, String> {
     find_value_field_info_strict(input)
         .map(|value| value.map(|info| info.capture))
         .map_err(|err| err.to_string())
@@ -180,6 +207,32 @@ fn test_parse_field_direct_each() {
 }
 
 #[test]
+fn test_parse_field_direct_labeled_validators() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(
+            lower_bound = RangeValidation::min(0),
+            even_check = EvenValidation,
+        )]
+        pub value: i32
+    };
+
+    assert_debug_snapshot!(parse_field_snapshot(&field));
+}
+
+#[test]
+fn test_parse_field_direct_labeled_each() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(each(
+            lower_bound = RangeValidation::min(0),
+            upper_bound = RangeValidation::max(100),
+        ))]
+        pub scores: Vec<i32>
+    };
+
+    assert_debug_snapshot!(parse_field_snapshot(&field));
+}
+
+#[test]
 fn test_parse_field_direct_nested() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(nested)]
@@ -194,6 +247,16 @@ fn test_parse_field_direct_newtype() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(newtype)]
         pub index: CommonVariableIndex
+    };
+
+    assert_debug_snapshot!(parse_field_snapshot(&field));
+}
+
+#[test]
+fn test_parse_field_direct_newtype_with_validator() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(newtype, RequiredValidation::<_>)]
+        pub index: Option<CommonVariableIndex>
     };
 
     assert_debug_snapshot!(parse_field_snapshot(&field));
@@ -569,7 +632,7 @@ fn test_find_value_field_strict_rejects_unknown_marker() {
     let err = find_value_field_strict(&input).unwrap_err();
     let message = err.to_string();
     assert!(message.contains("validator field"));
-    assert!(message.contains("expected `value` or `skip_capture`"));
+    assert!(message.contains("expected `value`, `value(capture = skip)`, or `setter(...)`"));
 }
 
 #[test]
@@ -589,23 +652,40 @@ fn test_find_value_field_strict_still_returns_name() {
 }
 
 #[test]
-fn test_find_value_field_strict_supports_skip_capture() {
+fn test_find_value_field_strict_ignores_setter_metadata() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(setter(into, name = lower_bound))]
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    assert_eq!(
+        find_value_field_name_strict(&input).unwrap(),
+        Some("actual".to_string())
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_supports_capture_skip_policy() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             min: i32,
-            #[koruma(value, skip_capture)]
+            #[koruma(value(capture = skip))]
             actual: Option<i32>,
         }
     };
 
     assert_eq!(
         find_value_field_capture_strict(&input).unwrap(),
-        Some(ValueFieldCapture::Skip)
+        Some(CapturePolicy::Skip)
     );
 }
 
 #[test]
-fn test_find_value_field_strict_supports_split_skip_capture_attrs() {
+fn test_find_value_field_strict_rejects_legacy_capture_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(skip_capture)]
@@ -614,18 +694,19 @@ fn test_find_value_field_strict_supports_split_skip_capture_attrs() {
         }
     };
 
-    assert_eq!(
-        find_value_field_capture_strict(&input).unwrap(),
-        Some(ValueFieldCapture::Skip)
+    let err = find_value_field_info_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`skip_capture` has been replaced by `value(capture = skip)`")
     );
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_duplicate_skip_capture_markers() {
+fn test_find_value_field_strict_rejects_duplicate_value_markers_with_capture() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(value, skip_capture)]
-            #[koruma(skip_capture)]
+            #[koruma(value(capture = skip))]
+            #[koruma(value)]
             actual: Option<i32>,
         }
     };
@@ -633,15 +714,15 @@ fn test_find_value_field_strict_rejects_duplicate_skip_capture_markers() {
     let err = find_value_field_info_strict(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("field `actual` has multiple `#[koruma(skip_capture)]` markers")
+            .contains("field `actual` has multiple `#[koruma(value)]` markers")
     );
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_skip_capture_without_value() {
+fn test_find_value_field_strict_rejects_unknown_value_option() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(skip_capture)]
+            #[koruma(value(mode = skip))]
             actual: Option<i32>,
         }
     };
@@ -649,7 +730,23 @@ fn test_find_value_field_strict_rejects_skip_capture_without_value() {
     let err = find_value_field_info_strict(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("uses `#[koruma(skip_capture)]` but is missing `#[koruma(value)]`")
+            .contains("unsupported `value(...)` option; supported option is `capture = skip`")
+    );
+}
+
+#[test]
+fn test_find_value_field_strict_rejects_unknown_capture_policy() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(value(capture = clone))]
+            actual: Option<i32>,
+        }
+    };
+
+    let err = find_value_field_info_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("unsupported capture policy; supported policy is `skip`")
     );
 }
 

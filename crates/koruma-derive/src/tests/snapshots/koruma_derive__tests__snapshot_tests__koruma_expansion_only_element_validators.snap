@@ -19,7 +19,7 @@ pub struct ScoresValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation<i32>>,
 }
 impl ScoresValuesElementKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation<i32>> {
         self.range_validation.as_ref()
     }
@@ -106,7 +106,7 @@ impl Scores {
                 range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     RangeValidation::<i32>::min(0).max(100),
                     __item_value,
                 )

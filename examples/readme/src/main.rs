@@ -402,7 +402,7 @@ pub fn main() {
             println!("username: {err}");
         }
 
-        if let Some(err) = errors.handle().ascii_validation() {
+        if let Some(err) = errors.handle().handle_ascii() {
             println!("handle(ascii): {err}");
         }
 

@@ -25,12 +25,11 @@ pub(crate) fn render_main_error(
     koruma: &TokenStream2,
 ) -> MainErrorRender {
     let struct_is_newtype = plan.struct_newtype().is_some();
-    let field_infos = plan.field_infos();
 
-    let main_error_usages: Vec<Type> = field_infos
+    let main_error_usages: Vec<Type> = plan
+        .fields
         .iter()
-        .zip(plan.fields.iter())
-        .map(|(_f, field_plan)| {
+        .map(|field_plan| {
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();
                 if struct_is_newtype && !field_plan.field_optional() {
@@ -40,7 +39,6 @@ pub(crate) fn render_main_error(
                 }
             } else {
                 field_error_type(generics, field_plan, koruma)
-                    .expect("non-nested fields should have a generated error type")
             }
         })
         .collect();
@@ -54,11 +52,11 @@ pub(crate) fn render_main_error(
     let ty_generics = helper_generics.ty_generics;
     let where_clause = helper_generics.where_clause;
 
-    let fields: Vec<TokenStream2> = field_infos
+    let fields: Vec<TokenStream2> = plan
+        .fields
         .iter()
-        .zip(plan.fields.iter())
-        .map(|(f, field_plan)| {
-            let field_name = &f.name;
+        .map(|field_plan| {
+            let field_name = &field_plan.name;
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();
                 if struct_is_newtype && !field_plan.field_optional() {
@@ -67,18 +65,17 @@ pub(crate) fn render_main_error(
                     quote! { #field_name: Option<<#inner_ty as #koruma::ValidateExt>::Error> }
                 }
             } else {
-                let field_error_path = field_error_type_path(generics, field_plan, koruma)
-                    .expect("non-nested fields should have a generated error type");
+                let field_error_path = field_error_type_path(generics, field_plan, koruma);
                 quote! { #field_name: #field_error_path }
             }
         })
         .collect();
 
-    let getter_methods: Vec<TokenStream2> = field_infos
+    let getter_methods: Vec<TokenStream2> = plan
+        .fields
         .iter()
-        .zip(plan.fields.iter())
-        .map(|(f, field_plan)| {
-            let field_name = &f.name;
+        .map(|field_plan| {
+            let field_name = &field_plan.name;
             let field_name_str = field_name.to_string();
             let struct_name_str = struct_name.to_string();
             if field_plan.is_nested() {
@@ -99,8 +96,7 @@ pub(crate) fn render_main_error(
                     }
                 }
             } else if field_plan.is_newtype() {
-                let field_error_path = field_error_type_path(generics, field_plan, koruma)
-                    .expect("non-nested fields should have a generated error type");
+                let field_error_path = field_error_type_path(generics, field_plan, koruma);
                 if field_plan.has_field_validators() {
                     quote! {
                         #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
@@ -127,8 +123,7 @@ pub(crate) fn render_main_error(
                     }
                 }
             } else {
-                let field_error_path = field_error_type_path(generics, field_plan, koruma)
-                    .expect("non-nested fields should have a generated error type");
+                let field_error_path = field_error_type_path(generics, field_plan, koruma);
                 quote! {
                     #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
                     pub fn #field_name(&self) -> &#field_error_path {
@@ -139,11 +134,11 @@ pub(crate) fn render_main_error(
         })
         .collect();
 
-    let is_empty_checks: Vec<TokenStream2> = field_infos
+    let is_empty_checks: Vec<TokenStream2> = plan
+        .fields
         .iter()
-        .zip(plan.fields.iter())
-        .map(|(f, field_plan)| {
-            let field_name = &f.name;
+        .map(|field_plan| {
+            let field_name = &field_plan.name;
             if field_plan.is_nested() {
                 if struct_is_newtype && !field_plan.field_optional() {
                     quote! { self.#field_name.is_empty() }
@@ -161,11 +156,11 @@ pub(crate) fn render_main_error(
         quote! { #(#is_empty_checks)&&* }
     };
 
-    let defaults: Vec<TokenStream2> = field_infos
+    let defaults: Vec<TokenStream2> = plan
+        .fields
         .iter()
-        .zip(plan.fields.iter())
-        .map(|(f, field_plan)| {
-            let field_name = &f.name;
+        .map(|field_plan| {
+            let field_name = &field_plan.name;
 
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();

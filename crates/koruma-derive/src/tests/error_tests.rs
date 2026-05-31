@@ -92,10 +92,10 @@ fn test_validator_error_on_duplicate_value_marker_same_field() {
 }
 
 #[test]
-fn test_validator_error_skip_capture_requires_option_value_field() {
+fn test_validator_error_capture_skip_requires_option_value_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
-            #[koruma(value, skip_capture)]
+            #[koruma(value(capture = skip))]
             actual: String,
         }
     };
@@ -105,7 +105,65 @@ fn test_validator_error_skip_capture_requires_option_value_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`#[koruma(value, skip_capture)]` currently requires an `Option<T>` field")
+            .contains("`#[koruma(value(capture = skip))]` currently requires an `Option<T>` field")
+    );
+}
+
+#[test]
+fn test_validator_error_value_field_rejects_setter_metadata() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(value, setter(required))]
+            actual: Option<i32>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`#[koruma(value)]` fields cannot also use `#[koruma(setter(...))]`")
+    );
+}
+
+#[test]
+fn test_validator_error_unknown_setter_option() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(setter(skip))]
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("unsupported `#[koruma(setter(skip))]` option")
+    );
+}
+
+#[test]
+fn test_validator_error_required_and_default_setter_options_conflict() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(setter(required, default = 0))]
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`required` and `default` cannot be combined")
     );
 }
 
@@ -205,8 +263,8 @@ fn test_koruma_error_on_duplicate_validator_same_attr() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("duplicate validator"),
-        "expected 'duplicate validator' error, got: {}",
+        err.to_string().contains("add explicit validator labels"),
+        "expected label-required duplicate-name error, got: {}",
         err
     );
 }
@@ -225,8 +283,8 @@ fn test_koruma_error_on_duplicate_validator_separate_attrs() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("duplicate validator"),
-        "expected 'duplicate validator' error, got: {}",
+        err.to_string().contains("add explicit validator labels"),
+        "expected label-required duplicate-name error, got: {}",
         err
     );
 }
@@ -245,8 +303,8 @@ fn test_koruma_error_on_duplicate_element_validator() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("duplicate element validator"),
-        "expected 'duplicate element validator' error, got: {}",
+        err.to_string().contains("add explicit validator labels"),
+        "expected label-required duplicate-name error, got: {}",
         err
     );
 }

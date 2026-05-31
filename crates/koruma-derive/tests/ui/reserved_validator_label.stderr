@@ -1,0 +1,5 @@
+error: `all` is reserved by generated Koruma error APIs; use a different validator label
+ --> tests/ui/reserved_validator_label.rs:5:14
+  |
+5 |     #[koruma(all = RequiredValidation)]
+  |              ^^^

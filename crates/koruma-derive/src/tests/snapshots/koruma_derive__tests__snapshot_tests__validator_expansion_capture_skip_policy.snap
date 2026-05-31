@@ -1,0 +1,63 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+#[derive(Clone, Debug)]
+pub struct PresenceOnlyValidation<T> {
+    actual: Option<T>,
+}
+#[doc(hidden)]
+pub mod presence_only_validation_builder {
+    pub struct Empty;
+    pub struct Set;
+}
+pub struct PresenceOnlyValidationBuilder<T> {
+    actual: ::std::option::Option<Option<T>>,
+    _state: ::std::marker::PhantomData<()>,
+}
+impl<T> PresenceOnlyValidationBuilder<T> {
+    fn new() -> Self {
+        Self {
+            actual: ::std::option::Option::None,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn with_value(self, value: T) -> Self {
+        PresenceOnlyValidationBuilder {
+            actual: ::std::option::Option::Some(::std::option::Option::Some(value)),
+            _state: ::std::marker::PhantomData,
+        }
+    }
+}
+impl<T> PresenceOnlyValidationBuilder<T> {
+    pub fn build(self) -> PresenceOnlyValidation<T> {
+        PresenceOnlyValidation {
+            actual: self.actual.unwrap_or(::std::option::Option::None),
+        }
+    }
+}
+impl<T> ::renamed_koruma::CaptureValueRef<T> for PresenceOnlyValidationBuilder<T> {
+    type Output = Self;
+    fn capture_value_ref(self, _value: &T) -> Self::Output {
+        self
+    }
+}
+impl<T> PresenceOnlyValidation<T> {
+    #[doc(hidden)]
+    pub fn __koruma_builder() -> PresenceOnlyValidationBuilder<T> {
+        PresenceOnlyValidationBuilder::new()
+    }
+    #[doc = concat!(
+        "Starts building [`", stringify!(PresenceOnlyValidation), "`] with the `",
+        "actual", "` value set."
+    )]
+    pub fn with_value(value: T) -> PresenceOnlyValidationBuilder<T> {
+        Self::__koruma_builder().with_value(value)
+    }
+    #[doc = concat!(
+        "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
+    )]
+    pub fn actual(&self) -> &Option<T> {
+        &self.actual
+    }
+}

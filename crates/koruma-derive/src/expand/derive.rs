@@ -6,9 +6,10 @@ use crate::expand::derive_newtype::{
 };
 use crate::expand::derive_validation::render_validation_checks;
 use crate::expand::koruma_crate_path;
+use crate::expand::names::main_error_struct_ident;
 use crate::expand::plan::ValidationPlan;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(Koruma)]` derive macro.
@@ -16,13 +17,12 @@ use syn::DeriveInput;
 /// Takes a parsed DeriveInput and returns the expanded TokenStream.
 pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
-    let error_struct_name = format_ident!("{}KorumaValidationError", struct_name);
+    let error_struct_name = main_error_struct_ident(struct_name);
     let generics = &input.generics;
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let plan = ValidationPlan::build(&input, "Koruma")?;
     let koruma = koruma_crate_path();
-    let field_infos = plan.field_infos();
     let fields = match &input.data {
         syn::Data::Struct(data) => &data.fields,
         _ => unreachable!("ValidationPlan already rejects non-struct inputs"),
@@ -74,7 +74,11 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         koruma: &koruma,
     });
 
-    let field_names: Vec<String> = field_infos.iter().map(|f| f.name.to_string()).collect();
+    let field_names: Vec<String> = plan
+        .fields
+        .iter()
+        .map(|field| field.name.to_string())
+        .collect();
     let fields_doc = if field_names.is_empty() {
         String::new()
     } else if field_names.len() == 1 {

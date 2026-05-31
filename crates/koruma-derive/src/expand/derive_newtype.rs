@@ -32,7 +32,7 @@ pub(crate) fn render_newtype_marker_impl(
 }
 
 pub(crate) fn render_newtype_deref_impl(input: NewtypeDerefInputs<'_>) -> TokenStream2 {
-    let Some((_field_info, field_plan)) = input.plan.struct_newtype() else {
+    let Some(field_plan) = input.plan.struct_newtype() else {
         return quote! {};
     };
 
@@ -60,11 +60,7 @@ pub(crate) fn render_newtype_deref_impl(input: NewtypeDerefInputs<'_>) -> TokenS
             }
         }
     } else {
-        let Some(field_error_path) =
-            field_error_type_path(input.generics, field_plan, input.koruma)
-        else {
-            return quote! {};
-        };
+        let field_error_path = field_error_type_path(input.generics, field_plan, input.koruma);
         let main_error_impl_generics = input.main_error_impl_generics;
         let main_error_ty_generics = input.main_error_ty_generics;
         let main_error_where_clause = input.main_error_where_clause;

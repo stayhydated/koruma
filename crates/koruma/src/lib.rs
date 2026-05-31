@@ -1,14 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-#[doc(hidden)]
-pub mod bon {
-    pub use bon::__::IsUnset;
-    pub use bon::*;
-}
-
-pub use koruma_core::{
-    BuilderWithValueRef, NewtypeValidation, Validate, ValidateExt, ValidationError,
-};
+pub use koruma_core::{CaptureValueRef, NewtypeValidation, Validate, ValidateExt, ValidationError};
 
 #[cfg(feature = "derive")]
 pub use koruma_derive::{Koruma, KorumaAllDisplay, validator};

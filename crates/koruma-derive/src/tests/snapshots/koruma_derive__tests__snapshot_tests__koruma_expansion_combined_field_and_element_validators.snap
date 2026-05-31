@@ -20,7 +20,7 @@ pub struct OrderWithLenCheckScoresElementKorumaValidationError {
     range_validation: Option<RangeValidation<i32>>,
 }
 impl OrderWithLenCheckScoresElementKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation<i32>> {
         self.range_validation.as_ref()
     }
@@ -66,9 +66,7 @@ pub struct OrderWithLenCheckScoresKorumaValidationError {
     element_errors: Vec<(usize, OrderWithLenCheckScoresElementKorumaValidationError)>,
 }
 impl OrderWithLenCheckScoresKorumaValidationError {
-    #[doc = concat!(
-        "Returns the failed [`", "VecLenValidation", "`] validator, if any."
-    )]
+    #[doc = concat!("Returns the failed `", "VecLenValidation", "` validator, if any.")]
     pub fn vec_len_validation(&self) -> Option<&VecLenValidation<i32>> {
         self.vec_len_validation.as_ref()
     }
@@ -137,7 +135,7 @@ impl OrderWithLenCheck {
         };
         let mut has_error = false;
         let __field_value = &self.scores;
-        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 VecLenValidation::min(1).max(10),
                 __field_value,
             )
@@ -153,7 +151,7 @@ impl OrderWithLenCheck {
                 range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     RangeValidation::<i32>::min(0).max(100),
                     __item_value,
                 )

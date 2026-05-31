@@ -99,7 +99,9 @@ impl MultiValidatorItem {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<NumberRangeValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.value.number_range_validation = Some(validator);
             has_error = true;
         }
@@ -108,7 +110,9 @@ impl MultiValidatorItem {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<EvenNumberValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.value.even_number_validation = Some(validator);
             has_error = true;
         }

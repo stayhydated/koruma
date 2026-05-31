@@ -3,10 +3,10 @@
 use crate::expand::{
     codegen::{
         helper_generics_for_usages, resolve_explicit_infer_type, validate_each_collection_type,
-        validator_builder_expr, validator_field_ident, validator_variant_ident,
+        validator_field_ident, validator_variant_ident,
     },
     effective_validation_type,
-    plan::{ErrorStorage, PlannedValidatorTypeArg, ValidationPlan, ValidationTarget},
+    plan::{ErrorStorage, PlannedField, PlannedValidatorTypeArg, ValidationPlan, ValidationTarget},
     validator_wants_full_type,
 };
 use koruma_derive_core::*;
@@ -187,8 +187,8 @@ fn test_helper_generics_tracks_lifetimes_consts_and_where_dependencies() {
         }
     };
 
-    let helper =
-        helper_generics_for_usages(&item.generics, &[quote! { (&'a T, [u8; N], &'z str) }]);
+    let usages: Vec<syn::Type> = vec![syn::parse_quote! { (&'a T, [u8; N], &'z str) }];
+    let helper = helper_generics_for_usages(&item.generics, &usages);
     let definition_generics = &helper.definition;
     let definition = quote!(#definition_generics).to_string();
     assert!(definition.contains("'a"));
@@ -217,10 +217,9 @@ fn test_helper_generics_ignores_non_generic_path_segments() {
         }
     };
 
-    let helper = helper_generics_for_usages(
-        &item.generics,
-        &[quote! { (::std::result::Result<U, ()>, [u8; N]) }],
-    );
+    let usages: Vec<syn::Type> =
+        vec![syn::parse_quote! { (::std::result::Result<U, ()>, [u8; N]) }];
+    let helper = helper_generics_for_usages(&item.generics, &usages);
     let definition_generics = &helper.definition;
     let definition = quote!(#definition_generics).to_string();
     assert!(definition.contains("T"));
@@ -278,18 +277,6 @@ fn test_codegen_names_use_hash_when_flattened_paths_collide() {
     assert!(first_variant.starts_with("FooBarBazH"));
     assert!(second_variant.starts_with("FooBarBazH"));
     assert_ne!(first_variant, second_variant);
-}
-
-#[test]
-fn test_validator_builder_expr_without_setters_uses_hidden_builder() {
-    let attr: ValidatorAttr = syn::parse_quote!(BareValidation::<_>);
-    let field_ty: syn::Type = syn::parse_quote!(Option<String>);
-    let expr = validator_builder_expr(&attr, &field_ty, false, &[]).unwrap();
-
-    assert_eq!(
-        quote!(#expr).to_string(),
-        "BareValidation :: < String > :: __koruma_builder ()"
-    );
 }
 
 #[test]
@@ -423,30 +410,31 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
             .to_string(),
         "PlannedTagsElementKorumaValidatorRef"
     );
+    assert!(matches!(plan.fields[0].shape, PlannedField::Regular(_)));
+    assert!(matches!(plan.fields[1].shape, PlannedField::Regular(_)));
 
     assert_eq!(
-        plan.fields[0].field_validators[0].target,
+        plan.fields[0].field_validators()[0].target,
         ValidationTarget::FieldFull
     );
     assert_eq!(
-        plan.fields[0].field_validators[1].target,
+        plan.fields[0].field_validators()[1].target,
         ValidationTarget::FieldOptionalInner
     );
     assert_eq!(
-        plan.fields[1].element_validators[0].target,
+        plan.fields[1].element_validators()[0].target,
         ValidationTarget::ElementFull
     );
     assert_eq!(
-        plan.fields[1].element_validators[1].target,
+        plan.fields[1].element_validators()[1].target,
         ValidationTarget::ElementOptionalInner
     );
-    assert!(plan.fields[0].field_optional);
-    assert!(plan.fields[1].element_optional);
-    let name_inner_type = &plan.fields[0].inner_type;
+    assert!(plan.fields[0].field_optional());
+    assert!(plan.fields[1].element_optional());
+    let name_inner_type = &plan.fields[0].inner_type();
     assert_eq!(quote!(#name_inner_type).to_string(), "String");
     let tags_element_type = plan.fields[1]
-        .element_type
-        .as_ref()
+        .element_type()
         .expect("expected planned element type");
     assert_eq!(quote!(#tags_element_type).to_string(), "Option < String >");
     assert_eq!(plan.fields[0].full_field_validators().count(), 1);
@@ -455,28 +443,70 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert_eq!(plan.fields[1].unwrapped_element_validators().count(), 1);
     assert!(matches!(
         plan.fields[0].error_storage,
-        ErrorStorage::Regular {
-            has_field_validators: true,
-            has_element_validators: false
-        }
+        ErrorStorage::RegularFieldValidators
     ));
     assert!(matches!(
         plan.fields[1].error_storage,
-        ErrorStorage::Regular {
-            has_field_validators: false,
-            has_element_validators: true
-        }
+        ErrorStorage::RegularElementValidators
     ));
-    let required_builder = &plan.fields[0].field_validators[0].builder_expr;
+    let required_builder = &plan.fields[0].field_validators()[0].builder_type;
     assert_eq!(
         quote!(#required_builder).to_string(),
-        "RequiredValidation :: < Option < String > > :: __koruma_builder ()"
+        "RequiredValidation < Option < String > >"
+    );
+    assert!(plan.fields[0].field_validators()[0].setter_calls.is_empty());
+    assert_eq!(
+        plan.fields[0].field_validators()[1].setter_calls[0]
+            .method
+            .to_string(),
+        "min"
     );
 
     let PlannedValidatorTypeArg::Resolved(resolved_ty) =
-        &plan.fields[1].element_validators[1].resolved_type_arg
+        &plan.fields[1].element_validators()[1].resolved_type_arg
     else {
         panic!("expected inferred element validator type");
     };
     assert_eq!(quote!(#resolved_ty).to_string(), "String");
+}
+
+#[test]
+fn test_validation_plan_uses_shape_specific_field_data() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        struct PlannedShapes {
+            #[koruma(nested)]
+            child: Child,
+            #[koruma(newtype, RequiredValidation)]
+            wrapped: Option<Wrapped>,
+        }
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    assert_eq!(plan.fields.len(), 2);
+
+    let PlannedField::Nested(nested) = &plan.fields[0].shape else {
+        panic!("expected nested planned field");
+    };
+    assert!(!nested.optional);
+    let nested_inner_type = &nested.inner_type;
+    assert_eq!(quote!(#nested_inner_type).to_string(), "Child");
+    assert!(plan.fields[0].field_validators().is_empty());
+    assert!(plan.fields[0].element_validators().is_empty());
+    assert!(matches!(
+        plan.fields[0].error_storage,
+        ErrorStorage::Nested { optional: false }
+    ));
+
+    let PlannedField::Newtype(newtype) = &plan.fields[1].shape else {
+        panic!("expected newtype planned field");
+    };
+    assert!(newtype.optional);
+    let newtype_inner_type = &newtype.inner_type;
+    assert_eq!(quote!(#newtype_inner_type).to_string(), "Wrapped");
+    assert_eq!(newtype.field_validators.len(), 1);
+    assert!(plan.fields[1].element_validators().is_empty());
+    assert!(matches!(
+        plan.fields[1].error_storage,
+        ErrorStorage::NewtypeWithValidators { optional: true }
+    ));
 }

@@ -229,7 +229,9 @@ impl ComplexItem {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<RangeValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.age.range_validation = Some(validator);
             has_error = true;
         }
@@ -243,7 +245,9 @@ impl ComplexItem {
                     __item_value,
                 )
                 .build();
-            if !validator.validate(__item_value) {
+            if !<LengthValidation as ::renamed_koruma::Validate<
+                String,
+            >>::validate(&validator, __item_value) {
                 element_error.length_validation = Some(validator);
                 element_has_error = true;
             }
@@ -258,7 +262,9 @@ impl ComplexItem {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<RangeValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.rating.range_validation = Some(validator);
             has_error = true;
         }
@@ -267,7 +273,9 @@ impl ComplexItem {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<EvenValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.rating.even_validation = Some(validator);
             has_error = true;
         }

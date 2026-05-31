@@ -135,7 +135,9 @@ impl Item {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<NumberRangeValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.age.number_range_validation = Some(validator);
             has_error = true;
         }
@@ -145,7 +147,9 @@ impl Item {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<StringLengthValidation as ::renamed_koruma::Validate<
+            String,
+        >>::validate(&validator, __field_value) {
             error.name.string_length_validation = Some(validator);
             has_error = true;
         }

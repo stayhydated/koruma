@@ -90,7 +90,9 @@ impl Person {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<RangeValidation as ::renamed_koruma::Validate<
+            i32,
+        >>::validate(&validator, __field_value) {
             error.age.range_validation = Some(validator);
             has_error = true;
         }

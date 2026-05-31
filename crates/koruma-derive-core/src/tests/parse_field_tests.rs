@@ -411,6 +411,80 @@ fn test_parse_struct_options_multiple_attrs_duplicate_error() {
     );
 }
 
+#[test]
+fn test_parse_struct_options_rejects_data_field_marker() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        #[koruma(nested)]
+        pub struct Person {
+            pub age: i32,
+        }
+    };
+
+    let err = parse_struct_options(&input.attrs).unwrap_err();
+    let message = err.to_string();
+    assert!(message.contains("derive struct"));
+    assert!(message.contains("expected `try_new`, `newtype`, or `newtype(try_from)`"));
+}
+
+#[test]
+fn test_parse_field_rejects_validator_field_marker_value() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(value)]
+        pub name: String
+    };
+
+    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
+        panic!("expected data-field context error");
+    };
+    let message = err.to_string();
+    assert!(message.contains("derive data field"));
+    assert!(message.contains("expected `skip`, `nested`, `newtype`, validators, or `each(...)`"));
+}
+
+#[test]
+fn test_parse_field_rejects_struct_option_try_new() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(try_new)]
+        pub name: String
+    };
+
+    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
+        panic!("expected data-field context error");
+    };
+    let message = err.to_string();
+    assert!(message.contains("`try_new` is not valid"));
+    assert!(message.contains("derive data field"));
+}
+
+#[test]
+fn test_parse_field_rejects_struct_newtype_options() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(newtype(try_from))]
+        pub name: String
+    };
+
+    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
+        panic!("expected data-field context error");
+    };
+    assert!(err.to_string().contains("`newtype(...)` is not valid"));
+}
+
+#[test]
+fn test_parse_field_rejects_bare_each_marker() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(each)]
+        pub names: Vec<String>
+    };
+
+    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
+        panic!("expected each syntax error");
+    };
+    assert!(
+        err.to_string()
+            .contains("`each` is only valid as `each(...)`")
+    );
+}
+
 // =============================================================================
 // find_value_field tests
 // =============================================================================
@@ -503,9 +577,9 @@ fn test_find_value_field_strict_rejects_unknown_marker() {
     };
 
     let err = find_value_field_strict(&input).unwrap_err();
-    assert!(err.to_string().contains(
-        "validator fields only support `#[koruma(value)]` and `#[koruma(skip_capture)]`"
-    ));
+    let message = err.to_string();
+    assert!(message.contains("validator field"));
+    assert!(message.contains("expected `value` or `skip_capture`"));
 }
 
 #[test]

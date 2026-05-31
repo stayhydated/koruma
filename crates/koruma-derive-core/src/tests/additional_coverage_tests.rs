@@ -593,7 +593,7 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
         find_value_field_info_strict(&bad_input)
             .expect_err("expected empty marker error")
             .to_string()
-            .contains("validator fields only support")
+            .contains("validator fields must contain `value` or `skip_capture`")
     );
 }
 

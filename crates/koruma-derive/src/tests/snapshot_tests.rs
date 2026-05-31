@@ -408,7 +408,8 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("__koruma_assert_validate_wrapped_required_validation_newtype_field"));
+    assert!(compact.contains("::renamed_koruma::Validate<Option<WrappedValue>,>"));
+    assert!(compact.contains("::validate(&validator,&self.wrapped)"));
     assert!(compact.contains("BuilderWithValueRef::with_value_ref("));
     assert!(compact.contains("PlainValidation::min(1)"));
     assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
@@ -480,7 +481,8 @@ fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
     assert!(compact.contains(
         "BuilderWithValueRef::with_value_ref(RequiredValidation::__koruma_builder(),&self.value,)"
     ));
-    assert!(compact.contains("validator.validate(&self.value)"));
+    assert!(compact.contains("::renamed_koruma::Validate<Option<String>,>"));
+    assert!(compact.contains("::validate(&validator,&self.value)"));
     assert!(!compact.contains("ifletSome(ref__field_value)=self.value"));
 }
 
@@ -502,13 +504,9 @@ fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
         )
     );
     assert!(
-        compact.contains(
-            "__koruma_assert_validate_values_required_validation_element(&validator,item,)"
-        )
+        compact.contains("as::renamed_koruma::Validate<Option<i32>>>::validate(&validator,item)")
     );
-    assert!(!compact.contains(
-        "__koruma_assert_validate_values_required_validation_element(&validator,__item_value,)"
-    ));
+    assert!(!compact.contains("__koruma_assert_validate_values_required_validation_element"));
 }
 
 #[test]

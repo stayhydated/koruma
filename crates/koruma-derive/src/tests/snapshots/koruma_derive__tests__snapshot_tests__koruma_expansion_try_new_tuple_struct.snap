@@ -92,7 +92,9 @@ impl Username {
                 __field_value,
             )
             .build();
-        if !validator.validate(__field_value) {
+        if !<NonEmptyStringValidation as ::renamed_koruma::Validate<
+            String,
+        >>::validate(&validator, __field_value) {
             error._0.non_empty_string_validation = Some(validator);
             has_error = true;
         }

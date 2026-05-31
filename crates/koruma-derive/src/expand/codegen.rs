@@ -23,6 +23,11 @@ impl HelperGenerics {
         let ty_generics = &self.ty_generics;
         quote! { #ident #ty_generics }
     }
+
+    pub fn type_path_type(&self, ident: &Ident) -> Type {
+        let ty_generics = &self.ty_generics;
+        parse_quote! { #ident #ty_generics }
+    }
 }
 
 pub(crate) struct RefEnumGenerics {
@@ -162,19 +167,14 @@ fn collect_matching_generic_names_from_predicate(
 
 pub(crate) fn helper_generics_for_usages(
     source_generics: &Generics,
-    usages: &[TokenStream2],
+    usages: &[Type],
 ) -> HelperGenerics {
     let (type_params, const_params, lifetime_params) = collect_generic_params(source_generics);
     let mut used: BTreeSet<String> = usages
         .iter()
-        .map(|usage| {
-            syn::parse2::<Type>(usage.clone()).unwrap_or_else(|err| {
-                panic!("helper generic usage should be a Rust type, got `{usage}`: {err}")
-            })
-        })
         .flat_map(|ty| {
             collect_matching_generic_names_from_type(
-                &ty,
+                ty,
                 &type_params,
                 &const_params,
                 &lifetime_params,
@@ -275,7 +275,7 @@ fn generic_param_type_arg(param: &GenericParam) -> TokenStream2 {
 
 pub(crate) fn ref_enum_generics_for_usages(
     source_generics: &Generics,
-    usages: &[TokenStream2],
+    usages: &[Type],
 ) -> RefEnumGenerics {
     let helper = helper_generics_for_usages(source_generics, usages);
     let mut definition = helper.definition.clone();
@@ -440,10 +440,10 @@ pub(crate) fn reject_legacy_full_option_syntax(
 ///
 /// Bare identifiers that match struct fields are rejected so cross-field
 /// validator arguments stay explicit at the call site.
-pub(crate) fn transform_arg_value(
+pub(crate) fn validate_validator_arg_value(
     arg_value: &Expr,
     field_names: &[Ident],
-) -> Result<TokenStream2, syn::Error> {
+) -> Result<(), syn::Error> {
     if let Some(field_ident) = expr_as_simple_ident(arg_value)
         && field_names.iter().any(|name| name == field_ident)
     {
@@ -454,62 +454,8 @@ pub(crate) fn transform_arg_value(
             ),
         ))
     } else {
-        Ok(quote! { #arg_value })
+        Ok(())
     }
-}
-
-pub(crate) fn validator_builder_expr(
-    v: &ValidatorAttr,
-    field_ty: &Type,
-    validate_each: bool,
-    field_names: &[Ident],
-) -> Result<TokenStream2, syn::Error> {
-    let validator = &v.validator;
-    let effective_ty = validator_infer_source_type(v, field_ty, validate_each);
-
-    let uses_infer = v.uses_type_inference() || v.explicit_type().is_some_and(contains_infer_type);
-    let validator_path = if uses_infer {
-        let validator_ty = if v.has_explicit_type() {
-            let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
-                .expect("explicit infer types should be pre-validated")
-                .expect("explicit infer types should resolve to a concrete type");
-            quote! { #substituted }
-        } else {
-            quote! { #effective_ty }
-        };
-
-        quote! { #validator::<#validator_ty> }
-    } else {
-        quote! { #validator }
-    };
-
-    let mut setter_calls = v.setter_calls().iter();
-    let Some(first_method) = setter_calls.next() else {
-        return Ok(quote! { #validator_path::__koruma_builder() });
-    };
-
-    let first_method_name = &first_method.method;
-    let first_args: Vec<_> = first_method
-        .args
-        .iter()
-        .map(|arg| transform_arg_value(arg, field_names))
-        .collect::<Result<_, _>>()?;
-    let rest_calls: Vec<TokenStream2> = setter_calls
-        .map(|method| {
-            let method_name = &method.method;
-            let transformed_args: Vec<_> = method
-                .args
-                .iter()
-                .map(|arg| transform_arg_value(arg, field_names))
-                .collect::<Result<_, _>>()?;
-            Ok(quote! { .#method_name(#(#transformed_args),*) })
-        })
-        .collect::<Result<_, syn::Error>>()?;
-
-    Ok(quote! {
-        #validator_path::#first_method_name(#(#first_args),*)
-            #(#rest_calls)*
-    })
 }
 
 fn stable_hash_hex(input: &str) -> String {
@@ -577,6 +523,7 @@ pub(crate) fn validator_variant_ident(v: &ValidatorAttr, siblings: &[ValidatorAt
 }
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)
+#[cfg(test)]
 pub(crate) fn effective_validation_type(field_ty: &Type, validate_each: bool) -> &Type {
     // Unwrap outer Option<Collection<T>> first for each validation.
     let after_each = if validate_each {

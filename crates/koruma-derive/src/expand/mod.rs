@@ -9,6 +9,12 @@ use syn_cfg_attr::AttributeHelpers;
 pub(crate) mod codegen;
 pub(crate) mod crate_path;
 pub(crate) mod derive;
+pub(crate) mod derive_constructors;
+pub(crate) mod derive_field_errors;
+pub(crate) mod derive_main_error;
+pub(crate) mod derive_newtype;
+pub(crate) mod derive_shared;
+pub(crate) mod derive_validation;
 pub(crate) mod display;
 #[cfg(feature = "fluent")]
 pub(crate) mod fluent;
@@ -23,10 +29,11 @@ pub use fluent::expand_koruma_all_fluent;
 pub use validator::expand_validator;
 
 // Re-exports for tests and internal usage
+#[cfg(test)]
+pub(crate) use codegen::effective_validation_type;
 #[allow(unused_imports)]
 pub(crate) use codegen::{
-    effective_validation_type, reject_legacy_full_option_syntax, resolve_explicit_infer_type,
-    transform_arg_value, validate_each_collection_type, validator_builder_expr,
+    reject_legacy_full_option_syntax, resolve_explicit_infer_type, validate_each_collection_type,
     validator_field_ident, validator_infer_source_type, validator_variant_ident,
     validator_wants_full_type,
 };

@@ -5,7 +5,7 @@ use quote::quote;
 use crate::expand::codegen::{helper_generics_for_usages, ref_enum_generics_for_usages};
 use crate::expand::koruma_crate_path;
 use crate::expand::plan::ValidationPlan;
-use syn::DeriveInput;
+use syn::{DeriveInput, Type};
 
 /// Core expansion logic for the `#[derive(KorumaAllFluent)]` derive macro.
 ///
@@ -24,20 +24,18 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
         .fields
         .iter()
         .zip(plan.field_infos())
-        .filter(|(field_plan, _)| !field_plan.field_validators.is_empty())
+        .filter(|(field_plan, _)| field_plan.has_field_validators())
         .map(|(field_plan, _)| {
             let enum_name = &field_plan.generated_names.field_validator_ref_enum;
-            let mut helper_usages: Vec<TokenStream2> = field_plan
-                .field_validators
+            let mut helper_usages: Vec<Type> = field_plan
+                .field_validators()
                 .iter()
-                .map(|planned| {
-                    let vtype = &planned.validator_type;
-                    quote! { #vtype }
-                })
+                .map(|planned| planned.validator_type.as_type())
                 .collect();
             if field_plan.is_newtype() {
-                let inner_ty = &field_plan.inner_type;
-                helper_usages.push(quote! { <#inner_ty as #koruma::ValidateExt>::Error });
+                let inner_ty = field_plan.inner_type();
+                helper_usages
+                    .push(syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error });
             }
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
             let helper_impl_generics = &helper_generics.impl_generics;
@@ -45,7 +43,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             let helper_where_clause = &helper_generics.where_clause;
 
             let match_arms: Vec<TokenStream2> = field_plan
-                .field_validators
+                .field_validators()
                 .iter()
                 .map(|planned| {
                     let variant_name = &planned.variant_ident;
@@ -89,16 +87,13 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     let element_fluent_impls: Vec<TokenStream2> = plan
         .fields
         .iter()
-        .filter(|field_plan| !field_plan.element_validators.is_empty())
+        .filter(|field_plan| field_plan.has_element_validators())
         .map(|field_plan| {
             let enum_name = &field_plan.generated_names.element_validator_ref_enum;
-            let helper_usages: Vec<TokenStream2> = field_plan
-                .element_validators
+            let helper_usages: Vec<Type> = field_plan
+                .element_validators()
                 .iter()
-                .map(|planned| {
-                    let vtype = &planned.validator_type;
-                    quote! { #vtype }
-                })
+                .map(|planned| planned.validator_type.as_type())
                 .collect();
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
             let helper_impl_generics = &helper_generics.impl_generics;
@@ -106,7 +101,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             let helper_where_clause = &helper_generics.where_clause;
 
             let match_arms: Vec<TokenStream2> = field_plan
-                .element_validators
+                .element_validators()
                 .iter()
                 .map(|planned| {
                     let variant_name = &planned.variant_ident;
@@ -141,21 +136,19 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
         .fields
         .iter()
         .zip(plan.field_infos())
-        .filter(|(field_plan, f)| !field_plan.field_validators.is_empty() || f.is_newtype())
+        .filter(|(field_plan, f)| field_plan.has_field_validators() || f.is_newtype())
         .map(|(field_plan, f)| {
             let field_ty = &f.ty;
             let error_struct_name = &field_plan.generated_names.field_error_struct;
-            let mut helper_usages: Vec<TokenStream2> = field_plan
-                .field_validators
+            let mut helper_usages: Vec<Type> = field_plan
+                .field_validators()
                 .iter()
-                .map(|planned| {
-                    let vtype = &planned.validator_type;
-                    quote! { #vtype }
-                })
+                .map(|planned| planned.validator_type.as_type())
                 .collect();
             if f.is_newtype() {
-                let inner_ty = &field_plan.inner_type;
-                helper_usages.push(quote! { <#inner_ty as #koruma::ValidateExt>::Error });
+                let inner_ty = field_plan.inner_type();
+                helper_usages
+                    .push(syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error });
             }
             let helper_generics = helper_generics_for_usages(generics, &helper_usages);
             let helper_impl_generics = &helper_generics.impl_generics;
@@ -165,7 +158,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             // Join all field-level validator messages, and include the delegated
             // newtype error when present.
             let message_pushes: Vec<TokenStream2> = field_plan
-                .field_validators
+                .field_validators()
                 .iter()
                 .map(|planned| {
                     let validator_snake = &planned.field_ident;

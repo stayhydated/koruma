@@ -37,9 +37,9 @@ pub use parse::{
     KorumaAttrContext, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, StructConstructor,
     StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions, TargetPolicy,
     ValidatorAttr, ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec,
-    ValidatorSetterSpec, ValidatorStructSpec, ValidatorTypeArg, ValidatorValueSpec, ValueFieldInfo,
-    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
-    parse_validator_fields_strict,
+    ValidatorSetterArg, ValidatorSetterSpec, ValidatorStructSpec, ValidatorTypeArg,
+    ValidatorValueSpec, ValueFieldInfo, find_value_field_info_strict, find_value_field_strict,
+    parse_field, parse_struct_options, parse_validator_fields_strict,
 };
 
 #[cfg(feature = "internal-showcase")]
@@ -47,7 +47,7 @@ pub use parse::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_a
 
 // Re-export utility functions
 pub use utils::{
-    contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
+    TypeShape, contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
     option_inner_type, substitute_infer_type, substitute_infer_type_from_source, type_to_ident,
     vec_inner_type,
 };

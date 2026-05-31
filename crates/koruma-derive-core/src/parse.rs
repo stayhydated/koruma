@@ -4,6 +4,7 @@
 //! attributes from syn AST nodes.
 
 use heck::{ToSnakeCase, ToUpperCamelCase};
+use quote::ToTokens;
 use syn::{
     Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
     PathArguments, Result, Token, Type, parenthesized,
@@ -94,11 +95,33 @@ fn context_error(marker: &Ident, context: KorumaAttrContext) -> Error {
 /// assert_eq!(full_path.path_name(), "validators::numeric::RangeValidation");
 /// ```
 #[derive(Clone, Debug)]
+pub enum ValidatorSetterArg {
+    /// A normal Rust expression passed directly to a generated validator setter.
+    Expr(Expr),
+}
+
+impl ValidatorSetterArg {
+    pub fn as_expr(&self) -> &Expr {
+        match self {
+            Self::Expr(expr) => expr,
+        }
+    }
+}
+
+impl ToTokens for ValidatorSetterArg {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            Self::Expr(expr) => expr.to_tokens(tokens),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct BuilderMethodCall {
     /// The builder setter method name, such as `min` or `exclusive_max`.
     pub method: Ident,
-    /// Positional Rust expression arguments passed to the setter.
-    pub args: Vec<Expr>,
+    /// Positional typed arguments passed to the setter.
+    pub args: Vec<ValidatorSetterArg>,
 }
 
 /// Type argument syntax used by a validator path.
@@ -371,7 +394,12 @@ fn analyze_direct_validator_expr(expr: &Expr) -> Result<Option<(Path, Vec<Builde
 
             builder_methods.push(BuilderMethodCall {
                 method: method_call.method.clone(),
-                args: method_call.args.iter().cloned().collect(),
+                args: method_call
+                    .args
+                    .iter()
+                    .cloned()
+                    .map(ValidatorSetterArg::Expr)
+                    .collect(),
             });
             Ok(Some((validator, builder_methods)))
         },
@@ -437,7 +465,12 @@ fn analyze_direct_validator_call_expr(
         validator_path,
         vec![BuilderMethodCall {
             method,
-            args: call.args.iter().cloned().collect(),
+            args: call
+                .args
+                .iter()
+                .cloned()
+                .map(ValidatorSetterArg::Expr)
+                .collect(),
         }],
     )))
 }
@@ -689,10 +722,7 @@ fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>>
 
     let fork = input.fork();
     let ident: Ident = fork.parse()?;
-    if matches!(
-        ident.to_string().as_str(),
-        "value" | "skip_capture" | "try_new"
-    ) {
+    if matches!(ident.to_string().as_str(), "value" | "try_new") {
         return Err(context_error(&ident, KorumaAttrContext::DataField));
     }
 
@@ -982,7 +1012,7 @@ impl Parse for StructKorumaAttr {
                     attr.items.push(StructKorumaItem::Newtype(newtype_options));
                 },
                 other => {
-                    if matches!(other, "skip" | "nested" | "each" | "value" | "skip_capture") {
+                    if matches!(other, "skip" | "nested" | "each" | "value") {
                         return Err(context_error(&ident, KorumaAttrContext::Struct));
                     }
                     return Err(Error::new(
@@ -1427,8 +1457,6 @@ impl Parse for ValidatorFieldKorumaAttr {
                     CapturePolicy::CloneInput
                 };
                 ValidatorFieldKorumaItem::Value(ValidatorValueSpec { capture })
-            } else if ident == "skip_capture" {
-                return Err(context_error(&ident, KorumaAttrContext::ValidatorField));
             } else if ident == "setter" {
                 ValidatorFieldKorumaItem::Setter(parse_setter_options(input)?)
             } else {

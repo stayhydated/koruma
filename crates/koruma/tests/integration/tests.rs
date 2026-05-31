@@ -9,7 +9,8 @@ use super::fixtures::{
     Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, NonCloneValidatorItem,
     OptionalBorrowedOrder, OptionalElementMixedValidators, OptionalElementPresenceOrder,
     OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation, PositiveNumber,
-    PresenceOnlyNonClone, QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
+    PresenceOnlyNonClone, QualifiedPathProfile, RequiredElementFullTypeOrder,
+    StaticSecretConfirmation, UserProfile,
 };
 use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
@@ -443,6 +444,27 @@ fn test_each_optional_elements_split_full_type_and_unwrapped_paths() {
             .1
             .generic_range_validation()
             .expect("expected failing unwrapped element validator")
+            .actual(),
+        20
+    );
+}
+
+#[test]
+fn test_each_required_elements_full_type_validator_uses_element_reference() {
+    let order = RequiredElementFullTypeOrder {
+        values: vec![1, 20, 5],
+    };
+
+    let err = order.validate().unwrap_err();
+    let value_errors = err.values().element_errors();
+
+    assert_eq!(value_errors.len(), 1);
+    assert_eq!(value_errors[0].0, 1);
+    assert_eq!(
+        *value_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing full-type element validator")
             .actual(),
         20
     );

@@ -1,9 +1,9 @@
 use crate::{
     DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, StructKorumaAttr, StructKorumaItem,
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, find_value_field_info_strict,
-    find_value_field_strict, first_generic_arg, option_inner_type, parse_field,
-    parse_struct_options, substitute_infer_type, substitute_infer_type_from_source, type_to_ident,
-    vec_inner_type,
+    TypeShape, ValidatorAttr, contains_infer_type, expr_as_simple_ident,
+    find_value_field_info_strict, find_value_field_strict, first_generic_arg, option_inner_type,
+    parse_field, parse_struct_options, substitute_infer_type, substitute_infer_type_from_source,
+    type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -316,6 +316,27 @@ fn utility_functions_cover_non_happy_paths() {
 
     let vec_const: syn::Type = syn::parse_quote!(Vec<1>);
     assert!(vec_inner_type(&vec_const).is_none());
+
+    let qualified_option: syn::Type = syn::parse_quote!(std::option::Option<String>);
+    let TypeShape::Option { inner } = TypeShape::of(&qualified_option) else {
+        panic!("expected qualified option shape");
+    };
+    assert_eq!(quote::quote!(#inner).to_string(), "String");
+
+    let qualified_vec: syn::Type = syn::parse_quote!(std::vec::Vec<u8>);
+    let TypeShape::Vec { inner } = TypeShape::of(&qualified_vec) else {
+        panic!("expected qualified vec shape");
+    };
+    assert_eq!(quote::quote!(#inner).to_string(), "u8");
+
+    let reference: syn::Type = syn::parse_quote!(&[u8]);
+    let TypeShape::Reference { inner } = TypeShape::of(&reference) else {
+        panic!("expected reference shape");
+    };
+    assert!(matches!(TypeShape::of(inner), TypeShape::Slice { .. }));
+
+    let array: syn::Type = syn::parse_quote!([u8; 4]);
+    assert!(matches!(TypeShape::of(&array), TypeShape::Array { .. }));
 
     let named_type: syn::Type = syn::parse_quote!(Age);
     assert_eq!(

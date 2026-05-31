@@ -200,6 +200,13 @@ pub struct OptionalElementMixedValidators {
     pub values: Vec<Option<i32>>,
 }
 
+/// Example struct demonstrating full-type element validation for required elements.
+#[derive(Koruma)]
+pub struct RequiredElementFullTypeOrder {
+    #[koruma(each(full(GenericRangeValidation::<_>::min(0).max(10))))]
+    pub values: Vec<i32>,
+}
+
 /// Example struct showing that RequiredValidation can validate Option<NonClone>
 /// without forcing clone capture in the derive expansion.
 #[derive(Koruma)]

@@ -1,9 +1,9 @@
-use koruma_derive_core::{expr_as_simple_ident, is_option_type, option_inner_type, vec_inner_type};
+use koruma_derive_core::{TypeShape, is_option_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
 use std::collections::BTreeSet;
 use syn::visit::{self, Visit};
-use syn::{Expr, ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath, parse_quote};
+use syn::{ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath, parse_quote};
 
 pub(crate) struct HelperGenerics {
     pub definition: Generics,
@@ -355,7 +355,10 @@ pub(crate) struct EachCollection<'a> {
 
 pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection<'_>, syn::Error> {
     let outer_cardinality = FieldCardinality::for_type(field_ty);
-    let collection_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+    let collection_ty = match TypeShape::of(field_ty) {
+        TypeShape::Option { inner } => inner,
+        _ => field_ty,
+    };
     let Some((element_ty, iteration)) = classify_each_collection_inner(collection_ty) else {
         return Err(unsupported_each_collection_error(field_ty, collection_ty));
     };
@@ -370,13 +373,12 @@ pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection
 }
 
 fn classify_each_collection_inner(ty: &Type) -> Option<(&Type, EachIterationKind)> {
-    match ty {
-        Type::Array(array) => Some((&array.elem, EachIterationKind::Array)),
-        Type::Group(group) => classify_each_collection_inner(&group.elem),
-        Type::Paren(paren) => classify_each_collection_inner(&paren.elem),
-        Type::Reference(reference) => classify_each_collection_inner(&reference.elem),
-        Type::Slice(slice) => Some((&slice.elem, EachIterationKind::Slice)),
-        _ => vec_inner_type(ty).map(|element_ty| (element_ty, EachIterationKind::VecLike)),
+    match TypeShape::of(ty) {
+        TypeShape::Array { inner } => Some((inner, EachIterationKind::Array)),
+        TypeShape::Reference { inner } => classify_each_collection_inner(inner),
+        TypeShape::Slice { inner } => Some((inner, EachIterationKind::Slice)),
+        TypeShape::Vec { inner } => Some((inner, EachIterationKind::VecLike)),
+        TypeShape::Option { .. } | TypeShape::Other(_) => None,
     }
 }
 
@@ -385,31 +387,9 @@ fn unsupported_each_collection_error(field_ty: &Type, collection_ty: &Type) -> s
     syn::Error::new_spanned(
         field_ty,
         format!(
-            "`each(...)` currently only supports `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those, found `{rendered}`"
+            "`each(...)` currently only supports syntactic `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those, found `{rendered}`; koruma derives do not resolve type aliases or custom collection types"
         ),
     )
-}
-
-/// Transform a validator arg value for use in generated code.
-///
-/// Bare identifiers that match struct fields are rejected so cross-field
-/// validator arguments stay explicit at the call site.
-pub(crate) fn validate_validator_arg_value(
-    arg_value: &Expr,
-    field_names: &[Ident],
-) -> Result<(), syn::Error> {
-    if let Some(field_ident) = expr_as_simple_ident(arg_value)
-        && field_names.iter().any(|name| name == field_ident)
-    {
-        Err(syn::Error::new_spanned(
-            arg_value,
-            format!(
-                "bare field argument `{field_ident}` is ambiguous; use `self.{field_ident}.clone()` explicitly"
-            ),
-        ))
-    } else {
-        Ok(())
-    }
 }
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)
@@ -425,5 +405,5 @@ pub(crate) fn effective_validation_type(field_ty: &Type, site: ValidationSite) -
     };
 
     // Unwrap Option<T> for optional field validation
-    option_inner_type(after_each).unwrap_or(after_each)
+    koruma_derive_core::option_inner_type(after_each).unwrap_or(after_each)
 }

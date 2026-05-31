@@ -26,7 +26,9 @@
   `with_value`, hidden `CaptureValueRef` and `BuildValidator` glue, and optional showcase
   registration while preserving the validator's original bounds in the generated showcase impl.
   Direct setter projection consumes `koruma-derive-core`'s typed validator-field spec for
-  `value` and `setter(...)` metadata.
+  `value` and `setter(...)` metadata, then plans builder fields as `BuilderSlot::Value` or
+  `BuilderSlot::Setter` so value capture, setter defaults, and required setter state cannot be
+  combined in unsupported ways.
 - `expand/error_bag.rs`: combines independent `syn::Error` values so parsing and planning can
   report multiple field, validator-name, and setter-argument diagnostics in one macro expansion.
 - `showcase_modules.rs` (feature `internal-showcase`): generates the linker shim used for
@@ -35,8 +37,9 @@
 - `lib.rs` (feature `internal-showcase`): also exports the `showcase_module_enum!` macro that
   expands `koruma::showcase::ValidatorModule` in a shared crate feature pass.
 - `expand/derive.rs`: generates error structs, `validate()`, `try_new`, `TryFrom`, nested/newtype handling, and element validator errors for `each(...)`.
-- `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, field cardinality, typed `each(...)` collection classification, `TargetPlan` validation target decisions, generated-name decisions, and render-ready validation/error layout nodes. Validation and error renderers consume those operation/layout nodes instead of rebuilding full/unwrapped/optional grouping and storage shapes from raw field data.
-- `TargetPlan`: centralizes whether a validator targets a field or element, whether it receives the full optional target or the unwrapped inner value, the raw and validate types, optional cardinality, and how generated validation code should borrow the target expression.
+- `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, field cardinality, typed `each(...)` collection classification, `ValidationTarget` decisions, generated-name decisions, and render-ready validation/error layout nodes. Validation operations encode required vs. optional field handling and required vs. optional element handling so renderers consume a single planned shape instead of recomputing those branches from raw field data.
+- Field error storage is derived from `FieldPlan::shape` through layout methods; `FieldPlan` does not cache a separate storage classification that can disagree with the shape.
+- `ValidationTarget`: models the four valid target shapes directly: full field, unwrapped field, full element, and unwrapped element. Each variant carries the raw and validation types needed for that target, and validation rendering derives borrow behavior from the variant instead of a separate access flag.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
 - `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).
 - `expand/codegen.rs`: shared helpers for type resolution and argument transformations.

@@ -686,10 +686,10 @@ fn test_find_value_field_strict_supports_capture_skip_policy() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_invalid_capture_marker() {
+fn test_find_value_field_strict_rejects_unknown_validator_field_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(skip_capture)]
+            #[koruma(capture)]
             #[koruma(value)]
             actual: Option<i32>,
         }
@@ -698,7 +698,7 @@ fn test_find_value_field_strict_rejects_invalid_capture_marker() {
     let err = find_value_field_info_strict(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("`skip_capture` is not valid in a validator field")
+            .contains("`capture` is not valid in a validator field")
     );
 }
 

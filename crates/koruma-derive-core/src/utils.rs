@@ -853,6 +853,60 @@ pub fn expr_as_simple_ident(expr: &Expr) -> Option<&Ident> {
     }
 }
 
+/// Syntactic shape of a Rust type as recognized by koruma derive helpers.
+///
+/// This is intentionally syntax-only macro recognition. It does not resolve
+/// type aliases or trait implementations.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TypeShape<'a> {
+    Option { inner: &'a Type },
+    Vec { inner: &'a Type },
+    Slice { inner: &'a Type },
+    Array { inner: &'a Type },
+    Reference { inner: &'a Type },
+    Other(&'a Type),
+}
+
+impl<'a> TypeShape<'a> {
+    pub fn of(ty: &'a Type) -> Self {
+        match ty {
+            Type::Group(group) => Self::of(&group.elem),
+            Type::Paren(paren) => Self::of(&paren.elem),
+            Type::Array(array) => Self::Array { inner: &array.elem },
+            Type::Reference(reference) => Self::Reference {
+                inner: &reference.elem,
+            },
+            Type::Slice(slice) => Self::Slice { inner: &slice.elem },
+            Type::Path(type_path) => {
+                if let Some(inner) = path_last_generic_type(&type_path.path, "Option") {
+                    Self::Option { inner }
+                } else if let Some(inner) = path_last_generic_type(&type_path.path, "Vec") {
+                    Self::Vec { inner }
+                } else {
+                    Self::Other(ty)
+                }
+            },
+            _ => Self::Other(ty),
+        }
+    }
+}
+
+fn path_last_generic_type<'a>(path: &'a Path, ident: &str) -> Option<&'a Type> {
+    let segment = path.segments.last()?;
+    if segment.ident != ident {
+        return None;
+    }
+
+    let PathArguments::AngleBracketed(args) = &segment.arguments else {
+        return None;
+    };
+
+    match args.args.first()? {
+        GenericArgument::Type(inner) => Some(inner),
+        _ => None,
+    }
+}
+
 /// Extract the inner type T from `Option<T>`.
 ///
 /// Returns `None` if the type is not an `Option`.
@@ -874,21 +928,8 @@ pub fn expr_as_simple_ident(expr: &Expr) -> Option<&Ident> {
 /// assert!(inner2.is_none());
 /// ```
 pub fn option_inner_type(ty: &Type) -> Option<&Type> {
-    let Type::Path(type_path) = ty else {
-        return None;
-    };
-    let segment = type_path.path.segments.last()?;
-
-    if segment.ident != "Option" {
-        return None;
-    }
-
-    let PathArguments::AngleBracketed(args) = &segment.arguments else {
-        return None;
-    };
-
-    match args.args.first()? {
-        GenericArgument::Type(inner) => Some(inner),
+    match TypeShape::of(ty) {
+        TypeShape::Option { inner } => Some(inner),
         _ => None,
     }
 }
@@ -914,21 +955,8 @@ pub fn option_inner_type(ty: &Type) -> Option<&Type> {
 /// assert!(inner2.is_none());
 /// ```
 pub fn vec_inner_type(ty: &Type) -> Option<&Type> {
-    let Type::Path(type_path) = ty else {
-        return None;
-    };
-    let segment = type_path.path.segments.last()?;
-
-    if segment.ident != "Vec" {
-        return None;
-    }
-
-    let PathArguments::AngleBracketed(args) = &segment.arguments else {
-        return None;
-    };
-
-    match args.args.first()? {
-        GenericArgument::Type(inner) => Some(inner),
+    match TypeShape::of(ty) {
+        TypeShape::Vec { inner } => Some(inner),
         _ => None,
     }
 }

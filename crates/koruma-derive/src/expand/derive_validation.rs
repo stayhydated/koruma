@@ -1,8 +1,8 @@
 use crate::expand::derive_shared::validator_builder_expr;
 use crate::expand::plan::{
     FieldPlan, PlannedElementValidation, PlannedNestedValidation, PlannedNewtypeValidation,
-    PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, TargetAccess,
-    ValidationPlan,
+    PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, ValidationPlan,
+    ValidationTarget,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -10,6 +10,7 @@ use syn::Ident;
 
 pub(crate) struct ValidationCheck<'a> {
     pub validator: &'a PlannedValidator,
+    pub target: &'a ValidationTarget,
     pub target_expr: TokenStream2,
     pub sink: ErrorSink<'a>,
 }
@@ -23,11 +24,13 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     let validator = check.validator;
     let builder_expr = validator_builder_expr(validator);
     let validator_ty = &validator.validator_type;
-    let validation_target_ty = &validator.target.validate_type;
+    let validation_target_ty = check.target.validate_type();
     let target_expr = check.target_expr;
-    let target_ref = match validator.target.access {
-        TargetAccess::AlreadyBorrowedLocal => quote! { #target_expr },
-        TargetAccess::BorrowField => quote! { &#target_expr },
+    let target_ref = match check.target {
+        ValidationTarget::FieldFull(_) => quote! { &#target_expr },
+        ValidationTarget::FieldUnwrapped(_)
+        | ValidationTarget::ElementFull(_)
+        | ValidationTarget::ElementUnwrapped(_) => quote! { #target_expr },
     };
     let error_assignment = match check.sink {
         ErrorSink::FieldValidator { field, slot } => {
@@ -77,31 +80,31 @@ fn render_validation_operation(
     koruma: &TokenStream2,
 ) -> TokenStream2 {
     match operation {
-        PlannedValidationOperation::Nested(operation) => render_nested_validation(operation),
-        PlannedValidationOperation::Newtype(operation) => {
-            render_newtype_validation(operation, koruma)
+        PlannedValidationOperation::NestedRequired(operation) => {
+            render_nested_required_validation(operation)
         },
-        PlannedValidationOperation::Regular(operation) => {
-            render_regular_validation(operation, koruma)
+        PlannedValidationOperation::NestedOptional(operation) => {
+            render_nested_optional_validation(operation)
+        },
+        PlannedValidationOperation::NewtypeRequired(operation) => {
+            render_newtype_required_validation(operation, koruma)
+        },
+        PlannedValidationOperation::NewtypeOptional(operation) => {
+            render_newtype_optional_validation(operation, koruma)
+        },
+        PlannedValidationOperation::RegularRequired(operation) => {
+            render_regular_required_validation(operation, koruma)
+        },
+        PlannedValidationOperation::RegularOptional(operation) => {
+            render_regular_optional_validation(operation, koruma)
         },
     }
 }
 
-fn render_nested_validation(operation: &PlannedNestedValidation<'_>) -> TokenStream2 {
+fn render_nested_required_validation(operation: &PlannedNestedValidation<'_>) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
-
-    if field_plan.field_optional() {
-        return quote! {
-            if let Some(ref __nested_value) = self.#field_member {
-                if let Err(nested_err) = __nested_value.validate() {
-                    error.#field_name = Some(nested_err);
-                    has_error = true;
-                }
-            }
-        };
-    }
 
     if operation.direct_storage {
         quote! {
@@ -120,19 +123,29 @@ fn render_nested_validation(operation: &PlannedNestedValidation<'_>) -> TokenStr
     }
 }
 
-fn render_newtype_validation(
+fn render_nested_optional_validation(operation: &PlannedNestedValidation<'_>) -> TokenStream2 {
+    let field_plan = operation.field;
+    let field_name = &field_plan.name;
+    let field_member = &field_plan.source.member;
+
+    quote! {
+        if let Some(ref __nested_value) = self.#field_member {
+            if let Err(nested_err) = __nested_value.validate() {
+                error.#field_name = Some(nested_err);
+                has_error = true;
+            }
+        }
+    }
+}
+
+fn render_newtype_required_validation(
     operation: &PlannedNewtypeValidation<'_>,
     koruma: &TokenStream2,
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
-    let field_is_optional = operation.field_validators.field_optional;
-    let set_inner_error = if field_is_optional {
-        quote! { error.#field_name.inner = Some(newtype_err); }
-    } else {
-        quote! { error.#field_name.inner = newtype_err; }
-    };
+    let set_inner_error = quote! { error.#field_name.inner = newtype_err; };
 
     if operation.field_validators.has_any() {
         let full_type_checks = render_field_validator_checks(
@@ -155,15 +168,6 @@ fn render_newtype_validation(
             }
         };
 
-        if field_is_optional {
-            return quote! {
-                #(#full_type_checks)*
-                if let Some(ref __newtype_value) = self.#field_member {
-                    #inner_validation
-                }
-            };
-        }
-
         return quote! {
             #(#full_type_checks)*
             let __newtype_value = &self.#field_member;
@@ -171,18 +175,52 @@ fn render_newtype_validation(
         };
     }
 
-    if field_is_optional {
-        quote! {
+    quote! {
+        if let Err(newtype_err) = self.#field_member.validate() {
+            #set_inner_error
+            has_error = true;
+        }
+    }
+}
+
+fn render_newtype_optional_validation(
+    operation: &PlannedNewtypeValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = operation.field;
+    let field_name = &field_plan.name;
+    let field_member = &field_plan.source.member;
+    let set_inner_error = quote! { error.#field_name.inner = Some(newtype_err); };
+
+    if operation.field_validators.has_any() {
+        let full_type_checks = render_field_validator_checks(
+            field_plan,
+            &operation.field_validators.full_type_validators,
+            quote! { self.#field_member },
+            koruma,
+        );
+        let unwrapped_checks = render_field_validator_checks(
+            field_plan,
+            &operation.field_validators.unwrapped_validators,
+            quote! { __newtype_value },
+            koruma,
+        );
+
+        return quote! {
+            #(#full_type_checks)*
             if let Some(ref __newtype_value) = self.#field_member {
+                #(#unwrapped_checks)*
                 if let Err(newtype_err) = __newtype_value.validate() {
                     #set_inner_error
                     has_error = true;
                 }
             }
-        }
-    } else {
-        quote! {
-            if let Err(newtype_err) = self.#field_member.validate() {
+        };
+    }
+
+    quote! {
+        if let Some(ref __newtype_value) = self.#field_member {
+            if let Err(newtype_err) = __newtype_value.validate() {
                 #set_inner_error
                 has_error = true;
             }
@@ -190,7 +228,7 @@ fn render_newtype_validation(
     }
 }
 
-fn render_regular_validation(
+fn render_regular_required_validation(
     operation: &PlannedRegularValidation<'_>,
     koruma: &TokenStream2,
 ) -> TokenStream2 {
@@ -212,43 +250,79 @@ fn render_regular_validation(
     let element_validation = operation
         .element_validators
         .as_ref()
-        .map(|element| render_element_validation(field_plan, element, koruma))
+        .map(|element| render_element_validation(field_plan, element, false, koruma))
         .unwrap_or_else(|| quote! {});
 
     match (
         field_validators.has_full_type_validators(),
         field_validators.has_unwrapped_validators(),
-        field_validators.field_optional,
     ) {
-        (true, true, true) => quote! {
+        (true, true) => quote! {
+            #(#full_type_checks)*
+            let __field_value = &self.#field_member;
+            #(#unwrapped_checks)*
+            #element_validation
+        },
+        (true, false) => quote! {
+            #(#full_type_checks)*
+            #element_validation
+        },
+        (false, true) => quote! {
+            let __field_value = &self.#field_member;
+            #(#unwrapped_checks)*
+            #element_validation
+        },
+        (false, false) => element_validation,
+    }
+}
+
+fn render_regular_optional_validation(
+    operation: &PlannedRegularValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = operation.field;
+    let field_member = &field_plan.source.member;
+    let field_validators = &operation.field_validators;
+    let full_type_checks = render_field_validator_checks(
+        field_plan,
+        &field_validators.full_type_validators,
+        quote! { self.#field_member },
+        koruma,
+    );
+    let unwrapped_checks = render_field_validator_checks(
+        field_plan,
+        &field_validators.unwrapped_validators,
+        quote! { __field_value },
+        koruma,
+    );
+    let element_validation = operation
+        .element_validators
+        .as_ref()
+        .map(|element| render_element_validation(field_plan, element, true, koruma))
+        .unwrap_or_else(|| quote! {});
+
+    match (
+        field_validators.has_full_type_validators(),
+        field_validators.has_unwrapped_validators(),
+    ) {
+        (true, true) => quote! {
             #(#full_type_checks)*
             if let Some(ref __field_value) = self.#field_member {
                 #(#unwrapped_checks)*
             }
             #element_validation
         },
-        (true, true, false) => quote! {
-            #(#full_type_checks)*
-            let __field_value = &self.#field_member;
-            #(#unwrapped_checks)*
-            #element_validation
-        },
-        (true, false, _) => quote! {
+        (true, false) => quote! {
             #(#full_type_checks)*
             #element_validation
         },
-        (false, true, true) => quote! {
+        (false, true) => quote! {
             if let Some(ref __field_value) = self.#field_member {
                 #(#unwrapped_checks)*
             }
             #element_validation
         },
-        (false, true, false) => quote! {
-            let __field_value = &self.#field_member;
-            #(#unwrapped_checks)*
-            #element_validation
-        },
-        (false, false, _) => element_validation,
+        (false, false) => element_validation,
     }
 }
 
@@ -265,6 +339,7 @@ fn render_field_validator_checks(
             render_validation_check(
                 ValidationCheck {
                     validator,
+                    target: &validator.target,
                     target_expr: target_expr.clone(),
                     sink: ErrorSink::FieldValidator {
                         field: field_name,
@@ -280,15 +355,24 @@ fn render_field_validator_checks(
 fn render_element_validation(
     field_plan: &FieldPlan,
     element: &PlannedElementValidation<'_>,
+    field_optional: bool,
     koruma: &TokenStream2,
 ) -> TokenStream2 {
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
     let element_error_struct_name = &field_plan.generated_names.element_error_struct;
-    let full_type_element_checks =
-        render_element_validator_checks(&element.full_type_validators, quote! { item }, koruma);
+    let groups = element.groups();
+    let full_element_target_expr = match element {
+        PlannedElementValidation::RequiredElement(_) => quote! { __item_value },
+        PlannedElementValidation::OptionalElement(_) => quote! { item },
+    };
+    let full_type_element_checks = render_element_validator_checks(
+        &groups.full_type_validators,
+        full_element_target_expr,
+        koruma,
+    );
     let unwrapped_element_checks = render_element_validator_checks(
-        &element.unwrapped_validators,
+        &groups.unwrapped_validators,
         quote! { __item_value },
         koruma,
     );
@@ -301,53 +385,47 @@ fn render_element_validation(
         })
         .collect();
 
-    let optional_field_item_iteration = if element.element_optional {
-        quote! {
-            for (idx, item) in __collection_value.iter().enumerate() {
-                let mut element_error = #element_error_struct_name {
-                    #(#element_validator_defaults),*
-                };
-                let mut element_has_error = false;
-
-                #(#full_type_element_checks)*
-
-                if let Some(__item_value) = item {
-                    #(#unwrapped_element_checks)*
-                }
-
-                if element_has_error {
-                    error.#field_name.element_errors.push((idx, element_error));
-                    has_error = true;
-                }
-            }
-        }
-    } else {
-        quote! {
-            for (idx, __item_value) in __collection_value.iter().enumerate() {
-                let mut element_error = #element_error_struct_name {
-                    #(#element_validator_defaults),*
-                };
-                let mut element_has_error = false;
-
-                #(#full_type_element_checks)*
-                #(#unwrapped_element_checks)*
-
-                if element_has_error {
-                    error.#field_name.element_errors.push((idx, element_error));
-                    has_error = true;
-                }
-            }
-        }
-    };
-
-    if element.field_optional {
-        quote! {
+    match (field_optional, element) {
+        (true, PlannedElementValidation::OptionalElement(_)) => quote! {
             if let Some(ref __collection_value) = self.#field_member {
-                #optional_field_item_iteration
+                for (idx, item) in __collection_value.iter().enumerate() {
+                    let mut element_error = #element_error_struct_name {
+                        #(#element_validator_defaults),*
+                    };
+                    let mut element_has_error = false;
+
+                    #(#full_type_element_checks)*
+
+                    if let Some(__item_value) = item {
+                        #(#unwrapped_element_checks)*
+                    }
+
+                    if element_has_error {
+                        error.#field_name.element_errors.push((idx, element_error));
+                        has_error = true;
+                    }
+                }
             }
-        }
-    } else if element.element_optional {
-        quote! {
+        },
+        (true, PlannedElementValidation::RequiredElement(_)) => quote! {
+            if let Some(ref __collection_value) = self.#field_member {
+                for (idx, __item_value) in __collection_value.iter().enumerate() {
+                    let mut element_error = #element_error_struct_name {
+                        #(#element_validator_defaults),*
+                    };
+                    let mut element_has_error = false;
+
+                    #(#full_type_element_checks)*
+                    #(#unwrapped_element_checks)*
+
+                    if element_has_error {
+                        error.#field_name.element_errors.push((idx, element_error));
+                        has_error = true;
+                    }
+                }
+            }
+        },
+        (false, PlannedElementValidation::OptionalElement(_)) => quote! {
             for (idx, item) in self.#field_member.iter().enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*
@@ -365,9 +443,8 @@ fn render_element_validation(
                     has_error = true;
                 }
             }
-        }
-    } else {
-        quote! {
+        },
+        (false, PlannedElementValidation::RequiredElement(_)) => quote! {
             for (idx, __item_value) in self.#field_member.iter().enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*
@@ -382,7 +459,7 @@ fn render_element_validation(
                     has_error = true;
                 }
             }
-        }
+        },
     }
 }
 
@@ -397,6 +474,7 @@ fn render_element_validator_checks(
             render_validation_check(
                 ValidationCheck {
                     validator,
+                    target: &validator.target,
                     target_expr: target_expr.clone(),
                     sink: ErrorSink::ElementValidator {
                         slot: &validator.field_ident,

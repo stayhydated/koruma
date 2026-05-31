@@ -7,12 +7,12 @@
 ## Modules
 
 - `crates/koruma-derive-core/src/parse.rs`: parsing logic and data types for validators, field options, struct options, and showcase metadata.
-- `crates/koruma-derive-core/src/utils.rs`: type helpers (Option/Vec inference and placeholder substitution).
+- `crates/koruma-derive-core/src/utils.rs`: syntax-only type helpers (`TypeShape`, Option/Vec inference, and placeholder substitution).
 - `crates/koruma-derive-core/src/tests`: snapshot coverage for parsing behavior.
 
 ## Data model
 
-- `ValidatorAttr`: a single direct validator chain (path, setter calls, type inference flags, and setter access via `setter_calls()`).
+- `ValidatorAttr`: a single direct validator chain (path, setter calls, type inference flags, and setter access via `setter_calls()`). Setter call arguments are represented as `ValidatorSetterArg` nodes; today that enum preserves normal Rust expressions through `Expr`, leaving room for explicit non-expression argument kinds later.
 - `ParsedValidatorUse`: a single validator occurrence on a data field. It carries the parsed validator, an optional label slot for label-aware naming, and the source span used for diagnostics.
 - `StructKorumaAttr` / `StructKorumaItem`: struct-level `#[koruma(...)]` grammar for `try_new`, `newtype`, and `newtype(try_from)`.
 - `DataFieldKorumaAttr` / `DataFieldKorumaItem`: data-field `#[koruma(...)]` grammar for modifiers, direct field validators, optional `label = Validator` labels, and `each(...)` element validators without a raw token bucket.
@@ -25,6 +25,7 @@
 - `ParsedFieldSpec`: normalized field shape for participating fields. It is an enum with `Regular`, `Nested`, `Newtype`, and `Skipped` variants so parser output cannot encode skipped-with-validator, nested-with-validator, or newtype-with-element-validator states.
 - `FieldInfo`: per-field metadata derived from `syn::Field`.
 - `StructOptions` / `StructConstructor`: normalized struct-level newtype and constructor intent for `try_new` and `newtype(try_from)`.
+- `TypeShape`: centralized syntactic type recognition for `Option`, `Vec`, slices, arrays, and references. It is deliberately not Rust type resolution and does not resolve aliases or custom collection types.
 - `ValueFieldInfo` / `CapturePolicy`: metadata for the validator field marked `#[koruma(value)]`,
   including whether capture clones the borrowed input or uses `capture = skip`.
 - `ShowcaseAttr` (feature `internal-showcase`): parsed `#[showcase(...)]` metadata, including required explicit `input_type`.

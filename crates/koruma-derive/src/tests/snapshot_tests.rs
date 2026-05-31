@@ -267,6 +267,45 @@ fn test_koruma_expansion_optional_with_generic() {
 }
 
 #[test]
+fn test_koruma_expansion_full_optional_field_target_path() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalPresence {
+            #[koruma(full(RequiredValidation::<_>))]
+            pub value: Option<String>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
+fn test_koruma_expansion_optional_element_target_path() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalScores {
+            #[koruma(each(GenericRangeValidation::<_>::min(0).max(10)))]
+            pub values: Vec<Option<i32>>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
+fn test_koruma_expansion_full_optional_element_target_path() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalElementPresence {
+            #[koruma(each(full(RequiredValidation::<_>)))]
+            pub values: Vec<Option<i32>>,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
 fn test_koruma_expansion_combined_field_and_element_validators() {
     // Combined: field-level validator (for Vec) + element validators (for each element)
     // Note: VecLenValidation<T> expects T to be the inner type, so we use explicit <i32>
@@ -850,7 +889,8 @@ fn test_validator_expansion_respects_setter_metadata() {
     };
 
     let expanded = expand_validator(input).unwrap();
-    let compact = compact_ws(&pretty_print(expanded));
+    let rendered = pretty_print(expanded);
+    let compact = compact_ws(&rendered);
 
     assert!(compact.contains("pubfnlabel(value:impl::std::convert::Into<String>,)"));
     assert!(compact.contains("pubfnrequired_limit(value:Option<usize>,)"));
@@ -858,6 +898,7 @@ fn test_validator_expansion_respects_setter_metadata() {
     assert!(compact.contains("pubfnoptional_limit(value:Option<usize>,)"));
     assert!(compact.contains("pubfnmaybe_optional_limit(value:::std::option::Option<usize>,)"));
     assert!(compact.contains("pubfndefaulted(value:usize,)"));
+    assert_snapshot!(rendered);
 }
 
 #[cfg(feature = "fluent")]

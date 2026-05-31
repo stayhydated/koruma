@@ -7,11 +7,11 @@ use crate::expand::{
     },
     effective_validation_type,
     plan::{
-        ErrorStorage, PlannedErrorDefault, PlannedErrorGetter, PlannedErrorIsEmpty, PlannedField,
-        PlannedFieldErrorKind, PlannedMainErrorStorage, PlannedRegularAll,
-        PlannedRegularFieldErrorDoc, PlannedRegularFieldErrorIsEmpty,
+        ErrorStorage, PlannedElementValidation, PlannedErrorDefault, PlannedErrorGetter,
+        PlannedErrorIsEmpty, PlannedField, PlannedFieldErrorKind, PlannedMainErrorStorage,
+        PlannedRegularAll, PlannedRegularFieldErrorDoc, PlannedRegularFieldErrorIsEmpty,
         PlannedRegularFieldErrorStorage, PlannedValidationOperation, PlannedValidatorTypeArg,
-        StructPlan, TargetAccess, TargetCardinality, TargetPolicy, TargetScope, ValidationPlan,
+        StructPlan, TargetCardinality, ValidationPlan, ValidationTarget,
     },
 };
 use koruma_derive_core::*;
@@ -595,12 +595,12 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert!(matches!(plan.fields[1].shape, PlannedField::Regular(_)));
 
     let full_field_target = &plan.fields[0].field_validators()[0].target;
-    assert_eq!(full_field_target.scope, TargetScope::Field);
-    assert_eq!(full_field_target.policy, TargetPolicy::Full);
+    let ValidationTarget::FieldFull(full_field_target) = full_field_target else {
+        panic!("expected full field target");
+    };
     assert_eq!(full_field_target.cardinality, TargetCardinality::Optional);
-    assert_eq!(full_field_target.access, TargetAccess::BorrowField);
-    let full_field_raw_type = &full_field_target.raw_type;
-    let full_field_validate_type = &full_field_target.validate_type;
+    let full_field_raw_type = &full_field_target.ty;
+    let full_field_validate_type = &full_field_target.ty;
     assert_eq!(
         quote!(#full_field_raw_type).to_string(),
         "Option < String >"
@@ -611,12 +611,9 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     );
 
     let unwrapped_field_target = &plan.fields[0].field_validators()[1].target;
-    assert_eq!(unwrapped_field_target.scope, TargetScope::Field);
-    assert_eq!(unwrapped_field_target.policy, TargetPolicy::UnwrapOption);
-    assert_eq!(
-        unwrapped_field_target.access,
-        TargetAccess::AlreadyBorrowedLocal
-    );
+    let ValidationTarget::FieldUnwrapped(unwrapped_field_target) = unwrapped_field_target else {
+        panic!("expected unwrapped field target");
+    };
     let unwrapped_field_raw_type = &unwrapped_field_target.raw_type;
     let unwrapped_field_validate_type = &unwrapped_field_target.validate_type;
     assert_eq!(
@@ -626,15 +623,12 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert_eq!(quote!(#unwrapped_field_validate_type).to_string(), "String");
 
     let full_element_target = &plan.fields[1].element_validators()[0].target;
-    assert_eq!(full_element_target.scope, TargetScope::Element);
-    assert_eq!(full_element_target.policy, TargetPolicy::Full);
+    let ValidationTarget::ElementFull(full_element_target) = full_element_target else {
+        panic!("expected full element target");
+    };
     assert_eq!(full_element_target.cardinality, TargetCardinality::Optional);
-    assert_eq!(
-        full_element_target.access,
-        TargetAccess::AlreadyBorrowedLocal
-    );
-    let full_element_raw_type = &full_element_target.raw_type;
-    let full_element_validate_type = &full_element_target.validate_type;
+    let full_element_raw_type = &full_element_target.ty;
+    let full_element_validate_type = &full_element_target.ty;
     assert_eq!(
         quote!(#full_element_raw_type).to_string(),
         "Option < String >"
@@ -645,12 +639,10 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     );
 
     let unwrapped_element_target = &plan.fields[1].element_validators()[1].target;
-    assert_eq!(unwrapped_element_target.scope, TargetScope::Element);
-    assert_eq!(unwrapped_element_target.policy, TargetPolicy::UnwrapOption);
-    assert_eq!(
-        unwrapped_element_target.access,
-        TargetAccess::AlreadyBorrowedLocal
-    );
+    let ValidationTarget::ElementUnwrapped(unwrapped_element_target) = unwrapped_element_target
+    else {
+        panic!("expected unwrapped element target");
+    };
     let unwrapped_element_raw_type = &unwrapped_element_target.raw_type;
     let unwrapped_element_validate_type = &unwrapped_element_target.validate_type;
     assert_eq!(
@@ -686,11 +678,11 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert_eq!(plan.fields[1].full_element_validators().count(), 1);
     assert_eq!(plan.fields[1].unwrapped_element_validators().count(), 1);
     assert!(matches!(
-        plan.fields[0].error_storage,
+        plan.fields[0].error_storage(),
         ErrorStorage::RegularFieldValidators
     ));
     assert!(matches!(
-        plan.fields[1].error_storage,
+        plan.fields[1].error_storage(),
         ErrorStorage::RegularElementValidators
     ));
     let required_builder = &plan.fields[0].field_validators()[0].builder_type;
@@ -729,11 +721,10 @@ fn test_validation_plan_exposes_render_ready_validation_operations() {
     let operations = plan.validation_operations();
     assert_eq!(operations.len(), 2);
 
-    let PlannedValidationOperation::Regular(name_operation) = &operations[0] else {
-        panic!("expected regular validation operation");
+    let PlannedValidationOperation::RegularOptional(name_operation) = &operations[0] else {
+        panic!("expected optional regular validation operation");
     };
     assert_eq!(name_operation.field.name.to_string(), "name");
-    assert!(name_operation.field_validators.field_optional);
     assert_eq!(
         name_operation.field_validators.full_type_validators.len(),
         1
@@ -744,16 +735,17 @@ fn test_validation_plan_exposes_render_ready_validation_operations() {
     );
     assert!(name_operation.element_validators.is_none());
 
-    let PlannedValidationOperation::Regular(tags_operation) = &operations[1] else {
-        panic!("expected regular validation operation");
+    let PlannedValidationOperation::RegularRequired(tags_operation) = &operations[1] else {
+        panic!("expected required regular validation operation");
     };
     assert!(!tags_operation.field_validators.has_any());
     let element = tags_operation
         .element_validators
         .as_ref()
         .expect("expected element operation");
-    assert!(!element.field_optional);
-    assert!(element.element_optional);
+    let PlannedElementValidation::OptionalElement(element) = element else {
+        panic!("expected optional element validation operation");
+    };
     assert_eq!(element.full_type_validators.len(), 1);
     assert_eq!(element.unwrapped_validators.len(), 1);
 }
@@ -993,7 +985,7 @@ fn test_validation_plan_uses_shape_specific_field_data() {
     assert!(plan.fields[0].field_validators().is_empty());
     assert!(plan.fields[0].element_validators().is_empty());
     assert!(matches!(
-        plan.fields[0].error_storage,
+        plan.fields[0].error_storage(),
         ErrorStorage::Nested {
             cardinality: FieldCardinality::Required
         }
@@ -1008,7 +1000,7 @@ fn test_validation_plan_uses_shape_specific_field_data() {
     assert_eq!(newtype.field_validators.len(), 1);
     assert!(plan.fields[1].element_validators().is_empty());
     assert!(matches!(
-        plan.fields[1].error_storage,
+        plan.fields[1].error_storage(),
         ErrorStorage::NewtypeWithValidators {
             cardinality: FieldCardinality::Optional
         }

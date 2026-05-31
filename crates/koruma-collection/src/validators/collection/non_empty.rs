@@ -21,7 +21,7 @@ use super::HasLen;
 ///
 /// Validates that a string or collection is not empty.
 ///
-/// Works with any type that implements `HasLen + Clone`.
+/// Works with any type that implements `HasLen`.
 #[validator]
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "NonEmpty",
@@ -37,20 +37,20 @@ use super::HasLen;
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "collection"))]
 pub struct NonEmptyValidation<T: HasLen> {
-    /// The value being validated (stored for error context)
-    #[koruma(value)]
+    /// The value being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
-impl<T: HasLen + Clone> Validate<T> for NonEmptyValidation<T> {
+impl<T: HasLen> Validate<T> for NonEmptyValidation<T> {
     fn validate(&self, value: &T) -> bool {
         !value.is_empty()
     }
 }
 
 #[cfg(feature = "fmt")]
-impl<T: HasLen + Clone> std::fmt::Display for NonEmptyValidation<T> {
+impl<T: HasLen> std::fmt::Display for NonEmptyValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Must not be empty.")
     }
@@ -64,17 +64,13 @@ mod tests {
 
     #[test]
     fn accepts_non_empty_values() {
-        let validator = NonEmptyValidation {
-            actual: String::new(),
-        };
+        let validator = NonEmptyValidation { actual: None };
         assert!(validator.validate(&"x".to_string()));
     }
 
     #[test]
     fn rejects_empty_values() {
-        let validator = NonEmptyValidation {
-            actual: String::new(),
-        };
+        let validator = NonEmptyValidation { actual: None };
         assert!(!validator.validate(&"".to_string()));
     }
 }

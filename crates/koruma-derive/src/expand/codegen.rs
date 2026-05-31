@@ -1,13 +1,15 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_type, option_inner_type,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, option_inner_type,
     substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, format_ident, quote};
 use std::collections::BTreeSet;
 use syn::visit::{self, Visit};
-use syn::{Error, Expr, ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath};
+use syn::{
+    Error, Expr, ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath, parse_quote,
+};
 
 pub(crate) struct HelperGenerics {
     pub definition: Generics,
@@ -19,6 +21,21 @@ pub(crate) struct HelperGenerics {
 impl HelperGenerics {
     pub fn type_path(&self, ident: &Ident) -> TokenStream2 {
         let ty_generics = &self.ty_generics;
+        quote! { #ident #ty_generics }
+    }
+}
+
+pub(crate) struct RefEnumGenerics {
+    pub definition: Generics,
+    pub impl_generics: TokenStream2,
+    pub ty_generics: TokenStream2,
+    pub where_clause: TokenStream2,
+    pub return_ty_generics: TokenStream2,
+}
+
+impl RefEnumGenerics {
+    pub fn return_type_path(&self, ident: &Ident) -> TokenStream2 {
+        let ty_generics = &self.return_ty_generics;
         quote! { #ident #ty_generics }
     }
 }
@@ -239,12 +256,61 @@ pub(crate) fn helper_generics_for_usages(
     }
 }
 
+fn generic_param_type_arg(param: &GenericParam) -> TokenStream2 {
+    match param {
+        GenericParam::Lifetime(param) => {
+            let lifetime = &param.lifetime;
+            quote! { #lifetime }
+        },
+        GenericParam::Type(param) => {
+            let ident = &param.ident;
+            quote! { #ident }
+        },
+        GenericParam::Const(param) => {
+            let ident = &param.ident;
+            quote! { #ident }
+        },
+    }
+}
+
+pub(crate) fn ref_enum_generics_for_usages(
+    source_generics: &Generics,
+    usages: &[TokenStream2],
+) -> RefEnumGenerics {
+    let helper = helper_generics_for_usages(source_generics, usages);
+    let mut definition = helper.definition.clone();
+    definition.params.insert(0, parse_quote!('koruma));
+
+    let return_args: Vec<TokenStream2> = helper
+        .definition
+        .params
+        .iter()
+        .map(generic_param_type_arg)
+        .collect();
+    let return_ty_generics = if return_args.is_empty() {
+        quote! { <'_> }
+    } else {
+        quote! { <'_, #(#return_args),*> }
+    };
+
+    let definition_for_impl = definition.clone();
+    let (impl_generics, ty_generics, where_clause) = definition_for_impl.split_for_impl();
+    let where_clause = where_clause
+        .map(|clause| quote! { #clause })
+        .unwrap_or_default();
+
+    RefEnumGenerics {
+        definition,
+        impl_generics: quote! { #impl_generics },
+        ty_generics: quote! { #ty_generics },
+        where_clause,
+        return_ty_generics,
+    }
+}
+
 /// Check if a validator wants the full field type (not unwrapped from Option).
-///
-/// Any explicit `Option<...>` validator type takes the full-type path so derived
-/// validation passes `&Option<T>` instead of unwrapping to `&T`.
 pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
-    v.wants_full_target() || v.explicit_type().is_some_and(is_option_type)
+    v.wants_full_target()
 }
 
 /// Returns the collection type that `each(...)` should iterate over.
@@ -339,33 +405,33 @@ pub(crate) fn resolve_explicit_infer_type(
         })
 }
 
-pub(crate) fn validate_full_type_option_target(
+pub(crate) fn reject_legacy_full_option_syntax(
     v: &ValidatorAttr,
-    field_ty: &Type,
     validate_each: bool,
     field_name: &Ident,
 ) -> Result<(), Error> {
-    if !validator_wants_full_type(v) {
+    if v.wants_full_target() {
         return Ok(());
     }
 
-    let target_ty = validator_infer_source_type(v, field_ty, validate_each);
-    if is_option_type(target_ty) {
+    let Some(explicit_ty) = v.explicit_type() else {
+        return Ok(());
+    };
+    if option_inner_type(explicit_ty).is_none() {
         return Ok(());
     }
 
-    let rendered_target = quote! { #target_ty }.to_string();
     let target_context = if validate_each {
-        format!("element type of field `{field_name}`")
+        format!("element validators on field `{field_name}`")
     } else {
         format!("field `{field_name}`")
     };
+    let validator_name = v.path_name();
 
     Err(Error::new_spanned(
-        v.explicit_type()
-            .expect("full-type validators should always have an explicit type"),
+        explicit_ty,
         format!(
-            "explicit `Option<...>` validator types require an optional validation target, but the {target_context} is `{rendered_target}`"
+            "explicit `Option<...>` validator type arguments no longer request full-target validation for {target_context}; use `full({validator_name}::<_>)` instead"
         ),
     ))
 }
@@ -508,40 +574,6 @@ pub(crate) fn validator_variant_ident(v: &ValidatorAttr, siblings: &[ValidatorAt
     };
 
     format_ident!("{}", resolved)
-}
-
-/// Helper to generate the type for a validator
-///
-/// Type inference behavior:
-/// - `<_>`: uses the validation target type (unwrapping Option unless `full(...)` is used)
-/// - Explicit types containing `_`: infer from the field/element type using generic shape matching
-/// - `<SomeType>`: uses the explicit type directly
-/// - For `each` validation on `Vec<T>`: uses T
-/// - For optional fields `Option<T>`: uses T (validation is skipped if None)
-pub(crate) fn validator_type_for_field(
-    v: &ValidatorAttr,
-    field_ty: &Type,
-    validate_each: bool,
-) -> TokenStream2 {
-    let validator = &v.validator;
-
-    // If explicit type is provided, check if it contains `_` for substitution
-    if let Some(explicit_ty) = v.explicit_type() {
-        if contains_infer_type(explicit_ty) {
-            let substituted = resolve_explicit_infer_type(v, field_ty, validate_each)
-                .expect("explicit infer types should be pre-validated")
-                .expect("explicit infer types should resolve to a concrete type");
-            return quote! { #validator<#substituted> };
-        }
-        return quote! { #validator<#explicit_ty> };
-    }
-
-    if v.uses_type_inference() {
-        let effective_ty = validator_infer_source_type(v, field_ty, validate_each);
-        quote! { #validator<#effective_ty> }
-    } else {
-        quote! { #validator }
-    }
 }
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)

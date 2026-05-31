@@ -34,7 +34,7 @@ use koruma::{Validate, validator};
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
-pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
+pub struct RangeValidation<T: PartialOrd + std::fmt::Display> {
     /// Minimum allowed value (inclusive)
     #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
     min: T,
@@ -61,24 +61,24 @@ pub struct RangeValidation<T: PartialOrd + Copy + std::fmt::Display> {
     )]
     #[builder(default = false)]
     exclusive_max: bool,
-    /// The value being validated (stored for error context)
-    #[koruma(value)]
+    /// The value being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
-impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T> {
+impl<T: PartialOrd + std::fmt::Display> Validate<T> for RangeValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let lower_ok = if self.exclusive_min {
-            *value > self.min
+            value > &self.min
         } else {
-            *value >= self.min
+            value >= &self.min
         };
 
         let upper_ok = if self.exclusive_max {
-            *value < self.max
+            value < &self.max
         } else {
-            *value <= self.max
+            value <= &self.max
         };
 
         lower_ok && upper_ok
@@ -86,7 +86,7 @@ impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for RangeValidation<T
 }
 
 #[cfg(feature = "fmt")]
-impl<T: PartialOrd + Copy + std::fmt::Display> std::fmt::Display for RangeValidation<T> {
+impl<T: PartialOrd + std::fmt::Display> std::fmt::Display for RangeValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let left_delimiter = if self.exclusive_min { "(" } else { "[" };
         let right_delimiter = if self.exclusive_max { ")" } else { "]" };
@@ -101,9 +101,20 @@ impl<T: PartialOrd + Copy + std::fmt::Display> std::fmt::Display for RangeValida
 
 #[cfg(test)]
 mod tests {
+    use std::fmt::{Display, Formatter};
+
     use koruma::Validate as _;
 
     use super::RangeValidation;
+
+    #[derive(Debug, PartialEq, PartialOrd)]
+    struct NonCopyNumber(i32);
+
+    impl Display for NonCopyNumber {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.0)
+        }
+    }
 
     #[test]
     fn accepts_values_within_inclusive_bounds() {
@@ -112,7 +123,7 @@ mod tests {
             exclusive_min: false,
             max: 3_i32,
             exclusive_max: false,
-            actual: 0_i32,
+            actual: None,
         };
 
         assert!(validator.validate(&1));
@@ -127,7 +138,7 @@ mod tests {
             exclusive_min: false,
             max: 3_i32,
             exclusive_max: false,
-            actual: 0_i32,
+            actual: None,
         };
 
         assert!(!validator.validate(&0));
@@ -141,12 +152,26 @@ mod tests {
             exclusive_min: true,
             max: 3_i32,
             exclusive_max: true,
-            actual: 0_i32,
+            actual: None,
         };
 
         assert!(!validator.validate(&1));
         assert!(validator.validate(&2));
         assert!(!validator.validate(&3));
+    }
+
+    #[test]
+    fn validates_non_copy_values_by_reference() {
+        let validator = RangeValidation {
+            min: NonCopyNumber(1),
+            exclusive_min: false,
+            max: NonCopyNumber(3),
+            exclusive_max: false,
+            actual: None,
+        };
+
+        assert!(validator.validate(&NonCopyNumber(2)));
+        assert!(!validator.validate(&NonCopyNumber(4)));
     }
 
     #[cfg(feature = "fmt")]
@@ -157,7 +182,7 @@ mod tests {
             exclusive_min: true,
             max: 3_i32,
             exclusive_max: false,
-            actual: 0_i32,
+            actual: None,
         };
 
         assert_eq!(validator.to_string(), "Must be in the range (1, 3].");

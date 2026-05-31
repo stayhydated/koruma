@@ -6,16 +6,16 @@ expression: pretty_print(expanded)
     "Validators for the `", "age", "` field of [`", "ComplexItem", "`]: [`",
     "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemAgeKorumaValidator {
-    RangeValidation(RangeValidation),
+pub enum ComplexItemAgeKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "age", "` field of [`", "ComplexItem",
     "`].\n\nValidators: [`", "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
@@ -25,12 +25,17 @@ impl ComplexItemAgeKorumaValidationError {
         self.range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "age", "`.")]
-    pub fn all(&self) -> Vec<ComplexItemAgeKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(ComplexItemAgeKorumaValidator::RangeValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ComplexItemAgeKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(ComplexItemAgeKorumaValidatorRef::RangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none()
@@ -43,16 +48,16 @@ impl ComplexItemAgeKorumaValidationError {
     "Element validators for the `", "tags", "` field of [`", "ComplexItem", "`]: [`",
     "LengthValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemTagsElementKorumaValidator {
-    LengthValidation(LengthValidation),
+pub enum ComplexItemTagsElementKorumaValidatorRef<'koruma> {
+    LengthValidation(&'koruma LengthValidation),
 }
 #[doc = concat!(
     "Per-element validation errors for the `", "tags", "` field of [`", "ComplexItem",
     "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemTagsElementKorumaValidationError {
     length_validation: Option<LengthValidation>,
 }
@@ -64,15 +69,17 @@ impl ComplexItemTagsElementKorumaValidationError {
         self.length_validation.as_ref()
     }
     #[doc = concat!("Returns all failed element validators for `", "tags", "`.")]
-    pub fn all(&self) -> Vec<ComplexItemTagsElementKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.length_validation {
-            result
-                .push(
-                    ComplexItemTagsElementKorumaValidator::LengthValidation(v.clone()),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ComplexItemTagsElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .length_validation
+                .as_ref()
+                .map(ComplexItemTagsElementKorumaValidatorRef::LengthValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.length_validation.is_none()
@@ -85,7 +92,7 @@ impl ComplexItemTagsElementKorumaValidationError {
     "Validation errors for the `", "tags", "` field of [`", "ComplexItem",
     "`] (element validators only)."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemTagsKorumaValidationError {
     element_errors: Vec<(usize, ComplexItemTagsElementKorumaValidationError)>,
 }
@@ -110,17 +117,17 @@ impl ComplexItemTagsKorumaValidationError {
     "Validators for the `", "rating", "` field of [`", "ComplexItem", "`]: [`",
     "RangeValidation`], `[EvenValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemRatingKorumaValidator {
-    RangeValidation(RangeValidation),
-    EvenValidation(EvenValidation),
+pub enum ComplexItemRatingKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation),
+    EvenValidation(&'koruma EvenValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "rating", "` field of [`", "ComplexItem",
     "`].\n\nValidators: [`", "RangeValidation`], `[EvenValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemRatingKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
@@ -135,15 +142,21 @@ impl ComplexItemRatingKorumaValidationError {
         self.even_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "rating", "`.")]
-    pub fn all(&self) -> Vec<ComplexItemRatingKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(ComplexItemRatingKorumaValidator::RangeValidation(v.clone()));
-        }
-        if let Some(v) = &self.even_validation {
-            result.push(ComplexItemRatingKorumaValidator::EvenValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ComplexItemRatingKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(ComplexItemRatingKorumaValidatorRef::RangeValidation),
+            self
+                .even_validation
+                .as_ref()
+                .map(ComplexItemRatingKorumaValidatorRef::EvenValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none() && self.even_validation.is_none()
@@ -157,7 +170,7 @@ impl ComplexItemRatingKorumaValidationError {
     "`].\n\nContains per-field error structs for ", "fields: `age`, `tags`, `rating`",
     "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemKorumaValidationError {
     age: ComplexItemAgeKorumaValidationError,
     tags: ComplexItemTagsKorumaValidationError,
@@ -186,7 +199,7 @@ impl ComplexItemKorumaValidationError {
         &self.rating
     }
 }
-impl koruma::ValidationError for ComplexItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for ComplexItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty() && self.tags.is_empty() && self.rating.is_empty()
     }
@@ -211,7 +224,7 @@ impl ComplexItem {
         };
         let mut has_error = false;
         let __field_value = &self.age;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 RangeValidation::min(0).max(100),
                 __field_value,
             )
@@ -225,7 +238,7 @@ impl ComplexItem {
                 length_validation: None,
             };
             let mut element_has_error = false;
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                     LengthValidation::min(1).max(50),
                     __item_value,
                 )
@@ -240,7 +253,7 @@ impl ComplexItem {
             }
         }
         let __field_value = &self.rating;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 RangeValidation::min(0).max(10),
                 __field_value,
             )
@@ -249,7 +262,7 @@ impl ComplexItem {
             error.rating.range_validation = Some(validator);
             has_error = true;
         }
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 EvenValidation::__koruma_builder(),
                 __field_value,
             )
@@ -261,7 +274,7 @@ impl ComplexItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for ComplexItem {
+impl ::renamed_koruma::ValidateExt for ComplexItem {
     type Error = ComplexItemKorumaValidationError;
     fn validate(&self) -> Result<(), ComplexItemKorumaValidationError> {
         Self::validate(self)

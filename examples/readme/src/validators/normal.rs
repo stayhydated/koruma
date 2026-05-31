@@ -6,22 +6,20 @@ use koruma::{Validate, validator};
 /// Uses `Display` for simple string error messages.
 #[validator]
 #[derive(Clone, Debug)]
-pub struct NumberRangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
+pub struct NumberRangeValidation<T: PartialOrd + std::fmt::Display + Clone> {
     min: T,
     max: T,
     #[koruma(value)]
     actual: T,
 }
 
-impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for NumberRangeValidation<T> {
+impl<T: PartialOrd + std::fmt::Display + Clone> Validate<T> for NumberRangeValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        *value >= self.min && *value <= self.max
+        value >= &self.min && value <= &self.max
     }
 }
 
-impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display
-    for NumberRangeValidation<T>
-{
+impl<T: PartialOrd + std::fmt::Display + Clone> std::fmt::Display for NumberRangeValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

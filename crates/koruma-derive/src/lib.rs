@@ -151,10 +151,10 @@ pub fn derive_koruma(input: TokenStream) -> TokenStream {
     }
 }
 
-/// Derive macro for implementing `Display` on the `all()` validator enums.
+/// Derive macro for implementing `Display` on the borrowed `all()` validator enums.
 ///
 /// Place this alongside `#[derive(Koruma)]` to generate `Display` implementations
-/// for the `{Struct}{Field}KorumaValidator` enums returned by the `all()` method.
+/// for the `{Struct}{Field}KorumaValidatorRef` enums returned by the `all()` method.
 /// Each variant delegates to its inner validator's `Display` implementation.
 ///
 /// # Example
@@ -184,10 +184,10 @@ pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
     }
 }
 
-/// Derive macro for implementing `FluentMessage` on the `all()` validator enums.
+/// Derive macro for implementing `FluentMessage` on the borrowed `all()` validator enums.
 ///
 /// Place this alongside `#[derive(Koruma)]` to generate `FluentMessage` implementations
-/// for the `{Struct}{Field}KorumaValidator` enums returned by the `all()` method.
+/// for the `{Struct}{Field}KorumaValidatorRef` enums returned by the `all()` method.
 /// Each variant delegates to its inner validator's `FluentMessage` implementation.
 ///
 /// Requires the `fluent` feature to be enabled.

@@ -6,16 +6,16 @@ expression: pretty_print(expanded)
     "Validators for the `", "value", "` field of [`", "Item", "`]: [`",
     "EvenNumberValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ItemValueKorumaValidator {
-    EvenNumberValidation(EvenNumberValidation),
+pub enum ItemValueKorumaValidatorRef<'koruma> {
+    EvenNumberValidation(&'koruma EvenNumberValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "value", "` field of [`", "Item",
     "`].\n\nValidators: [`", "EvenNumberValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemValueKorumaValidationError {
     even_number_validation: Option<EvenNumberValidation>,
 }
@@ -27,12 +27,15 @@ impl ItemValueKorumaValidationError {
         self.even_number_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "value", "`.")]
-    pub fn all(&self) -> Vec<ItemValueKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.even_number_validation {
-            result.push(ItemValueKorumaValidator::EvenNumberValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = ItemValueKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .even_number_validation
+                .as_ref()
+                .map(ItemValueKorumaValidatorRef::EvenNumberValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.even_number_validation.is_none()
@@ -45,7 +48,7 @@ impl ItemValueKorumaValidationError {
     "Validation errors for [`", "Item", "`].\n\nContains per-field error structs for ",
     "field: `value`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemKorumaValidationError {
     value: ItemValueKorumaValidationError,
 }
@@ -57,7 +60,7 @@ impl ItemKorumaValidationError {
         &self.value
     }
 }
-impl koruma::ValidationError for ItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
@@ -75,7 +78,7 @@ impl Item {
         };
         let mut has_error = false;
         let __field_value = &self.value;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 EvenNumberValidation::__koruma_builder(),
                 __field_value,
             )
@@ -87,7 +90,7 @@ impl Item {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Item {
+impl ::renamed_koruma::ValidateExt for Item {
     type Error = ItemKorumaValidationError;
     fn validate(&self) -> Result<(), ItemKorumaValidationError> {
         Self::validate(self)

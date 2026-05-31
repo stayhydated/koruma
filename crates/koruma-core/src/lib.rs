@@ -45,7 +45,11 @@ pub trait BuilderWithValueRef<T> {
 /// This is auto-implemented by the `#[derive(Koruma)]` macro.
 pub trait ValidateExt {
     /// The validation error type for this struct.
-    type Error: ValidationError;
+    ///
+    /// `Default` is required because generated nested and newtype validation
+    /// code needs to construct an empty error value before merging field
+    /// failures.
+    type Error: ValidationError + Default;
 
     /// Validates the struct and returns the error struct if validation fails.
     fn validate(&self) -> Result<(), Self::Error>;

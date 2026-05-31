@@ -6,15 +6,15 @@ expression: pretty_print(expanded)
     "Element validators for the `", "values", "` field of [`", "Scores", "`]: [`",
     "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ScoresValuesElementKorumaValidator {
-    RangeValidation(RangeValidation<i32>),
+pub enum ScoresValuesElementKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation<i32>),
 }
 #[doc = concat!(
     "Per-element validation errors for the `", "values", "` field of [`", "Scores", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ScoresValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation<i32>>,
 }
@@ -24,12 +24,17 @@ impl ScoresValuesElementKorumaValidationError {
         self.range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed element validators for `", "values", "`.")]
-    pub fn all(&self) -> Vec<ScoresValuesElementKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(ScoresValuesElementKorumaValidator::RangeValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ScoresValuesElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(ScoresValuesElementKorumaValidatorRef::RangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none()
@@ -42,7 +47,7 @@ impl ScoresValuesElementKorumaValidationError {
     "Validation errors for the `", "values", "` field of [`", "Scores",
     "`] (element validators only)."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ScoresValuesKorumaValidationError {
     element_errors: Vec<(usize, ScoresValuesElementKorumaValidationError)>,
 }
@@ -67,7 +72,7 @@ impl ScoresValuesKorumaValidationError {
     "Validation errors for [`", "Scores", "`].\n\nContains per-field error structs for ",
     "field: `values`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ScoresKorumaValidationError {
     values: ScoresValuesKorumaValidationError,
 }
@@ -79,7 +84,7 @@ impl ScoresKorumaValidationError {
         &self.values
     }
 }
-impl koruma::ValidationError for ScoresKorumaValidationError {
+impl ::renamed_koruma::ValidationError for ScoresKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.values.is_empty()
     }
@@ -102,12 +107,12 @@ impl Scores {
             };
             let mut element_has_error = false;
             fn __koruma_assert_validate_values_range_validation_element<
-                V: koruma::Validate<T>,
+                V: ::renamed_koruma::Validate<T>,
                 T,
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                     RangeValidation::<i32>::min(0).max(100),
                     __item_value,
                 )
@@ -127,7 +132,7 @@ impl Scores {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Scores {
+impl ::renamed_koruma::ValidateExt for Scores {
     type Error = ScoresKorumaValidationError;
     fn validate(&self) -> Result<(), ScoresKorumaValidationError> {
         Self::validate(self)

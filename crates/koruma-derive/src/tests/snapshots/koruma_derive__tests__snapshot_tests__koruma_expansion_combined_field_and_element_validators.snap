@@ -6,16 +6,16 @@ expression: pretty_print(expanded)
     "Element validators for the `", "scores", "` field of [`", "OrderWithLenCheck",
     "`]: [`", "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum OrderWithLenCheckScoresElementKorumaValidator {
-    RangeValidation(RangeValidation<i32>),
+pub enum OrderWithLenCheckScoresElementKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation<i32>),
 }
 #[doc = concat!(
     "Per-element validation errors for the `", "scores", "` field of [`",
     "OrderWithLenCheck", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderWithLenCheckScoresElementKorumaValidationError {
     range_validation: Option<RangeValidation<i32>>,
 }
@@ -25,17 +25,19 @@ impl OrderWithLenCheckScoresElementKorumaValidationError {
         self.range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed element validators for `", "scores", "`.")]
-    pub fn all(&self) -> Vec<OrderWithLenCheckScoresElementKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result
-                .push(
-                    OrderWithLenCheckScoresElementKorumaValidator::RangeValidation(
-                        v.clone(),
-                    ),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<
+        Item = OrderWithLenCheckScoresElementKorumaValidatorRef<'_>,
+    > + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(OrderWithLenCheckScoresElementKorumaValidatorRef::RangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none()
@@ -48,17 +50,17 @@ impl OrderWithLenCheckScoresElementKorumaValidationError {
     "Validators for the `", "scores", "` field of [`", "OrderWithLenCheck", "`]: [`",
     "VecLenValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum OrderWithLenCheckScoresKorumaValidator {
-    VecLenValidation(VecLenValidation<i32>),
+pub enum OrderWithLenCheckScoresKorumaValidatorRef<'koruma> {
+    VecLenValidation(&'koruma VecLenValidation<i32>),
 }
 #[doc = concat!(
     "Validation errors for the `", "scores", "` field of [`", "OrderWithLenCheck",
     "`].\n\nField validators: [`", "VecLenValidation", "`]. Element validators: [`",
     "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderWithLenCheckScoresKorumaValidationError {
     vec_len_validation: Option<VecLenValidation<i32>>,
     element_errors: Vec<(usize, OrderWithLenCheckScoresElementKorumaValidationError)>,
@@ -80,15 +82,17 @@ impl OrderWithLenCheckScoresKorumaValidationError {
         &self.element_errors
     }
     #[doc = concat!("Returns all failed validators for `", "scores", "`.")]
-    pub fn all(&self) -> Vec<OrderWithLenCheckScoresKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.vec_len_validation {
-            result
-                .push(
-                    OrderWithLenCheckScoresKorumaValidator::VecLenValidation(v.clone()),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = OrderWithLenCheckScoresKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .vec_len_validation
+                .as_ref()
+                .map(OrderWithLenCheckScoresKorumaValidatorRef::VecLenValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.vec_len_validation.is_none() && self.element_errors.is_empty()
@@ -101,7 +105,7 @@ impl OrderWithLenCheckScoresKorumaValidationError {
     "Validation errors for [`", "OrderWithLenCheck",
     "`].\n\nContains per-field error structs for ", "field: `scores`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderWithLenCheckKorumaValidationError {
     scores: OrderWithLenCheckScoresKorumaValidationError,
 }
@@ -114,7 +118,7 @@ impl OrderWithLenCheckKorumaValidationError {
         &self.scores
     }
 }
-impl koruma::ValidationError for OrderWithLenCheckKorumaValidationError {
+impl ::renamed_koruma::ValidationError for OrderWithLenCheckKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.scores.is_empty()
     }
@@ -133,7 +137,7 @@ impl OrderWithLenCheck {
         };
         let mut has_error = false;
         let __field_value = &self.scores;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 VecLenValidation::min(1).max(10),
                 __field_value,
             )
@@ -148,12 +152,12 @@ impl OrderWithLenCheck {
             };
             let mut element_has_error = false;
             fn __koruma_assert_validate_scores_range_validation_element<
-                V: koruma::Validate<T>,
+                V: ::renamed_koruma::Validate<T>,
                 T,
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                     RangeValidation::<i32>::min(0).max(100),
                     __item_value,
                 )
@@ -173,7 +177,7 @@ impl OrderWithLenCheck {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for OrderWithLenCheck {
+impl ::renamed_koruma::ValidateExt for OrderWithLenCheck {
     type Error = OrderWithLenCheckKorumaValidationError;
     fn validate(&self) -> Result<(), OrderWithLenCheckKorumaValidationError> {
         Self::validate(self)

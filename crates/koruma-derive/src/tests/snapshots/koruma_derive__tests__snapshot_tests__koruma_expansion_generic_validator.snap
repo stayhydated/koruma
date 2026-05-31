@@ -6,16 +6,16 @@ expression: pretty_print(expanded)
     "Validators for the `", "score", "` field of [`", "GenericItem", "`]: [`",
     "GenericRangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum GenericItemScoreKorumaValidator {
-    GenericRangeValidation(GenericRangeValidation<f64>),
+pub enum GenericItemScoreKorumaValidatorRef<'koruma> {
+    GenericRangeValidation(&'koruma GenericRangeValidation<f64>),
 }
 #[doc = concat!(
     "Validation errors for the `", "score", "` field of [`", "GenericItem",
     "`].\n\nValidators: [`", "GenericRangeValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct GenericItemScoreKorumaValidationError {
     generic_range_validation: Option<GenericRangeValidation<f64>>,
 }
@@ -27,15 +27,17 @@ impl GenericItemScoreKorumaValidationError {
         self.generic_range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "score", "`.")]
-    pub fn all(&self) -> Vec<GenericItemScoreKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.generic_range_validation {
-            result
-                .push(
-                    GenericItemScoreKorumaValidator::GenericRangeValidation(v.clone()),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = GenericItemScoreKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .generic_range_validation
+                .as_ref()
+                .map(GenericItemScoreKorumaValidatorRef::GenericRangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.generic_range_validation.is_none()
@@ -48,7 +50,7 @@ impl GenericItemScoreKorumaValidationError {
     "Validation errors for [`", "GenericItem",
     "`].\n\nContains per-field error structs for ", "field: `score`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct GenericItemKorumaValidationError {
     score: GenericItemScoreKorumaValidationError,
 }
@@ -61,7 +63,7 @@ impl GenericItemKorumaValidationError {
         &self.score
     }
 }
-impl koruma::ValidationError for GenericItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for GenericItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.score.is_empty()
     }
@@ -80,12 +82,12 @@ impl GenericItem {
         let mut has_error = false;
         let __field_value = &self.score;
         fn __koruma_assert_validate_score_generic_range_validation_field<
-            V: koruma::Validate<T>,
+            V: ::renamed_koruma::Validate<T>,
             T,
         >(v: &V, t: &T) -> bool {
             v.validate(t)
         }
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 GenericRangeValidation::<f64>::min(0.0).max(100.0),
                 __field_value,
             )
@@ -100,7 +102,7 @@ impl GenericItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for GenericItem {
+impl ::renamed_koruma::ValidateExt for GenericItem {
     type Error = GenericItemKorumaValidationError;
     fn validate(&self) -> Result<(), GenericItemKorumaValidationError> {
         Self::validate(self)

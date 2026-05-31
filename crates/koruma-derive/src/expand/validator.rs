@@ -1,3 +1,4 @@
+use super::koruma_crate_path;
 #[cfg(feature = "internal-showcase")]
 use super::{ShowcaseInputType, ShowcaseModule};
 use heck::{ToSnakeCase, ToUpperCamelCase};
@@ -17,6 +18,7 @@ use syn::{
 pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
     let builder_name = format_ident!("{}Builder", struct_name);
+    let koruma = koruma_crate_path();
 
     if !matches!(input.fields, Fields::Named(_)) {
         return Err(syn::Error::new_spanned(
@@ -56,14 +58,14 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     }
 
     // Add #[derive(bon::Builder)] to the existing attributes
-    let builder_attr: syn::Attribute = parse_quote!(#[derive(koruma::bon::Builder)]);
+    let builder_attr: syn::Attribute = parse_quote!(#[derive(#koruma::bon::Builder)]);
     input.attrs.insert(0, builder_attr);
 
     // Tell bon to use koruma's re-exported bon path, so downstream crates don't
     // need a direct `bon` dependency. Keep Bon's start function private; koruma
     // exposes direct validator entrypoints instead.
     let bon_crate_attr: syn::Attribute = parse_quote!(
-        #[builder(crate = ::koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
+        #[builder(crate = #koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
     );
     input.attrs.insert(1, bon_crate_attr);
 
@@ -177,7 +179,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     with_value_generics
         .make_where_clause()
         .predicates
-        .push(parse_quote!(S::#value_assoc_type: koruma::bon::IsUnset));
+        .push(parse_quote!(S::#value_assoc_type: #koruma::bon::IsUnset));
     let (with_value_impl_generics, with_value_ty_generics, with_value_where_clause) =
         with_value_generics.split_for_impl();
 
@@ -197,7 +199,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     with_value_ref_generics
         .make_where_clause()
         .predicates
-        .push(parse_quote!(S::#value_assoc_type: koruma::bon::IsUnset));
+        .push(parse_quote!(S::#value_assoc_type: #koruma::bon::IsUnset));
     if value_field_capture == ValueFieldCapture::Capture {
         with_value_ref_generics
             .make_where_clause()
@@ -210,7 +212,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
     let with_value_ref_impl = match value_field_capture {
         ValueFieldCapture::Capture => quote! {
-            impl #with_value_ref_impl_generics koruma::BuilderWithValueRef<#inner_type>
+            impl #with_value_ref_impl_generics #koruma::BuilderWithValueRef<#inner_type>
                 for #builder_ty #with_value_ref_where_clause
             {
                 type Output = #output_builder_ty;
@@ -221,7 +223,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             }
         },
         ValueFieldCapture::Skip => quote! {
-            impl #with_value_ref_impl_generics koruma::BuilderWithValueRef<#inner_type>
+            impl #with_value_ref_impl_generics #koruma::BuilderWithValueRef<#inner_type>
                 for #builder_ty #with_value_ref_where_clause
             {
                 type Output = Self;
@@ -245,21 +247,25 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         );
         let input_type = &showcase.input_type;
         let input_type_tokens = match input_type {
-            ShowcaseInputType::Text => quote! { ::koruma::showcase::InputType::Text },
-            ShowcaseInputType::Numeric => quote! { ::koruma::showcase::InputType::Numeric },
+            ShowcaseInputType::Text => quote! { #koruma::showcase::InputType::Text },
+            ShowcaseInputType::Numeric => quote! { #koruma::showcase::InputType::Numeric },
         };
         let module_tokens = if let Some(module) = showcase.module {
             match module {
-                ShowcaseModule::String => quote! { ::koruma::showcase::ValidatorModule::String },
-                ShowcaseModule::Format => quote! { ::koruma::showcase::ValidatorModule::Format },
-                ShowcaseModule::Numeric => quote! { ::koruma::showcase::ValidatorModule::Numeric },
+                ShowcaseModule::String => quote! { #koruma::showcase::ValidatorModule::String },
+                ShowcaseModule::Format => quote! { #koruma::showcase::ValidatorModule::Format },
+                ShowcaseModule::Numeric => quote! { #koruma::showcase::ValidatorModule::Numeric },
                 ShowcaseModule::Collection => {
-                    quote! { ::koruma::showcase::ValidatorModule::Collection }
+                    quote! { #koruma::showcase::ValidatorModule::Collection }
                 },
-                ShowcaseModule::General => quote! { ::koruma::showcase::ValidatorModule::General },
+                ShowcaseModule::General => quote! { #koruma::showcase::ValidatorModule::General },
             }
         } else {
-            quote! { ::koruma::showcase::ValidatorModule::General }
+            quote! { #koruma::showcase::ValidatorModule::General }
+        };
+        let showcase_validate_type = match value_field_capture {
+            ValueFieldCapture::Capture => quote! { #value_field_type },
+            ValueFieldCapture::Skip => quote! { #inner_type },
         };
 
         let mut showcase_generics = input.generics.clone();
@@ -269,7 +275,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             .push(parse_quote!(Self: ::std::marker::Send + ::std::marker::Sync));
         showcase_where_clause
             .predicates
-            .push(parse_quote!(Self: ::koruma::Validate<#value_field_type>));
+            .push(parse_quote!(Self: #koruma::Validate<#showcase_validate_type>));
         showcase_where_clause
             .predicates
             .push(parse_quote!(Self: ::std::fmt::Display));
@@ -280,11 +286,22 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 
         let (impl_generics, type_generics, where_clause) = showcase_generics.split_for_impl();
 
+        let is_valid_body = match value_field_capture {
+            ValueFieldCapture::Capture => quote! {
+                #koruma::Validate::validate(self, &self.#value_field_name)
+            },
+            ValueFieldCapture::Skip => quote! {
+                self.#value_field_name
+                    .as_ref()
+                    .is_some_and(|value| #koruma::Validate::validate(self, value))
+            },
+        };
+
         #[cfg(feature = "fluent")]
         let fluent_methods = quote! {
             fn fluent_string_with(
                 &self,
-                localize: &mut ::koruma::showcase::FluentLocalizer<'_>,
+                localize: &mut #koruma::showcase::FluentLocalizer<'_>,
             ) -> String {
                 use ::es_fluent::FluentMessage;
                 self.to_fluent_string_with(localize)
@@ -299,9 +316,9 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         };
 
         quote! {
-            impl #impl_generics ::koruma::showcase::DynValidator for #struct_name #type_generics #where_clause {
+            impl #impl_generics #koruma::showcase::DynValidator for #struct_name #type_generics #where_clause {
                 fn is_valid(&self) -> bool {
-                    ::koruma::Validate::validate(self, &self.#value_field_name)
+                    #is_valid_body
                 }
 
                 fn display_string(&self) -> String {
@@ -311,14 +328,14 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                 #fluent_methods
             }
 
-            ::koruma::inventory::submit! {
-                ::koruma::showcase::ValidatorShowcase {
+            #koruma::inventory::submit! {
+                #koruma::showcase::ValidatorShowcase {
                     name: #name,
                     description: #description,
                     input_type: #input_type_tokens,
                     module: #module_tokens,
-                    create_validator: |input: &str| -> ::anyhow::Result<Box<dyn ::koruma::showcase::DynValidator>> {
-                        (#create_closure)(input).map(|v| Box::new(v) as Box<dyn ::koruma::showcase::DynValidator>)
+                    create_validator: |input: &str| -> ::anyhow::Result<Box<dyn #koruma::showcase::DynValidator>> {
+                        (#create_closure)(input).map(|v| Box::new(v) as Box<dyn #koruma::showcase::DynValidator>)
                     },
                 }
             }

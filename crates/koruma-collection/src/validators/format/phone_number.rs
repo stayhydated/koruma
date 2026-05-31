@@ -31,10 +31,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct PhoneNumberValidation<T: AsRef<str>> {
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for PhoneNumberValidation<T> {
@@ -64,17 +64,13 @@ mod tests {
 
     #[test]
     fn accepts_valid_phone_number() {
-        let validator = PhoneNumberValidation {
-            actual: String::new(),
-        };
+        let validator = PhoneNumberValidation { actual: None };
         assert!(validator.validate(&"+14155552671".to_string()));
     }
 
     #[test]
     fn rejects_invalid_phone_number() {
-        let validator = PhoneNumberValidation {
-            actual: String::new(),
-        };
+        let validator = PhoneNumberValidation { actual: None };
         assert!(!validator.validate(&"123".to_string()));
     }
 }

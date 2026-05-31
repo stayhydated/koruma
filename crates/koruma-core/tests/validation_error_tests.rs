@@ -1,7 +1,8 @@
 //! Tests for the ValidationError trait.
 
-use koruma_core::ValidationError;
+use koruma_core::{ValidateExt, ValidationError};
 
+#[derive(Default)]
 struct TestError {
     has_age_error: bool,
     has_name_error: bool,
@@ -13,6 +14,16 @@ impl ValidationError for TestError {
     }
 }
 
+struct ManualValidated;
+
+impl ValidateExt for ManualValidated {
+    type Error = TestError;
+
+    fn validate(&self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+}
+
 #[test]
 fn test_validation_error_is_empty() {
     let empty_error = TestError {
@@ -21,6 +32,12 @@ fn test_validation_error_is_empty() {
     };
     assert!(empty_error.is_empty());
     assert!(!empty_error.has_errors());
+}
+
+#[test]
+fn test_validate_ext_error_is_default_constructible() {
+    let error = <ManualValidated as ValidateExt>::Error::default();
+    assert!(error.is_empty());
 }
 
 #[test]

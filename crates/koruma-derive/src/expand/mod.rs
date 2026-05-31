@@ -7,6 +7,7 @@ use syn::{Field, Fields, Member};
 use syn_cfg_attr::AttributeHelpers;
 
 pub(crate) mod codegen;
+pub(crate) mod crate_path;
 pub(crate) mod derive;
 pub(crate) mod display;
 #[cfg(feature = "fluent")]
@@ -14,6 +15,7 @@ pub(crate) mod fluent;
 pub(crate) mod plan;
 pub(crate) mod validator;
 
+pub(crate) use crate_path::koruma_crate_path;
 pub use derive::expand_koruma;
 pub use display::expand_koruma_all_display;
 #[cfg(feature = "fluent")]
@@ -23,9 +25,9 @@ pub use validator::expand_validator;
 // Re-exports for tests and internal usage
 #[allow(unused_imports)]
 pub(crate) use codegen::{
-    effective_validation_type, resolve_explicit_infer_type, transform_arg_value,
-    validate_each_collection_type, validator_builder_expr, validator_field_ident,
-    validator_infer_source_type, validator_type_for_field, validator_variant_ident,
+    effective_validation_type, reject_legacy_full_option_syntax, resolve_explicit_infer_type,
+    transform_arg_value, validate_each_collection_type, validator_builder_expr,
+    validator_field_ident, validator_infer_source_type, validator_variant_ident,
     validator_wants_full_type,
 };
 
@@ -35,8 +37,8 @@ pub(crate) use codegen::{
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo, ValidatorAttr,
-    find_value_field, find_value_field_strict, parse_field, parse_struct_options,
+    FieldAttrAst, FieldInfo, NormalizedFieldSpec, ParseFieldResult, StructOptions, ValidatorAttr,
+    find_value_field_strict, parse_field, parse_struct_options,
 };
 #[cfg(feature = "internal-showcase")]
 #[allow(unused_imports)]
@@ -45,9 +47,8 @@ pub(crate) use koruma_derive_core::{ShowcaseAttr, ShowcaseInputType, ShowcaseMod
 // Re-export utility functions from koruma-derive-core
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-    is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
-    vec_inner_type,
+    contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
+    option_inner_type, substitute_infer_type, substitute_infer_type_from_source, vec_inner_type,
 };
 
 pub(crate) fn collect_field_infos(
@@ -89,7 +90,7 @@ pub(crate) fn collect_field_infos(
 
 fn has_explicit_koruma_skip(field: &Field) -> Result<bool, syn::Error> {
     for attr in field.attrs.to_vec().find_attribute("koruma") {
-        let parsed: KorumaAttr = attr.parse_args()?;
+        let parsed: FieldAttrAst = attr.parse_args()?;
         if parsed.is_skip() {
             return Ok(true);
         }
@@ -111,7 +112,7 @@ fn synthetic_struct_newtype_field_info(field: &Field, index: usize) -> FieldInfo
         name,
         member,
         ty: field.ty.clone(),
-        validation: ValidationInfo {
+        validation: NormalizedFieldSpec {
             field_validators: Vec::new(),
             element_validators: Vec::new(),
             mode: koruma_derive_core::FieldMode::Newtype,

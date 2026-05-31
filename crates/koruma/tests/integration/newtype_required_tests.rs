@@ -24,7 +24,7 @@ fn test_required_newtype_none() {
     // Should NOT have inner error because the value was None
     assert!(err.age().inner().is_none());
     // Can use all() to get all failed validators
-    assert_eq!(err.age().all().len(), 1);
+    assert_eq!(err.age().all().count(), 1);
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn test_newtype_with_validators_all_method() {
     let err = item.validate().unwrap_err();
 
     // The all() method returns all failed validators
-    let all_validators = err.age().all();
+    let all_validators: Vec<_> = err.age().all().collect();
     assert_eq!(all_validators.len(), 1);
 
     // Verify the validator is present

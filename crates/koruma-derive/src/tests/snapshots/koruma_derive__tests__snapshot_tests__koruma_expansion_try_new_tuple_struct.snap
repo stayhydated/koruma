@@ -6,16 +6,16 @@ expression: rendered
     "Validators for the `", "_0", "` field of [`", "Username", "`]: [`",
     "NonEmptyStringValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum Username0KorumaValidator {
-    NonEmptyStringValidation(NonEmptyStringValidation),
+pub enum Username0KorumaValidatorRef<'koruma> {
+    NonEmptyStringValidation(&'koruma NonEmptyStringValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "_0", "` field of [`", "Username",
     "`].\n\nValidators: [`", "NonEmptyStringValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Username0KorumaValidationError {
     non_empty_string_validation: Option<NonEmptyStringValidation>,
 }
@@ -27,12 +27,15 @@ impl Username0KorumaValidationError {
         self.non_empty_string_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "_0", "`.")]
-    pub fn all(&self) -> Vec<Username0KorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.non_empty_string_validation {
-            result.push(Username0KorumaValidator::NonEmptyStringValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = Username0KorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .non_empty_string_validation
+                .as_ref()
+                .map(Username0KorumaValidatorRef::NonEmptyStringValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.non_empty_string_validation.is_none()
@@ -45,7 +48,7 @@ impl Username0KorumaValidationError {
     "Validation errors for [`", "Username",
     "`].\n\nContains per-field error structs for ", "field: `_0`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct UsernameKorumaValidationError {
     _0: Username0KorumaValidationError,
 }
@@ -57,7 +60,7 @@ impl UsernameKorumaValidationError {
         &self._0
     }
 }
-impl koruma::ValidationError for UsernameKorumaValidationError {
+impl ::renamed_koruma::ValidationError for UsernameKorumaValidationError {
     fn is_empty(&self) -> bool {
         self._0.is_empty()
     }
@@ -84,7 +87,7 @@ impl Username {
         };
         let mut has_error = false;
         let __field_value = &self.0;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 NonEmptyStringValidation::__koruma_builder(),
                 __field_value,
             )
@@ -96,7 +99,7 @@ impl Username {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Username {
+impl ::renamed_koruma::ValidateExt for Username {
     type Error = UsernameKorumaValidationError;
     fn validate(&self) -> Result<(), UsernameKorumaValidationError> {
         Self::validate(self)

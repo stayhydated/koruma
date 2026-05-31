@@ -1,6 +1,5 @@
 error: fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers
- --> tests/ui/newtype_with_each.rs:5:5
+ --> tests/ui/newtype_with_each.rs:5:23
   |
-5 | /     #[koruma(newtype, each(RequiredValidation::<_>))]
-6 | |     value: Vec<String>,
-  | |______________________^
+5 |     #[koruma(newtype, each(RequiredValidation::<_>))]
+  |                       ^^^^

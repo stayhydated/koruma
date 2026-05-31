@@ -14,20 +14,20 @@ use std::fmt;
 
 #[validator]
 #[derive(Clone, Debug)]
-pub struct NumberRangeValidation<T: PartialOrd + Copy + fmt::Display + Clone> {
+pub struct NumberRangeValidation<T: PartialOrd + fmt::Display + Clone> {
     min: T,
     max: T,
     #[koruma(value)]
     actual: T,
 }
 
-impl<T: PartialOrd + Copy + fmt::Display> Validate<T> for NumberRangeValidation<T> {
+impl<T: PartialOrd + fmt::Display + Clone> Validate<T> for NumberRangeValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        *value >= self.min && *value <= self.max
+        value >= &self.min && value <= &self.max
     }
 }
 
-impl<T: PartialOrd + Copy + fmt::Display + Clone> fmt::Display for NumberRangeValidation<T> {
+impl<T: PartialOrd + fmt::Display + Clone> fmt::Display for NumberRangeValidation<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -78,7 +78,7 @@ with `#[koruma(value)]`, implement `Validate<T>`, and optionally implement `Disp
 error messages. External callers can read the captured value through the generated getter
 (`validator.actual()`, `validator.input()`, and so on).
 
-For presence-only validators that do not need to retain the failing input, use
+For validators that do not need to retain the failing input, use
 `#[koruma(value, skip_capture)]` on an `Option<T>` field. During derived validation, koruma leaves
 that field at `None` instead of cloning the input into the error value. If the validator still
 needs `Clone` or `Debug`, implement those manually so the skipped field does not reintroduce type

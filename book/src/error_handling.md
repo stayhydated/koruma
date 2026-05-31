@@ -19,7 +19,9 @@ if let Err(errors) = item.validate() {
 
 This pattern is useful when a field has multiple rules and you want to show every failure instead of
 only the first one. The order of execution follows the order in which validators are listed in the
-`#[koruma(...)]` attribute, and all configured validators are evaluated.
+`#[koruma(...)]` attribute, and all configured validators are evaluated. `all()` returns borrowed
+failed-validator values, so inspecting every failure does not require the validator types to
+implement `Clone`.
 
 You can customise error rendering by implementing `Display` for validators, or localise errors with
 [es-fluent](https://github.com/stayhydated/es-fluent) and `KorumaAllFluent`, which is covered in the next chapter.

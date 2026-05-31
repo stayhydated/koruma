@@ -55,10 +55,10 @@ pub struct IpValidation<T: AsRef<str>> {
     /// The type of IP address to validate
     #[cfg_attr(feature = "fluent", fluent(choice))]
     pub kind: IpKind,
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for IpValidation<T> {
@@ -89,7 +89,7 @@ mod tests {
     fn validates_any_ip_kind() {
         let validator = IpValidation {
             kind: IpKind::Any,
-            actual: String::new(),
+            actual: None,
         };
 
         assert!(validator.validate(&"127.0.0.1".to_string()));
@@ -101,14 +101,14 @@ mod tests {
     fn validates_specific_ip_kinds() {
         let v4_validator = IpValidation {
             kind: IpKind::V4,
-            actual: String::new(),
+            actual: None,
         };
         assert!(v4_validator.validate(&"127.0.0.1".to_string()));
         assert!(!v4_validator.validate(&"::1".to_string()));
 
         let v6_validator = IpValidation {
             kind: IpKind::V6,
-            actual: String::new(),
+            actual: None,
         };
         assert!(v6_validator.validate(&"::1".to_string()));
         assert!(!v6_validator.validate(&"127.0.0.1".to_string()));

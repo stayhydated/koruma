@@ -6,10 +6,10 @@ use super::fixtures::{
     Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername,
     BorrowedUsernameExplicitInfer, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
     DirectPasswordConfirmation, DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem,
-    Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder,
-    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
-    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
-    QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
+    Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, NonCloneValidatorItem,
+    OptionalBorrowedOrder, OptionalElementMixedValidators, OptionalElementPresenceOrder,
+    OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation, PositiveNumber,
+    PresenceOnlyNonClone, QualifiedPathProfile, StaticSecretConfirmation, UserProfile,
 };
 use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
@@ -229,19 +229,19 @@ fn test_all_validators() {
     };
     let err = item.validate().unwrap_err();
     let age_errors = err.age().all();
-    assert_eq!(age_errors.len(), 1);
+    assert_eq!(age_errors.count(), 1);
 
     // Multiple validators - both fail
     let item = MultiValidatorItem { value: 151 };
     let err = item.validate().unwrap_err();
     let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 2);
+    assert_eq!(value_errors.count(), 2);
 
     // Multiple validators - one fails
     let item = MultiValidatorItem { value: 150 }; // even but out of range
     let err = item.validate().unwrap_err();
     let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 1);
+    assert_eq!(value_errors.count(), 1);
 }
 
 // Tests for multiple separate #[koruma(...)] attributes per field
@@ -311,13 +311,26 @@ fn test_multi_attr_all_validators() {
     let item = MultiAttrItem { value: 151 };
     let err = item.validate().unwrap_err();
     let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 2);
+    assert_eq!(value_errors.count(), 2);
 
     // Multiple separate attributes - one fails
     let item = MultiAttrItem { value: 150 }; // even but out of range
     let err = item.validate().unwrap_err();
     let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 1);
+    assert_eq!(value_errors.count(), 1);
+}
+
+#[test]
+fn test_all_borrows_non_clone_failed_validators() {
+    let item = NonCloneValidatorItem { value: 150 };
+    let err = item.validate().unwrap_err();
+    let failures: Vec<_> = err.value().all().collect();
+
+    assert_eq!(failures.len(), 1);
+    assert_eq!(
+        failures[0].to_string(),
+        "value must be between 0 and 100, got 150"
+    );
 }
 
 // Tests for collection validation with each()
@@ -545,10 +558,8 @@ fn test_borrowed_direct_field_invalid() {
         .expect("expected username prefix validation error");
 
     assert_eq!(*validator.actual(), "guest");
-    assert_eq!(
-        err.username().all()[0].to_string(),
-        "Must start with 'user:'"
-    );
+    let failures: Vec<_> = err.username().all().collect();
+    assert_eq!(failures[0].to_string(), "Must start with 'user:'");
 }
 
 #[test]
@@ -562,10 +573,8 @@ fn test_borrowed_direct_field_explicit_reference_infer_invalid() {
         .expect("expected username prefix validation error");
 
     assert_eq!(*validator.actual(), "guest");
-    assert_eq!(
-        err.username().all()[0].to_string(),
-        "Must start with 'user:'"
-    );
+    let failures: Vec<_> = err.username().all().collect();
+    assert_eq!(failures[0].to_string(), "Must start with 'user:'");
 }
 
 #[test]
@@ -586,10 +595,8 @@ fn test_each_borrowed_str_items_invalid() {
             .actual(),
         "bad"
     );
-    assert_eq!(
-        tag_errors[0].1.all()[0].to_string(),
-        "Must start with 'tag:'"
-    );
+    let failures: Vec<_> = tag_errors[0].1.all().collect();
+    assert_eq!(failures[0].to_string(), "Must start with 'tag:'");
 }
 
 #[test]
@@ -990,7 +997,7 @@ fn test_newtype_with_validators_invalid() {
 
     // Can also access via Deref - the error struct derefs to the field error struct
     assert!(err.number_range_validation().is_some());
-    assert_eq!(err.all().len(), 1);
+    assert_eq!(err.all().count(), 1);
 }
 
 #[test]
@@ -1044,6 +1051,6 @@ fn test_field_level_newtype_invalid() {
     // Number is invalid - can access via Deref!
     // err.number() returns &ContainsNewtypeNumberKorumaValidationError which derefs to
     // PositiveNumberKorumaValidationError which derefs to PositiveNumberValueKorumaValidationError
-    assert!(err.number().all().len() == 1);
+    assert_eq!(err.number().all().count(), 1);
     assert!(err.number().number_range_validation().is_some());
 }

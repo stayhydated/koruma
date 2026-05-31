@@ -252,11 +252,11 @@ fn test_koruma_error_on_duplicate_element_validator() {
 }
 
 #[test]
-fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
+fn test_koruma_error_on_legacy_full_option_validator_for_field() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalFullTypeValidator {
+        pub struct LegacyFullOptionValidator {
             #[koruma(RequiredValidation::<Option<_>>)]
-            pub value: i32,
+            pub value: Option<i32>,
         }
     };
 
@@ -265,9 +265,15 @@ fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
+            "explicit `Option<...>` validator type arguments no longer request full-target validation"
         ),
-        "expected optional-target diagnostic, got: {}",
+        "expected legacy full-option diagnostic, got: {}",
+        err
+    );
+    assert!(
+        err.to_string()
+            .contains("use `full(RequiredValidation::<_>)` instead"),
+        "expected replacement syntax in diagnostic, got: {}",
         err
     );
     assert!(
@@ -278,11 +284,11 @@ fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
 }
 
 #[test]
-fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elements() {
+fn test_koruma_error_on_legacy_full_option_element_validator() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalElementFullTypeValidator {
+        pub struct LegacyFullOptionElementValidator {
             #[koruma(each(RequiredValidation::<Option<_>>))]
-            pub values: Vec<i32>,
+            pub values: Vec<Option<i32>>,
         }
     };
 
@@ -291,20 +297,21 @@ fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elem
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
+            "explicit `Option<...>` validator type arguments no longer request full-target validation"
         ),
-        "expected optional-target diagnostic, got: {}",
+        "expected legacy full-option diagnostic, got: {}",
         err
     );
     assert!(
-        err.to_string().contains("element type of field `values`"),
+        err.to_string()
+            .contains("element validators on field `values`"),
         "expected element context in diagnostic, got: {}",
         err
     );
 }
 
 #[test]
-fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_elements() {
+fn test_koruma_error_on_explicit_option_element_validator_without_full_wrapper() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitElementFullTypeValidator {
             #[koruma(each(RequiredValidation::<Option<String>>))]
@@ -317,20 +324,21 @@ fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_eleme
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
+            "explicit `Option<...>` validator type arguments no longer request full-target validation"
         ),
-        "expected optional-target diagnostic, got: {}",
+        "expected legacy full-option diagnostic, got: {}",
         err
     );
     assert!(
-        err.to_string().contains("element type of field `values`"),
+        err.to_string()
+            .contains("element validators on field `values`"),
         "expected element context in diagnostic, got: {}",
         err
     );
 }
 
 #[test]
-fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
+fn test_koruma_error_on_explicit_option_validator_without_full_wrapper() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitFullTypeValidator {
             #[koruma(RequiredValidation::<Option<String>>)]
@@ -343,9 +351,9 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
+            "explicit `Option<...>` validator type arguments no longer request full-target validation"
         ),
-        "expected optional-target diagnostic, got: {}",
+        "expected legacy full-option diagnostic, got: {}",
         err
     );
     assert!(

@@ -77,7 +77,7 @@ mod tests {
 
         // all() returns all failed validators - requires the Validator enum to exist
         let all_failed = err.age().all();
-        assert_eq!(all_failed.len(), 1);
+        assert_eq!(all_failed.count(), 1);
 
         // Valid case should have no failed validators
         let valid_form = ExplicitOptionForm {

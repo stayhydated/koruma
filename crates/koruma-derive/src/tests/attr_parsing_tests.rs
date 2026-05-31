@@ -1,4 +1,4 @@
-//! Tests for ValidatorAttr and KorumaAttr parsing.
+//! Tests for ValidatorAttr and FieldAttrAst parsing.
 
 use koruma_derive_core::*;
 
@@ -74,7 +74,7 @@ fn test_validator_attr_parse_full_wrapper() {
 
 #[test]
 fn test_koruma_attr_parse_skip() {
-    let attr: KorumaAttr = syn::parse_quote!(skip);
+    let attr: FieldAttrAst = syn::parse_quote!(skip);
     assert!(attr.is_skip());
     assert!(!attr.has_field_validators());
     assert!(!attr.has_element_validators());
@@ -82,7 +82,7 @@ fn test_koruma_attr_parse_skip() {
 
 #[test]
 fn test_koruma_attr_parse_each() {
-    let attr: KorumaAttr = syn::parse_quote!(each(
+    let attr: FieldAttrAst = syn::parse_quote!(each(
         RangeValidation::min(0).max(100),
         full(RequiredValidation::<_>)
     ));
@@ -95,7 +95,7 @@ fn test_koruma_attr_parse_each() {
 
 #[test]
 fn test_koruma_attr_parse_multiple_validators() {
-    let attr: KorumaAttr = syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));
+    let attr: FieldAttrAst = syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 3);
     assert!(!attr.has_element_validators());
@@ -108,7 +108,7 @@ fn test_koruma_attr_parse_multiple_validators() {
 #[test]
 fn test_koruma_attr_parse_combined_field_and_each() {
     // Combined: field validator + each(element validators) with inferred generics
-    let attr: KorumaAttr = syn::parse_quote!(
+    let attr: FieldAttrAst = syn::parse_quote!(
         LenValidator::min(1).max(10),
         each(RangeValidation::<_>::min(0).max(100))
     );
@@ -125,7 +125,7 @@ fn test_koruma_attr_parse_combined_field_and_each() {
 #[test]
 fn test_koruma_attr_parse_each_then_field() {
     // each() can come before field validators too
-    let attr: KorumaAttr =
+    let attr: FieldAttrAst =
         syn::parse_quote!(each(RangeValidation::min(0).max(100)), LenValidator::min(1));
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 1);
@@ -183,7 +183,8 @@ fn test_validator_attr_codegen_names_preserve_path_segments() {
 
 #[test]
 fn test_validator_attr_parse_option_infer_type() {
-    // ::<Option<_>> syntax for full Option type (no unwrapping)
+    // The parser preserves explicit `Option<_>` type arguments; derive lowering
+    // decides whether that type argument is valid for a field.
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<_>>);
     assert_eq!(attr.name().to_string(), "RequiredValidation");
     assert!(!attr.uses_type_inference());

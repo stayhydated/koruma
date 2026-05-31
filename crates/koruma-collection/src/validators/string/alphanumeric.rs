@@ -31,10 +31,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct AlphanumericValidation<T: AsRef<str>> {
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for AlphanumericValidation<T> {
@@ -59,17 +59,13 @@ mod tests {
 
     #[test]
     fn accepts_alphanumeric_input() {
-        let validator = AlphanumericValidation {
-            actual: String::new(),
-        };
+        let validator = AlphanumericValidation { actual: None };
         assert!(validator.validate(&"abc123".to_string()));
     }
 
     #[test]
     fn rejects_non_alphanumeric_input() {
-        let validator = AlphanumericValidation {
-            actual: String::new(),
-        };
+        let validator = AlphanumericValidation { actual: None };
         assert!(!validator.validate(&"abc-123".to_string()));
     }
 }

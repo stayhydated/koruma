@@ -6,16 +6,16 @@ expression: pretty_print(expanded)
     "Validators for the `", "age", "` field of [`", "Item", "`]: [`",
     "NumberRangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ItemAgeKorumaValidator {
-    NumberRangeValidation(NumberRangeValidation),
+pub enum ItemAgeKorumaValidatorRef<'koruma> {
+    NumberRangeValidation(&'koruma NumberRangeValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "age", "` field of [`", "Item",
     "`].\n\nValidators: [`", "NumberRangeValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemAgeKorumaValidationError {
     number_range_validation: Option<NumberRangeValidation>,
 }
@@ -27,12 +27,15 @@ impl ItemAgeKorumaValidationError {
         self.number_range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "age", "`.")]
-    pub fn all(&self) -> Vec<ItemAgeKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.number_range_validation {
-            result.push(ItemAgeKorumaValidator::NumberRangeValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = ItemAgeKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .number_range_validation
+                .as_ref()
+                .map(ItemAgeKorumaValidatorRef::NumberRangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.number_range_validation.is_none()
@@ -45,16 +48,16 @@ impl ItemAgeKorumaValidationError {
     "Validators for the `", "name", "` field of [`", "Item", "`]: [`",
     "StringLengthValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ItemNameKorumaValidator {
-    StringLengthValidation(StringLengthValidation),
+pub enum ItemNameKorumaValidatorRef<'koruma> {
+    StringLengthValidation(&'koruma StringLengthValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "name", "` field of [`", "Item",
     "`].\n\nValidators: [`", "StringLengthValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemNameKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
@@ -66,12 +69,15 @@ impl ItemNameKorumaValidationError {
         self.string_length_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "name", "`.")]
-    pub fn all(&self) -> Vec<ItemNameKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.string_length_validation {
-            result.push(ItemNameKorumaValidator::StringLengthValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = ItemNameKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .string_length_validation
+                .as_ref()
+                .map(ItemNameKorumaValidatorRef::StringLengthValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.string_length_validation.is_none()
@@ -84,7 +90,7 @@ impl ItemNameKorumaValidationError {
     "Validation errors for [`", "Item", "`].\n\nContains per-field error structs for ",
     "fields: `age`, `name`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemKorumaValidationError {
     age: ItemAgeKorumaValidationError,
     name: ItemNameKorumaValidationError,
@@ -103,7 +109,7 @@ impl ItemKorumaValidationError {
         &self.name
     }
 }
-impl koruma::ValidationError for ItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty() && self.name.is_empty()
     }
@@ -124,7 +130,7 @@ impl Item {
         };
         let mut has_error = false;
         let __field_value = &self.age;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 NumberRangeValidation::min(0).max(100),
                 __field_value,
             )
@@ -134,7 +140,7 @@ impl Item {
             has_error = true;
         }
         let __field_value = &self.name;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 StringLengthValidation::min(1).max(67),
                 __field_value,
             )
@@ -146,7 +152,7 @@ impl Item {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Item {
+impl ::renamed_koruma::ValidateExt for Item {
     type Error = ItemKorumaValidationError;
     fn validate(&self) -> Result<(), ItemKorumaValidationError> {
         Self::validate(self)

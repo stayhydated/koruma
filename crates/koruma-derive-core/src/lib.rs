@@ -37,9 +37,9 @@ mod tests;
 
 // Re-export parsing types
 pub use parse::{
-    BuilderMethodCall, FieldInfo, FieldMode, KorumaAttr, KorumaItem, ParseFieldResult,
-    ParsedFieldAttr, StructNewtype, StructOptions, ValidationInfo, ValidatorAttr, ValidatorTypeArg,
-    ValueFieldCapture, ValueFieldInfo, find_value_field, find_value_field_info,
+    BuilderMethodCall, ElementValidationSpec, FieldAttrAst, FieldAttrItem, FieldInfo, FieldMode,
+    FieldModifier, FieldValidationSpec, NormalizedFieldSpec, ParseFieldResult, StructNewtype,
+    StructOptions, ValidatorAttr, ValidatorTypeArg, ValueFieldCapture, ValueFieldInfo,
     find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
 };
 
@@ -48,7 +48,7 @@ pub use parse::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_a
 
 // Re-export utility functions
 pub use utils::{
-    contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-    is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
-    type_to_ident, vec_inner_type,
+    contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
+    option_inner_type, substitute_infer_type, substitute_infer_type_from_source, type_to_ident,
+    vec_inner_type,
 };

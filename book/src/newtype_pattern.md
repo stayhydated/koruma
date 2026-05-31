@@ -9,6 +9,10 @@ Use `#[koruma(newtype)]`, adding `try_new` and `newtype(try_from)` as needed, wh
 You can layer `derive_more` traits on top for additional wrapper ergonomics (for example, `Deref`
 to inner value).
 
+Types produced by `#[derive(Koruma)]` already provide the required error shape.
+If you implement `ValidateExt` by hand for a nested or newtype target, its
+associated `Error` type must implement `ValidationError + Default`.
+
 ```rust
 use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};

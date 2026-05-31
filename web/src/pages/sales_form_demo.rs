@@ -39,7 +39,7 @@ struct SalesLeadForm {
     phone: Option<String>,
 
     #[koruma(
-        general::RequiredValidation::<Option<_>>,
+        full(general::RequiredValidation::<_>),
         numeric::RangeValidation::<_>::min(1_000.0_f64).max(500_000.0_f64)
     )]
     deal_value: Option<f64>,
@@ -633,7 +633,7 @@ fn validate_sales_draft(draft: &SalesLeadDraft) -> SalesFeedback {
     }
 }
 
-fn format_errors<T: Display>(errors: Vec<T>) -> Vec<String> {
+fn format_errors<T: Display>(errors: impl IntoIterator<Item = T>) -> Vec<String> {
     errors.into_iter().map(|error| error.to_string()).collect()
 }
 

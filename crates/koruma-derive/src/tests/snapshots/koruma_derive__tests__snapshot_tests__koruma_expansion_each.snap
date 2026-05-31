@@ -6,15 +6,15 @@ expression: pretty_print(expanded)
     "Element validators for the `", "scores", "` field of [`", "Order", "`]: [`",
     "GenericRangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum OrderScoresElementKorumaValidator {
-    GenericRangeValidation(GenericRangeValidation<f64>),
+pub enum OrderScoresElementKorumaValidatorRef<'koruma> {
+    GenericRangeValidation(&'koruma GenericRangeValidation<f64>),
 }
 #[doc = concat!(
     "Per-element validation errors for the `", "scores", "` field of [`", "Order", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderScoresElementKorumaValidationError {
     generic_range_validation: Option<GenericRangeValidation<f64>>,
 }
@@ -26,15 +26,17 @@ impl OrderScoresElementKorumaValidationError {
         self.generic_range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed element validators for `", "scores", "`.")]
-    pub fn all(&self) -> Vec<OrderScoresElementKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.generic_range_validation {
-            result
-                .push(
-                    OrderScoresElementKorumaValidator::GenericRangeValidation(v.clone()),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = OrderScoresElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .generic_range_validation
+                .as_ref()
+                .map(OrderScoresElementKorumaValidatorRef::GenericRangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.generic_range_validation.is_none()
@@ -47,7 +49,7 @@ impl OrderScoresElementKorumaValidationError {
     "Validation errors for the `", "scores", "` field of [`", "Order",
     "`] (element validators only)."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderScoresKorumaValidationError {
     element_errors: Vec<(usize, OrderScoresElementKorumaValidationError)>,
 }
@@ -70,7 +72,7 @@ impl OrderScoresKorumaValidationError {
     "Validation errors for [`", "Order", "`].\n\nContains per-field error structs for ",
     "field: `scores`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderKorumaValidationError {
     scores: OrderScoresKorumaValidationError,
 }
@@ -82,7 +84,7 @@ impl OrderKorumaValidationError {
         &self.scores
     }
 }
-impl koruma::ValidationError for OrderKorumaValidationError {
+impl ::renamed_koruma::ValidationError for OrderKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.scores.is_empty()
     }
@@ -105,12 +107,12 @@ impl Order {
             };
             let mut element_has_error = false;
             fn __koruma_assert_validate_scores_generic_range_validation_element<
-                V: koruma::Validate<T>,
+                V: ::renamed_koruma::Validate<T>,
                 T,
             >(v: &V, t: &T) -> bool {
                 v.validate(t)
             }
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
+            let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                     GenericRangeValidation::<f64>::min(0.0).max(100.0),
                     __item_value,
                 )
@@ -130,7 +132,7 @@ impl Order {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Order {
+impl ::renamed_koruma::ValidateExt for Order {
     type Error = OrderKorumaValidationError;
     fn validate(&self) -> Result<(), OrderKorumaValidationError> {
         Self::validate(self)

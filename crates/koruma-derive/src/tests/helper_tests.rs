@@ -6,7 +6,7 @@ use crate::expand::{
         validator_builder_expr, validator_field_ident, validator_variant_ident,
     },
     effective_validation_type,
-    plan::{PlannedValidatorTypeArg, ValidationPlan, ValidationTarget},
+    plan::{ErrorStorage, PlannedValidatorTypeArg, ValidationPlan, ValidationTarget},
     validator_wants_full_type,
 };
 use koruma_derive_core::*;
@@ -157,13 +157,13 @@ fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inne
 }
 
 #[test]
-fn test_validator_wants_full_type_for_explicit_option_type() {
+fn test_validator_wants_full_type_only_for_full_wrapper() {
     let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<String>>);
-    assert!(validator_wants_full_type(&attr));
+    assert!(!validator_wants_full_type(&attr));
 
     let qualified_attr: ValidatorAttr =
         syn::parse_quote!(RequiredValidation::<core::option::Option<String>>);
-    assert!(validator_wants_full_type(&qualified_attr));
+    assert!(!validator_wants_full_type(&qualified_attr));
 
     let non_option_attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<String>);
     assert!(!validator_wants_full_type(&non_option_attr));
@@ -303,7 +303,7 @@ fn test_find_value_field_finds_marked_field() {
         }
     };
 
-    let result = find_value_field(&input);
+    let result = find_value_field_strict(&input).expect("expected value lookup");
     assert!(result.is_some());
     let (name, _ty) = result.unwrap();
     assert_eq!(name.to_string(), "actual");
@@ -319,7 +319,11 @@ fn test_find_value_field_returns_none_when_missing() {
         }
     };
 
-    assert!(find_value_field(&input).is_none());
+    assert!(
+        find_value_field_strict(&input)
+            .expect("expected value lookup")
+            .is_none()
+    );
 }
 
 #[test]
@@ -396,9 +400,9 @@ fn test_parse_field_without_koruma_returns_skip() {
 fn test_validation_plan_resolves_targets_names_and_type_args() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Planned {
-            #[koruma(RequiredValidation::<Option<_>>, LengthValidation::<_>::min(1))]
+            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>::min(1))]
             name: Option<String>,
-            #[koruma(each(ItemRequired::<Option<_>>, ItemLength::<_>::min(1)))]
+            #[koruma(each(full(ItemRequired::<_>), ItemLength::<_>::min(1)))]
             tags: Vec<Option<String>>,
         }
     };
@@ -415,9 +419,9 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert_eq!(
         plan.fields[1]
             .generated_names
-            .element_validator_enum
+            .element_validator_ref_enum
             .to_string(),
-        "PlannedTagsElementKorumaValidator"
+        "PlannedTagsElementKorumaValidatorRef"
     );
 
     assert_eq!(
@@ -435,6 +439,38 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert_eq!(
         plan.fields[1].element_validators[1].target,
         ValidationTarget::ElementOptionalInner
+    );
+    assert!(plan.fields[0].field_optional);
+    assert!(plan.fields[1].element_optional);
+    let name_inner_type = &plan.fields[0].inner_type;
+    assert_eq!(quote!(#name_inner_type).to_string(), "String");
+    let tags_element_type = plan.fields[1]
+        .element_type
+        .as_ref()
+        .expect("expected planned element type");
+    assert_eq!(quote!(#tags_element_type).to_string(), "Option < String >");
+    assert_eq!(plan.fields[0].full_field_validators().count(), 1);
+    assert_eq!(plan.fields[0].unwrapped_field_validators().count(), 1);
+    assert_eq!(plan.fields[1].full_element_validators().count(), 1);
+    assert_eq!(plan.fields[1].unwrapped_element_validators().count(), 1);
+    assert!(matches!(
+        plan.fields[0].error_storage,
+        ErrorStorage::Regular {
+            has_field_validators: true,
+            has_element_validators: false
+        }
+    ));
+    assert!(matches!(
+        plan.fields[1].error_storage,
+        ErrorStorage::Regular {
+            has_field_validators: false,
+            has_element_validators: true
+        }
+    ));
+    let required_builder = &plan.fields[0].field_validators[0].builder_expr;
+    assert_eq!(
+        quote!(#required_builder).to_string(),
+        "RequiredValidation :: < Option < String > > :: __koruma_builder ()"
     );
 
     let PlannedValidatorTypeArg::Resolved(resolved_ty) =

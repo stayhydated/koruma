@@ -3,9 +3,8 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    FieldInfo, ParseFieldResult, ValidationInfo, ValidatorAttr, ValueFieldCapture,
-    find_value_field, find_value_field_info_strict, find_value_field_strict, parse_field,
-    parse_struct_options,
+    FieldInfo, NormalizedFieldSpec, ParseFieldResult, ValidatorAttr, ValueFieldCapture,
+    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -67,7 +66,7 @@ fn snapshot_validator(validator: &ValidatorAttr) -> SnapshotValidator {
     }
 }
 
-fn snapshot_validation(validation: &ValidationInfo) -> SnapshotValidationInfo {
+fn snapshot_validation(validation: &NormalizedFieldSpec) -> SnapshotValidationInfo {
     SnapshotValidationInfo {
         field_validators: validation
             .field_validators
@@ -111,7 +110,10 @@ fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), S
 }
 
 fn find_value_field_name(input: &syn::ItemStruct) -> Option<String> {
-    find_value_field(input).map(|(name, _)| name.to_string())
+    find_value_field_strict(input)
+        .ok()
+        .flatten()
+        .map(|(name, _)| name.to_string())
 }
 
 fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<Option<String>, String> {

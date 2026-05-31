@@ -95,6 +95,11 @@ arrays/slices, `Vec`, sets/maps, etc.) and optionally for `SmallVec` with the
 `smallvec` feature. For `String` and `str`, `LenValidation` counts Unicode scalar
 values (`char`s), not UTF-8 bytes.
 
+Built-in validators in the collection, string, format, and numeric modules that
+do not render the failing input use `#[koruma(value, skip_capture)]` internally,
+so derived validation does not require input types to implement `Clone` just to
+store an error.
+
 ### General validators (`koruma_collection::general`)
 
 | Validator                       | Rule                  | Example attribute                                   | Feature |
@@ -102,7 +107,7 @@ values (`char`s), not UTF-8 bytes.
 | `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(full(general::RequiredValidation::<_>))]` | `default`  |
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
-`collection::NonEmptyValidation::<_>` when you need an emptiness check. It uses
+`collection::NonEmptyValidation::<_>` when you need an emptiness check. It also uses
 `#[koruma(value, skip_capture)]` internally, so `Option<NonCloneType>` fields do not need `Clone`
 just to report a missing-value error. Wrap it in `full(...)` so koruma validates the whole
 `Option<T>` instead of unwrapping `Some(T)`.

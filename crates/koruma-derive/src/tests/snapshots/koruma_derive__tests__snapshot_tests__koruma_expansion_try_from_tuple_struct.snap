@@ -6,16 +6,16 @@ expression: rendered
     "Validators for the `", "_0", "` field of [`", "Email", "`]: [`",
     "NonEmptyStringValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum Email0KorumaValidator {
-    NonEmptyStringValidation(NonEmptyStringValidation),
+pub enum Email0KorumaValidatorRef<'koruma> {
+    NonEmptyStringValidation(&'koruma NonEmptyStringValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "_0", "` field of [`", "Email",
     "`].\n\nValidators: [`", "NonEmptyStringValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct Email0KorumaValidationError {
     non_empty_string_validation: Option<NonEmptyStringValidation>,
 }
@@ -27,12 +27,15 @@ impl Email0KorumaValidationError {
         self.non_empty_string_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "_0", "`.")]
-    pub fn all(&self) -> Vec<Email0KorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.non_empty_string_validation {
-            result.push(Email0KorumaValidator::NonEmptyStringValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = Email0KorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .non_empty_string_validation
+                .as_ref()
+                .map(Email0KorumaValidatorRef::NonEmptyStringValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.non_empty_string_validation.is_none()
@@ -45,7 +48,7 @@ impl Email0KorumaValidationError {
     "Validation errors for [`", "Email", "`].\n\nContains per-field error structs for ",
     "field: `_0`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct EmailKorumaValidationError {
     _0: Email0KorumaValidationError,
 }
@@ -63,7 +66,7 @@ impl core::ops::Deref for EmailKorumaValidationError {
         &self._0
     }
 }
-impl koruma::ValidationError for EmailKorumaValidationError {
+impl ::renamed_koruma::ValidationError for EmailKorumaValidationError {
     fn is_empty(&self) -> bool {
         self._0.is_empty()
     }
@@ -81,7 +84,7 @@ impl Email {
         };
         let mut has_error = false;
         let __field_value = &self.0;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 NonEmptyStringValidation::__koruma_builder(),
                 __field_value,
             )
@@ -93,13 +96,13 @@ impl Email {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Email {
+impl ::renamed_koruma::ValidateExt for Email {
     type Error = EmailKorumaValidationError;
     fn validate(&self) -> Result<(), EmailKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl koruma::NewtypeValidation for Email {}
+impl ::renamed_koruma::NewtypeValidation for Email {}
 impl TryFrom<String> for Email {
     type Error = EmailKorumaValidationError;
     fn try_from(value: String) -> Result<Self, Self::Error> {

@@ -13,8 +13,8 @@
 ## Data model
 
 - `ValidatorAttr`: a single direct validator chain (path, setter calls, type inference flags, and setter access via `setter_calls()`).
-- `KorumaAttr`: a field attribute grouping validators plus modifiers (`each`, `nested`, `newtype`, `skip`).
-- `ValidationInfo`: merged validators and modifier flags for a field.
+- `FieldAttrAst` / `FieldAttrItem`: typed parse-layer metadata for one field attribute, grouping modifiers, direct field validators, and `each(...)` element validators without a raw token bucket.
+- `NormalizedFieldSpec`: normalized validators and modifier flags for a field.
 - `FieldInfo`: per-field metadata derived from `syn::Field`.
 - `StructOptions`: struct-level flags like `try_new`, `newtype`, and `newtype(try_from)`.
 - `ValueFieldInfo` / `ValueFieldCapture`: metadata for the validator field marked `#[koruma(value)]`, including whether capture uses the normal borrowed-value path or `skip_capture`.
@@ -22,11 +22,11 @@
 
 ## Parsing notes
 
-- `parse_field` merges multiple `#[koruma(...)]` attributes, handles `skip`, `nested`, `newtype`, and `each(...)`, and detects duplicate validators.
+- `parse_field` merges multiple `#[koruma(...)]` attributes into `NormalizedFieldSpec`, handles `skip`, `nested`, `newtype`, and `each(...)`, and detects duplicate validators.
 - `parse_struct_options` reads struct-level `#[koruma(...)]` options (`try_new`, `newtype`, `newtype(try_from)`).
 - `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
 - Generic validator bindings use standard Rust direct validator chains (`Validator::<_>::min(...)`) for type inference and substitution.
-- `find_value_field*` helpers locate `#[koruma(value)]` for validator structs and validate `skip_capture` usage.
+- `find_value_field_strict` and `find_value_field_info_strict` locate `#[koruma(value)]` for validator structs and validate `skip_capture` usage.
 - `find_showcase_attr` (feature `internal-showcase`) parses showcase metadata on validators and rejects missing or invalid `input_type`.
 
 ## Feature flags

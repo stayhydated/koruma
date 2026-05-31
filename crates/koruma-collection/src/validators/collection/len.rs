@@ -21,7 +21,7 @@ use super::HasLen;
 ///
 /// For `String` and `str`, length is measured in Unicode scalar values (`char`s).
 ///
-/// Works with any type that implements `HasLen + Clone`.
+/// Works with any type that implements `HasLen`.
 #[validator]
 #[cfg_attr(feature = "internal-showcase", showcase(
     name = "Length",
@@ -43,13 +43,13 @@ pub struct LenValidation<T: HasLen> {
     min: usize,
     /// Maximum allowed length (inclusive)
     max: usize,
-    /// The collection being validated (stored for error context)
-    #[koruma(value)]
+    /// The collection being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
-impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
+impl<T: HasLen> Validate<T> for LenValidation<T> {
     fn validate(&self, value: &T) -> bool {
         let len = value.len();
         !(len < self.min || len > self.max)
@@ -57,7 +57,7 @@ impl<T: HasLen + Clone> Validate<T> for LenValidation<T> {
 }
 
 #[cfg(feature = "fmt")]
-impl<T: HasLen + Clone> std::fmt::Display for LenValidation<T> {
+impl<T: HasLen> std::fmt::Display for LenValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -71,14 +71,24 @@ impl<T: HasLen + Clone> std::fmt::Display for LenValidation<T> {
 mod tests {
     use koruma::Validate as _;
 
+    use crate::validators::collection::HasLen;
+
     use super::LenValidation;
+
+    struct NonCloneCollection(usize);
+
+    impl HasLen for NonCloneCollection {
+        fn len(&self) -> usize {
+            self.0
+        }
+    }
 
     #[test]
     fn accepts_values_within_bounds() {
         let validator = LenValidation {
             min: 1,
             max: 3,
-            actual: String::new(),
+            actual: None,
         };
         assert!(validator.validate(&"ab".to_string()));
     }
@@ -88,7 +98,7 @@ mod tests {
         let validator = LenValidation {
             min: 1,
             max: 3,
-            actual: String::new(),
+            actual: None,
         };
         assert!(!validator.validate(&"".to_string()));
         assert!(!validator.validate(&"abcd".to_string()));
@@ -99,9 +109,21 @@ mod tests {
         let validator = LenValidation {
             min: 3,
             max: 3,
-            actual: String::new(),
+            actual: None,
         };
         assert!(validator.validate(&"a💀é".to_string()));
         assert!(!validator.validate(&"💀💀💀💀".to_string()));
+    }
+
+    #[test]
+    fn validates_non_clone_lengths_by_reference() {
+        let validator = LenValidation {
+            min: 1,
+            max: 3,
+            actual: None,
+        };
+
+        assert!(validator.validate(&NonCloneCollection(2)));
+        assert!(!validator.validate(&NonCloneCollection(4)));
     }
 }

@@ -6,17 +6,17 @@ expression: pretty_print(expanded)
     "Validators for the `", "value", "` field of [`", "MultiValidatorItem", "`]: [`",
     "NumberRangeValidation`], `[EvenNumberValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum MultiValidatorItemValueKorumaValidator {
-    NumberRangeValidation(NumberRangeValidation),
-    EvenNumberValidation(EvenNumberValidation),
+pub enum MultiValidatorItemValueKorumaValidatorRef<'koruma> {
+    NumberRangeValidation(&'koruma NumberRangeValidation),
+    EvenNumberValidation(&'koruma EvenNumberValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "value", "` field of [`", "MultiValidatorItem",
     "`].\n\nValidators: [`", "NumberRangeValidation`], `[EvenNumberValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct MultiValidatorItemValueKorumaValidationError {
     number_range_validation: Option<NumberRangeValidation>,
     even_number_validation: Option<EvenNumberValidation>,
@@ -35,25 +35,21 @@ impl MultiValidatorItemValueKorumaValidationError {
         self.even_number_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "value", "`.")]
-    pub fn all(&self) -> Vec<MultiValidatorItemValueKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.number_range_validation {
-            result
-                .push(
-                    MultiValidatorItemValueKorumaValidator::NumberRangeValidation(
-                        v.clone(),
-                    ),
-                );
-        }
-        if let Some(v) = &self.even_number_validation {
-            result
-                .push(
-                    MultiValidatorItemValueKorumaValidator::EvenNumberValidation(
-                        v.clone(),
-                    ),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = MultiValidatorItemValueKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .number_range_validation
+                .as_ref()
+                .map(MultiValidatorItemValueKorumaValidatorRef::NumberRangeValidation),
+            self
+                .even_number_validation
+                .as_ref()
+                .map(MultiValidatorItemValueKorumaValidatorRef::EvenNumberValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.number_range_validation.is_none() && self.even_number_validation.is_none()
@@ -66,7 +62,7 @@ impl MultiValidatorItemValueKorumaValidationError {
     "Validation errors for [`", "MultiValidatorItem",
     "`].\n\nContains per-field error structs for ", "field: `value`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct MultiValidatorItemKorumaValidationError {
     value: MultiValidatorItemValueKorumaValidationError,
 }
@@ -79,7 +75,7 @@ impl MultiValidatorItemKorumaValidationError {
         &self.value
     }
 }
-impl koruma::ValidationError for MultiValidatorItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for MultiValidatorItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
@@ -98,7 +94,7 @@ impl MultiValidatorItem {
         };
         let mut has_error = false;
         let __field_value = &self.value;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 NumberRangeValidation::min(0).max(100),
                 __field_value,
             )
@@ -107,7 +103,7 @@ impl MultiValidatorItem {
             error.value.number_range_validation = Some(validator);
             has_error = true;
         }
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
+        let validator = ::renamed_koruma::BuilderWithValueRef::with_value_ref(
                 EvenNumberValidation::__koruma_builder(),
                 __field_value,
             )
@@ -119,7 +115,7 @@ impl MultiValidatorItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for MultiValidatorItem {
+impl ::renamed_koruma::ValidateExt for MultiValidatorItem {
     type Error = MultiValidatorItemKorumaValidationError;
     fn validate(&self) -> Result<(), MultiValidatorItemKorumaValidationError> {
         Self::validate(self)

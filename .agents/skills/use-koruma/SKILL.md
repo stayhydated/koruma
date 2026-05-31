@@ -35,8 +35,9 @@ adds `koruma-collection` when built-in validators fit the rule:
    `TypeName::<_>` for zero-configuration generic validators or
    `TypeName::<_>::first_setter(...)` when configuring generic validators.
 6. Derive `Koruma` on the validated type. Add `KorumaAllDisplay` for `all()`
-   iterators over `Display`-renderable validators, or `KorumaAllFluent` for
-   localized `FluentMessage` values.
+   iterators over borrowed `Display`-renderable validators, or `KorumaAllFluent`
+   for localized borrowed `FluentMessage` values. Failed-validator inspection
+   does not require validator types to implement `Clone`.
 7. For Fluent, derive `EsFluent` on validators and render messages through an
    app-owned `es-fluent` localizer.
 
@@ -127,9 +128,11 @@ impl fmt::Display for StringLengthValidation {
 ```
 
 Keep `#[koruma(value)]` fields private and use the generated getter when
-external code needs the captured input. For presence-only validators, use
-`#[koruma(value, skip_capture)]` on an `Option<T>` value field so missing-value
-errors do not require cloning the original value.
+external code needs the captured input. For validators that do not need to store
+the failing input, use `#[koruma(value, skip_capture)]` on an `Option<T>` value
+field so derived validation does not clone the original value. Built-in
+collection, string, format, and numeric validators that do not render the
+failing input use this pattern internally.
 
 Read generated errors through field and validator accessors:
 
@@ -161,7 +164,7 @@ order listed, and all configured validators are evaluated.
 Common patterns:
 
 - Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>::first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those.
-- Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree.
+- Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree. Handwritten `ValidateExt` integrations must use an associated error type implementing `ValidationError + Default`.
 - Use `#[koruma(newtype)]` for transparent error access through newtype wrappers.
 - Add `#[koruma(try_new, newtype)]` to generate a checked `try_new` constructor.
 - Add `#[koruma(newtype(try_from))]` to generate `TryFrom<Inner>` for checked conversions.

@@ -822,39 +822,6 @@ fn return_type_contains_infer(return_type: &ReturnType) -> bool {
     }
 }
 
-/// Check if a type is `Option<_>` (Option wrapping an infer placeholder).
-///
-/// This supports the legacy full-`Option` validator syntax. New user-facing
-/// examples prefer `full(RequiredValidation::<_>)`.
-///
-/// # Examples
-///
-/// ```rust
-/// use syn::parse_quote;
-/// use koruma_derive_core::is_option_infer_type;
-/// use syn::Type;
-///
-/// let ty1: Type = parse_quote!(Option<_>);
-/// assert!(is_option_infer_type(&ty1));
-///
-/// let ty2: Type = parse_quote!(Option<String>);
-/// assert!(!is_option_infer_type(&ty2));
-/// ```
-pub fn is_option_infer_type(ty: &Type) -> bool {
-    if let Type::Path(type_path) = ty
-        && let Some(segment) = type_path.path.segments.last()
-        && segment.ident == "Option"
-        && let PathArguments::AngleBracketed(args) = &segment.arguments
-    {
-        for arg in &args.args {
-            if let GenericArgument::Type(inner_ty) = arg {
-                return matches!(inner_ty, Type::Infer(_));
-            }
-        }
-    }
-    false
-}
-
 /// Check if an expression is a simple identifier (bare field name like `password`).
 ///
 /// If so, return the identifier. This is used to detect field references in validator args.

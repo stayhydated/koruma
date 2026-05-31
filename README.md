@@ -52,20 +52,20 @@ use std::fmt;
 
 #[validator]
 #[derive(Clone, Debug)]
-pub struct NumberRangeValidation<T: PartialOrd + Copy + fmt::Display + Clone> {
+pub struct NumberRangeValidation<T: PartialOrd + fmt::Display + Clone> {
     min: T,
     max: T,
     #[koruma(value)]
     actual: T,
 }
 
-impl<T: PartialOrd + Copy + fmt::Display> Validate<T> for NumberRangeValidation<T> {
+impl<T: PartialOrd + fmt::Display + Clone> Validate<T> for NumberRangeValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        *value >= self.min && *value <= self.max
+        value >= &self.min && value <= &self.max
     }
 }
 
-impl<T: PartialOrd + Copy + fmt::Display + Clone> fmt::Display for NumberRangeValidation<T> {
+impl<T: PartialOrd + fmt::Display + Clone> fmt::Display for NumberRangeValidation<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -120,8 +120,9 @@ pub struct RequiredValidation<T> {
 ```
 
 `skip_capture` keeps the stored field at its default `None` during derived validation, which avoids
-clone requirements for presence-only validators. If your validator still derives traits like
-`Clone` or `Debug` through that field, use a manual impl like `general::RequiredValidation`.
+clone requirements for validators whose messages do not need the original input. If your validator
+still derives traits like `Clone` or `Debug` through that field, use manual impls to avoid
+reintroducing type bounds.
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
@@ -183,7 +184,7 @@ pub struct BorrowedOrder<'a> {
 }
 ```
 
-### 3. Use `all()` getter (`KorumaAllDisplay`)
+### 3. Iterate failed validators (`KorumaAllDisplay`)
 
 ```rs
 if let Err(errors) = item.validate() {
@@ -197,7 +198,10 @@ if let Err(errors) = item.validate() {
 }
 ```
 
-### 4. Use `all()` getter with localized messages (`KorumaAllFluent`)
+`all()` borrows the stored failed validators, so inspection does not require
+validator types to implement `Clone`.
+
+### 4. Iterate failed validators with localized messages (`KorumaAllFluent`)
 
 ```toml
 [dependencies]

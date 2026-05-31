@@ -311,11 +311,9 @@ fn test_koruma_all_display_expansion() {
     };
 
     let expanded = expand_koruma_all_display(input).unwrap();
-    let rendered = pretty_print(expanded);
-    assert!(rendered.contains("impl ::std::fmt::Display for DisplayItemValueKorumaValidator"));
-    assert!(
-        rendered.contains("impl ::std::fmt::Display for DisplayItemValuesElementKorumaValidator")
-    );
+    let rendered = compact_ws(&pretty_print(expanded));
+    assert!(rendered.contains("DisplayforDisplayItemValueKorumaValidatorRef"));
+    assert!(rendered.contains("DisplayforDisplayItemValuesElementKorumaValidatorRef"));
 }
 
 #[test]
@@ -329,7 +327,7 @@ fn test_koruma_all_display_expansion_newtype_inner_arm() {
 
     let expanded = expand_koruma_all_display(input).unwrap();
     let rendered = pretty_print(expanded);
-    assert!(rendered.contains("DisplayNewtypeItemWrappedKorumaValidator::Inner(inner)"));
+    assert!(rendered.contains("DisplayNewtypeItemWrappedKorumaValidatorRef::Inner(inner)"));
 }
 
 #[test]
@@ -344,10 +342,12 @@ fn test_koruma_all_display_expansion_uses_path_aware_variant_names() {
     let expanded = expand_koruma_all_display(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(
-        compact.contains("DisplayQualifiedValidatorsValueKorumaValidator::FooRangeValidation(v)")
+        compact
+            .contains("DisplayQualifiedValidatorsValueKorumaValidatorRef::FooRangeValidation(v)")
     );
     assert!(
-        compact.contains("DisplayQualifiedValidatorsValueKorumaValidator::BarRangeValidation(v)")
+        compact
+            .contains("DisplayQualifiedValidatorsValueKorumaValidatorRef::BarRangeValidation(v)")
     );
 }
 
@@ -374,7 +374,7 @@ fn test_koruma_expansion_struct_newtype_optional_nested_no_deref_impl() {
     let expanded = expand_koruma(input).unwrap();
     let rendered = pretty_print(expanded);
     let compact = compact_ws(&rendered);
-    assert!(compact.contains("implkoruma::NewtypeValidationforOptionalNestedWrapper{}"));
+    assert!(compact.contains("NewtypeValidationforOptionalNestedWrapper{}"));
     assert!(!compact.contains("implcore::ops::DerefforOptionalNestedWrapperKorumaValidationError"));
 }
 
@@ -390,8 +390,8 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("ifletSome(ref__newtype_value)=self.wrapped"));
-    assert!(compact.contains("inner:Option<<WrappedValueaskoruma::ValidateExt>::Error>"));
-    assert!(compact.contains("pubfnwrapped(&self)->Option<&<WrappedValueaskoruma::ValidateExt>::Error>{self.wrapped.inner.as_ref()}"));
+    assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
+    assert!(compact.contains("self.wrapped.inner.as_ref()"));
     assert!(
         !compact.contains("implstd::ops::DerefforOptionalNewtypeFieldWrappedKorumaValidationError")
     );
@@ -401,7 +401,7 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
 fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct RichNewtypeField {
-            #[koruma(newtype, RequiredValidation::<Option<_>>, GenericRange::<_>::min(0).max(10), PlainValidation::min(1))]
+            #[koruma(newtype, full(RequiredValidation::<_>), GenericRange::<_>::min(0).max(10), PlainValidation::min(1))]
             pub wrapped: Option<WrappedValue>,
         }
     };
@@ -409,10 +409,10 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("__koruma_assert_validate_wrapped_required_validation_newtype_field"));
-    assert!(compact.contains("koruma::BuilderWithValueRef::with_value_ref("));
+    assert!(compact.contains("BuilderWithValueRef::with_value_ref("));
     assert!(compact.contains("PlainValidation::min(1)"));
-    assert!(compact.contains("inner:Option<<WrappedValueaskoruma::ValidateExt>::Error>"));
-    assert!(compact.contains("pubfninner(&self)->Option<&<WrappedValueaskoruma::ValidateExt>::Error>{self.inner.as_ref()}"));
+    assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
+    assert!(compact.contains("self.inner.as_ref()"));
     assert!(compact.contains("error.wrapped.inner=Some(newtype_err);"));
     assert!(compact.contains("inner:None"));
 }
@@ -446,15 +446,15 @@ fn test_koruma_expansion_qualified_validators_generate_distinct_members() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("foo_range_validation:Option<foo::RangeValidation>"));
     assert!(compact.contains("bar_range_validation:Option<bar::RangeValidation>"));
-    assert!(compact.contains("FooRangeValidation(foo::RangeValidation)"));
-    assert!(compact.contains("BarRangeValidation(bar::RangeValidation)"));
+    assert!(compact.contains("FooRangeValidation(&'korumafoo::RangeValidation)"));
+    assert!(compact.contains("BarRangeValidation(&'korumabar::RangeValidation)"));
 }
 
 #[test]
 fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalMixedValidators {
-            #[koruma(RequiredValidation::<Option<_>>, GenericRange::<_>::min(0).max(10))]
+            #[koruma(full(RequiredValidation::<_>), GenericRange::<_>::min(0).max(10))]
             pub value: Option<i32>,
         }
     };
@@ -469,7 +469,7 @@ fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
 fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalConcreteFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<String>>)]
+            #[koruma(full(RequiredValidation::<Option<String>>))]
             pub value: Option<String>,
         }
     };
@@ -488,7 +488,7 @@ fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
 fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalElementValidators {
-            #[koruma(each(RequiredValidation::<Option<_>>))]
+            #[koruma(each(full(RequiredValidation::<_>)))]
             pub values: Vec<Option<i32>>,
         }
     };
@@ -713,11 +713,8 @@ fn test_koruma_all_display_handles_skipped_fields() {
     };
 
     let expanded = expand_koruma_all_display(input).unwrap();
-    let rendered = pretty_print(expanded);
-    assert!(
-        rendered
-            .contains("impl ::std::fmt::Display for DisplayWithSkippedFieldValueKorumaValidator")
-    );
+    let rendered = compact_ws(&pretty_print(expanded));
+    assert!(rendered.contains("DisplayforDisplayWithSkippedFieldValueKorumaValidatorRef"));
 }
 
 #[test]
@@ -733,12 +730,12 @@ fn test_koruma_all_display_borrowed_types_carry_lifetimes() {
 
     let expanded = expand_koruma_all_display(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(
-        compact.contains("impl<'a>::std::fmt::DisplayforDisplayBorrowedValueKorumaValidator<'a>")
-    );
+    assert!(compact.contains(
+        "impl<'koruma,'a>::std::fmt::DisplayforDisplayBorrowedValueKorumaValidatorRef<'koruma,'a>"
+    ));
     assert!(
         compact.contains(
-            "impl<'a>::std::fmt::DisplayforDisplayBorrowedValuesElementKorumaValidator<'a>"
+            "impl<'koruma,'a>::std::fmt::DisplayforDisplayBorrowedValuesElementKorumaValidatorRef<'koruma,'a>"
         )
     );
 }
@@ -784,14 +781,14 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
 
     let expanded = expand_validator(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("input_type:::koruma::showcase::InputType::Text"));
-    assert!(compact.contains("module:::koruma::showcase::ValidatorModule::General"));
+    assert!(compact.contains("input_type:::renamed_koruma::showcase::InputType::Text"));
+    assert!(compact.contains("module:::renamed_koruma::showcase::ValidatorModule::General"));
     assert!(compact.contains("showcase_validation_builder::State"));
-    assert!(compact.contains("S::Actual:koruma::bon::IsUnset"));
+    assert!(compact.contains("S::Actual:::renamed_koruma::bon::IsUnset"));
     assert!(compact.contains("DynValidatorforShowcaseValidation"));
     assert!(compact.contains("whereU:Default"));
     assert!(compact.contains("Self:::std::marker::Send+::std::marker::Sync"));
-    assert!(compact.contains("Self:::koruma::Validate<Option<T>>"));
+    assert!(compact.contains("Self:::renamed_koruma::Validate<Option<T>>"));
     assert!(compact.contains("Self:::std::fmt::Display"));
     assert!(!compact.contains("feature=\"internal-showcase\""));
     assert!(!compact.contains("feature=\"fmt\""));
@@ -845,14 +842,9 @@ fn test_koruma_all_fluent_expansion() {
     };
 
     let expanded = expand_koruma_all_fluent(input).unwrap();
-    let rendered = pretty_print(expanded);
-    assert!(
-        rendered.contains("impl ::es_fluent::FluentMessage for FluentItemValueKorumaValidator")
-    );
-    assert!(
-        rendered
-            .contains("impl ::es_fluent::FluentMessage for FluentItemValuesElementKorumaValidator")
-    );
+    let rendered = compact_ws(&pretty_print(expanded));
+    assert!(rendered.contains("FluentMessageforFluentItemValueKorumaValidatorRef"));
+    assert!(rendered.contains("FluentMessageforFluentItemValuesElementKorumaValidatorRef"));
 }
 
 #[cfg(feature = "fluent")]
@@ -871,11 +863,11 @@ fn test_koruma_all_fluent_borrowed_types_carry_lifetimes() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(
         compact.contains(
-            "impl<'a>::es_fluent::FluentMessageforFluentBorrowedValueKorumaValidator<'a>"
+            "impl<'koruma,'a>::es_fluent::FluentMessageforFluentBorrowedValueKorumaValidatorRef<'koruma,'a>"
         )
     );
     assert!(compact.contains(
-        "impl<'a>::es_fluent::FluentMessageforFluentBorrowedValuesElementKorumaValidator<'a>"
+        "impl<'koruma,'a>::es_fluent::FluentMessageforFluentBorrowedValuesElementKorumaValidatorRef<'koruma,'a>"
     ));
 }
 
@@ -891,10 +883,8 @@ fn test_koruma_all_fluent_handles_skipped_fields() {
     };
 
     let expanded = expand_koruma_all_fluent(input).unwrap();
-    let rendered = pretty_print(expanded);
-    assert!(rendered.contains(
-        "impl ::es_fluent::FluentMessage for FluentWithSkippedFieldValueKorumaValidator"
-    ));
+    let rendered = compact_ws(&pretty_print(expanded));
+    assert!(rendered.contains("FluentMessageforFluentWithSkippedFieldValueKorumaValidatorRef"));
 }
 
 #[cfg(feature = "fluent")]
@@ -1038,7 +1028,7 @@ fn test_koruma_expansion_try_from_option_field() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype(try_from))]
         pub struct OptionalWrapper {
-            #[koruma(newtype, RequiredValidation::<Option<_>>)]
+            #[koruma(newtype, full(RequiredValidation::<_>))]
             pub inner: Option<InnerValue>,
         }
     };

@@ -8,7 +8,7 @@ use std::fmt::Display;
 ///
 /// Primitive integers and floats implement this trait out of the box. Custom numeric-like
 /// types can implement it directly when they have a well-defined additive zero.
-pub trait Numeric: PartialOrd + Copy + Display {
+pub trait Numeric: PartialOrd + Display {
     fn zero() -> Self;
 }
 
@@ -68,7 +68,7 @@ mod tests {
     #[cfg(feature = "rust_decimal")]
     use rust_decimal::Decimal;
 
-    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+    #[derive(Clone, Debug, PartialEq, PartialOrd)]
     struct OffsetNumber(i32);
 
     impl Display for OffsetNumber {

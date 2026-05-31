@@ -34,15 +34,15 @@ use super::Numeric;
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
 pub struct NonPositiveValidation<T: Numeric> {
-    /// The value being validated (stored for error context)
-    #[koruma(value)]
+    /// The value being validated.
+    #[koruma(value, skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: Numeric> Validate<T> for NonPositiveValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        *value <= T::zero()
+        value <= &T::zero()
     }
 }
 
@@ -61,14 +61,14 @@ mod tests {
 
     #[test]
     fn accepts_zero_and_negative_values() {
-        let validator = NonPositiveValidation { actual: 0_i32 };
+        let validator = NonPositiveValidation { actual: None };
         assert!(validator.validate(&0));
         assert!(validator.validate(&-1));
     }
 
     #[test]
     fn rejects_positive_values() {
-        let validator = NonPositiveValidation { actual: 0_i32 };
+        let validator = NonPositiveValidation { actual: None };
         assert!(!validator.validate(&1));
     }
 }

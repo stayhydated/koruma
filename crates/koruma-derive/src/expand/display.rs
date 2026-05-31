@@ -1,17 +1,19 @@
-use koruma_derive_core::option_inner_type;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-use crate::expand::codegen::helper_generics_for_usages;
+use crate::expand::codegen::ref_enum_generics_for_usages;
+use crate::expand::koruma_crate_path;
 use crate::expand::plan::ValidationPlan;
 use syn::DeriveInput;
 
 /// Core expansion logic for the `#[derive(KorumaAllDisplay)]` derive macro.
 ///
-/// Generates `Display` implementations for the `{Struct}{Field}KorumaValidator` enums
-/// returned by the `all()` method. Each variant delegates to its inner validator's Display.
+/// Generates `Display` implementations for the borrowed
+/// `{Struct}{Field}KorumaValidatorRef` enums returned by the `all()` method.
+/// Each variant delegates to its inner validator's Display.
 pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let generics = &input.generics;
+    let koruma = koruma_crate_path();
 
     let plan = ValidationPlan::build(&input, "KorumaAllDisplay")?;
 
@@ -21,9 +23,8 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
         .iter()
         .zip(plan.field_infos())
         .filter(|(field_plan, _)| !field_plan.field_validators.is_empty())
-        .map(|(field_plan, f)| {
-            let field_ty = &f.ty;
-            let enum_name = &field_plan.generated_names.field_validator_enum;
+        .map(|(field_plan, _)| {
+            let enum_name = &field_plan.generated_names.field_validator_ref_enum;
             let mut helper_usages: Vec<TokenStream2> = field_plan
                 .field_validators
                 .iter()
@@ -32,11 +33,11 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                     quote! { #vtype }
                 })
                 .collect();
-            if f.is_newtype() {
-                let inner_ty = option_inner_type(field_ty).unwrap_or(field_ty);
-                helper_usages.push(quote! { <#inner_ty as koruma::ValidateExt>::Error });
+            if field_plan.is_newtype() {
+                let inner_ty = &field_plan.inner_type;
+                helper_usages.push(quote! { <#inner_ty as #koruma::ValidateExt>::Error });
             }
-            let helper_generics = helper_generics_for_usages(generics, &helper_usages);
+            let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
             let helper_impl_generics = &helper_generics.impl_generics;
             let helper_ty_generics = &helper_generics.ty_generics;
             let helper_where_clause = &helper_generics.where_clause;
@@ -47,15 +48,15 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                 .map(|planned| {
                     let variant_name = &planned.variant_ident;
                     quote! {
-                        #enum_name::#variant_name(v) => ::std::fmt::Display::fmt(v, f)
+                        #enum_name::#variant_name(v) => ::std::fmt::Display::fmt(*v, f)
                     }
                 })
                 .collect();
 
             // Add Inner variant arm for newtype fields with additional validators
-            let inner_arm = if f.is_newtype() {
+            let inner_arm = if field_plan.is_newtype() {
                 Some(quote! {
-                    #enum_name::Inner(inner) => ::std::fmt::Display::fmt(inner, f)
+                    #enum_name::Inner(inner) => ::std::fmt::Display::fmt(*inner, f)
                 })
             } else {
                 None
@@ -80,7 +81,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
         .iter()
         .filter(|field_plan| !field_plan.element_validators.is_empty())
         .map(|field_plan| {
-            let enum_name = &field_plan.generated_names.element_validator_enum;
+            let enum_name = &field_plan.generated_names.element_validator_ref_enum;
             let helper_usages: Vec<TokenStream2> = field_plan
                 .element_validators
                 .iter()
@@ -89,7 +90,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                     quote! { #vtype }
                 })
                 .collect();
-            let helper_generics = helper_generics_for_usages(generics, &helper_usages);
+            let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
             let helper_impl_generics = &helper_generics.impl_generics;
             let helper_ty_generics = &helper_generics.ty_generics;
             let helper_where_clause = &helper_generics.where_clause;
@@ -100,7 +101,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                 .map(|planned| {
                     let variant_name = &planned.variant_ident;
                     quote! {
-                        #enum_name::#variant_name(v) => ::std::fmt::Display::fmt(v, f)
+                        #enum_name::#variant_name(v) => ::std::fmt::Display::fmt(*v, f)
                     }
                 })
                 .collect();

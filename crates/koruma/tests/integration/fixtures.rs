@@ -2,8 +2,8 @@ use koruma::{Koruma, Validate};
 
 use super::validators::{
     EvenNumberValidation, GenericRangeValidation, MatchesStaticStrValidation,
-    MatchesStringValidation, NumberRangeValidation, RequiredValidation, StartsWithValidation,
-    StringLengthValidation, VecLenValidation,
+    MatchesStringValidation, NonCloneRangeValidation, NumberRangeValidation, RequiredValidation,
+    StartsWithValidation, StringLengthValidation, VecLenValidation,
 };
 
 const STATIC_CONFIRM_SECRET: &str = "shared-secret";
@@ -48,6 +48,13 @@ pub struct MultiAttrItem {
     // Multiple #[koruma] attributes on the same field - all are collected
     #[koruma(NumberRangeValidation::min(0).max(100))]
     #[koruma(EvenNumberValidation)]
+    pub value: i32,
+}
+
+/// Example struct demonstrating failed-validator inspection without Clone.
+#[derive(Koruma, koruma::KorumaAllDisplay)]
+pub struct NonCloneValidatorItem {
+    #[koruma(NonCloneRangeValidation::min(0).max(100))]
     pub value: i32,
 }
 

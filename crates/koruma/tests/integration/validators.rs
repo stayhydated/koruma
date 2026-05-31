@@ -84,6 +84,32 @@ impl Validate<i32> for EvenNumberValidation {
     }
 }
 
+/// A validation rule that intentionally does not implement Clone.
+#[validator]
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub struct NonCloneRangeValidation {
+    min: i32,
+    max: i32,
+    #[koruma(value)]
+    actual: i32,
+}
+
+impl Validate<i32> for NonCloneRangeValidation {
+    fn validate(&self, value: &i32) -> bool {
+        !(*value < self.min || *value > self.max)
+    }
+}
+
+impl fmt::Display for NonCloneRangeValidation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "value must be between {} and {}, got {}",
+            self.min, self.max, self.actual
+        )
+    }
+}
+
 /// A validation rule that checks if a Vec has length within a specified range.
 /// This demonstrates collection-level validation (as opposed to per-element validation).
 ///

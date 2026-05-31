@@ -310,69 +310,10 @@ fn test_koruma_error_on_duplicate_element_validator() {
 }
 
 #[test]
-fn test_koruma_error_on_ambiguous_option_target_type_arg_for_field() {
-    let input: DeriveInput = syn::parse_quote! {
-        pub struct AmbiguousOptionTargetTypeArgValidator {
-            #[koruma(RequiredValidation::<Option<_>>)]
-            pub value: Option<i32>,
-        }
-    };
-
-    let result = expand_koruma(input);
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        err.to_string().contains(
-            "explicit `Option<...>` validator type arguments do not request full-target validation"
-        ),
-        "expected ambiguous option target diagnostic, got: {}",
-        err
-    );
-    assert!(
-        err.to_string()
-            .contains("use `full(RequiredValidation::<_>)` instead"),
-        "expected replacement syntax in diagnostic, got: {}",
-        err
-    );
-    assert!(
-        err.to_string().contains("field `value`"),
-        "expected field name in diagnostic, got: {}",
-        err
-    );
-}
-
-#[test]
-fn test_koruma_error_on_ambiguous_option_target_type_arg_for_element_validator() {
-    let input: DeriveInput = syn::parse_quote! {
-        pub struct AmbiguousOptionTargetTypeArgElementValidator {
-            #[koruma(each(RequiredValidation::<Option<_>>))]
-            pub values: Vec<Option<i32>>,
-        }
-    };
-
-    let result = expand_koruma(input);
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        err.to_string().contains(
-            "explicit `Option<...>` validator type arguments do not request full-target validation"
-        ),
-        "expected ambiguous option target diagnostic, got: {}",
-        err
-    );
-    assert!(
-        err.to_string()
-            .contains("element validators on field `values`"),
-        "expected element context in diagnostic, got: {}",
-        err
-    );
-}
-
-#[test]
-fn test_koruma_error_on_explicit_option_element_validator_without_full_wrapper() {
+fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_target() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitElementFullTypeValidator {
-            #[koruma(each(RequiredValidation::<Option<String>>))]
+            #[koruma(each(GenericValidation::<Option<String>>))]
             pub values: Vec<String>,
         }
     };
@@ -382,9 +323,9 @@ fn test_koruma_error_on_explicit_option_element_validator_without_full_wrapper()
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments do not request full-target validation"
+            "explicit `Option<...>` validator type arguments require an optional validation target"
         ),
-        "expected ambiguous option target diagnostic, got: {}",
+        "expected non-optional option-target diagnostic, got: {}",
         err
     );
     assert!(
@@ -396,10 +337,10 @@ fn test_koruma_error_on_explicit_option_element_validator_without_full_wrapper()
 }
 
 #[test]
-fn test_koruma_error_on_explicit_option_validator_without_full_wrapper() {
+fn test_koruma_error_on_explicit_option_validator_for_non_optional_target() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<String>>)]
+            #[koruma(GenericValidation::<Option<String>>)]
             pub value: String,
         }
     };
@@ -409,9 +350,9 @@ fn test_koruma_error_on_explicit_option_validator_without_full_wrapper() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments do not request full-target validation"
+            "explicit `Option<...>` validator type arguments require an optional validation target"
         ),
-        "expected ambiguous option target diagnostic, got: {}",
+        "expected non-optional option-target diagnostic, got: {}",
         err
     );
     assert!(

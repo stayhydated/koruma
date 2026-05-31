@@ -2,8 +2,8 @@ use koruma_derive::Koruma;
 
 #[derive(Koruma)]
 struct Demo {
-    #[koruma(RequiredValidation::<Option<_>>)]
-    value: Option<String>,
+    #[koruma(GenericValidation::<Option<_>>)]
+    value: String,
 }
 
 fn main() {}

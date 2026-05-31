@@ -34,6 +34,10 @@ adds `koruma-collection` when built-in validators fit the rule:
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use
    `TypeName::<_>` for zero-configuration generic validators or
    `TypeName::<_>::first_setter(...)` when configuring generic validators.
+   Optional fields and optional `each(...)` elements unwrap by default; use
+   `Validator::<Option<_>>` when a custom validator should receive the whole
+   optional value. `general::RequiredValidation::<_>` receives the whole
+   `Option<T>` automatically.
    Add lower-snake labels with `label_name = Validator::<_>` when you need
    descriptive stable accessors or when validators would otherwise generate the
    same getter/variant name; labels work inside `each(...)` too.
@@ -89,7 +93,7 @@ struct SignupInput {
     #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(full(general::RequiredValidation::<_>))]
+    #[koruma(general::RequiredValidation::<_>)]
     display_name: Option<String>,
 }
 ```

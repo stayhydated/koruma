@@ -17,7 +17,7 @@ pub struct Age {
 /// This works correctly in Koruma today
 #[derive(Koruma)]
 pub struct ExplicitOptionForm {
-    #[koruma(newtype, full(RequiredValidation::<_>))]
+    #[koruma(newtype, RequiredValidation::<_>)]
     pub age: Option<Age>,
 }
 
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_explicit_option_works() {
-        // This should work - explicit full-target validation on Option<T>
+        // This should work - RequiredValidation validates the full Option<T>
         let form = ExplicitOptionForm {
             age: Some(Age { value: 25 }),
         };

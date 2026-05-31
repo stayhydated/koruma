@@ -59,16 +59,6 @@ fn test_validator_attr_parse_direct_chain_with_explicit_option_type() {
     assert_eq!(attr.name().to_string(), "RequiredValidation");
     assert!(!attr.uses_type_inference());
     assert!(attr.explicit_type().is_some());
-    assert!(!attr.wants_full_target());
-    assert!(attr.builder_methods.is_empty());
-}
-
-#[test]
-fn test_validator_attr_parse_full_wrapper() {
-    let attr: ValidatorAttr = syn::parse_quote!(full(RequiredValidation::<_>));
-    assert_eq!(attr.name().to_string(), "RequiredValidation");
-    assert!(attr.uses_type_inference());
-    assert!(attr.wants_full_target());
     assert!(attr.builder_methods.is_empty());
 }
 
@@ -84,13 +74,13 @@ fn test_koruma_attr_parse_skip() {
 fn test_koruma_attr_parse_each() {
     let attr: DataFieldKorumaAttr = syn::parse_quote!(each(
         RangeValidation::min(0).max(100),
-        full(RequiredValidation::<_>)
+        RequiredValidation::<Option<_>>
     ));
     assert!(!attr.is_skip());
     assert!(!attr.has_field_validators());
     assert_eq!(attr.element_validator_count(), 2);
     let element_validators: Vec<_> = attr.element_validators().collect();
-    assert!(element_validators[1].wants_full_target());
+    assert!(element_validators[1].explicit_type().is_some());
 }
 
 #[test]

@@ -39,7 +39,7 @@ struct SalesLeadForm {
     phone: Option<String>,
 
     #[koruma(
-        full(general::RequiredValidation::<_>),
+        general::RequiredValidation::<_>,
         numeric::RangeValidation::<_>::min(1_000.0_f64).max(500_000.0_f64)
     )]
     deal_value: Option<f64>,

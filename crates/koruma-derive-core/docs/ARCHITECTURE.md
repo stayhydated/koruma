@@ -36,9 +36,11 @@
 - `parse_struct_options` parses struct-level attributes with `StructKorumaAttr` and normalizes `try_new`, `newtype`, and `newtype(try_from)` into `StructOptions`.
 - `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
 - Generic validator bindings use standard Rust direct validator chains (`Validator::<_>::min(...)`) for type inference and substitution.
-- Full-target validation keeps the explicit `full(...)` wrapper, including inside `each(...)`,
-  because it is unambiguous in parser output and keeps `Validator::<Option<_>>` reserved for
-  the validator's Rust type argument rather than overloading it as target selection syntax.
+- Full-target validation for optional targets is selected by using an explicit
+  `Validator::<Option<_>>` or `Validator::<Option<T>>` type argument. Parser output keeps Rust type
+  arguments intact; `koruma-derive` makes the target-selection decision after field and element
+  types are known. `RequiredValidation::<_>` on syntactic `Option<T>` targets is also planned as a
+  full-target validator so the common presence check remains concise.
 - `parse_validator_fields_strict` parses validator-field attributes separately from data-field
   attributes, locates `#[koruma(value)]`, normalizes setter metadata, and validates validator-field
   grammar before `koruma-derive` code generation. `find_value_field_strict` and

@@ -162,22 +162,6 @@ fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inne
 }
 
 #[test]
-fn test_validator_wants_full_type_only_for_full_wrapper() {
-    let attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<Option<String>>);
-    assert!(!attr.wants_full_target());
-
-    let qualified_attr: ValidatorAttr =
-        syn::parse_quote!(RequiredValidation::<core::option::Option<String>>);
-    assert!(!qualified_attr.wants_full_target());
-
-    let non_option_attr: ValidatorAttr = syn::parse_quote!(RequiredValidation::<String>);
-    assert!(!non_option_attr.wants_full_target());
-
-    let full_attr: ValidatorAttr = syn::parse_quote!(full(RequiredValidation::<_>));
-    assert!(full_attr.wants_full_target());
-}
-
-#[test]
 fn test_helper_generics_tracks_lifetimes_consts_and_where_dependencies() {
     let item: ItemStruct = syn::parse_quote! {
         struct Demo<'a, 'b, T, U, const N: usize>
@@ -567,9 +551,9 @@ fn test_parse_field_without_koruma_returns_skip() {
 fn test_validation_plan_resolves_targets_names_and_type_args() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Planned {
-            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>::min(1))]
+            #[koruma(RequiredValidation::<_>, LengthValidation::<_>::min(1))]
             name: Option<String>,
-            #[koruma(each(full(ItemRequired::<_>), ItemLength::<_>::min(1)))]
+            #[koruma(each(RequiredValidation::<_>, ItemLength::<_>::min(1)))]
             tags: Vec<Option<String>>,
         }
     };
@@ -707,12 +691,54 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
 }
 
 #[test]
+fn test_validation_plan_uses_explicit_option_type_args_for_full_optional_targets() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        struct Planned {
+            #[koruma(GenericPresence::<Option<_>>)]
+            value: Option<i32>,
+            #[koruma(each(GenericElementPresence::<Option<_>>))]
+            values: Vec<Option<String>>,
+        }
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+
+    let field_validator = &plan.fields[0].field_validators()[0];
+    let ValidationTarget::FieldFull(full_field_target) = &field_validator.target else {
+        panic!("expected explicit Option field validator to use full field target");
+    };
+    let field_ty = &full_field_target.ty;
+    assert_eq!(quote!(#field_ty).to_string(), "Option < i32 >");
+    let PlannedValidatorTypeArg::Resolved(resolved_field_ty) = &field_validator.resolved_type_arg
+    else {
+        panic!("expected explicit Option field type to resolve");
+    };
+    assert_eq!(quote!(#resolved_field_ty).to_string(), "Option < i32 >");
+
+    let element_validator = &plan.fields[1].element_validators()[0];
+    let ValidationTarget::ElementFull(full_element_target) = &element_validator.target else {
+        panic!("expected explicit Option element validator to use full element target");
+    };
+    let element_ty = &full_element_target.ty;
+    assert_eq!(quote!(#element_ty).to_string(), "Option < String >");
+    let PlannedValidatorTypeArg::Resolved(resolved_element_ty) =
+        &element_validator.resolved_type_arg
+    else {
+        panic!("expected explicit Option element type to resolve");
+    };
+    assert_eq!(
+        quote!(#resolved_element_ty).to_string(),
+        "Option < String >"
+    );
+}
+
+#[test]
 fn test_validation_plan_exposes_render_ready_validation_operations() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Planned {
-            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>::min(1))]
+            #[koruma(RequiredValidation::<_>, LengthValidation::<_>::min(1))]
             name: Option<String>,
-            #[koruma(each(full(ItemRequired::<_>), ItemLength::<_>::min(1)))]
+            #[koruma(each(RequiredValidation::<_>, ItemLength::<_>::min(1)))]
             tags: Vec<Option<String>>,
         }
     };

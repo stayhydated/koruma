@@ -135,15 +135,6 @@ pub enum ValidatorTypeArg {
     Explicit(Type),
 }
 
-/// Target selection policy for optional validation targets.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TargetPolicy {
-    /// Default behavior: validators receive the inner `T` for `Option<T>`.
-    UnwrapOption,
-    /// Validators receive the full field or element target.
-    FullTarget,
-}
-
 #[derive(Clone, Debug)]
 pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
@@ -151,9 +142,6 @@ pub struct ValidatorAttr {
     pub validator: Path,
     /// Parsed validator type argument syntax.
     pub type_arg: ValidatorTypeArg,
-    /// Whether this validator receives the full target or koruma's default
-    /// optional-unwrapped target.
-    pub target_policy: TargetPolicy,
     /// Builder setter method calls collected from a direct validator chain.
     /// Used by `Validator::arg(value)...`.
     pub builder_methods: Vec<BuilderMethodCall>,
@@ -236,64 +224,16 @@ impl ValidatorAttr {
             ValidatorTypeArg::None | ValidatorTypeArg::Infer => None,
         }
     }
-
-    /// Returns whether this validator was wrapped in `full(...)`.
-    pub fn wants_full_target(&self) -> bool {
-        self.target_policy == TargetPolicy::FullTarget
-    }
 }
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        if let Some(attr) = try_parse_full_validator(input)? {
-            return Ok(attr);
-        }
-
         if let Some(attr) = try_parse_direct_validator(input)? {
             return Ok(attr);
         }
 
         Err(invalid_validator_syntax_error(input))
     }
-}
-
-fn try_parse_full_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
-    if !input.peek(Ident) {
-        return Ok(None);
-    }
-
-    let fork = input.fork();
-    let ident: Ident = fork.parse()?;
-    if ident != "full" || !fork.peek(token::Paren) {
-        return Ok(None);
-    }
-
-    input.parse::<Ident>()?;
-    let content;
-    parenthesized!(content in input);
-    if content.is_empty() {
-        return Err(Error::new(
-            content.span(),
-            "`full(...)` must contain exactly one validator",
-        ));
-    }
-
-    let mut attr = content.parse::<ValidatorAttr>()?;
-    if attr.target_policy == TargetPolicy::FullTarget {
-        return Err(Error::new(
-            ident.span(),
-            "`full(...)` cannot be nested inside another `full(...)` wrapper",
-        ));
-    }
-    if !content.is_empty() {
-        return Err(Error::new(
-            content.span(),
-            "`full(...)` must contain exactly one validator",
-        ));
-    }
-
-    attr.target_policy = TargetPolicy::FullTarget;
-    Ok(Some(attr))
 }
 
 fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
@@ -317,7 +257,6 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
     Ok(Some(ValidatorAttr {
         validator,
         type_arg,
-        target_policy: TargetPolicy::UnwrapOption,
         builder_methods,
     }))
 }
@@ -325,7 +264,7 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
 fn invalid_validator_syntax_error(input: ParseStream) -> Error {
     Error::new(
         input.span(),
-        "validator syntax requires a direct validator chain such as `full(RequiredValidation::<_>)` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted",
+        "validator syntax requires a direct validator chain such as `RequiredValidation::<_>` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted",
     )
 }
 

@@ -992,7 +992,7 @@ impl ValidationTarget {
             field_ty.clone()
         };
 
-        if validator.wants_full_target() {
+        if should_use_full_target(validator, &raw_type) {
             let cardinality = TargetCardinality::for_type(&raw_type);
             return Ok(match scope {
                 ValidationTargetScope::Field => Self::FieldFull(FullFieldTarget {
@@ -1006,7 +1006,9 @@ impl ValidationTarget {
             });
         }
 
-        Self::reject_ambiguous_option_target_type_arg(validator, scope, field_name)?;
+        Self::reject_option_target_type_arg_on_non_optional_target(
+            validator, &raw_type, scope, field_name,
+        )?;
         let validate_type = option_inner_type(&raw_type).unwrap_or(&raw_type).clone();
 
         Ok(match scope {
@@ -1021,8 +1023,9 @@ impl ValidationTarget {
         })
     }
 
-    fn reject_ambiguous_option_target_type_arg(
+    fn reject_option_target_type_arg_on_non_optional_target(
         validator: &ValidatorAttr,
+        raw_type: &Type,
         scope: ValidationTargetScope,
         field_name: &Ident,
     ) -> Result<(), syn::Error> {
@@ -1030,6 +1033,9 @@ impl ValidationTarget {
             return Ok(());
         };
         if option_inner_type(explicit_ty).is_none() {
+            return Ok(());
+        }
+        if option_inner_type(raw_type).is_some() {
             return Ok(());
         }
 
@@ -1043,7 +1049,7 @@ impl ValidationTarget {
         Err(syn::Error::new_spanned(
             explicit_ty,
             format!(
-                "explicit `Option<...>` validator type arguments do not request full-target validation for {target_context}; use `full({validator_name}::<_>)` instead"
+                "explicit `Option<...>` validator type arguments require an optional validation target for {target_context}; `{validator_name}` is targeting a non-optional value"
             ),
         ))
     }
@@ -1093,6 +1099,26 @@ impl ValidationTarget {
             Self::ElementUnwrapped(target) => &target.validate_type,
         }
     }
+}
+
+fn should_use_full_target(validator: &ValidatorAttr, raw_type: &Type) -> bool {
+    explicit_option_type_arg_targets_optional_value(validator, raw_type)
+        || should_required_validation_use_full_target(validator, raw_type)
+}
+
+fn explicit_option_type_arg_targets_optional_value(
+    validator: &ValidatorAttr,
+    raw_type: &Type,
+) -> bool {
+    validator
+        .explicit_type()
+        .is_some_and(|ty| option_inner_type(ty).is_some())
+        && option_inner_type(raw_type).is_some()
+}
+
+fn should_required_validation_use_full_target(validator: &ValidatorAttr, raw_type: &Type) -> bool {
+    // Proc macros cannot resolve paths, so this intentionally keys off the final path segment.
+    validator.name() == "RequiredValidation" && option_inner_type(raw_type).is_some()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

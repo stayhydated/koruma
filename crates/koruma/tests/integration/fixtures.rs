@@ -98,6 +98,13 @@ pub struct OptionalBorrowedOrder<'a> {
     pub scores: Option<&'a [f64]>,
 }
 
+/// Example struct demonstrating array validation with `each`.
+#[derive(Koruma)]
+pub struct ArrayOrder {
+    #[koruma(each(GenericRangeValidation::<_>::min(0).max(100)))]
+    pub scores: [i32; 3],
+}
+
 /// Example struct demonstrating borrowed direct-field validation.
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedUsername<'a> {

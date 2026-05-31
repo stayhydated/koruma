@@ -134,6 +134,11 @@ field so derived validation does not clone the original value. Built-in
 collection, string, format, and numeric validators that do not render the
 failing input use this pattern internally.
 
+For direct setter generation on custom validators, `#[validator]` supports only
+the `#[builder(...)]` field keys `into`, `required`, `name`, and `default`.
+Other builder field settings such as `skip`, `field`, and `start_fn` are
+rejected on validator configuration fields.
+
 Read generated errors through field and validator accessors:
 
 ```rust

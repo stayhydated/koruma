@@ -2,25 +2,26 @@
 
 use heck::ToUpperCamelCase;
 use koruma_derive_core::{
-    BuilderMethodCall, FieldInfo, StructOptions, ValidatorAttr, is_option_type, option_inner_type,
+    BuilderMethodCall, FieldInfo, StructOptions, ValidatorAttr, option_inner_type,
     parse_struct_options,
 };
 use quote::format_ident;
 use syn::{DeriveInput, Expr, Fields, Ident, Path, Type};
 
 use super::codegen::{
-    each_element_type, reject_legacy_full_option_syntax, resolve_explicit_infer_type,
-    validate_each_collection_type, validate_validator_arg_value, validator_field_ident,
-    validator_infer_source_type, validator_variant_ident, validator_wants_full_type,
+    EachIterationKind, FieldCardinality, ValidationSite, classify_each_collection,
+    reject_ambiguous_option_target_type_arg, resolve_explicit_infer_type,
+    validate_validator_arg_value, validator_field_ident, validator_infer_source_type,
+    validator_variant_ident, validator_wants_full_type,
 };
 use super::collect_field_infos;
 
 #[derive(Clone, Debug)]
 pub(crate) struct ValidationPlan {
     pub struct_options: StructOptions,
+    pub struct_plan: StructPlan,
     pub field_infos: Vec<FieldInfo>,
     pub fields: Vec<FieldPlan>,
-    pub struct_newtype_field_info: Option<FieldInfo>,
     pub known_field_names: Vec<Ident>,
 }
 
@@ -45,32 +46,43 @@ impl ValidationPlan {
             ));
         }
 
-        let struct_newtype_field_info = if struct_options.is_newtype() {
-            Some(
-                field_infos
-                    .first()
-                    .cloned()
-                    .expect("single-field struct newtypes should expose one participating field"),
-            )
-        } else {
-            None
-        };
-
         let known_field_names: Vec<Ident> = fields
             .iter()
             .filter_map(|field| field.ident.clone())
             .collect();
 
-        let planned_fields = field_infos
+        let planned_fields: Vec<FieldPlan> = field_infos
             .iter()
             .map(|field| FieldPlan::build(&input.ident, field, &known_field_names))
             .collect::<Result<_, _>>()?;
 
+        let struct_plan = if struct_options.is_newtype() {
+            let Some(field_info) = field_infos.first().cloned() else {
+                return Err(syn::Error::new_spanned(
+                    input,
+                    "newtype structs require their only field to participate in validation",
+                ));
+            };
+            let Some(field) = planned_fields.first().cloned() else {
+                return Err(syn::Error::new_spanned(
+                    input,
+                    "newtype structs require a field validation plan",
+                ));
+            };
+            StructPlan::Newtype { field_info, field }
+        } else {
+            match fields {
+                Fields::Named(_) => StructPlan::Record,
+                Fields::Unnamed(_) => StructPlan::Tuple,
+                Fields::Unit => StructPlan::Unit,
+            }
+        };
+
         Ok(Self {
             struct_options,
+            struct_plan,
             field_infos,
             fields: planned_fields,
-            struct_newtype_field_info,
             known_field_names,
         })
     }
@@ -82,6 +94,13 @@ impl ValidationPlan {
     pub fn field_plan(&self, name: &Ident) -> Option<&FieldPlan> {
         self.fields.iter().find(|field| &field.name == name)
     }
+
+    pub fn struct_newtype(&self) -> Option<(&FieldInfo, &FieldPlan)> {
+        match &self.struct_plan {
+            StructPlan::Newtype { field_info, field } => Some((field_info, field)),
+            StructPlan::Record | StructPlan::Tuple | StructPlan::Unit => None,
+        }
+    }
 }
 
 fn struct_fields<'a>(input: &'a DeriveInput, derive_name: &str) -> Result<&'a Fields, syn::Error> {
@@ -92,6 +111,17 @@ fn struct_fields<'a>(input: &'a DeriveInput, derive_name: &str) -> Result<&'a Fi
             format!("{derive_name} can only be derived for structs"),
         )),
     }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum StructPlan {
+    Record,
+    Tuple,
+    Unit,
+    Newtype {
+        field_info: FieldInfo,
+        field: FieldPlan,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -109,49 +139,73 @@ impl FieldPlan {
         field: &FieldInfo,
         known_field_names: &[Ident],
     ) -> Result<Self, syn::Error> {
-        if field.has_element_validators() {
-            validate_each_collection_type(&field.ty)?;
-        }
+        let each_collection = field
+            .has_element_validators()
+            .then(|| classify_each_collection(&field.ty))
+            .transpose()?;
 
         let field_validators = field
             .validation
             .field_validators
             .iter()
-            .map(|validator| PlannedValidator::build(validator, field, false, known_field_names))
+            .map(|validator| {
+                PlannedValidator::build(validator, field, ValidationSite::Field, known_field_names)
+            })
             .collect::<Result<Vec<_>, _>>()?;
 
         let element_validators = field
             .validation
             .element_validators
             .iter()
-            .map(|validator| PlannedValidator::build(validator, field, true, known_field_names))
+            .map(|validator| {
+                PlannedValidator::build(
+                    validator,
+                    field,
+                    ValidationSite::Element,
+                    known_field_names,
+                )
+            })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let field_optional = is_option_type(&field.ty);
+        let field_cardinality = each_collection
+            .as_ref()
+            .map(|collection| collection.outer_cardinality)
+            .unwrap_or_else(|| FieldCardinality::for_type(&field.ty));
         let inner_type = option_inner_type(&field.ty).unwrap_or(&field.ty).clone();
-        let element_type = field
-            .has_element_validators()
-            .then(|| each_element_type(&field.ty).clone());
-        let element_optional = element_type.as_ref().is_some_and(is_option_type);
+        let collection_type = each_collection
+            .as_ref()
+            .map(|collection| collection.collection_ty.clone());
+        let element_type = each_collection
+            .as_ref()
+            .map(|collection| collection.element_ty.clone());
+        let element_cardinality = each_collection
+            .as_ref()
+            .map(|collection| collection.element_cardinality)
+            .unwrap_or(FieldCardinality::Required);
+        let each_iteration = each_collection
+            .as_ref()
+            .map(|collection| collection.iteration);
         let generated_names = GeneratedNames::new(struct_name, field);
 
         let shape = if field.is_nested() {
             PlannedField::Nested(NestedFieldPlan {
-                optional: field_optional,
+                cardinality: field_cardinality,
                 inner_type,
             })
         } else if field.is_newtype() {
             PlannedField::Newtype(NewtypeFieldPlan {
-                optional: field_optional,
+                cardinality: field_cardinality,
                 inner_type,
                 field_validators,
             })
         } else {
             PlannedField::Regular(RegularFieldPlan {
-                optional: field_optional,
+                cardinality: field_cardinality,
                 inner_type,
+                collection_type,
                 element_type,
-                element_optional,
+                element_cardinality,
+                each_iteration,
                 field_validators,
                 element_validators,
             })
@@ -185,12 +239,16 @@ impl FieldPlan {
     }
 
     pub(crate) fn field_optional(&self) -> bool {
+        self.field_cardinality().is_optional()
+    }
+
+    pub(crate) fn field_cardinality(&self) -> FieldCardinality {
         self.error_storage
-            .optional()
+            .cardinality()
             .unwrap_or_else(|| match &self.shape {
-                PlannedField::Regular(plan) => plan.optional,
+                PlannedField::Regular(plan) => plan.cardinality,
                 PlannedField::Nested(_) | PlannedField::Newtype(_) => {
-                    unreachable!("nested and newtype storage carries optionality")
+                    unreachable!("nested and newtype storage carries cardinality")
                 },
             })
     }
@@ -211,9 +269,13 @@ impl FieldPlan {
     }
 
     pub(crate) fn element_optional(&self) -> bool {
+        self.element_cardinality().is_optional()
+    }
+
+    pub(crate) fn element_cardinality(&self) -> FieldCardinality {
         match &self.shape {
-            PlannedField::Regular(plan) => plan.element_optional,
-            PlannedField::Nested(_) | PlannedField::Newtype(_) => false,
+            PlannedField::Regular(plan) => plan.element_cardinality,
+            PlannedField::Nested(_) | PlannedField::Newtype(_) => FieldCardinality::Required,
         }
     }
 
@@ -273,23 +335,25 @@ pub(crate) enum PlannedField {
 
 #[derive(Clone, Debug)]
 pub(crate) struct RegularFieldPlan {
-    pub optional: bool,
+    pub cardinality: FieldCardinality,
     pub inner_type: Type,
+    pub collection_type: Option<Type>,
     pub element_type: Option<Type>,
-    pub element_optional: bool,
+    pub element_cardinality: FieldCardinality,
+    pub each_iteration: Option<EachIterationKind>,
     pub field_validators: Vec<PlannedValidator>,
     pub element_validators: Vec<PlannedValidator>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct NestedFieldPlan {
-    pub optional: bool,
+    pub cardinality: FieldCardinality,
     pub inner_type: Type,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct NewtypeFieldPlan {
-    pub optional: bool,
+    pub cardinality: FieldCardinality,
     pub inner_type: Type,
     pub field_validators: Vec<PlannedValidator>,
 }
@@ -335,27 +399,22 @@ impl PlannedValidator {
     fn build(
         validator: &ValidatorAttr,
         field: &FieldInfo,
-        validate_each: bool,
+        site: ValidationSite,
         known_field_names: &[Ident],
     ) -> Result<Self, syn::Error> {
-        reject_legacy_full_option_syntax(validator, validate_each, &field.name)?;
-        let resolved_explicit_type =
-            resolve_explicit_infer_type(validator, &field.ty, validate_each)?;
-        let target = ValidationTarget::for_validator(validator, &field.ty, validate_each);
+        reject_ambiguous_option_target_type_arg(validator, site, &field.name)?;
+        let resolved_explicit_type = resolve_explicit_infer_type(validator, &field.ty, site)?;
+        let target = ValidationTarget::for_validator(validator, &field.ty, site)?;
         let validation_target_type =
-            validator_infer_source_type(validator, &field.ty, validate_each).clone();
+            validator_infer_source_type(validator, &field.ty, site)?.clone();
         let resolved_type_arg = PlannedValidatorTypeArg::for_validator(
             validator,
             &field.ty,
-            validate_each,
+            site,
             resolved_explicit_type.clone(),
-        );
-        let concrete_type_arg = concrete_validator_type_arg(
-            validator,
-            &field.ty,
-            validate_each,
-            resolved_explicit_type,
-        );
+        )?;
+        let concrete_type_arg =
+            concrete_validator_type_arg(validator, &field.ty, site, resolved_explicit_type)?;
         let validator_type =
             PlannedValidatorType::new(validator.validator.clone(), concrete_type_arg.as_ref());
         let builder_type_arg =
@@ -363,7 +422,7 @@ impl PlannedValidator {
         let builder_type =
             PlannedValidatorType::new(validator.validator.clone(), builder_type_arg.as_ref());
         let setter_calls = planned_setter_calls(validator.setter_calls(), known_field_names)?;
-        let siblings = if validate_each {
+        let siblings = if site.is_element() {
             &field.validation.element_validators
         } else {
             &field.validation.field_validators
@@ -427,20 +486,24 @@ pub(crate) struct PlannedSetterCall {
 fn concrete_validator_type_arg(
     validator: &ValidatorAttr,
     field_ty: &Type,
-    validate_each: bool,
+    site: ValidationSite,
     resolved_explicit_type: Option<Type>,
-) -> Option<Type> {
+) -> Result<Option<Type>, syn::Error> {
     if let Some(resolved) = resolved_explicit_type {
-        return Some(resolved);
+        return Ok(Some(resolved));
     }
 
     if let Some(explicit) = validator.explicit_type() {
-        return Some(explicit.clone());
+        return Ok(Some(explicit.clone()));
     }
 
-    validator
-        .uses_type_inference()
-        .then(|| validator_infer_source_type(validator, field_ty, validate_each).clone())
+    if validator.uses_type_inference() {
+        return Ok(Some(
+            validator_infer_source_type(validator, field_ty, site)?.clone(),
+        ));
+    }
+
+    Ok(None)
 }
 
 #[derive(Clone, Debug)]
@@ -478,22 +541,27 @@ pub(crate) enum ValidationTarget {
 }
 
 impl ValidationTarget {
-    fn for_validator(validator: &ValidatorAttr, field_ty: &Type, validate_each: bool) -> Self {
-        if validate_each {
-            let element_ty = each_element_type(field_ty);
-            if validator_wants_full_type(validator) {
+    fn for_validator(
+        validator: &ValidatorAttr,
+        field_ty: &Type,
+        site: ValidationSite,
+    ) -> Result<Self, syn::Error> {
+        if site.is_element() {
+            let element_ty = classify_each_collection(field_ty)?.element_ty;
+            let target = if validator_wants_full_type(validator) {
                 Self::ElementFull
-            } else if is_option_type(element_ty) {
+            } else if FieldCardinality::for_type(element_ty).is_optional() {
                 Self::ElementOptionalInner
             } else {
                 Self::ElementUnwrapped
-            }
+            };
+            Ok(target)
         } else if validator_wants_full_type(validator) {
-            Self::FieldFull
-        } else if is_option_type(field_ty) {
-            Self::FieldOptionalInner
+            Ok(Self::FieldFull)
+        } else if FieldCardinality::for_type(field_ty).is_optional() {
+            Ok(Self::FieldOptionalInner)
         } else {
-            Self::FieldUnwrapped
+            Ok(Self::FieldUnwrapped)
         }
     }
 }
@@ -515,32 +583,32 @@ impl PlannedValidatorTypeArg {
     fn for_validator(
         validator: &ValidatorAttr,
         field_ty: &Type,
-        validate_each: bool,
+        site: ValidationSite,
         resolved_explicit_type: Option<Type>,
-    ) -> Self {
+    ) -> Result<Self, syn::Error> {
         if let Some(resolved) = resolved_explicit_type {
-            return Self::Resolved(resolved);
+            return Ok(Self::Resolved(resolved));
         }
 
         if let Some(explicit) = validator.explicit_type() {
-            return Self::Resolved(explicit.clone());
+            return Ok(Self::Resolved(explicit.clone()));
         }
 
         if validator.uses_type_inference() {
-            return Self::Resolved(
-                validator_infer_source_type(validator, field_ty, validate_each).clone(),
-            );
+            return Ok(Self::Resolved(
+                validator_infer_source_type(validator, field_ty, site)?.clone(),
+            ));
         }
 
-        Self::None
+        Ok(Self::None)
     }
 }
 
 #[derive(Clone, Debug)]
 pub(crate) enum ErrorStorage {
-    Nested { optional: bool },
-    NewtypeInner { optional: bool },
-    NewtypeWithValidators { optional: bool },
+    Nested { cardinality: FieldCardinality },
+    NewtypeInner { cardinality: FieldCardinality },
+    NewtypeWithValidators { cardinality: FieldCardinality },
     RegularEmpty,
     RegularFieldValidators,
     RegularElementValidators,
@@ -551,15 +619,15 @@ impl ErrorStorage {
     fn for_shape(shape: &PlannedField) -> Self {
         match shape {
             PlannedField::Nested(nested) => Self::Nested {
-                optional: nested.optional,
+                cardinality: nested.cardinality,
             },
             PlannedField::Newtype(newtype) if newtype.field_validators.is_empty() => {
                 Self::NewtypeInner {
-                    optional: newtype.optional,
+                    cardinality: newtype.cardinality,
                 }
             },
             PlannedField::Newtype(newtype) => Self::NewtypeWithValidators {
-                optional: newtype.optional,
+                cardinality: newtype.cardinality,
             },
             PlannedField::Regular(regular) => match (
                 regular.field_validators.is_empty(),
@@ -573,11 +641,11 @@ impl ErrorStorage {
         }
     }
 
-    pub(crate) fn optional(&self) -> Option<bool> {
+    pub(crate) fn cardinality(&self) -> Option<FieldCardinality> {
         match self {
-            Self::Nested { optional }
-            | Self::NewtypeInner { optional }
-            | Self::NewtypeWithValidators { optional } => Some(*optional),
+            Self::Nested { cardinality }
+            | Self::NewtypeInner { cardinality }
+            | Self::NewtypeWithValidators { cardinality } => Some(*cardinality),
             Self::RegularEmpty
             | Self::RegularFieldValidators
             | Self::RegularElementValidators

@@ -9,7 +9,7 @@ pub(crate) fn render_try_new_fn(
     struct_name_str: &str,
     main_error_path: &TokenStream2,
 ) -> TokenStream2 {
-    if !plan.struct_options.try_new {
+    if !plan.struct_options.try_new() {
         return quote! {};
     }
 
@@ -88,10 +88,9 @@ pub(crate) fn render_try_from_impl(
         return quote! {};
     }
 
-    let field_info = plan
-        .struct_newtype_field_info
-        .as_ref()
-        .expect("newtype(try_from) implies a struct-level newtype field");
+    let Some((field_info, _field_plan)) = plan.struct_newtype() else {
+        return quote! {};
+    };
     let inner_ty = &field_info.ty;
 
     let struct_init = match &field_info.member {

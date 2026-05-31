@@ -6,7 +6,7 @@ use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{ValueFieldCapture, find_value_field_info_strict, option_inner_type};
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{format_ident, quote};
+use quote::{ToTokens, format_ident, quote};
 use syn::{
     Attribute, Field, Fields, GenericParam, Ident, ItemStruct, Token, Type, Visibility,
     parenthesized, parse_quote,
@@ -406,7 +406,6 @@ fn direct_builder_config(field: &Field) -> Result<Option<DirectBuilderConfig>, s
     let mut method = field_name.clone();
     let mut into = false;
     let mut required = false;
-    let mut skip_direct_method = false;
 
     for attr in field.attrs.iter().filter(is_builder_attr) {
         attr.parse_nested_meta(|meta| {
@@ -420,11 +419,7 @@ fn direct_builder_config(field: &Field) -> Result<Option<DirectBuilderConfig>, s
                 return Ok(());
             }
 
-            if meta.path.is_ident("skip")
-                || meta.path.is_ident("field")
-                || meta.path.is_ident("start_fn")
-            {
-                skip_direct_method = true;
+            if meta.path.is_ident("default") {
                 consume_meta_value_or_group(&meta)?;
                 return Ok(());
             }
@@ -435,12 +430,14 @@ fn direct_builder_config(field: &Field) -> Result<Option<DirectBuilderConfig>, s
                 return Ok(());
             }
 
-            consume_meta_value_or_group(&meta)
+            let attr_name = builder_meta_name(&meta.path);
+            Err(syn::Error::new_spanned(
+                &meta.path,
+                format!(
+                    "`#[koruma::validator]` does not support `#[builder({attr_name})]` on direct builder fields; supported builder keys are `into`, `required`, `name`, and `default`"
+                ),
+            ))
         })?;
-    }
-
-    if skip_direct_method {
-        return Ok(None);
     }
 
     let set_type = format_ident!("Set{}", field_name.to_string().to_upper_camel_case());
@@ -461,6 +458,13 @@ fn direct_builder_config(field: &Field) -> Result<Option<DirectBuilderConfig>, s
 
 fn is_builder_attr(attr: &&Attribute) -> bool {
     attr.path().is_ident("builder")
+}
+
+fn builder_meta_name(path: &syn::Path) -> String {
+    path.segments
+        .last()
+        .map(|segment| segment.ident.to_string())
+        .unwrap_or_else(|| path.to_token_stream().to_string())
 }
 
 fn consume_meta_value_or_group(meta: &syn::meta::ParseNestedMeta<'_>) -> Result<(), syn::Error> {

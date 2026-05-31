@@ -1,4 +1,4 @@
-//! Tests for ValidatorAttr and FieldAttrAst parsing.
+//! Tests for ValidatorAttr and DataFieldKorumaAttr parsing.
 
 use koruma_derive_core::*;
 
@@ -74,7 +74,7 @@ fn test_validator_attr_parse_full_wrapper() {
 
 #[test]
 fn test_koruma_attr_parse_skip() {
-    let attr: FieldAttrAst = syn::parse_quote!(skip);
+    let attr: DataFieldKorumaAttr = syn::parse_quote!(skip);
     assert!(attr.is_skip());
     assert!(!attr.has_field_validators());
     assert!(!attr.has_element_validators());
@@ -82,7 +82,7 @@ fn test_koruma_attr_parse_skip() {
 
 #[test]
 fn test_koruma_attr_parse_each() {
-    let attr: FieldAttrAst = syn::parse_quote!(each(
+    let attr: DataFieldKorumaAttr = syn::parse_quote!(each(
         RangeValidation::min(0).max(100),
         full(RequiredValidation::<_>)
     ));
@@ -95,7 +95,8 @@ fn test_koruma_attr_parse_each() {
 
 #[test]
 fn test_koruma_attr_parse_multiple_validators() {
-    let attr: FieldAttrAst = syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));
+    let attr: DataFieldKorumaAttr =
+        syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 3);
     assert!(!attr.has_element_validators());
@@ -108,7 +109,7 @@ fn test_koruma_attr_parse_multiple_validators() {
 #[test]
 fn test_koruma_attr_parse_combined_field_and_each() {
     // Combined: field validator + each(element validators) with inferred generics
-    let attr: FieldAttrAst = syn::parse_quote!(
+    let attr: DataFieldKorumaAttr = syn::parse_quote!(
         LenValidator::min(1).max(10),
         each(RangeValidation::<_>::min(0).max(100))
     );
@@ -125,7 +126,7 @@ fn test_koruma_attr_parse_combined_field_and_each() {
 #[test]
 fn test_koruma_attr_parse_each_then_field() {
     // each() can come before field validators too
-    let attr: FieldAttrAst =
+    let attr: DataFieldKorumaAttr =
         syn::parse_quote!(each(RangeValidation::min(0).max(100)), LenValidator::min(1));
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 1);
@@ -211,7 +212,8 @@ fn test_validator_attr_parse_constructor_style_error() {
 #[test]
 fn test_struct_options_parse_try_new() {
     let opts: StructOptions = syn::parse_quote!(try_new);
-    assert!(opts.try_new);
+    assert!(opts.try_new());
+    assert_eq!(opts.constructor(), StructConstructor::TryNew);
 }
 
 #[test]

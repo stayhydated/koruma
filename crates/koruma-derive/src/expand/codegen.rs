@@ -1,6 +1,6 @@
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{
-    ValidatorAttr, contains_infer_type, expr_as_simple_ident, option_inner_type,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, is_option_type, option_inner_type,
     substitute_infer_type_from_source, vec_inner_type,
 };
 use proc_macro2::TokenStream as TokenStream2;
@@ -313,74 +313,115 @@ pub(crate) fn validator_wants_full_type(v: &ValidatorAttr) -> bool {
     v.wants_full_target()
 }
 
-/// Returns the collection type that `each(...)` should iterate over.
-///
-/// This unwraps an outer `Option<_>` first so optional collection fields
-/// correctly behave like optional collections instead of optional elements.
-pub(crate) fn each_collection_type(field_ty: &Type) -> &Type {
-    option_inner_type(field_ty).unwrap_or(field_ty)
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ValidationSite {
+    Field,
+    Element,
 }
 
-fn each_supported_element_type(ty: &Type) -> Option<&Type> {
+impl ValidationSite {
+    pub(crate) fn is_element(self) -> bool {
+        self == Self::Element
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum FieldCardinality {
+    Required,
+    Optional,
+}
+
+impl FieldCardinality {
+    pub(crate) fn for_type(ty: &Type) -> Self {
+        if is_option_type(ty) {
+            Self::Optional
+        } else {
+            Self::Required
+        }
+    }
+
+    pub(crate) fn is_optional(self) -> bool {
+        self == Self::Optional
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum EachIterationKind {
+    VecLike,
+    Slice,
+    Array,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct EachCollection<'a> {
+    pub collection_ty: &'a Type,
+    pub element_ty: &'a Type,
+    pub outer_cardinality: FieldCardinality,
+    pub element_cardinality: FieldCardinality,
+    pub iteration: EachIterationKind,
+}
+
+pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection<'_>, syn::Error> {
+    let outer_cardinality = FieldCardinality::for_type(field_ty);
+    let collection_ty = option_inner_type(field_ty).unwrap_or(field_ty);
+    let Some((element_ty, iteration)) = classify_each_collection_inner(collection_ty) else {
+        return Err(unsupported_each_collection_error(field_ty, collection_ty));
+    };
+
+    Ok(EachCollection {
+        collection_ty,
+        element_ty,
+        outer_cardinality,
+        element_cardinality: FieldCardinality::for_type(element_ty),
+        iteration,
+    })
+}
+
+fn classify_each_collection_inner(ty: &Type) -> Option<(&Type, EachIterationKind)> {
     match ty {
-        Type::Array(array) => Some(&array.elem),
-        Type::Group(group) => each_supported_element_type(&group.elem),
-        Type::Paren(paren) => each_supported_element_type(&paren.elem),
-        Type::Reference(reference) => each_supported_element_type(&reference.elem),
-        Type::Slice(slice) => Some(&slice.elem),
-        _ => vec_inner_type(ty),
+        Type::Array(array) => Some((&array.elem, EachIterationKind::Array)),
+        Type::Group(group) => classify_each_collection_inner(&group.elem),
+        Type::Paren(paren) => classify_each_collection_inner(&paren.elem),
+        Type::Reference(reference) => classify_each_collection_inner(&reference.elem),
+        Type::Slice(slice) => Some((&slice.elem, EachIterationKind::Slice)),
+        _ => vec_inner_type(ty).map(|element_ty| (element_ty, EachIterationKind::VecLike)),
     }
 }
 
-pub(crate) fn validate_each_collection_type(field_ty: &Type) -> Result<(), syn::Error> {
-    let collection_ty = each_collection_type(field_ty);
-    if each_supported_element_type(collection_ty).is_some() {
-        return Ok(());
-    }
-
+fn unsupported_each_collection_error(field_ty: &Type, collection_ty: &Type) -> syn::Error {
     let rendered = quote! { #collection_ty }.to_string();
-    Err(syn::Error::new_spanned(
+    syn::Error::new_spanned(
         field_ty,
         format!(
             "`each(...)` currently only supports `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those, found `{rendered}`"
         ),
-    ))
-}
-
-/// Returns the raw element type used by `each(...)`.
-///
-/// For `Vec<Option<T>>` this returns `Option<T>`.
-/// For `Option<&[T]>` this returns `T`.
-///
-/// This helper assumes `validate_each_collection_type()` already accepted the field.
-pub(crate) fn each_element_type(field_ty: &Type) -> &Type {
-    let collection_ty = each_collection_type(field_ty);
-    each_supported_element_type(collection_ty)
-        .expect("each(...) should be pre-validated to only run on supported collection fields")
+    )
 }
 
 pub(crate) fn validator_infer_source_type<'a>(
     v: &ValidatorAttr,
     field_ty: &'a Type,
-    validate_each: bool,
-) -> &'a Type {
-    let raw_source = if validate_each {
-        each_element_type(field_ty)
+    site: ValidationSite,
+) -> Result<&'a Type, syn::Error> {
+    let raw_source = if site.is_element() {
+        classify_each_collection(field_ty)?.element_ty
     } else {
         field_ty
     };
 
-    if validator_wants_full_type(v) {
+    let source = if validator_wants_full_type(v) {
         raw_source
     } else {
         option_inner_type(raw_source).unwrap_or(raw_source)
-    }
+    };
+
+    Ok(source)
 }
 
 pub(crate) fn resolve_explicit_infer_type(
     v: &ValidatorAttr,
     field_ty: &Type,
-    validate_each: bool,
+    site: ValidationSite,
 ) -> Result<Option<Type>, syn::Error> {
     let Some(explicit_ty) = v.explicit_type() else {
         return Ok(None);
@@ -390,7 +431,7 @@ pub(crate) fn resolve_explicit_infer_type(
         return Ok(None);
     }
 
-    let infer_source = validator_infer_source_type(v, field_ty, validate_each);
+    let infer_source = validator_infer_source_type(v, field_ty, site)?;
     substitute_infer_type_from_source(explicit_ty, infer_source)
         .map(Some)
         .ok_or_else(|| {
@@ -405,9 +446,9 @@ pub(crate) fn resolve_explicit_infer_type(
         })
 }
 
-pub(crate) fn reject_legacy_full_option_syntax(
+pub(crate) fn reject_ambiguous_option_target_type_arg(
     v: &ValidatorAttr,
-    validate_each: bool,
+    site: ValidationSite,
     field_name: &Ident,
 ) -> Result<(), Error> {
     if v.wants_full_target() {
@@ -421,7 +462,7 @@ pub(crate) fn reject_legacy_full_option_syntax(
         return Ok(());
     }
 
-    let target_context = if validate_each {
+    let target_context = if site.is_element() {
         format!("element validators on field `{field_name}`")
     } else {
         format!("field `{field_name}`")
@@ -431,7 +472,7 @@ pub(crate) fn reject_legacy_full_option_syntax(
     Err(Error::new_spanned(
         explicit_ty,
         format!(
-            "explicit `Option<...>` validator type arguments no longer request full-target validation for {target_context}; use `full({validator_name}::<_>)` instead"
+            "explicit `Option<...>` validator type arguments do not request full-target validation for {target_context}; use `full({validator_name}::<_>)` instead"
         ),
     ))
 }
@@ -524,10 +565,12 @@ pub(crate) fn validator_variant_ident(v: &ValidatorAttr, siblings: &[ValidatorAt
 
 /// Get the effective type for validation (unwrapping Option and Vec as needed)
 #[cfg(test)]
-pub(crate) fn effective_validation_type(field_ty: &Type, validate_each: bool) -> &Type {
+pub(crate) fn effective_validation_type(field_ty: &Type, site: ValidationSite) -> &Type {
     // Unwrap outer Option<Collection<T>> first for each validation.
-    let after_each = if validate_each {
-        each_element_type(field_ty)
+    let after_each = if site.is_element() {
+        classify_each_collection(field_ty)
+            .expect("test helper requires supported each(...) collection")
+            .element_ty
     } else {
         field_ty
     };

@@ -9,24 +9,19 @@
 //! # Example
 //!
 //! ```rust
-//! use koruma_derive_core::{ParseFieldResult, parse_field};
+//! use koruma_derive_core::parse_field;
 //! use syn::{Field, parse_quote};
 //!
-//! fn validator_count(field: &Field) -> Option<usize> {
-//!     match parse_field(field, 0) {
-//!         ParseFieldResult::Valid(info) => {
-//!             Some(info.validation.field_validators.len())
-//!         }
-//!         ParseFieldResult::Skip => None,
-//!         ParseFieldResult::Error(error) => panic!("Parse error: {error}"),
-//!     }
+//! fn validator_count(field: &Field) -> syn::Result<Option<usize>> {
+//!     Ok(parse_field(field, 0)?
+//!         .map(|info| info.validation.field_validators.len()))
 //! }
 //!
 //! let field: Field = parse_quote! {
 //!     #[koruma(NonEmptyValidation)]
 //!     username: String
 //! };
-//! assert_eq!(validator_count(&field), Some(1));
+//! assert_eq!(validator_count(&field).unwrap(), Some(1));
 //! ```
 
 mod parse;
@@ -37,9 +32,10 @@ mod tests;
 
 // Re-export parsing types
 pub use parse::{
-    BuilderMethodCall, ElementValidationSpec, FieldAttrAst, FieldAttrItem, FieldInfo, FieldMode,
-    FieldModifier, FieldValidationSpec, KorumaAttrContext, NormalizedFieldSpec, ParseFieldResult,
-    StructNewtype, StructOptions, ValidatorAttr, ValidatorTypeArg, ValueFieldCapture,
+    BuilderMethodCall, DataFieldKorumaAttr, DataFieldKorumaItem, ElementValidationSpec, FieldInfo,
+    FieldMode, FieldModifier, FieldValidationSpec, KorumaAttrContext, NormalizedFieldSpec,
+    StructConstructor, StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions,
+    TargetPolicy, ValidatorAttr, ValidatorFieldKorumaItem, ValidatorTypeArg, ValueFieldCapture,
     ValueFieldInfo, find_value_field_info_strict, find_value_field_strict, parse_field,
     parse_struct_options,
 };

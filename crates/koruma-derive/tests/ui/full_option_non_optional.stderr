@@ -1,4 +1,4 @@
-error: explicit `Option<...>` validator type arguments no longer request full-target validation for field `value`; use `full(RequiredValidation::<_>)` instead
+error: explicit `Option<...>` validator type arguments do not request full-target validation for field `value`; use `full(RequiredValidation::<_>)` instead
  --> tests/ui/full_option_non_optional.rs:5:35
   |
 5 |     #[koruma(RequiredValidation::<Option<_>>)]

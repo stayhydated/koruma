@@ -33,7 +33,7 @@ pub use validator::expand_validator;
 pub(crate) use codegen::effective_validation_type;
 #[allow(unused_imports)]
 pub(crate) use codegen::{
-    reject_legacy_full_option_syntax, resolve_explicit_infer_type, validate_each_collection_type,
+    classify_each_collection, reject_ambiguous_option_target_type_arg, resolve_explicit_infer_type,
     validator_field_ident, validator_infer_source_type, validator_variant_ident,
     validator_wants_full_type,
 };
@@ -44,7 +44,7 @@ pub(crate) use codegen::{
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    FieldAttrAst, FieldInfo, NormalizedFieldSpec, ParseFieldResult, StructOptions, ValidatorAttr,
+    DataFieldKorumaAttr, FieldInfo, NormalizedFieldSpec, StructOptions, ValidatorAttr,
     find_value_field_strict, parse_field, parse_struct_options,
 };
 #[cfg(feature = "internal-showcase")]
@@ -65,10 +65,8 @@ pub(crate) fn collect_field_infos(
     let mut field_infos = Vec::new();
 
     for (i, field) in fields.iter().enumerate() {
-        match parse_field(field, i) {
-            ParseFieldResult::Valid(info) => field_infos.push(*info),
-            ParseFieldResult::Skip => {},
-            ParseFieldResult::Error(e) => return Err(e),
+        if let Some(info) = parse_field(field, i)? {
+            field_infos.push(info);
         }
     }
 
@@ -76,11 +74,9 @@ pub(crate) fn collect_field_infos(
         && fields.len() == 1
         && field_infos.is_empty()
     {
-        let (index, field) = fields
-            .iter()
-            .enumerate()
-            .next()
-            .expect("single-field newtypes should expose one field");
+        let Some((index, field)) = fields.iter().enumerate().next() else {
+            return Ok(field_infos);
+        };
 
         if has_explicit_koruma_skip(field)? {
             return Err(syn::Error::new_spanned(
@@ -97,7 +93,7 @@ pub(crate) fn collect_field_infos(
 
 fn has_explicit_koruma_skip(field: &Field) -> Result<bool, syn::Error> {
     for attr in field.attrs.to_vec().find_attribute("koruma") {
-        let parsed: FieldAttrAst = attr.parse_args()?;
+        let parsed: DataFieldKorumaAttr = attr.parse_args()?;
         if parsed.is_skip() {
             return Ok(true);
         }

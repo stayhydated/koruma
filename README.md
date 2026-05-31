@@ -108,6 +108,10 @@ impl fmt::Display for StringLengthValidation {
 validator type with the same name as the `#[koruma(value)]` field. That field is expected to stay
 private; use the generated getter for reads.
 
+For direct setter generation, `#[validator]` supports only the `#[builder(...)]` field keys
+`into`, `required`, `name`, and `default`. Other builder field settings such as `skip`, `field`,
+and `start_fn` are rejected on validator configuration fields.
+
 If a validator does not need to retain the failing input, you can opt out of capture on an
 `Option<T>` value field:
 

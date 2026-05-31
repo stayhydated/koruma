@@ -10,8 +10,9 @@ instead of using this crate directly.
 
 - `#[koruma::validator]`: generates hidden `bon` builder plumbing, direct setter entrypoints such
   as `RangeValidation::min(value)`, and `with_value()` helpers for validators. It supports
-  `#[koruma(value, skip_capture)]` on `Option<T>` value fields that should not retain the validated
-  input.
+  `#[builder(into)]`, `#[builder(required)]`, `#[builder(name = ...)]`, and `#[builder(default ...)]`
+  on direct setter fields, plus `#[koruma(value, skip_capture)]` on `Option<T>` value fields that
+  should not retain the validated input.
 - `#[derive(Koruma)]`: generates validation error structs and `validate()`, accepting Rust-native
   direct validator chains like `RangeValidation::<_>::min(0).max(10)`.
 - `#[derive(KorumaAllDisplay)]`: adds `Display` for `all()` validator enums.

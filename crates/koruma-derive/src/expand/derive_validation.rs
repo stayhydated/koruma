@@ -2,12 +2,70 @@ use crate::expand::derive_shared::validator_builder_expr;
 use crate::expand::plan::{PlannedValidator, ValidationPlan};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
+use syn::Ident;
+
+pub(crate) struct ValidationCheck<'a> {
+    pub validator: &'a PlannedValidator,
+    pub target_expr: TokenStream2,
+    pub target_ref: TargetReference,
+    pub sink: ErrorSink<'a>,
+}
+
+pub(crate) enum ErrorSink<'a> {
+    FieldValidator { field: &'a Ident, slot: &'a Ident },
+    ElementValidator { slot: &'a Ident },
+}
+
+pub(crate) enum TargetReference {
+    AlreadyReference,
+    BorrowExpression,
+}
+
+fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) -> TokenStream2 {
+    let validator = check.validator;
+    let builder_expr = validator_builder_expr(validator);
+    let validator_ty = &validator.validator_type;
+    let validation_target_ty = &validator.validation_target_type;
+    let target_expr = check.target_expr;
+    let target_ref = match check.target_ref {
+        TargetReference::AlreadyReference => quote! { #target_expr },
+        TargetReference::BorrowExpression => quote! { &#target_expr },
+    };
+    let error_assignment = match check.sink {
+        ErrorSink::FieldValidator { field, slot } => {
+            quote! {
+                error.#field.#slot = Some(validator);
+                has_error = true;
+            }
+        },
+        ErrorSink::ElementValidator { slot } => {
+            quote! {
+                element_error.#slot = Some(validator);
+                element_has_error = true;
+            }
+        },
+    };
+
+    quote! {
+        let validator = #koruma::BuilderWithValueRef::with_value_ref(
+            #builder_expr,
+            #target_ref,
+        )
+        .build();
+        if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
+            &validator,
+            #target_ref,
+        ) {
+            #error_assignment
+        }
+    }
+}
 
 pub(crate) fn render_validation_checks(
     plan: &ValidationPlan,
     koruma: &TokenStream2,
 ) -> Result<Vec<TokenStream2>, syn::Error> {
-    let struct_options = &plan.struct_options;
+    let struct_is_newtype = plan.struct_newtype().is_some();
 
     plan.field_infos()
         .iter()
@@ -28,7 +86,7 @@ pub(crate) fn render_validation_checks(
                         }
                     });
                 } else {
-                    if struct_options.is_newtype() {
+                    if struct_is_newtype {
                         return Ok(quote! {
                             if let Err(nested_err) = self.#field_member.validate() {
                                 error.#field_name = nested_err;
@@ -59,51 +117,41 @@ pub(crate) fn render_validation_checks(
                     let unwrapped_validators: Vec<_> =
                         field_plan.unwrapped_field_validators().collect();
 
-                    let generate_newtype_validator_check =
-                        |v: &PlannedValidator,
-                         value_expr: TokenStream2,
-                         needs_ref: bool|
-                         -> Result<TokenStream2, syn::Error> {
-                            let validator_snake = &v.field_ident;
-                            let builder_expr = validator_builder_expr(v);
-                            let validator_ty = &v.validator_type;
-                            let validation_target_ty = &v.validation_target_type;
-
-                            let ref_expr = if needs_ref {
-                                quote! { &#value_expr }
-                            } else {
-                                quote! { #value_expr }
-                            };
-
-                            Ok(quote! {
-                                let validator = #koruma::BuilderWithValueRef::with_value_ref(
-                                    #builder_expr,
-                                    #ref_expr,
-                                )
-                                .build();
-                                if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
-                                    &validator,
-                                    #ref_expr,
-                                ) {
-                                    error.#field_name.#validator_snake = Some(validator);
-                                    has_error = true;
-                                }
-                            })
-                        };
-
                     let full_type_checks: Vec<TokenStream2> = full_type_validators
                         .iter()
                         .map(|v| {
-                            generate_newtype_validator_check(v, quote! { self.#field_member }, true)
+                            render_validation_check(
+                                ValidationCheck {
+                                    validator: v,
+                                    target_expr: quote! { self.#field_member },
+                                    target_ref: TargetReference::BorrowExpression,
+                                    sink: ErrorSink::FieldValidator {
+                                        field: field_name,
+                                        slot: &v.field_ident,
+                                    },
+                                },
+                                koruma,
+                            )
                         })
-                        .collect::<Result<_, _>>()?;
+                        .collect();
 
                     let unwrapped_checks: Vec<TokenStream2> = unwrapped_validators
                         .iter()
                         .map(|v| {
-                            generate_newtype_validator_check(v, quote! { __newtype_value }, false)
+                            render_validation_check(
+                                ValidationCheck {
+                                    validator: v,
+                                    target_expr: quote! { __newtype_value },
+                                    target_ref: TargetReference::AlreadyReference,
+                                    sink: ErrorSink::FieldValidator {
+                                        field: field_name,
+                                        slot: &v.field_ident,
+                                    },
+                                },
+                                koruma,
+                            )
                         })
-                        .collect::<Result<_, _>>()?;
+                        .collect();
 
                     let inner_validation = if unwrapped_validators.is_empty() {
                         quote! {
@@ -161,46 +209,41 @@ pub(crate) fn render_validation_checks(
             let full_type_validators: Vec<_> = field_plan.full_field_validators().collect();
             let unwrapped_validators: Vec<_> = field_plan.unwrapped_field_validators().collect();
 
-            let generate_validator_check = |v: &PlannedValidator,
-                                            value_expr: TokenStream2,
-                                            needs_ref: bool|
-             -> Result<TokenStream2, syn::Error> {
-                let validator_snake = &v.field_ident;
-                let builder_expr = validator_builder_expr(v);
-                let validator_ty = &v.validator_type;
-                let validation_target_ty = &v.validation_target_type;
-
-                let ref_expr = if needs_ref {
-                    quote! { &#value_expr }
-                } else {
-                    quote! { #value_expr }
-                };
-
-                Ok(quote! {
-                    let validator = #koruma::BuilderWithValueRef::with_value_ref(
-                        #builder_expr,
-                        #ref_expr,
-                    )
-                    .build();
-                    if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
-                        &validator,
-                        #ref_expr,
-                    ) {
-                        error.#field_name.#validator_snake = Some(validator);
-                        has_error = true;
-                    }
-                })
-            };
-
             let full_type_checks: Vec<TokenStream2> = full_type_validators
                 .iter()
-                .map(|v| generate_validator_check(v, quote! { self.#field_member }, true))
-                .collect::<Result<_, _>>()?;
+                .map(|v| {
+                    render_validation_check(
+                        ValidationCheck {
+                            validator: v,
+                            target_expr: quote! { self.#field_member },
+                            target_ref: TargetReference::BorrowExpression,
+                            sink: ErrorSink::FieldValidator {
+                                field: field_name,
+                                slot: &v.field_ident,
+                            },
+                        },
+                        koruma,
+                    )
+                })
+                .collect();
 
             let unwrapped_checks: Vec<TokenStream2> = unwrapped_validators
                 .iter()
-                .map(|v| generate_validator_check(v, quote! { __field_value }, false))
-                .collect::<Result<_, _>>()?;
+                .map(|v| {
+                    render_validation_check(
+                        ValidationCheck {
+                            validator: v,
+                            target_expr: quote! { __field_value },
+                            target_ref: TargetReference::AlreadyReference,
+                            sink: ErrorSink::FieldValidator {
+                                field: field_name,
+                                slot: &v.field_ident,
+                            },
+                        },
+                        koruma,
+                    )
+                })
+                .collect();
 
             let element_validation = if has_element_validators {
                 let element_error_struct_name = &field_plan.generated_names.element_error_struct;
@@ -212,40 +255,39 @@ pub(crate) fn render_validation_checks(
                 let unwrapped_element_validators: Vec<_> =
                     field_plan.unwrapped_element_validators().collect();
 
-                let generate_element_validator_check =
-                    |v: &PlannedValidator,
-                     value_expr: TokenStream2|
-                     -> Result<TokenStream2, syn::Error> {
-                        let validator_snake = &v.field_ident;
-                        let builder_expr = validator_builder_expr(v);
-                        let validator_ty = &v.validator_type;
-                        let validation_target_ty = &v.validation_target_type;
-
-                        Ok(quote! {
-                            let validator = #koruma::BuilderWithValueRef::with_value_ref(
-                                #builder_expr,
-                                #value_expr,
-                            )
-                            .build();
-                            if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
-                                &validator,
-                                #value_expr,
-                            ) {
-                                element_error.#validator_snake = Some(validator);
-                                element_has_error = true;
-                            }
-                        })
-                    };
-
                 let full_type_element_checks: Vec<TokenStream2> = full_type_element_validators
                     .iter()
-                    .map(|v| generate_element_validator_check(v, quote! { item }))
-                    .collect::<Result<_, _>>()?;
+                    .map(|v| {
+                        render_validation_check(
+                            ValidationCheck {
+                                validator: v,
+                                target_expr: quote! { item },
+                                target_ref: TargetReference::AlreadyReference,
+                                sink: ErrorSink::ElementValidator {
+                                    slot: &v.field_ident,
+                                },
+                            },
+                            koruma,
+                        )
+                    })
+                    .collect();
 
                 let unwrapped_element_checks: Vec<TokenStream2> = unwrapped_element_validators
                     .iter()
-                    .map(|v| generate_element_validator_check(v, quote! { __item_value }))
-                    .collect::<Result<_, _>>()?;
+                    .map(|v| {
+                        render_validation_check(
+                            ValidationCheck {
+                                validator: v,
+                                target_expr: quote! { __item_value },
+                                target_ref: TargetReference::AlreadyReference,
+                                sink: ErrorSink::ElementValidator {
+                                    slot: &v.field_ident,
+                                },
+                            },
+                            koruma,
+                        )
+                    })
+                    .collect();
 
                 let element_validator_defaults: Vec<TokenStream2> = field_plan
                     .element_validators()

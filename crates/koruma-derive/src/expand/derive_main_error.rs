@@ -24,7 +24,7 @@ pub(crate) fn render_main_error(
     generics: &Generics,
     koruma: &TokenStream2,
 ) -> MainErrorRender {
-    let struct_options = &plan.struct_options;
+    let struct_is_newtype = plan.struct_newtype().is_some();
     let field_infos = plan.field_infos();
 
     let main_error_usages: Vec<Type> = field_infos
@@ -33,7 +33,7 @@ pub(crate) fn render_main_error(
         .map(|(_f, field_plan)| {
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();
-                if struct_options.is_newtype() && !field_plan.field_optional() {
+                if struct_is_newtype && !field_plan.field_optional() {
                     syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }
                 } else {
                     syn::parse_quote! { Option<<#inner_ty as #koruma::ValidateExt>::Error> }
@@ -61,7 +61,7 @@ pub(crate) fn render_main_error(
             let field_name = &f.name;
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();
-                if struct_options.is_newtype() && !field_plan.field_optional() {
+                if struct_is_newtype && !field_plan.field_optional() {
                     quote! { #field_name: <#inner_ty as #koruma::ValidateExt>::Error }
                 } else {
                     quote! { #field_name: Option<<#inner_ty as #koruma::ValidateExt>::Error> }
@@ -83,7 +83,7 @@ pub(crate) fn render_main_error(
             let struct_name_str = struct_name.to_string();
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();
-                if struct_options.is_newtype() && !field_plan.field_optional() {
+                if struct_is_newtype && !field_plan.field_optional() {
                     quote! {
                         #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
                         pub fn #field_name(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
@@ -145,7 +145,7 @@ pub(crate) fn render_main_error(
         .map(|(f, field_plan)| {
             let field_name = &f.name;
             if field_plan.is_nested() {
-                if struct_options.is_newtype() && !field_plan.field_optional() {
+                if struct_is_newtype && !field_plan.field_optional() {
                     quote! { self.#field_name.is_empty() }
                 } else {
                     quote! { self.#field_name.is_none() }
@@ -169,7 +169,7 @@ pub(crate) fn render_main_error(
 
             if field_plan.is_nested() {
                 let inner_ty = field_plan.inner_type();
-                if struct_options.is_newtype() && !field_plan.field_optional() {
+                if struct_is_newtype && !field_plan.field_optional() {
                     return quote! {
                         #field_name: <#inner_ty as #koruma::ValidateExt>::Error::default()
                     };

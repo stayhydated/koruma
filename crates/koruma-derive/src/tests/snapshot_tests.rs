@@ -805,10 +805,6 @@ fn test_validator_expansion_respects_builder_field_attributes() {
             pub optional_limit: Option<usize>,
             #[builder(default = 10)]
             pub defaulted: usize,
-            #[builder(skip = 0)]
-            pub skipped: usize,
-            #[builder(field(value: usize))]
-            pub field_backed: usize,
             #[koruma(value)]
             actual: Option<T>,
         }
@@ -823,8 +819,6 @@ fn test_validator_expansion_respects_builder_field_attributes() {
     assert!(compact.contains("pubfnoptional_limit(value:Option<usize>,)"));
     assert!(compact.contains("pubfnmaybe_optional_limit(value:::std::option::Option<usize>,)"));
     assert!(compact.contains("pubfndefaulted(value:usize,)"));
-    assert!(!compact.contains("pubfnskipped("));
-    assert!(!compact.contains("pubfnfield_backed("));
 }
 
 #[cfg(feature = "fluent")]

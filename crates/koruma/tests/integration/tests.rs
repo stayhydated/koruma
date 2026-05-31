@@ -3,7 +3,7 @@
 use koruma::{Validate, ValidationError};
 
 use super::fixtures::{
-    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername,
+    Address, AddressWrapper, ArrayOrder, BorrowedOrder, BorrowedTags, BorrowedUsername,
     BorrowedUsernameExplicitInfer, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
     DirectPasswordConfirmation, DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem,
     Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, NonCloneValidatorItem,
@@ -516,6 +516,35 @@ fn test_each_borrowed_slice_invalid() {
 fn test_each_optional_borrowed_slice_none_skips_validation() {
     let order = OptionalBorrowedOrder { scores: None };
     assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_array_valid() {
+    let order = ArrayOrder {
+        scores: [50, 75, 100],
+    };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_array_invalid() {
+    let order = ArrayOrder {
+        scores: [50, 150, 75],
+    };
+
+    let err = order.validate().unwrap_err();
+    let score_errors = err.scores().element_errors();
+
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing element validator")
+            .actual(),
+        150
+    );
 }
 
 #[test]

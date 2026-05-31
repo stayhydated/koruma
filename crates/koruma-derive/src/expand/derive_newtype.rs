@@ -22,7 +22,7 @@ pub(crate) fn render_newtype_marker_impl(
     where_clause: &TokenStream2,
     koruma: &TokenStream2,
 ) -> TokenStream2 {
-    if !plan.struct_options.is_newtype() {
+    if plan.struct_newtype().is_none() {
         return quote! {};
     }
 
@@ -32,20 +32,11 @@ pub(crate) fn render_newtype_marker_impl(
 }
 
 pub(crate) fn render_newtype_deref_impl(input: NewtypeDerefInputs<'_>) -> TokenStream2 {
-    if !input.plan.struct_options.is_newtype() {
+    let Some((_field_info, field_plan)) = input.plan.struct_newtype() else {
         return quote! {};
-    }
+    };
 
-    let field_info = input
-        .plan
-        .struct_newtype_field_info
-        .as_ref()
-        .expect("struct-level newtypes should expose one participating field");
-    let field_name = &field_info.name;
-    let field_plan = input
-        .plan
-        .field_plan(field_name)
-        .expect("struct-level newtype field should have a field plan");
+    let field_name = &field_plan.name;
 
     if field_plan.is_nested() {
         let inner_ty = field_plan.inner_type();
@@ -69,8 +60,11 @@ pub(crate) fn render_newtype_deref_impl(input: NewtypeDerefInputs<'_>) -> TokenS
             }
         }
     } else {
-        let field_error_path = field_error_type_path(input.generics, field_plan, input.koruma)
-            .expect("newtype field should have a generated error type");
+        let Some(field_error_path) =
+            field_error_type_path(input.generics, field_plan, input.koruma)
+        else {
+            return quote! {};
+        };
         let main_error_impl_generics = input.main_error_impl_generics;
         let main_error_ty_generics = input.main_error_ty_generics;
         let main_error_where_clause = input.main_error_where_clause;

@@ -2,11 +2,15 @@
 
 use crate::expand::{
     codegen::{
-        helper_generics_for_usages, resolve_explicit_infer_type, validate_each_collection_type,
-        validator_field_ident, validator_variant_ident,
+        EachIterationKind, FieldCardinality, ValidationSite, classify_each_collection,
+        helper_generics_for_usages, resolve_explicit_infer_type, validator_field_ident,
+        validator_variant_ident,
     },
     effective_validation_type,
-    plan::{ErrorStorage, PlannedField, PlannedValidatorTypeArg, ValidationPlan, ValidationTarget},
+    plan::{
+        ErrorStorage, PlannedField, PlannedValidatorTypeArg, StructPlan, ValidationPlan,
+        ValidationTarget,
+    },
     validator_wants_full_type,
 };
 use koruma_derive_core::*;
@@ -123,7 +127,7 @@ fn test_vec_inner_type_returns_none_for_non_vec() {
 #[test]
 fn test_effective_validation_type_for_each_on_optional_vec_uses_element_type() {
     let ty: syn::Type = syn::parse_quote!(Option<Vec<i32>>);
-    let effective = effective_validation_type(&ty, true);
+    let effective = effective_validation_type(&ty, ValidationSite::Element);
     assert_eq!(quote!(#effective).to_string(), "i32");
 }
 
@@ -131,28 +135,28 @@ fn test_effective_validation_type_for_each_on_optional_vec_uses_element_type() {
 fn test_effective_validation_type_for_each_on_qualified_option_vec_uses_element_type() {
     let ty: syn::Type =
         syn::parse_quote!(core::option::Option<std::vec::Vec<core::option::Option<String>>>);
-    let effective = effective_validation_type(&ty, true);
+    let effective = effective_validation_type(&ty, ValidationSite::Element);
     assert_eq!(quote!(#effective).to_string(), "String");
 }
 
 #[test]
 fn test_effective_validation_type_for_each_on_vec_option_unwraps_inner_option() {
     let ty: syn::Type = syn::parse_quote!(Vec<Option<String>>);
-    let effective = effective_validation_type(&ty, true);
+    let effective = effective_validation_type(&ty, ValidationSite::Element);
     assert_eq!(quote!(#effective).to_string(), "String");
 }
 
 #[test]
 fn test_effective_validation_type_for_each_on_slice_uses_element_type() {
     let ty: syn::Type = syn::parse_quote!(&[i32]);
-    let effective = effective_validation_type(&ty, true);
+    let effective = effective_validation_type(&ty, ValidationSite::Element);
     assert_eq!(quote!(#effective).to_string(), "i32");
 }
 
 #[test]
 fn test_effective_validation_type_for_each_on_optional_slice_option_unwraps_inner_option() {
     let ty: syn::Type = syn::parse_quote!(Option<&[Option<String>]>);
-    let effective = effective_validation_type(&ty, true);
+    let effective = effective_validation_type(&ty, ValidationSite::Element);
     assert_eq!(quote!(#effective).to_string(), "String");
 }
 
@@ -237,16 +241,66 @@ fn test_helper_generics_ignores_non_generic_path_segments() {
 #[test]
 fn test_each_collection_accepts_arrays_groups_and_parentheses() {
     let array_ty: syn::Type = syn::parse_quote!([i32; 3]);
-    validate_each_collection_type(&array_ty).expect("arrays should support each(...)");
+    let array_collection =
+        classify_each_collection(&array_ty).expect("arrays should support each(...)");
+    assert_eq!(array_collection.iteration, EachIterationKind::Array);
+    assert_eq!(
+        array_collection.outer_cardinality,
+        FieldCardinality::Required
+    );
+    let array_element_ty = array_collection.element_ty;
+    assert_eq!(quote!(#array_element_ty).to_string(), "i32");
 
     let paren_ty: syn::Type = syn::parse_quote!((Vec<i32>));
-    validate_each_collection_type(&paren_ty).expect("parenthesized Vec should support each(...)");
+    let paren_collection =
+        classify_each_collection(&paren_ty).expect("parenthesized Vec should support each(...)");
+    assert_eq!(paren_collection.iteration, EachIterationKind::VecLike);
+    let paren_element_ty = paren_collection.element_ty;
+    assert_eq!(quote!(#paren_element_ty).to_string(), "i32");
 
     let group_ty = syn::Type::Group(syn::TypeGroup {
         group_token: Default::default(),
         elem: Box::new(syn::parse_quote!(Vec<i32>)),
     });
-    validate_each_collection_type(&group_ty).expect("grouped Vec should support each(...)");
+    let group_collection =
+        classify_each_collection(&group_ty).expect("grouped Vec should support each(...)");
+    assert_eq!(group_collection.iteration, EachIterationKind::VecLike);
+    let group_collection_ty = group_collection.collection_ty;
+    let group_element_ty = group_collection.element_ty;
+    assert_eq!(quote!(#group_collection_ty).to_string(), "Vec < i32 >");
+    assert_eq!(quote!(#group_element_ty).to_string(), "i32");
+}
+
+#[test]
+fn test_each_collection_classifier_covers_supported_collection_shapes() {
+    let optional_std_vec: syn::Type = syn::parse_quote!(Option<std::vec::Vec<Option<i32>>>);
+    let collection =
+        classify_each_collection(&optional_std_vec).expect("std::vec::Vec should classify");
+    assert_eq!(collection.iteration, EachIterationKind::VecLike);
+    assert_eq!(collection.outer_cardinality, FieldCardinality::Optional);
+    assert_eq!(collection.element_cardinality, FieldCardinality::Optional);
+    let collection_ty = collection.collection_ty;
+    let element_ty = collection.element_ty;
+    assert_eq!(
+        quote!(#collection_ty).to_string(),
+        "std :: vec :: Vec < Option < i32 > >"
+    );
+    assert_eq!(quote!(#element_ty).to_string(), "Option < i32 >");
+
+    let alloc_vec: syn::Type = syn::parse_quote!(alloc::vec::Vec<String>);
+    let collection = classify_each_collection(&alloc_vec).expect("alloc::vec::Vec should classify");
+    assert_eq!(collection.iteration, EachIterationKind::VecLike);
+    let element_ty = collection.element_ty;
+    assert_eq!(quote!(#element_ty).to_string(), "String");
+
+    let slice: syn::Type = syn::parse_quote!(&[u8]);
+    let collection = classify_each_collection(&slice).expect("borrowed slice should classify");
+    assert_eq!(collection.iteration, EachIterationKind::Slice);
+    let element_ty = collection.element_ty;
+    assert_eq!(quote!(#element_ty).to_string(), "u8");
+
+    let unsupported: syn::Type = syn::parse_quote!(std::collections::HashMap<String, String>);
+    assert!(classify_each_collection(&unsupported).is_err());
 }
 
 #[test]
@@ -255,7 +309,7 @@ fn test_resolve_explicit_infer_type_reports_unmatched_shapes() {
         syn::parse_quote!(GenericValidation::<std::collections::HashMap<_, _>>);
     let field_ty: syn::Type = syn::parse_quote!(Option<String>);
 
-    let err = resolve_explicit_infer_type(&attr, &field_ty, false)
+    let err = resolve_explicit_infer_type(&attr, &field_ty, ValidationSite::Field)
         .expect_err("expected unmatched explicit infer shape to fail");
     assert!(err.to_string().contains("cannot infer `_`"));
 }
@@ -320,10 +374,9 @@ fn test_parse_field_with_single_validator() {
         pub age: i32
     };
 
-    let result = parse_field(&field, 0);
-    let ParseFieldResult::Valid(info) = result else {
-        panic!("expected Valid result");
-    };
+    let info = parse_field(&field, 0)
+        .expect("expected field parse")
+        .expect("expected validated field");
     assert_eq!(info.name.to_string(), "age");
     assert_eq!(info.validation.field_validators.len(), 1);
     assert_eq!(
@@ -342,10 +395,9 @@ fn test_parse_field_with_generic_validator() {
         pub score: f64
     };
 
-    let result = parse_field(&field, 0);
-    let ParseFieldResult::Valid(info) = result else {
-        panic!("expected Valid result");
-    };
+    let info = parse_field(&field, 0)
+        .expect("expected field parse")
+        .expect("expected validated field");
     assert!(info.validation.field_validators[0].uses_type_inference());
 }
 
@@ -356,10 +408,9 @@ fn test_parse_field_with_each() {
         pub scores: Vec<i32>
     };
 
-    let result = parse_field(&field, 0);
-    let ParseFieldResult::Valid(info) = result else {
-        panic!("expected Valid result");
-    };
+    let info = parse_field(&field, 0)
+        .expect("expected field parse")
+        .expect("expected validated field");
     assert!(info.validation.field_validators.is_empty());
     assert_eq!(info.validation.element_validators.len(), 1);
 }
@@ -371,7 +422,11 @@ fn test_parse_field_with_skip_returns_skip() {
         pub internal: u64
     };
 
-    assert!(matches!(parse_field(&field, 0), ParseFieldResult::Skip));
+    assert!(
+        parse_field(&field, 0)
+            .expect("expected field parse")
+            .is_none()
+    );
 }
 
 #[test]
@@ -380,7 +435,11 @@ fn test_parse_field_without_koruma_returns_skip() {
         pub normal_field: String
     };
 
-    assert!(matches!(parse_field(&field, 0), ParseFieldResult::Skip));
+    assert!(
+        parse_field(&field, 0)
+            .expect("expected field parse")
+            .is_none()
+    );
 }
 
 #[test]
@@ -396,6 +455,7 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
 
     let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
     assert_eq!(plan.fields.len(), 2);
+    assert!(matches!(plan.struct_plan, StructPlan::Record));
     assert_eq!(
         plan.fields[0]
             .generated_names
@@ -437,6 +497,18 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
         .element_type()
         .expect("expected planned element type");
     assert_eq!(quote!(#tags_element_type).to_string(), "Option < String >");
+    let PlannedField::Regular(tags_plan) = &plan.fields[1].shape else {
+        panic!("expected regular tags field");
+    };
+    let tags_collection_type = tags_plan
+        .collection_type
+        .as_ref()
+        .expect("expected classified collection type");
+    assert_eq!(
+        quote!(#tags_collection_type).to_string(),
+        "Vec < Option < String > >"
+    );
+    assert_eq!(tags_plan.each_iteration, Some(EachIterationKind::VecLike));
     assert_eq!(plan.fields[0].full_field_validators().count(), 1);
     assert_eq!(plan.fields[0].unwrapped_field_validators().count(), 1);
     assert_eq!(plan.fields[1].full_element_validators().count(), 1);
@@ -487,26 +559,47 @@ fn test_validation_plan_uses_shape_specific_field_data() {
     let PlannedField::Nested(nested) = &plan.fields[0].shape else {
         panic!("expected nested planned field");
     };
-    assert!(!nested.optional);
+    assert_eq!(nested.cardinality, FieldCardinality::Required);
     let nested_inner_type = &nested.inner_type;
     assert_eq!(quote!(#nested_inner_type).to_string(), "Child");
     assert!(plan.fields[0].field_validators().is_empty());
     assert!(plan.fields[0].element_validators().is_empty());
     assert!(matches!(
         plan.fields[0].error_storage,
-        ErrorStorage::Nested { optional: false }
+        ErrorStorage::Nested {
+            cardinality: FieldCardinality::Required
+        }
     ));
 
     let PlannedField::Newtype(newtype) = &plan.fields[1].shape else {
         panic!("expected newtype planned field");
     };
-    assert!(newtype.optional);
+    assert_eq!(newtype.cardinality, FieldCardinality::Optional);
     let newtype_inner_type = &newtype.inner_type;
     assert_eq!(quote!(#newtype_inner_type).to_string(), "Wrapped");
     assert_eq!(newtype.field_validators.len(), 1);
     assert!(plan.fields[1].element_validators().is_empty());
     assert!(matches!(
         plan.fields[1].error_storage,
-        ErrorStorage::NewtypeWithValidators { optional: true }
+        ErrorStorage::NewtypeWithValidators {
+            cardinality: FieldCardinality::Optional
+        }
     ));
+}
+
+#[test]
+fn test_validation_plan_encodes_struct_level_newtype_shape() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        struct Email(#[koruma(newtype)] InnerEmail);
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    let Some((field_info, field_plan)) = plan.struct_newtype() else {
+        panic!("expected struct-level newtype plan");
+    };
+    assert!(matches!(plan.struct_plan, StructPlan::Newtype { .. }));
+    assert_eq!(field_info.name.to_string(), "_0");
+    assert_eq!(field_plan.name.to_string(), "_0");
+    assert!(field_plan.is_newtype());
 }

@@ -8,7 +8,6 @@ use syn::{
     Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
     PathArguments, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream, discouraged::Speculative},
-    punctuated::Punctuated,
     spanned::Spanned,
     token,
 };
@@ -111,6 +110,15 @@ pub enum ValidatorTypeArg {
     Explicit(Type),
 }
 
+/// Target selection policy for optional validation targets.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TargetPolicy {
+    /// Default behavior: validators receive the inner `T` for `Option<T>`.
+    UnwrapOption,
+    /// Validators receive the full field or element target.
+    FullTarget,
+}
+
 #[derive(Clone, Debug)]
 pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
@@ -118,9 +126,9 @@ pub struct ValidatorAttr {
     pub validator: Path,
     /// Parsed validator type argument syntax.
     pub type_arg: ValidatorTypeArg,
-    /// Whether this validator must receive the full field/element target instead
-    /// of koruma's default optional unwrapping behavior.
-    pub full_target: bool,
+    /// Whether this validator receives the full target or koruma's default
+    /// optional-unwrapped target.
+    pub target_policy: TargetPolicy,
     /// Builder setter method calls collected from a direct validator chain.
     /// Used by `Validator::arg(value)...`.
     pub builder_methods: Vec<BuilderMethodCall>,
@@ -206,7 +214,7 @@ impl ValidatorAttr {
 
     /// Returns whether this validator was wrapped in `full(...)`.
     pub fn wants_full_target(&self) -> bool {
-        self.full_target
+        self.target_policy == TargetPolicy::FullTarget
     }
 }
 
@@ -246,7 +254,7 @@ fn try_parse_full_validator(input: ParseStream) -> Result<Option<ValidatorAttr>>
     }
 
     let mut attr = content.parse::<ValidatorAttr>()?;
-    if attr.full_target {
+    if attr.target_policy == TargetPolicy::FullTarget {
         return Err(Error::new(
             ident.span(),
             "`full(...)` cannot be nested inside another `full(...)` wrapper",
@@ -259,7 +267,7 @@ fn try_parse_full_validator(input: ParseStream) -> Result<Option<ValidatorAttr>>
         ));
     }
 
-    attr.full_target = true;
+    attr.target_policy = TargetPolicy::FullTarget;
     Ok(Some(attr))
 }
 
@@ -284,7 +292,7 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
     Ok(Some(ValidatorAttr {
         validator,
         type_arg,
-        full_target: false,
+        target_policy: TargetPolicy::UnwrapOption,
         builder_methods,
     }))
 }
@@ -462,15 +470,15 @@ pub struct ElementValidationSpec {
     pub validators: Vec<ValidatorAttr>,
 }
 
-/// A single typed item inside `#[koruma(...)]`.
+/// A single typed item inside data-field `#[koruma(...)]`.
 #[derive(Clone, Debug)]
-pub enum FieldAttrItem {
+pub enum DataFieldKorumaItem {
     Modifier(FieldModifier),
     FieldValidation(FieldValidationSpec),
     ElementValidation(ElementValidationSpec),
 }
 
-/// Represents a parsed `#[koruma(...)]` attribute which can contain multiple validators
+/// Represents a parsed data-field `#[koruma(...)]` attribute which can contain multiple validators
 /// separated by commas: `#[koruma(Validator1::a(1), Validator2)]`
 ///
 /// Can also include:
@@ -482,39 +490,39 @@ pub enum FieldAttrItem {
 /// # Examples
 ///
 /// ```rust
-/// use koruma_derive_core::FieldAttrAst;
+/// use koruma_derive_core::DataFieldKorumaAttr;
 ///
-/// let multiple: FieldAttrAst = syn::parse_quote!(
+/// let multiple: DataFieldKorumaAttr = syn::parse_quote!(
 ///     Validator1::a(1),
 ///     Validator2::b(2)
 /// );
 /// assert_eq!(multiple.field_validator_count(), 2);
 ///
-/// let with_each: FieldAttrAst = syn::parse_quote!(
+/// let with_each: DataFieldKorumaAttr = syn::parse_quote!(
 ///     VecValidator::min(0),
 ///     each(ElementValidator::max(100))
 /// );
 /// assert_eq!(with_each.field_validator_count(), 1);
 /// assert_eq!(with_each.element_validator_count(), 1);
 ///
-/// let skip: FieldAttrAst = syn::parse_quote!(skip);
+/// let skip: DataFieldKorumaAttr = syn::parse_quote!(skip);
 /// assert!(skip.is_skip());
 ///
-/// let nested: FieldAttrAst = syn::parse_quote!(nested);
+/// let nested: DataFieldKorumaAttr = syn::parse_quote!(nested);
 /// assert!(nested.is_nested());
 /// ```
 #[derive(Clone, Debug, Default)]
-pub struct FieldAttrAst {
-    pub items: Vec<FieldAttrItem>,
+pub struct DataFieldKorumaAttr {
+    pub items: Vec<DataFieldKorumaItem>,
 }
 
-impl FieldAttrAst {
+impl DataFieldKorumaAttr {
     /// Returns whether this attribute has any validators (field or element).
     pub fn has_validators(&self) -> bool {
         self.items.iter().any(|item| match item {
-            FieldAttrItem::FieldValidation(_) => true,
-            FieldAttrItem::ElementValidation(spec) => !spec.validators.is_empty(),
-            FieldAttrItem::Modifier(_) => false,
+            DataFieldKorumaItem::FieldValidation(_) => true,
+            DataFieldKorumaItem::ElementValidation(spec) => !spec.validators.is_empty(),
+            DataFieldKorumaItem::Modifier(_) => false,
         })
     }
 
@@ -522,14 +530,14 @@ impl FieldAttrAst {
     pub fn is_modifier(&self) -> bool {
         self.items
             .iter()
-            .any(|item| matches!(item, FieldAttrItem::Modifier(_)))
+            .any(|item| matches!(item, DataFieldKorumaItem::Modifier(_)))
     }
 
     pub fn is_skip(&self) -> bool {
         self.items.iter().any(|item| {
             matches!(
                 item,
-                FieldAttrItem::Modifier(FieldModifier {
+                DataFieldKorumaItem::Modifier(FieldModifier {
                     mode: FieldMode::Skip,
                     ..
                 })
@@ -541,7 +549,7 @@ impl FieldAttrAst {
         self.items.iter().any(|item| {
             matches!(
                 item,
-                FieldAttrItem::Modifier(FieldModifier {
+                DataFieldKorumaItem::Modifier(FieldModifier {
                     mode: FieldMode::Nested,
                     ..
                 })
@@ -553,7 +561,7 @@ impl FieldAttrAst {
         self.items.iter().any(|item| {
             matches!(
                 item,
-                FieldAttrItem::Modifier(FieldModifier {
+                DataFieldKorumaItem::Modifier(FieldModifier {
                     mode: FieldMode::Newtype,
                     ..
                 })
@@ -563,16 +571,16 @@ impl FieldAttrAst {
 
     pub fn field_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
         self.items.iter().filter_map(|item| match item {
-            FieldAttrItem::FieldValidation(spec) => Some(&spec.validator),
-            FieldAttrItem::Modifier(_) | FieldAttrItem::ElementValidation(_) => None,
+            DataFieldKorumaItem::FieldValidation(spec) => Some(&spec.validator),
+            DataFieldKorumaItem::Modifier(_) | DataFieldKorumaItem::ElementValidation(_) => None,
         })
     }
 
     pub fn element_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
         self.items.iter().flat_map(|item| {
             match item {
-                FieldAttrItem::ElementValidation(spec) => spec.validators.as_slice(),
-                FieldAttrItem::Modifier(_) | FieldAttrItem::FieldValidation(_) => &[],
+                DataFieldKorumaItem::ElementValidation(spec) => spec.validators.as_slice(),
+                DataFieldKorumaItem::Modifier(_) | DataFieldKorumaItem::FieldValidation(_) => &[],
             }
             .iter()
         })
@@ -595,16 +603,18 @@ impl FieldAttrAst {
     }
 }
 
-impl FieldAttrItem {
+impl DataFieldKorumaItem {
     pub fn modifier(&self) -> Option<FieldMode> {
         match self {
-            FieldAttrItem::Modifier(modifier) => Some(modifier.mode),
-            FieldAttrItem::FieldValidation(_) | FieldAttrItem::ElementValidation(_) => None,
+            DataFieldKorumaItem::Modifier(modifier) => Some(modifier.mode),
+            DataFieldKorumaItem::FieldValidation(_) | DataFieldKorumaItem::ElementValidation(_) => {
+                None
+            },
         }
     }
 }
 
-impl Parse for FieldAttrAst {
+impl Parse for DataFieldKorumaAttr {
     fn parse(input: ParseStream) -> Result<Self> {
         if input.is_empty() {
             return Err(Error::new(
@@ -613,17 +623,17 @@ impl Parse for FieldAttrAst {
             ));
         }
 
-        let mut attr = FieldAttrAst::default();
+        let mut attr = DataFieldKorumaAttr::default();
 
         // Parse comma-separated items (validators or each(...))
         while !input.is_empty() {
             if let Some(modifier) = try_parse_field_modifier(input)? {
-                attr.items.push(FieldAttrItem::Modifier(modifier));
+                attr.items.push(DataFieldKorumaItem::Modifier(modifier));
             } else if let Some(item) = try_parse_each(input)? {
                 attr.items.push(item);
             } else {
                 attr.items
-                    .push(FieldAttrItem::FieldValidation(FieldValidationSpec {
+                    .push(DataFieldKorumaItem::FieldValidation(FieldValidationSpec {
                         validator: input.parse::<ValidatorAttr>()?,
                     }));
             }
@@ -690,7 +700,7 @@ fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>>
     Ok(Some(FieldModifier { mode, ident }))
 }
 
-fn try_parse_each(input: ParseStream) -> Result<Option<FieldAttrItem>> {
+fn try_parse_each(input: ParseStream) -> Result<Option<DataFieldKorumaItem>> {
     if !input.peek(Ident) {
         return Ok(None);
     }
@@ -727,7 +737,7 @@ fn try_parse_each(input: ParseStream) -> Result<Option<FieldAttrItem>> {
         }
     }
 
-    Ok(Some(FieldAttrItem::ElementValidation(
+    Ok(Some(DataFieldKorumaItem::ElementValidation(
         ElementValidationSpec { marker, validators },
     )))
 }
@@ -745,7 +755,7 @@ fn try_parse_each(input: ParseStream) -> Result<Option<FieldAttrItem>> {
 ///     struct User { name: String }
 /// };
 /// let options = parse_struct_options(&user.attrs).unwrap();
-/// assert!(options.try_new);
+/// assert!(options.try_new());
 /// assert!(!options.is_newtype());
 ///
 /// let email: ItemStruct = syn::parse_quote! {
@@ -761,7 +771,7 @@ fn try_parse_each(input: ParseStream) -> Result<Option<FieldAttrItem>> {
 ///     struct CheckedEmail(String);
 /// };
 /// let options = parse_struct_options(&checked_email.attrs).unwrap();
-/// assert!(options.try_new);
+/// assert!(options.try_new());
 /// assert!(options.is_newtype());
 ///
 /// let convertible_email: ItemStruct = syn::parse_quote! {
@@ -774,46 +784,94 @@ fn try_parse_each(input: ParseStream) -> Result<Option<FieldAttrItem>> {
 /// ```
 #[derive(Clone, Debug)]
 pub struct StructOptions {
-    /// Generate a `try_new` function that validates on construction
-    pub try_new: bool,
-    /// Struct-level newtype behavior.
-    pub newtype: StructNewtype,
+    /// Constructor integrations requested at the struct level.
+    constructor: StructConstructor,
+    /// Whether struct-level newtype behavior is enabled.
+    newtype: bool,
 }
 
 impl Default for StructOptions {
     fn default() -> Self {
         Self {
-            try_new: false,
-            newtype: StructNewtype::No,
+            constructor: StructConstructor::None,
+            newtype: false,
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum StructNewtype {
-    No,
-    Yes { try_from: bool },
+pub enum StructConstructor {
+    None,
+    TryNew,
+    TryFrom,
+    TryNewAndTryFrom,
+}
+
+impl StructConstructor {
+    fn with_try_new(self) -> Self {
+        match self {
+            Self::None => Self::TryNew,
+            Self::TryNew | Self::TryNewAndTryFrom => self,
+            Self::TryFrom => Self::TryNewAndTryFrom,
+        }
+    }
+
+    fn with_try_from(self) -> Self {
+        match self {
+            Self::None => Self::TryFrom,
+            Self::TryFrom | Self::TryNewAndTryFrom => self,
+            Self::TryNew => Self::TryNewAndTryFrom,
+        }
+    }
+
+    pub fn try_new(self) -> bool {
+        matches!(self, Self::TryNew | Self::TryNewAndTryFrom)
+    }
+
+    pub fn try_from(self) -> bool {
+        matches!(self, Self::TryFrom | Self::TryNewAndTryFrom)
+    }
 }
 
 impl StructOptions {
+    pub fn constructor(&self) -> StructConstructor {
+        self.constructor
+    }
+
     pub fn is_newtype(&self) -> bool {
-        matches!(self.newtype, StructNewtype::Yes { .. })
+        self.newtype
+    }
+
+    pub fn try_new(&self) -> bool {
+        self.constructor.try_new()
     }
 
     pub fn try_from(&self) -> bool {
-        matches!(self.newtype, StructNewtype::Yes { try_from: true })
+        self.constructor.try_from()
     }
 }
 
-/// Options for the `newtype(...)` attribute.
+/// A single typed item inside struct-level `#[koruma(...)]`.
+#[derive(Clone, Debug)]
+pub enum StructKorumaItem {
+    TryNew,
+    Newtype(StructNewtypeOptions),
+}
+
+/// Options for the struct-level `newtype(...)` attribute.
 #[derive(Clone, Debug, Default)]
-pub struct NewtypeOptions {
+pub struct StructNewtypeOptions {
     pub try_from: bool,
 }
 
-impl Parse for NewtypeOptions {
+#[derive(Clone, Debug, Default)]
+pub struct StructKorumaAttr {
+    pub items: Vec<StructKorumaItem>,
+}
+
+impl Parse for StructNewtypeOptions {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut options = NewtypeOptions::default();
+        let mut options = StructNewtypeOptions::default();
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
@@ -836,24 +894,40 @@ impl Parse for NewtypeOptions {
     }
 }
 
-impl Parse for StructOptions {
+impl Parse for StructKorumaAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        let mut options = StructOptions::default();
+        let mut attr = StructKorumaAttr::default();
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
             match ident.to_string().as_str() {
-                "try_new" => options.try_new = true,
+                "try_new" => {
+                    if input.peek(token::Paren) || input.peek(Token![::]) {
+                        return Err(Error::new(
+                            ident.span(),
+                            format!(
+                                "`{ident}` is only valid as a bare struct-level `#[koruma(...)]` option; expected {}",
+                                KorumaAttrContext::Struct.accepted_items()
+                            ),
+                        ));
+                    }
+                    attr.items.push(StructKorumaItem::TryNew);
+                },
                 "newtype" => {
-                    let mut try_from = false;
-                    // Check for nested options: newtype(try_from)
+                    let mut newtype_options = StructNewtypeOptions::default();
                     if input.peek(syn::token::Paren) {
                         let content;
                         syn::parenthesized!(content in input);
-                        let newtype_opts: NewtypeOptions = content.parse()?;
-                        try_from = newtype_opts.try_from;
+                        newtype_options = content.parse()?;
+                    } else if input.peek(Token![::]) {
+                        return Err(Error::new(
+                            ident.span(),
+                            format!(
+                                "`{ident}` is a reserved koruma struct option; use a different validator path in a data-field `#[koruma(...)]` attribute"
+                            ),
+                        ));
                     }
-                    options.newtype = StructNewtype::Yes { try_from };
+                    attr.items.push(StructKorumaItem::Newtype(newtype_options));
                 },
                 other => {
                     if matches!(other, "skip" | "nested" | "each" | "value" | "skip_capture") {
@@ -874,6 +948,29 @@ impl Parse for StructOptions {
             }
         }
 
+        Ok(attr)
+    }
+}
+
+impl Parse for StructOptions {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let attr: StructKorumaAttr = input.parse()?;
+        let mut options = StructOptions::default();
+
+        for item in attr.items {
+            match item {
+                StructKorumaItem::TryNew => {
+                    options.constructor = options.constructor.with_try_new();
+                },
+                StructKorumaItem::Newtype(newtype_options) => {
+                    options.newtype = true;
+                    if newtype_options.try_from {
+                        options.constructor = options.constructor.with_try_from();
+                    }
+                },
+            }
+        }
+
         Ok(options)
     }
 }
@@ -887,14 +984,14 @@ pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
     for attr in attrs.to_vec().find_attribute("koruma") {
         let parsed = attr.parse_args::<StructOptions>()?;
 
-        if parsed.try_new {
-            if merged.try_new {
+        if parsed.try_new() {
+            if merged.try_new() {
                 return Err(Error::new(
                     attr.path().span(),
                     "duplicate struct-level koruma option `try_new`",
                 ));
             }
-            merged.try_new = true;
+            merged.constructor = merged.constructor.with_try_new();
         }
 
         if parsed.is_newtype() {
@@ -904,7 +1001,10 @@ pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
                     "duplicate struct-level koruma option `newtype`",
                 ));
             }
-            merged.newtype = parsed.newtype;
+            merged.newtype = true;
+            if parsed.try_from() {
+                merged.constructor = merged.constructor.with_try_from();
+            }
         }
     }
 
@@ -970,55 +1070,6 @@ impl FieldInfo {
     }
 }
 
-/// Result of parsing a field with `#[koruma(...)]` attribute.
-///
-/// This enum represents the three possible outcomes of parsing a field:
-/// - `Valid`: The field has valid koruma validators
-/// - `Skip`: The field should be skipped (no koruma attribute, or `#[koruma(skip)]`)
-/// - `Error`: A parse error occurred
-#[derive(Debug)]
-pub enum ParseFieldResult {
-    /// Field has valid koruma validators
-    Valid(Box<FieldInfo>),
-    /// Field should be skipped (no koruma attribute, or #[koruma(skip)])
-    Skip,
-    /// Parse error occurred
-    Error(Error),
-}
-
-impl ParseFieldResult {
-    /// Returns the field info if this is a `Valid` result.
-    pub fn valid(self) -> Option<FieldInfo> {
-        match self {
-            ParseFieldResult::Valid(info) => Some(*info),
-            _ => None,
-        }
-    }
-
-    /// Returns the error if this is an `Error` result.
-    pub fn error(self) -> Option<Error> {
-        match self {
-            ParseFieldResult::Error(e) => Some(e),
-            _ => None,
-        }
-    }
-
-    /// Returns true if this is a `Valid` result.
-    pub fn is_valid(&self) -> bool {
-        matches!(self, ParseFieldResult::Valid(_))
-    }
-
-    /// Returns true if this is a `Skip` result.
-    pub fn is_skip(&self) -> bool {
-        matches!(self, ParseFieldResult::Skip)
-    }
-
-    /// Returns true if this is an `Error` result.
-    pub fn is_error(&self) -> bool {
-        matches!(self, ParseFieldResult::Error(_))
-    }
-}
-
 /// Parse a single field and extract its koruma validation information.
 ///
 /// This function handles:
@@ -1029,13 +1080,10 @@ impl ParseFieldResult {
 ///
 /// # Returns
 ///
-/// - `ParseFieldResult::Valid(FieldInfo)` if the field has validators
-/// - `ParseFieldResult::Skip` if the field has no koruma attributes or is marked with `skip`
-/// - `ParseFieldResult::Error(Error)` if parsing failed (e.g., duplicate validators)
-/// - `ParseFieldResult::Valid(FieldInfo)` if the field has validators
-/// - `ParseFieldResult::Skip` if the field has no koruma attributes or is marked with `skip`
-/// - `ParseFieldResult::Error(Error)` if parsing failed (e.g., duplicate validators)
-pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
+/// - `Ok(Some(FieldInfo))` if the field participates in validation.
+/// - `Ok(None)` if the field has no koruma attributes or is marked with `skip`.
+/// - `Err(Error)` if parsing failed, such as duplicate validators or modifiers.
+pub fn parse_field(field: &Field, index: usize) -> Result<Option<FieldInfo>> {
     let (name, member) = match field.ident.clone() {
         Some(ident) => (ident.clone(), Member::Named(ident)),
         None => (
@@ -1049,19 +1097,19 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
     let mut items = Vec::new();
 
     for attr in field.attrs.to_vec().find_attribute("koruma") {
-        match attr.parse_args::<FieldAttrAst>() {
+        match attr.parse_args::<DataFieldKorumaAttr>() {
             Ok(koruma_attr) => items.extend(koruma_attr.items),
-            Err(e) => return ParseFieldResult::Error(e),
+            Err(e) => return Err(e),
         }
     }
 
     let validation = match normalize_field_items(field, &name, items) {
         Ok(Some(validation)) => validation,
-        Ok(None) => return ParseFieldResult::Skip,
-        Err(e) => return ParseFieldResult::Error(e),
+        Ok(None) => return Ok(None),
+        Err(e) => return Err(e),
     };
 
-    ParseFieldResult::Valid(Box::new(FieldInfo {
+    Ok(Some(FieldInfo {
         name,
         member,
         ty,
@@ -1072,7 +1120,7 @@ pub fn parse_field(field: &Field, index: usize) -> ParseFieldResult {
 fn normalize_field_items(
     field: &Field,
     name: &Ident,
-    items: Vec<FieldAttrItem>,
+    items: Vec<DataFieldKorumaItem>,
 ) -> Result<Option<NormalizedFieldSpec>> {
     let mut all_field_validators = Vec::new();
     let mut all_element_validators = Vec::new();
@@ -1087,7 +1135,7 @@ fn normalize_field_items(
 
     for item in items {
         match item {
-            FieldAttrItem::Modifier(modifier) => {
+            DataFieldKorumaItem::Modifier(modifier) => {
                 if mode != FieldMode::Plain {
                     return Err(Error::new(
                         modifier.ident.span(),
@@ -1097,7 +1145,7 @@ fn normalize_field_items(
                 mode = modifier.mode;
                 mode_modifier = Some(modifier);
             },
-            FieldAttrItem::FieldValidation(spec) => {
+            DataFieldKorumaItem::FieldValidation(spec) => {
                 let validator = spec.validator;
                 if first_field_validator_path.is_none() {
                     first_field_validator_path = Some(validator.validator.clone());
@@ -1114,7 +1162,7 @@ fn normalize_field_items(
                 }
                 all_field_validators.push(validator);
             },
-            FieldAttrItem::ElementValidation(spec) => {
+            DataFieldKorumaItem::ElementValidation(spec) => {
                 if first_element_marker.is_none() {
                     first_element_marker = Some(spec.marker);
                 }
@@ -1205,19 +1253,51 @@ fn normalize_field_items(
     }))
 }
 
-struct ValidatorFieldMarkers(Punctuated<Ident, Token![,]>);
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValidatorFieldKorumaItem {
+    Value,
+    SkipCapture,
+}
 
-impl Parse for ValidatorFieldMarkers {
+#[derive(Clone, Debug)]
+struct ValidatorFieldMarker {
+    ident: Ident,
+    item: ValidatorFieldKorumaItem,
+}
+
+#[derive(Clone, Debug, Default)]
+struct ValidatorFieldKorumaAttr {
+    markers: Vec<ValidatorFieldMarker>,
+}
+
+impl Parse for ValidatorFieldKorumaAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        Ok(Self(Punctuated::<Ident, Token![,]>::parse_terminated(
-            input,
-        )?))
+        let mut attr = ValidatorFieldKorumaAttr::default();
+
+        while !input.is_empty() {
+            let ident: Ident = input.parse()?;
+            let item = if ident == "value" {
+                ValidatorFieldKorumaItem::Value
+            } else if ident == "skip_capture" {
+                ValidatorFieldKorumaItem::SkipCapture
+            } else {
+                return Err(context_error(&ident, KorumaAttrContext::ValidatorField));
+            };
+            attr.markers.push(ValidatorFieldMarker { ident, item });
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(attr)
     }
 }
 
-fn validator_field_markers(attr: &ExpandedAttr) -> Result<Punctuated<Ident, Token![,]>> {
-    attr.parse_args::<ValidatorFieldMarkers>()
-        .map(|markers| markers.0)
+fn validator_field_attr(attr: &ExpandedAttr) -> Result<ValidatorFieldKorumaAttr> {
+    attr.parse_args::<ValidatorFieldKorumaAttr>()
 }
 
 /// Describes whether the `#[koruma(value)]` field should capture the input
@@ -1258,8 +1338,8 @@ pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFi
         let mut field_skip_capture = false;
 
         for attr in field.attrs.to_vec().find_attribute("koruma") {
-            let markers = validator_field_markers(&attr)?;
-            if markers.is_empty() {
+            let markers = validator_field_attr(&attr)?;
+            if markers.markers.is_empty() {
                 return Err(Error::new_spanned(
                     attr.path(),
                     format!(
@@ -1269,11 +1349,11 @@ pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFi
                 ));
             }
 
-            for marker in markers {
-                if marker == "value" {
+            for marker in markers.markers {
+                if marker.item == ValidatorFieldKorumaItem::Value {
                     if field_has_value {
                         return Err(Error::new(
-                            marker.span(),
+                            marker.ident.span(),
                             format!("field `{field_name}` has multiple `#[koruma(value)]` markers"),
                         ));
                     }
@@ -1282,10 +1362,10 @@ pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFi
                     continue;
                 }
 
-                if marker == "skip_capture" {
+                if marker.item == ValidatorFieldKorumaItem::SkipCapture {
                     if field_skip_capture {
                         return Err(Error::new(
-                            marker.span(),
+                            marker.ident.span(),
                             format!(
                                 "field `{field_name}` has multiple `#[koruma(skip_capture)]` markers"
                             ),
@@ -1295,14 +1375,6 @@ pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFi
                     field_skip_capture = true;
                     continue;
                 }
-
-                return Err(Error::new(
-                    marker.span(),
-                    format!(
-                        "`{marker}` is not valid in a validator field `#[koruma(...)]` attribute; expected {}",
-                        KorumaAttrContext::ValidatorField.accepted_items()
-                    ),
-                ));
             }
         }
 

@@ -3,8 +3,8 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    FieldInfo, NormalizedFieldSpec, ParseFieldResult, ValidatorAttr, ValueFieldCapture,
-    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
+    FieldInfo, NormalizedFieldSpec, ValidatorAttr, ValueFieldCapture, find_value_field_info_strict,
+    find_value_field_strict, parse_field, parse_struct_options,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -38,7 +38,7 @@ struct SnapshotFieldInfo {
 
 #[allow(dead_code)]
 #[derive(Debug)]
-enum SnapshotParseFieldResult {
+enum SnapshotParsedField {
     Valid(Box<SnapshotFieldInfo>),
     Skip,
     Error(String),
@@ -92,19 +92,17 @@ fn snapshot_field_info(info: FieldInfo) -> SnapshotFieldInfo {
     }
 }
 
-fn parse_field_result(field: &syn::Field) -> SnapshotParseFieldResult {
+fn parse_field_result(field: &syn::Field) -> SnapshotParsedField {
     match parse_field(field, 0) {
-        ParseFieldResult::Valid(info) => {
-            SnapshotParseFieldResult::Valid(Box::new(snapshot_field_info(*info)))
-        },
-        ParseFieldResult::Skip => SnapshotParseFieldResult::Skip,
-        ParseFieldResult::Error(err) => SnapshotParseFieldResult::Error(err.to_string()),
+        Ok(Some(info)) => SnapshotParsedField::Valid(Box::new(snapshot_field_info(info))),
+        Ok(None) => SnapshotParsedField::Skip,
+        Err(err) => SnapshotParsedField::Error(err.to_string()),
     }
 }
 
 fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), String> {
     match parse_struct_options(&item.attrs) {
-        Ok(options) => Ok((options.try_new, options.is_newtype())),
+        Ok(options) => Ok((options.try_new(), options.is_newtype())),
         Err(err) => Err(err.to_string()),
     }
 }
@@ -132,7 +130,7 @@ fn find_value_field_capture_strict(
 
 fn parse_field_snapshot(field: &syn::Field) -> Option<SnapshotFieldInfo> {
     match parse_field(field, 0) {
-        ParseFieldResult::Valid(info) => Some(snapshot_field_info(*info)),
+        Ok(Some(info)) => Some(snapshot_field_info(info)),
         _ => None,
     }
 }
@@ -433,9 +431,7 @@ fn test_parse_field_rejects_validator_field_marker_value() {
         pub name: String
     };
 
-    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
-        panic!("expected data-field context error");
-    };
+    let err = parse_field(&field, 0).expect_err("expected data-field context error");
     let message = err.to_string();
     assert!(message.contains("derive data field"));
     assert!(message.contains("expected `skip`, `nested`, `newtype`, validators, or `each(...)`"));
@@ -448,9 +444,7 @@ fn test_parse_field_rejects_struct_option_try_new() {
         pub name: String
     };
 
-    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
-        panic!("expected data-field context error");
-    };
+    let err = parse_field(&field, 0).expect_err("expected data-field context error");
     let message = err.to_string();
     assert!(message.contains("`try_new` is not valid"));
     assert!(message.contains("derive data field"));
@@ -463,9 +457,7 @@ fn test_parse_field_rejects_struct_newtype_options() {
         pub name: String
     };
 
-    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
-        panic!("expected data-field context error");
-    };
+    let err = parse_field(&field, 0).expect_err("expected data-field context error");
     assert!(err.to_string().contains("`newtype(...)` is not valid"));
 }
 
@@ -476,9 +468,7 @@ fn test_parse_field_rejects_bare_each_marker() {
         pub names: Vec<String>
     };
 
-    let ParseFieldResult::Error(err) = parse_field(&field, 0) else {
-        panic!("expected each syntax error");
-    };
+    let err = parse_field(&field, 0).expect_err("expected each syntax error");
     assert!(
         err.to_string()
             .contains("`each` is only valid as `each(...)`")

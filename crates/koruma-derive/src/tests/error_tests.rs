@@ -252,9 +252,9 @@ fn test_koruma_error_on_duplicate_element_validator() {
 }
 
 #[test]
-fn test_koruma_error_on_legacy_full_option_validator_for_field() {
+fn test_koruma_error_on_ambiguous_option_target_type_arg_for_field() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct LegacyFullOptionValidator {
+        pub struct AmbiguousOptionTargetTypeArgValidator {
             #[koruma(RequiredValidation::<Option<_>>)]
             pub value: Option<i32>,
         }
@@ -265,9 +265,9 @@ fn test_koruma_error_on_legacy_full_option_validator_for_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments no longer request full-target validation"
+            "explicit `Option<...>` validator type arguments do not request full-target validation"
         ),
-        "expected legacy full-option diagnostic, got: {}",
+        "expected ambiguous option target diagnostic, got: {}",
         err
     );
     assert!(
@@ -284,9 +284,9 @@ fn test_koruma_error_on_legacy_full_option_validator_for_field() {
 }
 
 #[test]
-fn test_koruma_error_on_legacy_full_option_element_validator() {
+fn test_koruma_error_on_ambiguous_option_target_type_arg_for_element_validator() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct LegacyFullOptionElementValidator {
+        pub struct AmbiguousOptionTargetTypeArgElementValidator {
             #[koruma(each(RequiredValidation::<Option<_>>))]
             pub values: Vec<Option<i32>>,
         }
@@ -297,9 +297,9 @@ fn test_koruma_error_on_legacy_full_option_element_validator() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments no longer request full-target validation"
+            "explicit `Option<...>` validator type arguments do not request full-target validation"
         ),
-        "expected legacy full-option diagnostic, got: {}",
+        "expected ambiguous option target diagnostic, got: {}",
         err
     );
     assert!(
@@ -324,9 +324,9 @@ fn test_koruma_error_on_explicit_option_element_validator_without_full_wrapper()
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments no longer request full-target validation"
+            "explicit `Option<...>` validator type arguments do not request full-target validation"
         ),
-        "expected legacy full-option diagnostic, got: {}",
+        "expected ambiguous option target diagnostic, got: {}",
         err
     );
     assert!(
@@ -351,9 +351,9 @@ fn test_koruma_error_on_explicit_option_validator_without_full_wrapper() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments no longer request full-target validation"
+            "explicit `Option<...>` validator type arguments do not request full-target validation"
         ),
-        "expected legacy full-option diagnostic, got: {}",
+        "expected ambiguous option target diagnostic, got: {}",
         err
     );
     assert!(

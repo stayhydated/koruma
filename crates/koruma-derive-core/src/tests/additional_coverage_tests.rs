@@ -1,15 +1,15 @@
 use crate::{
-    FieldAttrAst, FieldInfo, ParseFieldResult, ValidatorAttr, contains_infer_type,
-    expr_as_simple_ident, find_value_field_info_strict, find_value_field_strict, first_generic_arg,
-    option_inner_type, parse_field, parse_struct_options, substitute_infer_type,
-    substitute_infer_type_from_source, type_to_ident, vec_inner_type,
+    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, StructKorumaAttr, StructKorumaItem,
+    ValidatorAttr, contains_infer_type, expr_as_simple_ident, find_value_field_info_strict,
+    find_value_field_strict, first_generic_arg, option_inner_type, parse_field,
+    parse_struct_options, substitute_infer_type, substitute_infer_type_from_source, type_to_ident,
+    vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
-    match parse_field(field, 0) {
-        ParseFieldResult::Valid(info) => *info,
-        other => panic!("expected ParseFieldResult::Valid, got {other:?}"),
-    }
+    parse_field(field, 0)
+        .expect("expected field parse")
+        .expect("expected validated field")
 }
 
 #[test]
@@ -76,24 +76,24 @@ fn validator_attr_helpers_and_error_paths() {
 
 #[test]
 fn koruma_attr_helpers_and_newtype_parsing_paths() {
-    let attr: FieldAttrAst =
+    let attr: DataFieldKorumaAttr =
         syn::parse_quote!(RangeValidation::min(0).max(10), each(PositiveValidation));
     assert!(attr.has_validators());
     assert!(!attr.is_modifier());
 
-    let skip: FieldAttrAst = syn::parse_quote!(skip);
+    let skip: DataFieldKorumaAttr = syn::parse_quote!(skip);
     assert!(!skip.has_validators());
     assert!(skip.is_modifier());
 
-    let nested: FieldAttrAst = syn::parse_quote!(nested);
+    let nested: DataFieldKorumaAttr = syn::parse_quote!(nested);
     assert!(!nested.has_validators());
     assert!(nested.is_modifier());
 
-    let newtype_only: FieldAttrAst = syn::parse_quote!(newtype);
+    let newtype_only: DataFieldKorumaAttr = syn::parse_quote!(newtype);
     assert!(newtype_only.is_newtype());
     assert!(newtype_only.is_modifier());
 
-    let newtype_with_validators: FieldAttrAst = syn::parse_quote!(
+    let newtype_with_validators: DataFieldKorumaAttr = syn::parse_quote!(
         newtype,
         each(PositiveValidation),
         RangeValidation::min(0).max(1)
@@ -105,7 +105,34 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 }
 
 #[test]
-fn field_info_and_parse_field_result_helpers() {
+fn context_specific_koruma_attr_types_parse_normalized_items() {
+    let data_attr: DataFieldKorumaAttr =
+        syn::parse_quote!(nested, each(PositiveValidation), RangeValidation::min(0));
+    assert_eq!(data_attr.items.len(), 3);
+    assert!(matches!(
+        data_attr.items[0],
+        DataFieldKorumaItem::Modifier(_)
+    ));
+    assert!(matches!(
+        data_attr.items[1],
+        DataFieldKorumaItem::ElementValidation(_)
+    ));
+    assert!(matches!(
+        data_attr.items[2],
+        DataFieldKorumaItem::FieldValidation(_)
+    ));
+
+    let struct_attr: StructKorumaAttr = syn::parse_quote!(try_new, newtype(try_from));
+    assert_eq!(struct_attr.items.len(), 2);
+    assert!(matches!(struct_attr.items[0], StructKorumaItem::TryNew));
+    let StructKorumaItem::Newtype(newtype_options) = &struct_attr.items[1] else {
+        panic!("expected newtype options");
+    };
+    assert!(newtype_options.try_from);
+}
+
+#[test]
+fn field_info_and_parse_field_option_result_helpers() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::min(0).max(10), each(PositiveValidation))]
         value: Vec<i32>
@@ -134,30 +161,28 @@ fn field_info_and_parse_field_result_helpers() {
     assert!(parse_field_info(&newtype_field).is_newtype());
 
     let valid_result = parse_field(&field, 0);
-    assert!(valid_result.is_valid());
-    assert!(valid_result.valid().is_some());
+    assert!(valid_result.expect("expected field parse").is_some());
 
     let skip_field: syn::Field = syn::parse_quote! { plain: i32 };
     let skip_result = parse_field(&skip_field, 0);
-    assert!(skip_result.is_skip());
-    assert!(skip_result.valid().is_none());
+    assert!(skip_result.expect("expected field parse").is_none());
 
     let generic_field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::<_>)]
         broken: i32
     };
-    let generic_result = parse_field(&generic_field, 0);
-    assert!(generic_result.is_valid());
-    let generic_info = generic_result.valid().expect("expected parsed field info");
+    let generic_info = parse_field(&generic_field, 0)
+        .expect("expected field parse")
+        .expect("expected parsed field info");
     assert!(generic_info.validation.field_validators[0].uses_type_inference());
 
     let explicit_field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::<i32>::min(0).max(10))]
         constrained: i32
     };
-    let explicit_result = parse_field(&explicit_field, 0);
-    assert!(explicit_result.is_valid());
-    let explicit_info = explicit_result.valid().expect("expected parsed field info");
+    let explicit_info = parse_field(&explicit_field, 0)
+        .expect("expected field parse")
+        .expect("expected parsed field info");
     assert!(
         explicit_info.validation.field_validators[0]
             .explicit_type()
@@ -165,7 +190,7 @@ fn field_info_and_parse_field_result_helpers() {
     );
 
     let valid_result_for_error = parse_field(&field, 0);
-    assert!(valid_result_for_error.error().is_none());
+    assert!(valid_result_for_error.is_ok());
 }
 
 #[test]
@@ -337,7 +362,7 @@ fn source_infer_type_substitution_reaches_associated_type_bounds() {
 
 #[test]
 fn koruma_attr_newtype_parser_handles_trailing_commas() {
-    let with_trailing_commas: FieldAttrAst = syn::parse_str(
+    let with_trailing_commas: DataFieldKorumaAttr = syn::parse_str(
         "newtype, each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",
     )
     .expect("newtype parser should accept commas");
@@ -345,7 +370,7 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
     assert_eq!(with_trailing_commas.field_validator_count(), 1);
     assert_eq!(with_trailing_commas.element_validator_count(), 2);
 
-    let plain_with_each: FieldAttrAst = syn::parse_str(
+    let plain_with_each: DataFieldKorumaAttr = syn::parse_str(
         "each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",
     )
     .expect("plain parser should accept commas");
@@ -356,7 +381,7 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
 
 #[test]
 fn parser_edge_cases_cover_remaining_parse_lines() {
-    let empty_attr: Result<FieldAttrAst, _> = syn::parse_str("");
+    let empty_attr: Result<DataFieldKorumaAttr, _> = syn::parse_str("");
     assert!(
         empty_attr
             .expect_err("empty koruma attributes should be rejected")
@@ -375,14 +400,14 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
 
     // `newtype, each(...), ::Path` exercises comma continuation and non-ident validator path
     // in the newtype parser loop.
-    let newtype_with_each_and_path: FieldAttrAst =
+    let newtype_with_each_and_path: DataFieldKorumaAttr =
         syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
             .expect("newtype attr with `each` and absolute path should parse");
     assert!(newtype_with_each_and_path.is_newtype());
     assert_eq!(newtype_with_each_and_path.element_validator_count(), 1);
     assert_eq!(newtype_with_each_and_path.field_validator_count(), 1);
 
-    let newtype_without_comma_falls_through: Result<FieldAttrAst, _> =
+    let newtype_without_comma_falls_through: Result<DataFieldKorumaAttr, _> =
         syn::parse_str("newtype::demo::FieldValidation");
     assert!(
         newtype_without_comma_falls_through
@@ -392,19 +417,19 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     );
 
     // Non-ident path in the non-newtype parser loop.
-    let absolute_path_only: FieldAttrAst =
+    let absolute_path_only: DataFieldKorumaAttr =
         syn::parse_str("::demo::FieldValidation").expect("absolute validator path should parse");
     assert!(!absolute_path_only.is_newtype());
     assert_eq!(absolute_path_only.field_validator_count(), 1);
 
-    let newtype_each_trailing_comma: FieldAttrAst =
+    let newtype_each_trailing_comma: DataFieldKorumaAttr =
         syn::parse_str("newtype, each(::demo::ElemValidation),")
             .expect("newtype each with trailing comma should parse");
     assert!(newtype_each_trailing_comma.is_newtype());
     assert_eq!(newtype_each_trailing_comma.element_validator_count(), 1);
     assert!(!newtype_each_trailing_comma.has_field_validators());
 
-    let newtype_each_then_field: FieldAttrAst =
+    let newtype_each_then_field: DataFieldKorumaAttr =
         syn::parse_str("newtype, each(::demo::ElemValidation), ::demo::FieldValidation")
             .expect("newtype each followed by a field validator should parse");
     assert!(newtype_each_then_field.is_newtype());
@@ -465,9 +490,7 @@ fn parse_field_rejects_duplicate_modifiers() {
         wrapped: Wrapper
     };
 
-    let err = parse_field(&field, 0)
-        .error()
-        .expect("expected duplicate modifier rejection");
+    let err = parse_field(&field, 0).expect_err("expected duplicate modifier rejection");
     assert!(
         err.to_string()
             .contains("duplicate or conflicting field modifier"),
@@ -495,9 +518,7 @@ fn parse_field_rejects_newtype_with_each_across_attributes() {
         wrapped: Wrapper
     };
 
-    let err = parse_field(&field, 0)
-        .error()
-        .expect("expected newtype + each(...) to be rejected");
+    let err = parse_field(&field, 0).expect_err("expected newtype + each(...) to be rejected");
     assert!(
         err.to_string()
             .contains("cannot also use `each(...)`; element validation is not supported"),
@@ -513,9 +534,7 @@ fn parse_field_rejects_nested_and_newtype_combination() {
         wrapped: Wrapper
     };
 
-    let err = parse_field(&field, 0)
-        .error()
-        .expect("expected nested + newtype to be rejected");
+    let err = parse_field(&field, 0).expect_err("expected nested + newtype to be rejected");
     assert!(
         err.to_string()
             .contains("duplicate or conflicting field modifier"),

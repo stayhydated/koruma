@@ -4,13 +4,13 @@ use super::{ShowcaseInputType, ShowcaseModule};
 use heck::{ToSnakeCase, ToUpperCamelCase};
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
-use koruma_derive_core::{CapturePolicy, find_value_field_info_strict, option_inner_type};
-use proc_macro2::TokenStream as TokenStream2;
-use quote::{ToTokens, format_ident, quote};
-use syn::{
-    Expr, Field, Fields, GenericParam, Ident, ItemStruct, Token, Type, Visibility, parenthesized,
-    parse_quote,
+use koruma_derive_core::{
+    CapturePolicy, SetterDefault, ValidatorFieldRole, ValidatorSetterSpec, option_inner_type,
+    parse_validator_fields_strict,
 };
+use proc_macro2::TokenStream as TokenStream2;
+use quote::{format_ident, quote};
+use syn::{Field, Fields, GenericParam, Ident, ItemStruct, Type, Visibility, parse_quote};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
@@ -31,18 +31,11 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     #[cfg(feature = "internal-showcase")]
     let showcase_attr = find_showcase_attr(&input)?;
 
-    let value_field = find_value_field_info_strict(&input)?.ok_or_else(|| {
-        syn::Error::new_spanned(
-            &input,
-            "koruma::validator requires a field marked with #[koruma(value)].\n\
-             Example:\n\
-             #[koruma(value)]\n\
-             actual: Option<i32>",
-        )
-    })?;
-    let value_field_name = value_field.name;
-    let value_field_type = value_field.ty;
-    let value_field_capture = value_field.capture;
+    let validator_spec = parse_validator_fields_strict(&input)?;
+    let value_field = validator_spec.value_field();
+    let value_field_name = value_field.name.clone();
+    let value_field_type = value_field.ty.clone();
+    let value_field_capture = validator_spec.value_spec().capture;
     let inner_type = option_inner_type(&value_field_type).unwrap_or(&value_field_type);
 
     if value_field_capture == CapturePolicy::Skip && option_inner_type(&value_field_type).is_none()
@@ -73,16 +66,10 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
                     ),
                 ));
             }
-            if field_has_setter_metadata(field)? {
-                return Err(syn::Error::new_spanned(
-                    field,
-                    "`#[koruma(value)]` fields cannot also use `#[koruma(setter(...))]`",
-                ));
-            }
         }
     }
 
-    let slots = builder_slots(&input, &value_field_name, value_field_capture)?;
+    let slots = builder_slots(&validator_spec, &value_field_name, value_field_capture);
 
     let Fields::Named(ref mut fields) = input.fields else {
         return Err(syn::Error::new_spanned(
@@ -127,7 +114,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     };
     let builder_struct = render_builder_struct(&input, &builder_name, &slots)?;
     let builder_impl = render_builder_impl(&input, &builder_name, &module_name, &slots)?;
-    let build_impl = render_build_impl(&input, &slots, &build_ready_builder_ty)?;
+    let build_impl = render_build_impl(&input, &slots, &build_ready_builder_ty, &koruma)?;
     let capture_value_ref_impl = render_capture_value_ref_impl(
         &input,
         &builder_name,
@@ -306,21 +293,6 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     })
 }
 
-#[derive(Clone)]
-enum SetterDefault {
-    None,
-    Default,
-    Expr(Expr),
-}
-
-#[derive(Clone)]
-struct SetterMetadata {
-    method: Ident,
-    into: bool,
-    required: bool,
-    default: SetterDefault,
-}
-
 struct BuilderSlot {
     ident: Ident,
     ty: Type,
@@ -335,139 +307,50 @@ struct BuilderSlot {
 }
 
 fn builder_slots(
-    input: &ItemStruct,
+    validator_spec: &koruma_derive_core::ValidatorStructSpec,
     value_field_name: &Ident,
     value_capture: CapturePolicy,
-) -> Result<Vec<BuilderSlot>, syn::Error> {
-    let Fields::Named(fields) = &input.fields else {
-        return Ok(Vec::new());
-    };
-
-    fields
-        .named
+) -> Vec<BuilderSlot> {
+    validator_spec
+        .fields
         .iter()
         .map(|field| {
-            let ident = field
-                .ident
-                .clone()
-                .expect("validator fields should be named");
+            let ident = field.name.clone();
             let is_value = ident == *value_field_name;
-            let metadata = setter_metadata(field)?;
             let optional_inner_ty = option_inner_type(&field.ty).cloned();
-            let default = metadata.default.clone();
-            if metadata.required && !matches!(default, SetterDefault::None) {
-                return Err(syn::Error::new_spanned(
-                    field,
-                    "`required` and `default` cannot be combined in `#[koruma(setter(...))]`",
-                ));
-            }
-
-            let required = if is_value {
-                value_capture == CapturePolicy::CloneInput
-            } else {
-                metadata.required
-                    || (optional_inner_ty.is_none() && matches!(default, SetterDefault::None))
+            let setter = match &field.role {
+                ValidatorFieldRole::Value(_) => ValidatorSetterSpec {
+                    method: ident.clone(),
+                    into: false,
+                    required: false,
+                    default: SetterDefault::None,
+                },
+                ValidatorFieldRole::Setter(setter) => setter.clone(),
             };
+            let default = setter.default.clone();
+            let required = is_value
+                .then_some(value_capture == CapturePolicy::CloneInput)
+                .unwrap_or_else(|| {
+                    setter.required
+                        || (optional_inner_ty.is_none() && matches!(default, SetterDefault::None))
+                });
             let state_ident = required
                 .then(|| format_ident!("__Koruma{}State", ident.to_string().to_upper_camel_case()));
 
-            Ok(BuilderSlot {
+            BuilderSlot {
                 ident,
                 ty: field.ty.clone(),
-                method: metadata.method,
-                into: metadata.into,
+                method: setter.method,
+                into: setter.into,
                 optional_inner_ty,
                 default,
                 required,
                 state_ident,
                 is_value,
                 value_capture: is_value.then_some(value_capture),
-            })
+            }
         })
         .collect()
-}
-
-fn setter_metadata(field: &Field) -> Result<SetterMetadata, syn::Error> {
-    let field_name = field
-        .ident
-        .clone()
-        .expect("validator fields should be named");
-    let mut metadata = SetterMetadata {
-        method: field_name,
-        into: false,
-        required: false,
-        default: SetterDefault::None,
-    };
-
-    for attr in field
-        .attrs
-        .iter()
-        .filter(|attr| attr.path().is_ident("koruma"))
-    {
-        attr.parse_nested_meta(|meta| {
-            if meta.path.is_ident("setter") {
-                parse_setter_group(&mut metadata, &meta)?;
-                return Ok(());
-            }
-
-            if meta.path.is_ident("value") {
-                consume_nested_meta_tokens(&meta)?;
-                return Ok(());
-            }
-
-            let attr_name = meta_name(&meta.path);
-            Err(syn::Error::new_spanned(
-                &meta.path,
-                format!(
-                    "`#[koruma({attr_name})]` is not valid on validator fields; expected `value`, `value(capture = skip)`, or `setter(...)`"
-                ),
-            ))
-        })?;
-    }
-
-    Ok(metadata)
-}
-
-fn parse_setter_group(
-    metadata: &mut SetterMetadata,
-    meta: &syn::meta::ParseNestedMeta<'_>,
-) -> Result<(), syn::Error> {
-    let content;
-    parenthesized!(content in meta.input);
-
-    while !content.is_empty() {
-        let ident: Ident = content.parse()?;
-        if ident == "into" {
-            metadata.into = true;
-        } else if ident == "required" {
-            metadata.required = true;
-        } else if ident == "name" {
-            content.parse::<Token![=]>()?;
-            metadata.method = content.parse()?;
-        } else if ident == "default" {
-            metadata.default = if content.peek(Token![=]) {
-                content.parse::<Token![=]>()?;
-                SetterDefault::Expr(content.parse()?)
-            } else {
-                SetterDefault::Default
-            };
-        } else {
-            return Err(syn::Error::new(
-                ident.span(),
-                format!(
-                    "unsupported `#[koruma(setter({ident}))]` option; supported options are `into`, `required`, `name`, and `default`"
-                ),
-            ));
-        }
-
-        if content.peek(Token![,]) {
-            content.parse::<Token![,]>()?;
-        } else {
-            break;
-        }
-    }
-
-    Ok(())
 }
 
 fn reject_builder_attrs(field: &Field) -> Result<(), syn::Error> {
@@ -478,48 +361,11 @@ fn reject_builder_attrs(field: &Field) -> Result<(), syn::Error> {
     {
         return Err(syn::Error::new_spanned(
             attr,
-            "`#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead",
+            "`#[builder(...)]` is not valid on koruma validator fields; use `#[koruma(setter(...))]` for generated setter options",
         ));
     }
 
     Ok(())
-}
-
-fn field_has_setter_metadata(field: &Field) -> Result<bool, syn::Error> {
-    let mut has_setter = false;
-    for attr in field
-        .attrs
-        .iter()
-        .filter(|attr| attr.path().is_ident("koruma"))
-    {
-        attr.parse_nested_meta(|meta| {
-            if meta.path.is_ident("setter") {
-                has_setter = true;
-                consume_nested_meta_tokens(&meta)?;
-            } else if meta.path.is_ident("value") {
-                consume_nested_meta_tokens(&meta)?;
-            }
-            Ok(())
-        })?;
-    }
-
-    Ok(has_setter)
-}
-
-fn consume_nested_meta_tokens(meta: &syn::meta::ParseNestedMeta<'_>) -> Result<(), syn::Error> {
-    if meta.input.peek(syn::token::Paren) {
-        let content;
-        parenthesized!(content in meta.input);
-        let _: TokenStream2 = content.parse()?;
-    }
-    Ok(())
-}
-
-fn meta_name(path: &syn::Path) -> String {
-    path.segments
-        .last()
-        .map(|segment| segment.ident.to_string())
-        .unwrap_or_else(|| path.to_token_stream().to_string())
 }
 
 fn generic_args(generics: &syn::Generics) -> Vec<TokenStream2> {
@@ -801,6 +647,7 @@ fn render_build_impl(
     input: &ItemStruct,
     slots: &[BuilderSlot],
     build_ready_builder_ty: &TokenStream2,
+    koruma: &TokenStream2,
 ) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
@@ -819,6 +666,14 @@ fn render_build_impl(
                 #struct_name {
                     #(#field_values,)*
                 }
+            }
+        }
+
+        impl #impl_generics #koruma::BuildValidator for #build_ready_builder_ty #where_clause {
+            type Validator = #struct_name #type_generics;
+
+            fn build_validator(self) -> Self::Validator {
+                self.build()
             }
         }
     })
@@ -864,6 +719,12 @@ fn render_capture_value_ref_impl(
     koruma: &TokenStream2,
 ) -> Result<TokenStream2, syn::Error> {
     let mut builder_generics = input.generics.clone();
+    let generic_args = generic_args(&input.generics);
+    let builder_state_args: Vec<_> = slots
+        .iter()
+        .filter_map(|slot| slot.state_ident.as_ref())
+        .map(|state_ident| quote! { #state_ident })
+        .collect();
     for slot in slots.iter().filter(|slot| slot.required) {
         let state_ident = slot
             .state_ident
@@ -877,9 +738,7 @@ fn render_capture_value_ref_impl(
             .predicates
             .push(parse_quote!(#inner_type: ::std::clone::Clone));
     }
-    let (impl_generics, builder_ty_generics, where_clause) = builder_generics.split_for_impl();
-    let builder_ty = quote! { #builder_name #builder_ty_generics };
-    let generic_args = generic_args(&input.generics);
+    let builder_ty = builder_type_path(builder_name, &generic_args, &builder_state_args);
 
     match value_field_capture {
         CapturePolicy::CloneInput => {
@@ -890,6 +749,12 @@ fn render_capture_value_ref_impl(
                 slots,
                 value_field_name,
             );
+            let mut capture_generics = builder_generics;
+            capture_generics
+                .make_where_clause()
+                .predicates
+                .push(parse_quote!(#output_ty: #koruma::BuildValidator));
+            let (impl_generics, _, where_clause) = capture_generics.split_for_impl();
             Ok(quote! {
                 impl #impl_generics #koruma::CaptureValueRef<#inner_type>
                     for #builder_ty #where_clause
@@ -902,17 +767,25 @@ fn render_capture_value_ref_impl(
                 }
             })
         },
-        CapturePolicy::Skip => Ok(quote! {
-            impl #impl_generics #koruma::CaptureValueRef<#inner_type>
-                for #builder_ty #where_clause
-            {
-                type Output = Self;
+        CapturePolicy::Skip => {
+            let mut capture_generics = builder_generics;
+            capture_generics
+                .make_where_clause()
+                .predicates
+                .push(parse_quote!(#builder_ty: #koruma::BuildValidator));
+            let (impl_generics, _, where_clause) = capture_generics.split_for_impl();
+            Ok(quote! {
+                impl #impl_generics #koruma::CaptureValueRef<#inner_type>
+                    for #builder_ty #where_clause
+                {
+                    type Output = Self;
 
-                fn capture_value_ref(self, _value: &#inner_type) -> Self::Output {
-                    self
+                    fn capture_value_ref(self, _value: &#inner_type) -> Self::Output {
+                        self
+                    }
                 }
-            }
-        }),
+            })
+        },
     }
 }
 

@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 50
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -116,6 +117,18 @@ impl<
         }
     }
 }
+impl<T> ::renamed_koruma::BuildValidator
+for GenericRangeValidationBuilder<
+    T,
+    generic_range_validation_builder::Set,
+    generic_range_validation_builder::Set,
+    generic_range_validation_builder::Set,
+> {
+    type Validator = GenericRangeValidation<T>;
+    fn build_validator(self) -> Self::Validator {
+        self.build()
+    }
+}
 impl<
     T,
     __KorumaMinState,
@@ -130,6 +143,12 @@ for GenericRangeValidationBuilder<
 >
 where
     T: ::std::clone::Clone,
+    GenericRangeValidationBuilder<
+        T,
+        __KorumaMinState,
+        __KorumaMaxState,
+        generic_range_validation_builder::Set,
+    >: ::renamed_koruma::BuildValidator,
 {
     type Output = GenericRangeValidationBuilder<
         T,

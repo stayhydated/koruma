@@ -13,7 +13,8 @@
 
 - `Validate<T>`: implemented by validator structs; returns `true`/`false`.
 - `ValidationError`: implemented by generated error structs; supplies `is_empty()` and `has_errors()`.
-- `CaptureValueRef<T>`: hidden borrowed-value hook used by derived validation to apply field values to validator builders while letting generated capture-policy impls decide whether to clone or skip capture.
+- `BuildValidator`: hidden trait implemented for ready generated validator-builder states so generated validation code has a typed build boundary.
+- `CaptureValueRef<T>`: hidden borrowed-value hook used by derived validation to apply field values to validator builders while letting generated capture-policy impls decide whether to clone or skip capture. Its output must implement `BuildValidator`.
 - `ValidateExt`: implemented by `#[derive(Koruma)]` for nested/newtype validation.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.
 
@@ -34,8 +35,18 @@
 - Derive macros emit error types implementing `ValidationError` and `ValidateExt`.
 - `#[koruma::validator]` emits inherent `with_value(...)` methods for validator
   builders that capture the validated value.
-- Derived validation code uses `CaptureValueRef` to feed borrowed field values through validator capture policies.
+- Derived validation code uses `CaptureValueRef` to feed borrowed field values through validator
+  capture policies, then `BuildValidator` to produce the validator instance.
 - Nested/newtype validation relies on `ValidateExt::Error` for typed error state.
+
+## Validator Error Model
+
+Koruma currently keeps the failed validator instance as the typed error payload:
+`Validate<T>` returns `bool`, and derived validation stores the configured validator when validation
+fails. This preserves concrete accessor types, `all()` borrowing, `Display`, and Fluent rendering
+without introducing a second associated error type on every validator. Validators that do not
+render or expose the failing input should use `#[koruma(value(capture = skip))]` on an `Option<T>`
+value field to avoid clone requirements for non-`Clone` payloads.
 
 ## Feature flags
 

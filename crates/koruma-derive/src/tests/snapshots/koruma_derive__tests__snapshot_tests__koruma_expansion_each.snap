@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 141
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -106,11 +107,12 @@ impl Order {
                 generic_range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::BuildValidator::build_validator(
+                ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     GenericRangeValidation::<f64>::min(0.0).max(100.0),
                     __item_value,
-                )
-                .build();
+                ),
+            );
             if !<GenericRangeValidation<
                 f64,
             > as ::renamed_koruma::Validate<f64>>::validate(&validator, __item_value) {

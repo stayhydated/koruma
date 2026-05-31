@@ -1,6 +1,9 @@
 use crate::expand::codegen::helper_generics_for_usages;
 use crate::expand::derive_shared::{field_error_type, field_error_type_path};
-use crate::expand::plan::ValidationPlan;
+use crate::expand::plan::{
+    FieldPlan, PlannedErrorDefault, PlannedErrorGetter, PlannedErrorIsEmpty, PlannedMainErrorField,
+    PlannedMainErrorStorage, ValidationPlan,
+};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Generics, Ident, Type};
@@ -24,23 +27,12 @@ pub(crate) fn render_main_error(
     generics: &Generics,
     koruma: &TokenStream2,
 ) -> MainErrorRender {
-    let struct_is_newtype = plan.struct_newtype().is_some();
+    let layout = plan.main_error_layout();
 
-    let main_error_usages: Vec<Type> = plan
+    let main_error_usages: Vec<Type> = layout
         .fields
         .iter()
-        .map(|field_plan| {
-            if field_plan.is_nested() {
-                let inner_ty = field_plan.inner_type();
-                if struct_is_newtype && !field_plan.field_optional() {
-                    syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }
-                } else {
-                    syn::parse_quote! { Option<<#inner_ty as #koruma::ValidateExt>::Error> }
-                }
-            } else {
-                field_error_type(generics, field_plan, koruma)
-            }
-        })
+        .map(|field| main_error_storage_type(field, generics, koruma))
         .collect();
     let helper_generics = helper_generics_for_usages(generics, &main_error_usages);
     let path = helper_generics.type_path(error_struct_name);
@@ -52,103 +44,22 @@ pub(crate) fn render_main_error(
     let ty_generics = helper_generics.ty_generics;
     let where_clause = helper_generics.where_clause;
 
-    let fields: Vec<TokenStream2> = plan
+    let fields: Vec<TokenStream2> = layout
         .fields
         .iter()
-        .map(|field_plan| {
-            let field_name = &field_plan.name;
-            if field_plan.is_nested() {
-                let inner_ty = field_plan.inner_type();
-                if struct_is_newtype && !field_plan.field_optional() {
-                    quote! { #field_name: <#inner_ty as #koruma::ValidateExt>::Error }
-                } else {
-                    quote! { #field_name: Option<<#inner_ty as #koruma::ValidateExt>::Error> }
-                }
-            } else {
-                let field_error_path = field_error_type_path(generics, field_plan, koruma);
-                quote! { #field_name: #field_error_path }
-            }
-        })
+        .map(|field| render_main_error_field_storage(field, generics, koruma))
         .collect();
 
-    let getter_methods: Vec<TokenStream2> = plan
+    let getter_methods: Vec<TokenStream2> = layout
         .fields
         .iter()
-        .map(|field_plan| {
-            let field_name = &field_plan.name;
-            let field_name_str = field_name.to_string();
-            let struct_name_str = struct_name.to_string();
-            if field_plan.is_nested() {
-                let inner_ty = field_plan.inner_type();
-                if struct_is_newtype && !field_plan.field_optional() {
-                    quote! {
-                        #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
-                        pub fn #field_name(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
-                            &self.#field_name
-                        }
-                    }
-                } else {
-                    quote! {
-                        #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
-                        pub fn #field_name(&self) -> Option<&<#inner_ty as #koruma::ValidateExt>::Error> {
-                            self.#field_name.as_ref()
-                        }
-                    }
-                }
-            } else if field_plan.is_newtype() {
-                let field_error_path = field_error_type_path(generics, field_plan, koruma);
-                if field_plan.has_field_validators() {
-                    quote! {
-                        #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
-                        pub fn #field_name(&self) -> &#field_error_path {
-                            &self.#field_name
-                        }
-                    }
-                } else {
-                    let inner_ty = field_plan.inner_type();
-                    if field_plan.field_optional() {
-                        quote! {
-                            #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
-                            pub fn #field_name(&self) -> Option<&<#inner_ty as #koruma::ValidateExt>::Error> {
-                                self.#field_name.inner.as_ref()
-                            }
-                        }
-                    } else {
-                        quote! {
-                            #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
-                            pub fn #field_name(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
-                                &self.#field_name.inner
-                            }
-                        }
-                    }
-                }
-            } else {
-                let field_error_path = field_error_type_path(generics, field_plan, koruma);
-                quote! {
-                    #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
-                    pub fn #field_name(&self) -> &#field_error_path {
-                        &self.#field_name
-                    }
-                }
-            }
-        })
+        .map(|field| render_main_error_getter(field, struct_name, generics, koruma))
         .collect();
 
-    let is_empty_checks: Vec<TokenStream2> = plan
+    let is_empty_checks: Vec<TokenStream2> = layout
         .fields
         .iter()
-        .map(|field_plan| {
-            let field_name = &field_plan.name;
-            if field_plan.is_nested() {
-                if struct_is_newtype && !field_plan.field_optional() {
-                    quote! { self.#field_name.is_empty() }
-                } else {
-                    quote! { self.#field_name.is_none() }
-                }
-            } else {
-                quote! { self.#field_name.is_empty() }
-            }
-        })
+        .map(render_main_error_is_empty_check)
         .collect();
     let is_empty_body = if is_empty_checks.is_empty() {
         quote! { true }
@@ -156,86 +67,10 @@ pub(crate) fn render_main_error(
         quote! { #(#is_empty_checks)&&* }
     };
 
-    let defaults: Vec<TokenStream2> = plan
+    let defaults: Vec<TokenStream2> = layout
         .fields
         .iter()
-        .map(|field_plan| {
-            let field_name = &field_plan.name;
-
-            if field_plan.is_nested() {
-                let inner_ty = field_plan.inner_type();
-                if struct_is_newtype && !field_plan.field_optional() {
-                    return quote! {
-                        #field_name: <#inner_ty as #koruma::ValidateExt>::Error::default()
-                    };
-                }
-                return quote! { #field_name: None };
-            }
-
-            let field_error_struct_name = &field_plan.generated_names.field_error_struct;
-
-            if field_plan.is_newtype() {
-                let inner_ty = field_plan.inner_type();
-                let field_is_optional = field_plan.field_optional();
-
-                if field_plan.has_field_validators() {
-                    let field_validator_defaults: Vec<TokenStream2> = field_plan
-                        .field_validators()
-                        .iter()
-                        .map(|v| {
-                            let validator_snake = &v.field_ident;
-                            quote! { #validator_snake: None }
-                        })
-                        .collect();
-                    let inner_default = if field_is_optional {
-                        quote! { None }
-                    } else {
-                        quote! { <#inner_ty as #koruma::ValidateExt>::Error::default() }
-                    };
-
-                    return quote! {
-                        #field_name: #field_error_struct_name {
-                            #(#field_validator_defaults,)*
-                            inner: #inner_default
-                        }
-                    };
-                }
-
-                return quote! {
-                    #field_name: #field_error_struct_name::default()
-                };
-            }
-
-            let field_validator_defaults: Vec<TokenStream2> = field_plan
-                .field_validators()
-                .iter()
-                .map(|v| {
-                    let validator_snake = &v.field_ident;
-                    quote! { #validator_snake: None }
-                })
-                .collect();
-
-            if field_plan.has_element_validators() && !field_plan.has_field_validators() {
-                quote! {
-                    #field_name: #field_error_struct_name {
-                        element_errors: Vec::new()
-                    }
-                }
-            } else if field_plan.has_element_validators() {
-                quote! {
-                    #field_name: #field_error_struct_name {
-                        #(#field_validator_defaults),*,
-                        element_errors: Vec::new()
-                    }
-                }
-            } else {
-                quote! {
-                    #field_name: #field_error_struct_name {
-                        #(#field_validator_defaults),*
-                    }
-                }
-            }
-        })
+        .map(|field| render_main_error_default(field, koruma))
         .collect();
 
     MainErrorRender {
@@ -249,4 +84,175 @@ pub(crate) fn render_main_error(
         is_empty_body,
         defaults,
     }
+}
+
+fn main_error_storage_type(
+    field: &PlannedMainErrorField<'_>,
+    generics: &Generics,
+    koruma: &TokenStream2,
+) -> Type {
+    let field_plan = field.field;
+    let inner_ty = field_plan.inner_type();
+    match field.storage {
+        PlannedMainErrorStorage::NestedDirect => {
+            syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }
+        },
+        PlannedMainErrorStorage::NestedOptional => {
+            syn::parse_quote! { Option<<#inner_ty as #koruma::ValidateExt>::Error> }
+        },
+        PlannedMainErrorStorage::FieldError => field_error_type(generics, field_plan, koruma),
+    }
+}
+
+fn render_main_error_field_storage(
+    field: &PlannedMainErrorField<'_>,
+    generics: &Generics,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = field.field;
+    let field_name = &field_plan.name;
+    let inner_ty = field_plan.inner_type();
+    match field.storage {
+        PlannedMainErrorStorage::NestedDirect => {
+            quote! { #field_name: <#inner_ty as #koruma::ValidateExt>::Error }
+        },
+        PlannedMainErrorStorage::NestedOptional => {
+            quote! { #field_name: Option<<#inner_ty as #koruma::ValidateExt>::Error> }
+        },
+        PlannedMainErrorStorage::FieldError => {
+            let field_error_path = field_error_type_path(generics, field_plan, koruma);
+            quote! { #field_name: #field_error_path }
+        },
+    }
+}
+
+fn render_main_error_getter(
+    field: &PlannedMainErrorField<'_>,
+    struct_name: &Ident,
+    generics: &Generics,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = field.field;
+    let field_name = &field_plan.name;
+    let field_name_str = field_name.to_string();
+    let struct_name_str = struct_name.to_string();
+    let inner_ty = field_plan.inner_type();
+
+    match field.getter {
+        PlannedErrorGetter::NestedDirect => quote! {
+            #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
+            pub fn #field_name(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
+                &self.#field_name
+            }
+        },
+        PlannedErrorGetter::NestedOptional => quote! {
+            #[doc = concat!("Returns validation errors for the nested `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
+            pub fn #field_name(&self) -> Option<&<#inner_ty as #koruma::ValidateExt>::Error> {
+                self.#field_name.as_ref()
+            }
+        },
+        PlannedErrorGetter::FieldError => {
+            let field_error_path = field_error_type_path(generics, field_plan, koruma);
+            quote! {
+                #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
+                pub fn #field_name(&self) -> &#field_error_path {
+                    &self.#field_name
+                }
+            }
+        },
+        PlannedErrorGetter::NewtypeInnerDirect => quote! {
+            #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].")]
+            pub fn #field_name(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
+                &self.#field_name.inner
+            }
+        },
+        PlannedErrorGetter::NewtypeInnerOptional => quote! {
+            #[doc = concat!("Returns validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`], if any.")]
+            pub fn #field_name(&self) -> Option<&<#inner_ty as #koruma::ValidateExt>::Error> {
+                self.#field_name.inner.as_ref()
+            }
+        },
+    }
+}
+
+fn render_main_error_is_empty_check(field: &PlannedMainErrorField<'_>) -> TokenStream2 {
+    let field_name = &field.field.name;
+    match field.is_empty {
+        PlannedErrorIsEmpty::NestedDirect => quote! { self.#field_name.is_empty() },
+        PlannedErrorIsEmpty::NestedOptional => quote! { self.#field_name.is_none() },
+        PlannedErrorIsEmpty::FieldError => quote! { self.#field_name.is_empty() },
+    }
+}
+
+fn render_main_error_default(
+    field: &PlannedMainErrorField<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = field.field;
+    let field_name = &field_plan.name;
+    let inner_ty = field_plan.inner_type();
+    let field_error_struct_name = &field_plan.generated_names.field_error_struct;
+
+    match field.default {
+        PlannedErrorDefault::NestedDirect => {
+            quote! { #field_name: <#inner_ty as #koruma::ValidateExt>::Error::default() }
+        },
+        PlannedErrorDefault::None => quote! { #field_name: None },
+        PlannedErrorDefault::FieldErrorDefault => {
+            quote! { #field_name: #field_error_struct_name::default() }
+        },
+        PlannedErrorDefault::NewtypeWithValidators { inner_optional } => {
+            let field_validator_defaults = field_validator_defaults(field_plan);
+            let inner_default = if inner_optional {
+                quote! { None }
+            } else {
+                quote! { <#inner_ty as #koruma::ValidateExt>::Error::default() }
+            };
+
+            quote! {
+                #field_name: #field_error_struct_name {
+                    #(#field_validator_defaults,)*
+                    inner: #inner_default
+                }
+            }
+        },
+        PlannedErrorDefault::Regular {
+            has_field_validators,
+            has_element_validators,
+        } => {
+            let field_validator_defaults = field_validator_defaults(field_plan);
+            match (has_field_validators, has_element_validators) {
+                (true, true) => quote! {
+                    #field_name: #field_error_struct_name {
+                        #(#field_validator_defaults),*,
+                        element_errors: Vec::new()
+                    }
+                },
+                (true, false) => quote! {
+                    #field_name: #field_error_struct_name {
+                        #(#field_validator_defaults),*
+                    }
+                },
+                (false, true) => quote! {
+                    #field_name: #field_error_struct_name {
+                        element_errors: Vec::new()
+                    }
+                },
+                (false, false) => quote! {
+                    #field_name: #field_error_struct_name {}
+                },
+            }
+        },
+    }
+}
+
+fn field_validator_defaults(field_plan: &FieldPlan) -> Vec<TokenStream2> {
+    field_plan
+        .field_validators()
+        .iter()
+        .map(|validator| {
+            let validator_snake = &validator.field_ident;
+            quote! { #validator_snake: None }
+        })
+        .collect()
 }

@@ -569,7 +569,9 @@ fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value()
 #[test]
 fn test_validator_capture_hook_preserves_lifetime_and_const_generics() {
     let builder = PrefixBytesValidation::prefix(b"ab");
-    let validator = koruma::CaptureValueRef::capture_value_ref(builder, b"abcd").build();
+    let validator = koruma::BuildValidator::build_validator(
+        koruma::CaptureValueRef::capture_value_ref(builder, b"abcd"),
+    );
 
     assert!(validator.validate(b"abcd"));
     assert!(!validator.validate(b"zzzz"));

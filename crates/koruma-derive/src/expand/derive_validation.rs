@@ -1,5 +1,9 @@
 use crate::expand::derive_shared::validator_builder_expr;
-use crate::expand::plan::{PlannedValidator, TargetAccess, ValidationPlan};
+use crate::expand::plan::{
+    FieldPlan, PlannedElementValidation, PlannedNestedValidation, PlannedNewtypeValidation,
+    PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, TargetAccess,
+    ValidationPlan,
+};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::Ident;
@@ -23,7 +27,7 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     let target_expr = check.target_expr;
     let target_ref = match validator.target.access {
         TargetAccess::AlreadyBorrowedLocal => quote! { #target_expr },
-        TargetAccess::BorrowField | TargetAccess::BorrowLocal => quote! { &#target_expr },
+        TargetAccess::BorrowField => quote! { &#target_expr },
     };
     let error_assignment = match check.sink {
         ErrorSink::FieldValidator { field, slot } => {
@@ -41,11 +45,12 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     };
 
     quote! {
-        let validator = #koruma::CaptureValueRef::capture_value_ref(
-            #builder_expr,
-            #target_ref,
-        )
-        .build();
+        let validator = #koruma::BuildValidator::build_validator(
+            #koruma::CaptureValueRef::capture_value_ref(
+                #builder_expr,
+                #target_ref,
+            )
+        );
         if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
             &validator,
             #target_ref,
@@ -59,359 +64,346 @@ pub(crate) fn render_validation_checks(
     plan: &ValidationPlan,
     koruma: &TokenStream2,
 ) -> Result<Vec<TokenStream2>, syn::Error> {
-    let struct_is_newtype = plan.struct_newtype().is_some();
-
-    plan.fields
+    plan.validation_operations()
         .iter()
-        .map(|field_plan| -> Result<TokenStream2, syn::Error> {
-            let field_name = &field_plan.name;
-            let field_member = &field_plan.source.member;
+        .map(|operation| -> Result<TokenStream2, syn::Error> {
+            Ok(render_validation_operation(operation, koruma))
+        })
+        .collect()
+}
 
-            if field_plan.is_nested() {
-                let field_is_optional = field_plan.field_optional();
-                if field_is_optional {
-                    return Ok(quote! {
-                        if let Some(ref __nested_value) = self.#field_member {
-                            if let Err(nested_err) = __nested_value.validate() {
-                                error.#field_name = Some(nested_err);
-                                has_error = true;
-                            }
-                        }
-                    });
-                } else {
-                    if struct_is_newtype {
-                        return Ok(quote! {
-                            if let Err(nested_err) = self.#field_member.validate() {
-                                error.#field_name = nested_err;
-                                has_error = true;
-                            }
-                        });
-                    }
-                    return Ok(quote! {
-                        if let Err(nested_err) = self.#field_member.validate() {
-                            error.#field_name = Some(nested_err);
-                            has_error = true;
-                        }
-                    });
+fn render_validation_operation(
+    operation: &PlannedValidationOperation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    match operation {
+        PlannedValidationOperation::Nested(operation) => render_nested_validation(operation),
+        PlannedValidationOperation::Newtype(operation) => {
+            render_newtype_validation(operation, koruma)
+        },
+        PlannedValidationOperation::Regular(operation) => {
+            render_regular_validation(operation, koruma)
+        },
+    }
+}
+
+fn render_nested_validation(operation: &PlannedNestedValidation<'_>) -> TokenStream2 {
+    let field_plan = operation.field;
+    let field_name = &field_plan.name;
+    let field_member = &field_plan.source.member;
+
+    if field_plan.field_optional() {
+        return quote! {
+            if let Some(ref __nested_value) = self.#field_member {
+                if let Err(nested_err) = __nested_value.validate() {
+                    error.#field_name = Some(nested_err);
+                    has_error = true;
                 }
             }
+        };
+    }
 
-            if field_plan.is_newtype() {
-                let field_is_optional = field_plan.field_optional();
-                let has_field_validators = field_plan.has_field_validators();
-                let set_inner_error = if field_is_optional {
-                    quote! { error.#field_name.inner = Some(newtype_err); }
-                } else {
-                    quote! { error.#field_name.inner = newtype_err; }
-                };
-
-                if has_field_validators {
-                    let full_type_validators: Vec<_> = field_plan.full_field_validators().collect();
-                    let unwrapped_validators: Vec<_> =
-                        field_plan.unwrapped_field_validators().collect();
-
-                    let full_type_checks: Vec<TokenStream2> = full_type_validators
-                        .iter()
-                        .map(|v| {
-                            render_validation_check(
-                                ValidationCheck {
-                                    validator: v,
-                                    target_expr: quote! { self.#field_member },
-                                    sink: ErrorSink::FieldValidator {
-                                        field: field_name,
-                                        slot: &v.field_ident,
-                                    },
-                                },
-                                koruma,
-                            )
-                        })
-                        .collect();
-
-                    let unwrapped_checks: Vec<TokenStream2> = unwrapped_validators
-                        .iter()
-                        .map(|v| {
-                            render_validation_check(
-                                ValidationCheck {
-                                    validator: v,
-                                    target_expr: quote! { __newtype_value },
-                                    sink: ErrorSink::FieldValidator {
-                                        field: field_name,
-                                        slot: &v.field_ident,
-                                    },
-                                },
-                                koruma,
-                            )
-                        })
-                        .collect();
-
-                    let inner_validation = if unwrapped_validators.is_empty() {
-                        quote! {
-                            if let Err(newtype_err) = __newtype_value.validate() {
-                                #set_inner_error
-                                has_error = true;
-                            }
-                        }
-                    } else {
-                        quote! {
-                            #(#unwrapped_checks)*
-                            if let Err(newtype_err) = __newtype_value.validate() {
-                                #set_inner_error
-                                has_error = true;
-                            }
-                        }
-                    };
-
-                    if field_is_optional {
-                        return Ok(quote! {
-                            #(#full_type_checks)*
-                            if let Some(ref __newtype_value) = self.#field_member {
-                                #inner_validation
-                            }
-                        });
-                    }
-
-                    return Ok(quote! {
-                        #(#full_type_checks)*
-                        let __newtype_value = &self.#field_member;
-                        #inner_validation
-                    });
-                }
-
-                if field_is_optional {
-                    return Ok(quote! {
-                        if let Some(ref __newtype_value) = self.#field_member {
-                            if let Err(newtype_err) = __newtype_value.validate() {
-                                #set_inner_error
-                                has_error = true;
-                            }
-                        }
-                    });
-                } else {
-                    return Ok(quote! {
-                        if let Err(newtype_err) = self.#field_member.validate() {
-                            #set_inner_error
-                            has_error = true;
-                        }
-                    });
-                }
+    if operation.direct_storage {
+        quote! {
+            if let Err(nested_err) = self.#field_member.validate() {
+                error.#field_name = nested_err;
+                has_error = true;
             }
+        }
+    } else {
+        quote! {
+            if let Err(nested_err) = self.#field_member.validate() {
+                error.#field_name = Some(nested_err);
+                has_error = true;
+            }
+        }
+    }
+}
 
-            let has_element_validators = field_plan.has_element_validators();
-            let full_type_validators: Vec<_> = field_plan.full_field_validators().collect();
-            let unwrapped_validators: Vec<_> = field_plan.unwrapped_field_validators().collect();
+fn render_newtype_validation(
+    operation: &PlannedNewtypeValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = operation.field;
+    let field_name = &field_plan.name;
+    let field_member = &field_plan.source.member;
+    let field_is_optional = operation.field_validators.field_optional;
+    let set_inner_error = if field_is_optional {
+        quote! { error.#field_name.inner = Some(newtype_err); }
+    } else {
+        quote! { error.#field_name.inner = newtype_err; }
+    };
 
-            let full_type_checks: Vec<TokenStream2> = full_type_validators
-                .iter()
-                .map(|v| {
-                    render_validation_check(
-                        ValidationCheck {
-                            validator: v,
-                            target_expr: quote! { self.#field_member },
-                            sink: ErrorSink::FieldValidator {
-                                field: field_name,
-                                slot: &v.field_ident,
-                            },
-                        },
-                        koruma,
-                    )
-                })
-                .collect();
+    if operation.field_validators.has_any() {
+        let full_type_checks = render_field_validator_checks(
+            field_plan,
+            &operation.field_validators.full_type_validators,
+            quote! { self.#field_member },
+            koruma,
+        );
+        let unwrapped_checks = render_field_validator_checks(
+            field_plan,
+            &operation.field_validators.unwrapped_validators,
+            quote! { __newtype_value },
+            koruma,
+        );
+        let inner_validation = quote! {
+            #(#unwrapped_checks)*
+            if let Err(newtype_err) = __newtype_value.validate() {
+                #set_inner_error
+                has_error = true;
+            }
+        };
 
-            let unwrapped_checks: Vec<TokenStream2> = unwrapped_validators
-                .iter()
-                .map(|v| {
-                    render_validation_check(
-                        ValidationCheck {
-                            validator: v,
-                            target_expr: quote! { __field_value },
-                            sink: ErrorSink::FieldValidator {
-                                field: field_name,
-                                slot: &v.field_ident,
-                            },
-                        },
-                        koruma,
-                    )
-                })
-                .collect();
-
-            let element_validation = if has_element_validators {
-                let element_error_struct_name = &field_plan.generated_names.element_error_struct;
-
-                let field_is_optional = field_plan.field_optional();
-                let element_is_optional = field_plan.element_optional();
-                let full_type_element_validators: Vec<_> =
-                    field_plan.full_element_validators().collect();
-                let unwrapped_element_validators: Vec<_> =
-                    field_plan.unwrapped_element_validators().collect();
-
-                let full_type_element_checks: Vec<TokenStream2> = full_type_element_validators
-                    .iter()
-                    .map(|v| {
-                        render_validation_check(
-                            ValidationCheck {
-                                validator: v,
-                                target_expr: quote! { item },
-                                sink: ErrorSink::ElementValidator {
-                                    slot: &v.field_ident,
-                                },
-                            },
-                            koruma,
-                        )
-                    })
-                    .collect();
-
-                let unwrapped_element_checks: Vec<TokenStream2> = unwrapped_element_validators
-                    .iter()
-                    .map(|v| {
-                        render_validation_check(
-                            ValidationCheck {
-                                validator: v,
-                                target_expr: quote! { __item_value },
-                                sink: ErrorSink::ElementValidator {
-                                    slot: &v.field_ident,
-                                },
-                            },
-                            koruma,
-                        )
-                    })
-                    .collect();
-
-                let element_validator_defaults: Vec<TokenStream2> = field_plan
-                    .element_validators()
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        quote! { #validator_snake: None }
-                    })
-                    .collect();
-
-                if field_is_optional {
-                    let item_iteration = if element_is_optional {
-                        quote! {
-                            for (idx, item) in __collection_value.iter().enumerate() {
-                                let mut element_error = #element_error_struct_name {
-                                    #(#element_validator_defaults),*
-                                };
-                                let mut element_has_error = false;
-
-                                #(#full_type_element_checks)*
-
-                                if let Some(__item_value) = item {
-                                    #(#unwrapped_element_checks)*
-                                }
-
-                                if element_has_error {
-                                    error.#field_name.element_errors.push((idx, element_error));
-                                    has_error = true;
-                                }
-                            }
-                        }
-                    } else {
-                        quote! {
-                            for (idx, __item_value) in __collection_value.iter().enumerate() {
-                                let mut element_error = #element_error_struct_name {
-                                    #(#element_validator_defaults),*
-                                };
-                                let mut element_has_error = false;
-
-                                #(#full_type_element_checks)*
-                                #(#unwrapped_element_checks)*
-
-                                if element_has_error {
-                                    error.#field_name.element_errors.push((idx, element_error));
-                                    has_error = true;
-                                }
-                            }
-                        }
-                    };
-
-                    quote! {
-                        if let Some(ref __collection_value) = self.#field_member {
-                            #item_iteration
-                        }
-                    }
-                } else if element_is_optional {
-                    quote! {
-                        for (idx, item) in self.#field_member.iter().enumerate() {
-                            let mut element_error = #element_error_struct_name {
-                                #(#element_validator_defaults),*
-                            };
-                            let mut element_has_error = false;
-
-                            #(#full_type_element_checks)*
-
-                            if let Some(__item_value) = item {
-                                #(#unwrapped_element_checks)*
-                            }
-
-                            if element_has_error {
-                                error.#field_name.element_errors.push((idx, element_error));
-                                has_error = true;
-                            }
-                        }
-                    }
-                } else {
-                    quote! {
-                        for (idx, __item_value) in self.#field_member.iter().enumerate() {
-                            let mut element_error = #element_error_struct_name {
-                                #(#element_validator_defaults),*
-                            };
-                            let mut element_has_error = false;
-
-                            #(#full_type_element_checks)*
-                            #(#unwrapped_element_checks)*
-
-                            if element_has_error {
-                                error.#field_name.element_errors.push((idx, element_error));
-                                has_error = true;
-                            }
-                        }
-                    }
+        if field_is_optional {
+            return quote! {
+                #(#full_type_checks)*
+                if let Some(ref __newtype_value) = self.#field_member {
+                    #inner_validation
                 }
-            } else {
-                quote! {}
             };
+        }
 
-            let field_is_optional = field_plan.field_optional();
-            let has_full_type_validators = !full_type_validators.is_empty();
-            let has_unwrapped_validators = !unwrapped_validators.is_empty();
+        return quote! {
+            #(#full_type_checks)*
+            let __newtype_value = &self.#field_member;
+            #inner_validation
+        };
+    }
 
-            if has_full_type_validators && has_unwrapped_validators && field_is_optional {
-                Ok(quote! {
-                    #(#full_type_checks)*
-                    if let Some(ref __field_value) = self.#field_member {
-                        #(#unwrapped_checks)*
-                    }
-                    #element_validation
-                })
-            } else if has_full_type_validators && has_unwrapped_validators {
-                Ok(quote! {
-                    #(#full_type_checks)*
-                    let __field_value = &self.#field_member;
-                    #(#unwrapped_checks)*
-                    #element_validation
-                })
-            } else if has_full_type_validators {
-                Ok(quote! {
-                    #(#full_type_checks)*
-                    #element_validation
-                })
-            } else if has_unwrapped_validators && field_is_optional {
-                Ok(quote! {
-                    if let Some(ref __field_value) = self.#field_member {
-                        #(#unwrapped_checks)*
-                    }
-                    #element_validation
-                })
-            } else if has_unwrapped_validators {
-                Ok(quote! {
-                    let __field_value = &self.#field_member;
-                    #(#unwrapped_checks)*
-                    #element_validation
-                })
-            } else {
-                Ok(element_validation)
+    if field_is_optional {
+        quote! {
+            if let Some(ref __newtype_value) = self.#field_member {
+                if let Err(newtype_err) = __newtype_value.validate() {
+                    #set_inner_error
+                    has_error = true;
+                }
             }
+        }
+    } else {
+        quote! {
+            if let Err(newtype_err) = self.#field_member.validate() {
+                #set_inner_error
+                has_error = true;
+            }
+        }
+    }
+}
+
+fn render_regular_validation(
+    operation: &PlannedRegularValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_plan = operation.field;
+    let field_member = &field_plan.source.member;
+    let field_validators = &operation.field_validators;
+    let full_type_checks = render_field_validator_checks(
+        field_plan,
+        &field_validators.full_type_validators,
+        quote! { self.#field_member },
+        koruma,
+    );
+    let unwrapped_checks = render_field_validator_checks(
+        field_plan,
+        &field_validators.unwrapped_validators,
+        quote! { __field_value },
+        koruma,
+    );
+    let element_validation = operation
+        .element_validators
+        .as_ref()
+        .map(|element| render_element_validation(field_plan, element, koruma))
+        .unwrap_or_else(|| quote! {});
+
+    match (
+        field_validators.has_full_type_validators(),
+        field_validators.has_unwrapped_validators(),
+        field_validators.field_optional,
+    ) {
+        (true, true, true) => quote! {
+            #(#full_type_checks)*
+            if let Some(ref __field_value) = self.#field_member {
+                #(#unwrapped_checks)*
+            }
+            #element_validation
+        },
+        (true, true, false) => quote! {
+            #(#full_type_checks)*
+            let __field_value = &self.#field_member;
+            #(#unwrapped_checks)*
+            #element_validation
+        },
+        (true, false, _) => quote! {
+            #(#full_type_checks)*
+            #element_validation
+        },
+        (false, true, true) => quote! {
+            if let Some(ref __field_value) = self.#field_member {
+                #(#unwrapped_checks)*
+            }
+            #element_validation
+        },
+        (false, true, false) => quote! {
+            let __field_value = &self.#field_member;
+            #(#unwrapped_checks)*
+            #element_validation
+        },
+        (false, false, _) => element_validation,
+    }
+}
+
+fn render_field_validator_checks(
+    field_plan: &FieldPlan,
+    validators: &[&PlannedValidator],
+    target_expr: TokenStream2,
+    koruma: &TokenStream2,
+) -> Vec<TokenStream2> {
+    let field_name = &field_plan.name;
+    validators
+        .iter()
+        .map(|validator| {
+            render_validation_check(
+                ValidationCheck {
+                    validator,
+                    target_expr: target_expr.clone(),
+                    sink: ErrorSink::FieldValidator {
+                        field: field_name,
+                        slot: &validator.field_ident,
+                    },
+                },
+                koruma,
+            )
+        })
+        .collect()
+}
+
+fn render_element_validation(
+    field_plan: &FieldPlan,
+    element: &PlannedElementValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
+    let field_name = &field_plan.name;
+    let field_member = &field_plan.source.member;
+    let element_error_struct_name = &field_plan.generated_names.element_error_struct;
+    let full_type_element_checks =
+        render_element_validator_checks(&element.full_type_validators, quote! { item }, koruma);
+    let unwrapped_element_checks = render_element_validator_checks(
+        &element.unwrapped_validators,
+        quote! { __item_value },
+        koruma,
+    );
+    let element_validator_defaults: Vec<TokenStream2> = field_plan
+        .element_validators()
+        .iter()
+        .map(|validator| {
+            let validator_snake = &validator.field_ident;
+            quote! { #validator_snake: None }
+        })
+        .collect();
+
+    let optional_field_item_iteration = if element.element_optional {
+        quote! {
+            for (idx, item) in __collection_value.iter().enumerate() {
+                let mut element_error = #element_error_struct_name {
+                    #(#element_validator_defaults),*
+                };
+                let mut element_has_error = false;
+
+                #(#full_type_element_checks)*
+
+                if let Some(__item_value) = item {
+                    #(#unwrapped_element_checks)*
+                }
+
+                if element_has_error {
+                    error.#field_name.element_errors.push((idx, element_error));
+                    has_error = true;
+                }
+            }
+        }
+    } else {
+        quote! {
+            for (idx, __item_value) in __collection_value.iter().enumerate() {
+                let mut element_error = #element_error_struct_name {
+                    #(#element_validator_defaults),*
+                };
+                let mut element_has_error = false;
+
+                #(#full_type_element_checks)*
+                #(#unwrapped_element_checks)*
+
+                if element_has_error {
+                    error.#field_name.element_errors.push((idx, element_error));
+                    has_error = true;
+                }
+            }
+        }
+    };
+
+    if element.field_optional {
+        quote! {
+            if let Some(ref __collection_value) = self.#field_member {
+                #optional_field_item_iteration
+            }
+        }
+    } else if element.element_optional {
+        quote! {
+            for (idx, item) in self.#field_member.iter().enumerate() {
+                let mut element_error = #element_error_struct_name {
+                    #(#element_validator_defaults),*
+                };
+                let mut element_has_error = false;
+
+                #(#full_type_element_checks)*
+
+                if let Some(__item_value) = item {
+                    #(#unwrapped_element_checks)*
+                }
+
+                if element_has_error {
+                    error.#field_name.element_errors.push((idx, element_error));
+                    has_error = true;
+                }
+            }
+        }
+    } else {
+        quote! {
+            for (idx, __item_value) in self.#field_member.iter().enumerate() {
+                let mut element_error = #element_error_struct_name {
+                    #(#element_validator_defaults),*
+                };
+                let mut element_has_error = false;
+
+                #(#full_type_element_checks)*
+                #(#unwrapped_element_checks)*
+
+                if element_has_error {
+                    error.#field_name.element_errors.push((idx, element_error));
+                    has_error = true;
+                }
+            }
+        }
+    }
+}
+
+fn render_element_validator_checks(
+    validators: &[&PlannedValidator],
+    target_expr: TokenStream2,
+    koruma: &TokenStream2,
+) -> Vec<TokenStream2> {
+    validators
+        .iter()
+        .map(|validator| {
+            render_validation_check(
+                ValidationCheck {
+                    validator,
+                    target_expr: target_expr.clone(),
+                    sink: ErrorSink::ElementValidator {
+                        slot: &validator.field_ident,
+                    },
+                },
+                koruma,
+            )
         })
         .collect()
 }

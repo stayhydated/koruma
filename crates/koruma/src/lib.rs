@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 
-pub use koruma_core::{CaptureValueRef, NewtypeValidation, Validate, ValidateExt, ValidationError};
+pub use koruma_core::{
+    BuildValidator, CaptureValueRef, NewtypeValidation, Validate, ValidateExt, ValidationError,
+};
 
 #[cfg(feature = "derive")]
 pub use koruma_derive::{Koruma, KorumaAllDisplay, validator};

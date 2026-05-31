@@ -3,8 +3,9 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    CapturePolicy, FieldInfo, ParsedFieldSpec, ParsedValidatorUse, ValidatorAttr,
-    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
+    CapturePolicy, FieldInfo, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, ValidatorAttr,
+    ValidatorFieldRole, find_value_field_info_strict, find_value_field_strict, parse_field,
+    parse_struct_options, parse_validator_fields_strict,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -685,7 +686,7 @@ fn test_find_value_field_strict_supports_capture_skip_policy() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_legacy_capture_marker() {
+fn test_find_value_field_strict_rejects_invalid_capture_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(skip_capture)]
@@ -697,7 +698,83 @@ fn test_find_value_field_strict_rejects_legacy_capture_marker() {
     let err = find_value_field_info_strict(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("`skip_capture` has been replaced by `value(capture = skip)`")
+            .contains("`skip_capture` is not valid in a validator field")
+    );
+}
+
+#[test]
+fn test_parse_validator_fields_strict_parses_typed_setter_metadata() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(setter(into, name = label))]
+            title: String,
+            #[koruma(setter(required))]
+            limit: Option<usize>,
+            #[koruma(setter(default = 10))]
+            fallback: usize,
+            #[koruma(value(capture = skip))]
+            actual: Option<String>,
+        }
+    };
+
+    let spec = parse_validator_fields_strict(&input).unwrap();
+    assert_eq!(spec.value_field().name.to_string(), "actual");
+    assert!(matches!(spec.value_spec().capture, CapturePolicy::Skip));
+
+    let ValidatorFieldRole::Setter(title) = &spec.fields[0].role else {
+        panic!("expected setter field");
+    };
+    assert_eq!(title.method.to_string(), "label");
+    assert!(title.into);
+    assert!(!title.required);
+    assert!(matches!(title.default, SetterDefault::None));
+
+    let ValidatorFieldRole::Setter(limit) = &spec.fields[1].role else {
+        panic!("expected setter field");
+    };
+    assert_eq!(limit.method.to_string(), "limit");
+    assert!(limit.required);
+
+    let ValidatorFieldRole::Setter(fallback) = &spec.fields[2].role else {
+        panic!("expected setter field");
+    };
+    let SetterDefault::Expr(expr) = &fallback.default else {
+        panic!("expected expression default");
+    };
+    assert_eq!(expr.to_token_stream().to_string(), "10");
+}
+
+#[test]
+fn test_parse_validator_fields_strict_rejects_value_with_setter() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(value, setter(required))]
+            actual: Option<String>,
+        }
+    };
+
+    let err = parse_validator_fields_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("fields cannot also use `#[koruma(setter(...))]`")
+    );
+}
+
+#[test]
+fn test_parse_validator_fields_strict_rejects_required_default_setter() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(setter(required, default))]
+            limit: usize,
+            #[koruma(value)]
+            actual: Option<String>,
+        }
+    };
+
+    let err = parse_validator_fields_strict(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`required` and `default` cannot be combined")
     );
 }
 

@@ -95,6 +95,63 @@ impl ValidationPlan {
             StructPlan::Record | StructPlan::Tuple | StructPlan::Unit => None,
         }
     }
+
+    pub(crate) fn validation_operations(&self) -> Vec<PlannedValidationOperation<'_>> {
+        let struct_is_newtype = self.struct_newtype().is_some();
+
+        self.fields
+            .iter()
+            .map(|field| {
+                if field.is_nested() {
+                    return PlannedValidationOperation::Nested(PlannedNestedValidation {
+                        field,
+                        direct_storage: struct_is_newtype && !field.field_optional(),
+                    });
+                }
+
+                if field.is_newtype() {
+                    return PlannedValidationOperation::Newtype(PlannedNewtypeValidation {
+                        field,
+                        field_validators: PlannedFieldValidatorGroups::for_field(field),
+                    });
+                }
+
+                PlannedValidationOperation::Regular(PlannedRegularValidation {
+                    field,
+                    field_validators: PlannedFieldValidatorGroups::for_field(field),
+                    element_validators: field.has_element_validators().then(|| {
+                        PlannedElementValidation {
+                            full_type_validators: field.full_element_validators().collect(),
+                            unwrapped_validators: field.unwrapped_element_validators().collect(),
+                            field_optional: field.field_optional(),
+                            element_optional: field.element_optional(),
+                        }
+                    }),
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn main_error_layout(&self) -> PlannedMainErrorLayout<'_> {
+        let struct_is_newtype = self.struct_newtype().is_some();
+        let fields = self
+            .fields
+            .iter()
+            .map(|field| PlannedMainErrorField::for_field(field, struct_is_newtype))
+            .collect();
+
+        PlannedMainErrorLayout { fields }
+    }
+
+    pub(crate) fn field_error_layout(&self) -> PlannedFieldErrorLayout<'_> {
+        let fields = self
+            .fields
+            .iter()
+            .filter_map(PlannedFieldError::for_field)
+            .collect();
+
+        PlannedFieldErrorLayout { fields }
+    }
 }
 
 fn struct_fields<'a>(input: &'a DeriveInput, derive_name: &str) -> Result<&'a Fields, syn::Error> {
@@ -116,6 +173,301 @@ pub(crate) enum StructPlan {
 }
 
 #[derive(Clone, Debug)]
+pub(crate) struct PlannedMainErrorLayout<'a> {
+    pub fields: Vec<PlannedMainErrorField<'a>>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedMainErrorField<'a> {
+    pub field: &'a FieldPlan,
+    pub storage: PlannedMainErrorStorage,
+    pub getter: PlannedErrorGetter,
+    pub default: PlannedErrorDefault,
+    pub is_empty: PlannedErrorIsEmpty,
+}
+
+impl<'a> PlannedMainErrorField<'a> {
+    fn for_field(field: &'a FieldPlan, struct_is_newtype: bool) -> Self {
+        let direct_nested = field.is_nested() && struct_is_newtype && !field.field_optional();
+        let storage = if direct_nested {
+            PlannedMainErrorStorage::NestedDirect
+        } else if field.is_nested() {
+            PlannedMainErrorStorage::NestedOptional
+        } else {
+            PlannedMainErrorStorage::FieldError
+        };
+        let getter = if direct_nested {
+            PlannedErrorGetter::NestedDirect
+        } else if field.is_nested() {
+            PlannedErrorGetter::NestedOptional
+        } else if field.is_newtype() && !field.has_field_validators() {
+            if field.field_optional() {
+                PlannedErrorGetter::NewtypeInnerOptional
+            } else {
+                PlannedErrorGetter::NewtypeInnerDirect
+            }
+        } else {
+            PlannedErrorGetter::FieldError
+        };
+        let default = if direct_nested {
+            PlannedErrorDefault::NestedDirect
+        } else if field.is_nested() {
+            PlannedErrorDefault::None
+        } else if field.is_newtype() && field.has_field_validators() {
+            PlannedErrorDefault::NewtypeWithValidators {
+                inner_optional: field.field_optional(),
+            }
+        } else if field.is_newtype() {
+            PlannedErrorDefault::FieldErrorDefault
+        } else if field.has_element_validators() {
+            PlannedErrorDefault::Regular {
+                has_field_validators: field.has_field_validators(),
+                has_element_validators: true,
+            }
+        } else {
+            PlannedErrorDefault::Regular {
+                has_field_validators: field.has_field_validators(),
+                has_element_validators: false,
+            }
+        };
+        let is_empty = if direct_nested {
+            PlannedErrorIsEmpty::NestedDirect
+        } else if field.is_nested() {
+            PlannedErrorIsEmpty::NestedOptional
+        } else {
+            PlannedErrorIsEmpty::FieldError
+        };
+
+        Self {
+            field,
+            storage,
+            getter,
+            default,
+            is_empty,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedMainErrorStorage {
+    NestedDirect,
+    NestedOptional,
+    FieldError,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedErrorGetter {
+    NestedDirect,
+    NestedOptional,
+    FieldError,
+    NewtypeInnerDirect,
+    NewtypeInnerOptional,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedErrorDefault {
+    NestedDirect,
+    None,
+    FieldErrorDefault,
+    NewtypeWithValidators {
+        inner_optional: bool,
+    },
+    Regular {
+        has_field_validators: bool,
+        has_element_validators: bool,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedErrorIsEmpty {
+    NestedDirect,
+    NestedOptional,
+    FieldError,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedFieldErrorLayout<'a> {
+    pub fields: Vec<PlannedFieldError<'a>>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedFieldError<'a> {
+    pub field: &'a FieldPlan,
+    pub kind: PlannedFieldErrorKind,
+    pub field_validators: Vec<&'a PlannedValidator>,
+    pub element_validators: Vec<&'a PlannedValidator>,
+}
+
+impl<'a> PlannedFieldError<'a> {
+    fn for_field(field: &'a FieldPlan) -> Option<Self> {
+        if field.is_nested() {
+            return None;
+        }
+
+        let field_validators: Vec<_> = field.field_validators().iter().collect();
+        let element_validators: Vec<_> = field.element_validators().iter().collect();
+        let kind = match field.error_storage {
+            ErrorStorage::NewtypeInner { cardinality } => PlannedFieldErrorKind::NewtypeInner {
+                inner_optional: cardinality == FieldCardinality::Optional,
+                deref: cardinality == FieldCardinality::Required,
+            },
+            ErrorStorage::NewtypeWithValidators { cardinality } => {
+                PlannedFieldErrorKind::NewtypeWithValidators {
+                    inner_optional: cardinality == FieldCardinality::Optional,
+                }
+            },
+            ErrorStorage::RegularEmpty => PlannedFieldErrorKind::Regular {
+                storage: PlannedRegularFieldErrorStorage::Empty,
+                doc: PlannedRegularFieldErrorDoc::None,
+                all: PlannedRegularAll::None,
+                is_empty: PlannedRegularFieldErrorIsEmpty::Always,
+                has_element_error: false,
+            },
+            ErrorStorage::RegularFieldValidators => PlannedFieldErrorKind::Regular {
+                storage: PlannedRegularFieldErrorStorage::FieldValidators,
+                doc: PlannedRegularFieldErrorDoc::FieldValidators,
+                all: PlannedRegularAll::FieldValidators,
+                is_empty: PlannedRegularFieldErrorIsEmpty::FieldValidators,
+                has_element_error: false,
+            },
+            ErrorStorage::RegularElementValidators => PlannedFieldErrorKind::Regular {
+                storage: PlannedRegularFieldErrorStorage::ElementErrors,
+                doc: PlannedRegularFieldErrorDoc::ElementValidators,
+                all: PlannedRegularAll::None,
+                is_empty: PlannedRegularFieldErrorIsEmpty::ElementErrors,
+                has_element_error: true,
+            },
+            ErrorStorage::RegularFieldAndElementValidators => PlannedFieldErrorKind::Regular {
+                storage: PlannedRegularFieldErrorStorage::FieldAndElementErrors,
+                doc: PlannedRegularFieldErrorDoc::FieldAndElementValidators,
+                all: PlannedRegularAll::FieldValidators,
+                is_empty: PlannedRegularFieldErrorIsEmpty::FieldAndElementValidators,
+                has_element_error: true,
+            },
+            ErrorStorage::Nested { .. } => return None,
+        };
+
+        Some(Self {
+            field,
+            kind,
+            field_validators,
+            element_validators,
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedFieldErrorKind {
+    NewtypeInner {
+        inner_optional: bool,
+        deref: bool,
+    },
+    NewtypeWithValidators {
+        inner_optional: bool,
+    },
+    Regular {
+        storage: PlannedRegularFieldErrorStorage,
+        doc: PlannedRegularFieldErrorDoc,
+        all: PlannedRegularAll,
+        is_empty: PlannedRegularFieldErrorIsEmpty,
+        has_element_error: bool,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedRegularFieldErrorStorage {
+    Empty,
+    FieldValidators,
+    ElementErrors,
+    FieldAndElementErrors,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedRegularFieldErrorDoc {
+    None,
+    FieldValidators,
+    ElementValidators,
+    FieldAndElementValidators,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedRegularAll {
+    None,
+    FieldValidators,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum PlannedRegularFieldErrorIsEmpty {
+    Always,
+    FieldValidators,
+    ElementErrors,
+    FieldAndElementValidators,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum PlannedValidationOperation<'a> {
+    Nested(PlannedNestedValidation<'a>),
+    Newtype(PlannedNewtypeValidation<'a>),
+    Regular(PlannedRegularValidation<'a>),
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedNestedValidation<'a> {
+    pub field: &'a FieldPlan,
+    pub direct_storage: bool,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedNewtypeValidation<'a> {
+    pub field: &'a FieldPlan,
+    pub field_validators: PlannedFieldValidatorGroups<'a>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedRegularValidation<'a> {
+    pub field: &'a FieldPlan,
+    pub field_validators: PlannedFieldValidatorGroups<'a>,
+    pub element_validators: Option<PlannedElementValidation<'a>>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedFieldValidatorGroups<'a> {
+    pub full_type_validators: Vec<&'a PlannedValidator>,
+    pub unwrapped_validators: Vec<&'a PlannedValidator>,
+    pub field_optional: bool,
+}
+
+impl<'a> PlannedFieldValidatorGroups<'a> {
+    fn for_field(field: &'a FieldPlan) -> Self {
+        Self {
+            full_type_validators: field.full_field_validators().collect(),
+            unwrapped_validators: field.unwrapped_field_validators().collect(),
+            field_optional: field.field_optional(),
+        }
+    }
+
+    pub(crate) fn has_full_type_validators(&self) -> bool {
+        !self.full_type_validators.is_empty()
+    }
+
+    pub(crate) fn has_unwrapped_validators(&self) -> bool {
+        !self.unwrapped_validators.is_empty()
+    }
+
+    pub(crate) fn has_any(&self) -> bool {
+        self.has_full_type_validators() || self.has_unwrapped_validators()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PlannedElementValidation<'a> {
+    pub full_type_validators: Vec<&'a PlannedValidator>,
+    pub unwrapped_validators: Vec<&'a PlannedValidator>,
+    pub field_optional: bool,
+    pub element_optional: bool,
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct FieldSource {
     pub name: Ident,
     pub member: Member,
@@ -130,7 +482,6 @@ pub(crate) struct FieldPlan {
     pub generated_names: GeneratedNames,
     pub shape: PlannedField,
     pub error_storage: ErrorStorage,
-    pub generates_all_enum: bool,
 }
 
 impl FieldPlan {
@@ -215,7 +566,6 @@ impl FieldPlan {
         };
 
         let error_storage = ErrorStorage::for_shape(&shape);
-        let generates_all_enum = error_storage.generates_all_enum();
 
         Ok(Self {
             name: field.name.clone(),
@@ -228,7 +578,6 @@ impl FieldPlan {
             generated_names,
             shape,
             error_storage,
-            generates_all_enum,
         })
     }
 
@@ -709,7 +1058,6 @@ impl TargetCardinality {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum TargetAccess {
     BorrowField,
-    BorrowLocal,
     AlreadyBorrowedLocal,
 }
 
@@ -785,18 +1133,6 @@ impl ErrorStorage {
         }
     }
 
-    pub(crate) fn cardinality(&self) -> Option<FieldCardinality> {
-        match self {
-            Self::Nested { cardinality }
-            | Self::NewtypeInner { cardinality }
-            | Self::NewtypeWithValidators { cardinality } => Some(*cardinality),
-            Self::RegularEmpty
-            | Self::RegularFieldValidators
-            | Self::RegularElementValidators
-            | Self::RegularFieldAndElementValidators => None,
-        }
-    }
-
     pub(crate) fn is_nested(&self) -> bool {
         matches!(self, Self::Nested { .. })
     }
@@ -806,10 +1142,6 @@ impl ErrorStorage {
             self,
             Self::NewtypeInner { .. } | Self::NewtypeWithValidators { .. }
         )
-    }
-
-    pub(crate) fn has_generated_field_error_struct(&self) -> bool {
-        !self.is_nested()
     }
 
     pub(crate) fn has_field_validator_slots(&self) -> bool {
@@ -825,23 +1157,6 @@ impl ErrorStorage {
         matches!(
             self,
             Self::RegularElementValidators | Self::RegularFieldAndElementValidators
-        )
-    }
-
-    pub(crate) fn stores_inner_error(&self) -> bool {
-        matches!(
-            self,
-            Self::NewtypeInner { .. } | Self::NewtypeWithValidators { .. }
-        )
-    }
-
-    pub(crate) fn generates_all_enum(&self) -> bool {
-        matches!(
-            self,
-            Self::NewtypeWithValidators { .. }
-                | Self::RegularFieldValidators
-                | Self::RegularElementValidators
-                | Self::RegularFieldAndElementValidators
         )
     }
 }

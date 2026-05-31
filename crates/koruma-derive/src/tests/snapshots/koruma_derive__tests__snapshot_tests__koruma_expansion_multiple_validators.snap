@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 76
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -94,22 +95,24 @@ impl MultiValidatorItem {
         };
         let mut has_error = false;
         let __field_value = &self.value;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 NumberRangeValidation::min(0).max(100),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<NumberRangeValidation as ::renamed_koruma::Validate<
             i32,
         >>::validate(&validator, __field_value) {
             error.value.number_range_validation = Some(validator);
             has_error = true;
         }
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 EvenNumberValidation::__koruma_builder(),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<EvenNumberValidation as ::renamed_koruma::Validate<
             i32,
         >>::validate(&validator, __field_value) {

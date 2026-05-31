@@ -1,5 +1,5 @@
 use crate::expand::codegen::{helper_generics_for_usages, ref_enum_generics_for_usages};
-use crate::expand::plan::ValidationPlan;
+use crate::expand::plan::{PlannedFieldErrorKind, ValidationPlan};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Generics, Ident, Type};
@@ -10,21 +10,34 @@ pub(crate) fn render_field_error_structs(
     generics: &Generics,
     koruma: &TokenStream2,
 ) -> Vec<TokenStream2> {
-    plan.fields
+    let layout = plan.field_error_layout();
+
+    layout
+        .fields
         .iter()
-        .filter(|field_plan| !field_plan.is_nested())
-        .map(|field_plan| {
+        .map(|field_error| {
+            let field_plan = field_error.field;
             let field_name = &field_plan.name;
             let field_error_struct_name = &field_plan.generated_names.field_error_struct;
+            let has_field_validators = !field_error.field_validators.is_empty();
 
-            if field_plan.is_newtype() {
+            if matches!(
+                field_error.kind,
+                PlannedFieldErrorKind::NewtypeInner { .. }
+                    | PlannedFieldErrorKind::NewtypeWithValidators { .. }
+            ) {
                 let inner_ty = field_plan.inner_type();
-                let has_field_validators = field_plan.has_field_validators();
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
 
                 if !has_field_validators {
-                    let field_is_optional = field_plan.field_optional();
+                    let PlannedFieldErrorKind::NewtypeInner {
+                        inner_optional: field_is_optional,
+                        deref,
+                    } = field_error.kind
+                    else {
+                        unreachable!("newtype field without validators should have inner layout")
+                    };
                     let helper_usages: Vec<Type> =
                         vec![syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }];
                     let helper_generics = helper_generics_for_usages(generics, &helper_usages);
@@ -59,7 +72,7 @@ pub(crate) fn render_field_error_structs(
                     } else {
                         quote! { self.inner.is_empty() }
                     };
-                    let deref_impl = if field_is_optional {
+                    let deref_impl = if !deref {
                         quote! {}
                     } else {
                         quote! {
@@ -96,14 +109,14 @@ pub(crate) fn render_field_error_structs(
                     };
                 }
 
-                let field_validator_names: Vec<String> = field_plan
-                    .field_validators()
+                let field_validator_names: Vec<String> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| v.doc_name())
                     .collect();
                 let validators_list = field_validator_names.join("`], `[");
-                let mut helper_usages: Vec<Type> = field_plan
-                    .field_validators()
+                let mut helper_usages: Vec<Type> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| v.validator_type.as_type())
                     .collect();
@@ -114,10 +127,15 @@ pub(crate) fn render_field_error_structs(
                 let helper_impl_generics = &helper_generics.impl_generics;
                 let helper_ty_generics = &helper_generics.ty_generics;
                 let helper_where_clause = &helper_generics.where_clause;
-                let field_is_optional = field_plan.field_optional();
+                let PlannedFieldErrorKind::NewtypeWithValidators {
+                    inner_optional: field_is_optional,
+                } = field_error.kind
+                else {
+                    unreachable!("newtype field with validators should have validator layout")
+                };
 
-                let field_validator_fields: Vec<TokenStream2> = field_plan
-                    .field_validators()
+                let field_validator_fields: Vec<TokenStream2> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -126,8 +144,8 @@ pub(crate) fn render_field_error_structs(
                     })
                     .collect();
 
-                let field_validator_getters: Vec<TokenStream2> = field_plan
-                    .field_validators()
+                let field_validator_getters: Vec<TokenStream2> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -142,8 +160,8 @@ pub(crate) fn render_field_error_structs(
                     })
                     .collect();
 
-                let field_is_empty_checks: Vec<TokenStream2> = field_plan
-                    .field_validators()
+                let field_is_empty_checks: Vec<TokenStream2> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -156,8 +174,8 @@ pub(crate) fn render_field_error_structs(
                 let enum_definition = &enum_generics.definition;
                 let enum_path = enum_generics.return_type_path(enum_name);
 
-                let enum_variants: Vec<TokenStream2> = field_plan
-                    .field_validators()
+                let enum_variants: Vec<TokenStream2> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| {
                         let variant_name = &v.variant_ident;
@@ -169,8 +187,8 @@ pub(crate) fn render_field_error_structs(
                 let inner_error_ty = quote! { <#inner_ty as #koruma::ValidateExt>::Error };
                 let inner_variant = quote! { Inner(&'koruma #inner_error_ty) };
 
-                let all_pushes: Vec<TokenStream2> = field_plan
-                    .field_validators()
+                let all_pushes: Vec<TokenStream2> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -262,10 +280,16 @@ pub(crate) fn render_field_error_structs(
                 };
             }
 
-            let has_element_validators = field_plan.has_element_validators();
+            let PlannedFieldErrorKind::Regular {
+                has_element_error: has_element_validators,
+                ..
+            } = field_error.kind
+            else {
+                unreachable!("non-newtype field error layout should be regular")
+            };
 
-            let field_validator_fields: Vec<TokenStream2> = field_plan
-                .field_validators()
+            let field_validator_fields: Vec<TokenStream2> = field_error
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake = &v.field_ident;
@@ -274,8 +298,8 @@ pub(crate) fn render_field_error_structs(
                 })
                 .collect();
 
-            let field_validator_getters: Vec<TokenStream2> = field_plan
-                .field_validators()
+            let field_validator_getters: Vec<TokenStream2> = field_error
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake = &v.field_ident;
@@ -290,23 +314,23 @@ pub(crate) fn render_field_error_structs(
                 })
                 .collect();
 
-            let field_is_empty_checks: Vec<TokenStream2> = field_plan
-                .field_validators()
+            let field_is_empty_checks: Vec<TokenStream2> = field_error
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake = &v.field_ident;
                     quote! { self.#validator_snake.is_none() }
                 })
                 .collect();
-            let field_validator_usages: Vec<Type> = field_plan
-                .field_validators()
+            let field_validator_usages: Vec<Type> = field_error
+                .field_validators
                 .iter()
                 .map(|v| v.validator_type.as_type())
                 .collect();
             let element_error_struct_name = &field_plan.generated_names.element_error_struct;
             let element_enum_name = &field_plan.generated_names.element_validator_ref_enum;
-            let element_validator_usages: Vec<Type> = field_plan
-                .element_validators()
+            let element_validator_usages: Vec<Type> = field_error
+                .element_validators
                 .iter()
                 .map(|v| v.validator_type.as_type())
                 .collect();
@@ -338,8 +362,8 @@ pub(crate) fn render_field_error_structs(
                 let element_enum_definition = &element_enum_generics.definition;
                 let element_enum_path = element_enum_generics.return_type_path(element_enum_name);
 
-                let element_validator_names: Vec<String> = field_plan
-                    .element_validators()
+                let element_validator_names: Vec<String> = field_error
+                    .element_validators
                     .iter()
                     .map(|v| v.doc_name())
                     .collect();
@@ -347,8 +371,8 @@ pub(crate) fn render_field_error_structs(
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
 
-                let element_validator_fields: Vec<TokenStream2> = field_plan
-                    .element_validators()
+                let element_validator_fields: Vec<TokenStream2> = field_error
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -357,8 +381,8 @@ pub(crate) fn render_field_error_structs(
                     })
                     .collect();
 
-                let element_validator_getters: Vec<TokenStream2> = field_plan
-                    .element_validators()
+                let element_validator_getters: Vec<TokenStream2> = field_error
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -373,8 +397,8 @@ pub(crate) fn render_field_error_structs(
                     })
                     .collect();
 
-                let element_is_empty_checks: Vec<TokenStream2> = field_plan
-                    .element_validators()
+                let element_is_empty_checks: Vec<TokenStream2> = field_error
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -382,8 +406,8 @@ pub(crate) fn render_field_error_structs(
                     })
                     .collect();
 
-                let element_enum_variants: Vec<TokenStream2> = field_plan
-                    .element_validators()
+                let element_enum_variants: Vec<TokenStream2> = field_error
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let variant_name = &v.variant_ident;
@@ -392,8 +416,8 @@ pub(crate) fn render_field_error_structs(
                     })
                     .collect();
 
-                let element_all_pushes: Vec<TokenStream2> = field_plan
-                    .element_validators()
+                let element_all_pushes: Vec<TokenStream2> = field_error
+                    .element_validators
                     .iter()
                     .map(|v| {
                         let validator_snake = &v.field_ident;
@@ -471,8 +495,8 @@ pub(crate) fn render_field_error_structs(
             let field_enum_definition = &field_enum_helper_generics.definition;
             let field_enum_path = field_enum_helper_generics.return_type_path(enum_name);
 
-            let enum_variants: Vec<TokenStream2> = field_plan
-                .field_validators()
+            let enum_variants: Vec<TokenStream2> = field_error
+                .field_validators
                 .iter()
                 .map(|v| {
                     let variant_name = &v.variant_ident;
@@ -481,8 +505,8 @@ pub(crate) fn render_field_error_structs(
                 })
                 .collect();
 
-            let all_pushes: Vec<TokenStream2> = field_plan
-                .field_validators()
+            let all_pushes: Vec<TokenStream2> = field_error
+                .field_validators
                 .iter()
                 .map(|v| {
                     let validator_snake = &v.field_ident;
@@ -493,11 +517,11 @@ pub(crate) fn render_field_error_structs(
                 })
                 .collect();
 
-            let enum_and_all = if !field_plan.has_field_validators() {
+            let enum_and_all = if !has_field_validators {
                 quote! {}
             } else {
-                let validator_names: Vec<String> = field_plan
-                    .field_validators()
+                let validator_names: Vec<String> = field_error
+                    .field_validators
                     .iter()
                     .map(|v| v.doc_name())
                     .collect();
@@ -514,7 +538,7 @@ pub(crate) fn render_field_error_structs(
                 }
             };
 
-            let all_method = if !field_plan.has_field_validators() {
+            let all_method = if !has_field_validators {
                 quote! {}
             } else {
                 let field_name_str = field_name.to_string();
@@ -530,7 +554,7 @@ pub(crate) fn render_field_error_structs(
                 }
             };
 
-            let is_empty_body = if !field_plan.has_field_validators() {
+            let is_empty_body = if !has_field_validators {
                 quote! { self.element_errors.is_empty() }
             } else {
                 quote! { #(#field_is_empty_checks)&&* #element_is_empty_check }
@@ -539,15 +563,15 @@ pub(crate) fn render_field_error_structs(
             let field_error_struct_doc = {
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
-                if has_element_validators && field_plan.has_field_validators() {
-                    let field_validator_names: Vec<String> = field_plan
-                        .field_validators()
+                if has_element_validators && has_field_validators {
+                    let field_validator_names: Vec<String> = field_error
+                        .field_validators
                         .iter()
                         .map(|v| v.doc_name())
                         .collect();
                     let field_validators = field_validator_names.join("`], `[");
-                    let element_validator_names: Vec<String> = field_plan
-                        .element_validators()
+                    let element_validator_names: Vec<String> = field_error
+                        .element_validators
                         .iter()
                         .map(|v| v.doc_name())
                         .collect();
@@ -559,9 +583,9 @@ pub(crate) fn render_field_error_structs(
                     quote! {
                         #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`] (element validators only).")]
                     }
-                } else if field_plan.has_field_validators() {
-                    let field_validator_names: Vec<String> = field_plan
-                        .field_validators()
+                } else if has_field_validators {
+                    let field_validator_names: Vec<String> = field_error
+                        .field_validators
                         .iter()
                         .map(|v| v.doc_name())
                         .collect();
@@ -574,9 +598,7 @@ pub(crate) fn render_field_error_structs(
                 }
             };
 
-            let struct_fields = if field_plan.has_field_validators()
-                && field_plan.has_element_validators()
-            {
+            let struct_fields = if has_field_validators && has_element_validators {
                 let element_error_path = element_error_path
                     .as_ref()
                     .expect("element validators should have an error path");
@@ -584,7 +606,7 @@ pub(crate) fn render_field_error_structs(
                     #(#field_validator_fields,)*
                     element_errors: Vec<(usize, #element_error_path)>
                 }
-            } else if field_plan.has_element_validators() {
+            } else if has_element_validators {
                 let element_error_path = element_error_path
                     .as_ref()
                     .expect("element validators should have an error path");

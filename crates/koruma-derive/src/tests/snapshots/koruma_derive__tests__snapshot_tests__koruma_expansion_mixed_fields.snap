@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 235
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -222,11 +223,12 @@ impl ComplexItem {
         };
         let mut has_error = false;
         let __field_value = &self.age;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 RangeValidation::min(0).max(100),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<RangeValidation as ::renamed_koruma::Validate<
             i32,
         >>::validate(&validator, __field_value) {
@@ -238,11 +240,12 @@ impl ComplexItem {
                 length_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::BuildValidator::build_validator(
+                ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     LengthValidation::min(1).max(50),
                     __item_value,
-                )
-                .build();
+                ),
+            );
             if !<LengthValidation as ::renamed_koruma::Validate<
                 String,
             >>::validate(&validator, __item_value) {
@@ -255,22 +258,24 @@ impl ComplexItem {
             }
         }
         let __field_value = &self.rating;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 RangeValidation::min(0).max(10),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<RangeValidation as ::renamed_koruma::Validate<
             i32,
         >>::validate(&validator, __field_value) {
             error.rating.range_validation = Some(validator);
             has_error = true;
         }
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 EvenValidation::__koruma_builder(),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<EvenValidation as ::renamed_koruma::Validate<
             i32,
         >>::validate(&validator, __field_value) {

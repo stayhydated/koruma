@@ -1,22 +1,22 @@
-error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+error: `#[builder(...)]` is not valid on koruma validator fields; use `#[koruma(setter(...))]` for generated setter options
  --> tests/ui/unsupported_direct_builder_attrs.rs:5:5
   |
 5 |     #[builder(skip = 0)]
   |     ^^^^^^^^^^^^^^^^^^^^
 
-error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+error: `#[builder(...)]` is not valid on koruma validator fields; use `#[koruma(setter(...))]` for generated setter options
   --> tests/ui/unsupported_direct_builder_attrs.rs:13:5
    |
 13 |     #[builder(field(value: usize))]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+error: `#[builder(...)]` is not valid on koruma validator fields; use `#[koruma(setter(...))]` for generated setter options
   --> tests/ui/unsupported_direct_builder_attrs.rs:21:5
    |
 21 |     #[builder(start_fn = custom)]
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-error: `#[koruma::validator]` no longer reads `#[builder(...)]`; use `#[koruma(setter(...))]` instead
+error: `#[builder(...)]` is not valid on koruma validator fields; use `#[koruma(setter(...))]` for generated setter options
   --> tests/ui/unsupported_direct_builder_attrs.rs:29:5
    |
 29 |     #[builder(getter)]

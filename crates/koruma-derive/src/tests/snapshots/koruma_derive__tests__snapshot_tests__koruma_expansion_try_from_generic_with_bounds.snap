@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 1042
 expression: rendered
 ---
 #[doc = concat!(
@@ -86,11 +87,12 @@ impl<T: Clone> BoundedWrapper<T> {
         };
         let mut has_error = false;
         let __field_value = &self.0;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 GenericRange::<T>::min(0).max(100),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<GenericRange<
             T,
         > as ::renamed_koruma::Validate<T>>::validate(&validator, __field_value) {

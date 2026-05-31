@@ -23,6 +23,15 @@ pub trait ValidationError {
     }
 }
 
+/// Hidden trait used by generated validation code to turn a ready validator
+/// builder into its validator instance.
+#[doc(hidden)]
+pub trait BuildValidator {
+    type Validator;
+
+    fn build_validator(self) -> Self::Validator;
+}
+
 /// Hidden trait used by derived validation code to apply borrowed values to
 /// validator builders according to their capture policy.
 ///
@@ -32,7 +41,7 @@ pub trait ValidationError {
 /// default value instead.
 #[doc(hidden)]
 pub trait CaptureValueRef<T> {
-    type Output;
+    type Output: BuildValidator;
 
     fn capture_value_ref(self, value: &T) -> Self::Output;
 }

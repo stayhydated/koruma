@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 1069
 expression: rendered
 ---
 #[doc = concat!(
@@ -106,11 +107,12 @@ impl OptionalWrapper {
             },
         };
         let mut has_error = false;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 RequiredValidation::<Option<InnerValue>>::__koruma_builder(),
                 &self.inner,
-            )
-            .build();
+            ),
+        );
         if !<RequiredValidation<
             Option<InnerValue>,
         > as ::renamed_koruma::Validate<

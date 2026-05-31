@@ -23,11 +23,10 @@
 ## Modules
 
 - `expand/validator.rs`: generates Koruma-owned validator builders, direct setter entrypoints,
-  `with_value`, the hidden `CaptureValueRef` capture hook, and optional showcase registration
-  while preserving the validator's original bounds in the generated showcase impl. Direct setter
-  projection uses
-  field-level `#[koruma(setter(...))]` metadata with `into`, `required`, `name`, and `default`
-  options.
+  `with_value`, hidden `CaptureValueRef` and `BuildValidator` glue, and optional showcase
+  registration while preserving the validator's original bounds in the generated showcase impl.
+  Direct setter projection consumes `koruma-derive-core`'s typed validator-field spec for
+  `value` and `setter(...)` metadata.
 - `expand/error_bag.rs`: combines independent `syn::Error` values so parsing and planning can
   report multiple field, validator-name, and setter-argument diagnostics in one macro expansion.
 - `showcase_modules.rs` (feature `internal-showcase`): generates the linker shim used for
@@ -36,7 +35,7 @@
 - `lib.rs` (feature `internal-showcase`): also exports the `showcase_module_enum!` macro that
   expands `koruma::showcase::ValidatorModule` in a shared crate feature pass.
 - `expand/derive.rs`: generates error structs, `validate()`, `try_new`, `TryFrom`, nested/newtype handling, and element validator errors for `each(...)`.
-- `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, field cardinality, typed `each(...)` collection classification, `TargetPlan` validation target decisions, and generated-name decisions before rendering. Renderers iterate the planned field list directly rather than zipping separate parser and planner vectors.
+- `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, field cardinality, typed `each(...)` collection classification, `TargetPlan` validation target decisions, generated-name decisions, and render-ready validation/error layout nodes. Validation and error renderers consume those operation/layout nodes instead of rebuilding full/unwrapped/optional grouping and storage shapes from raw field data.
 - `TargetPlan`: centralizes whether a validator targets a field or element, whether it receives the full optional target or the unwrapped inner value, the raw and validate types, optional cardinality, and how generated validation code should borrow the target expression.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
 - `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).

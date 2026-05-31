@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 173
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -70,10 +71,24 @@ impl DirectValueValidationBuilder<
         }
     }
 }
+impl ::renamed_koruma::BuildValidator
+for DirectValueValidationBuilder<
+    direct_value_validation_builder::Set,
+    direct_value_validation_builder::Set,
+> {
+    type Validator = DirectValueValidation;
+    fn build_validator(self) -> Self::Validator {
+        self.build()
+    }
+}
 impl<__KorumaMinState, __KorumaActualState> ::renamed_koruma::CaptureValueRef<i32>
 for DirectValueValidationBuilder<__KorumaMinState, __KorumaActualState>
 where
     i32: ::std::clone::Clone,
+    DirectValueValidationBuilder<
+        __KorumaMinState,
+        direct_value_validation_builder::Set,
+    >: ::renamed_koruma::BuildValidator,
 {
     type Output = DirectValueValidationBuilder<
         __KorumaMinState,

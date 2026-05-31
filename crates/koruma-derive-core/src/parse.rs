@@ -4,7 +4,6 @@
 //! attributes from syn AST nodes.
 
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use proc_macro2::TokenStream as TokenStream2;
 use syn::{
     Attribute, Error, Expr, Field, Fields, GenericArgument, Ident, Index, ItemStruct, Member, Path,
     PathArguments, Result, Token, Type, parenthesized,
@@ -1326,10 +1325,76 @@ fn normalize_field_items(
     Ok(Some(spec))
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// Parsed validator-field `value` marker metadata.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatorValueSpec {
+    pub capture: CapturePolicy,
+}
+
+/// Default behavior requested by `#[koruma(setter(default...))]`.
+#[derive(Clone, Debug)]
+pub enum SetterDefault {
+    None,
+    Default,
+    Expr(Expr),
+}
+
+/// Parsed validator-field `setter(...)` metadata.
+#[derive(Clone, Debug)]
+pub struct ValidatorSetterSpec {
+    pub method: Ident,
+    pub into: bool,
+    pub required: bool,
+    pub default: SetterDefault,
+}
+
+/// Typed role of a field inside a `#[koruma::validator]` struct.
+#[derive(Clone, Debug)]
+pub enum ValidatorFieldRole {
+    Value(ValidatorValueSpec),
+    Setter(ValidatorSetterSpec),
+}
+
+/// Typed metadata for one field inside a `#[koruma::validator]` struct.
+#[derive(Clone, Debug)]
+pub struct ValidatorFieldSpec {
+    pub name: Ident,
+    pub ty: Type,
+    pub role: ValidatorFieldRole,
+}
+
+/// Fully parsed and normalized `#[koruma::validator]` struct-field metadata.
+#[derive(Clone, Debug)]
+pub struct ValidatorStructSpec {
+    pub fields: Vec<ValidatorFieldSpec>,
+    pub value_index: usize,
+}
+
+impl ValidatorStructSpec {
+    pub fn value_field(&self) -> &ValidatorFieldSpec {
+        &self.fields[self.value_index]
+    }
+
+    pub fn value_spec(&self) -> &ValidatorValueSpec {
+        let ValidatorFieldRole::Value(value) = &self.value_field().role else {
+            unreachable!("value_index should point at a value field")
+        };
+        value
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum ValidatorFieldKorumaItem {
-    Value { capture: CapturePolicy },
-    Setter,
+    Value(ValidatorValueSpec),
+    Setter(ParsedSetterOptions),
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ParsedSetterOptions {
+    method: Option<Ident>,
+    into: bool,
+    required: bool,
+    default: SetterDefault,
 }
 
 #[derive(Clone, Debug)]
@@ -1341,6 +1406,12 @@ struct ValidatorFieldMarker {
 #[derive(Clone, Debug, Default)]
 struct ValidatorFieldKorumaAttr {
     markers: Vec<ValidatorFieldMarker>,
+}
+
+impl Default for SetterDefault {
+    fn default() -> Self {
+        Self::None
+    }
 }
 
 impl Parse for ValidatorFieldKorumaAttr {
@@ -1355,17 +1426,11 @@ impl Parse for ValidatorFieldKorumaAttr {
                 } else {
                     CapturePolicy::CloneInput
                 };
-                ValidatorFieldKorumaItem::Value { capture }
+                ValidatorFieldKorumaItem::Value(ValidatorValueSpec { capture })
             } else if ident == "skip_capture" {
-                return Err(Error::new(
-                    ident.span(),
-                    "`skip_capture` has been replaced by `value(capture = skip)`",
-                ));
+                return Err(context_error(&ident, KorumaAttrContext::ValidatorField));
             } else if ident == "setter" {
-                let content;
-                parenthesized!(content in input);
-                let _: TokenStream2 = content.parse()?;
-                ValidatorFieldKorumaItem::Setter
+                ValidatorFieldKorumaItem::Setter(parse_setter_options(input)?)
             } else {
                 return Err(context_error(&ident, KorumaAttrContext::ValidatorField));
             };
@@ -1380,6 +1445,46 @@ impl Parse for ValidatorFieldKorumaAttr {
 
         Ok(attr)
     }
+}
+
+fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
+    let content;
+    parenthesized!(content in input);
+    let mut options = ParsedSetterOptions::default();
+
+    while !content.is_empty() {
+        let ident: Ident = content.parse()?;
+        if ident == "into" {
+            options.into = true;
+        } else if ident == "required" {
+            options.required = true;
+        } else if ident == "name" {
+            content.parse::<Token![=]>()?;
+            options.method = Some(content.parse()?);
+        } else if ident == "default" {
+            options.default = if content.peek(Token![=]) {
+                content.parse::<Token![=]>()?;
+                SetterDefault::Expr(content.parse()?)
+            } else {
+                SetterDefault::Default
+            };
+        } else {
+            return Err(Error::new(
+                ident.span(),
+                format!(
+                    "unsupported `#[koruma(setter({ident}))]` option; supported options are `into`, `required`, `name`, and `default`"
+                ),
+            ));
+        }
+
+        if content.peek(Token![,]) {
+            content.parse::<Token![,]>()?;
+        } else {
+            break;
+        }
+    }
+
+    Ok(options)
 }
 
 fn parse_value_capture_policy(input: ParseStream) -> Result<CapturePolicy> {
@@ -1439,23 +1544,48 @@ pub struct ValueFieldInfo {
     pub capture: CapturePolicy,
 }
 
-/// Find the field marked with `#[koruma(value)]` and return its parsed info.
+/// Parse all fields in a `#[koruma::validator]` struct into typed metadata.
 ///
-/// This strict variant validates that validator structs use exactly one
-/// `#[koruma(value)]` marker and that validator-field `#[koruma(...)]`
-/// attributes only contain the `value`, `value(capture = skip)`, and `setter(...)` markers.
-pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFieldInfo>> {
+/// This strict API proves that exactly one field is marked `#[koruma(value)]`,
+/// value fields do not also define setter metadata, all validator-field
+/// `#[koruma(...)]` attributes use validator-field grammar, and required
+/// setters are not also defaulted.
+pub fn parse_validator_fields_strict(input: &ItemStruct) -> Result<ValidatorStructSpec> {
+    parse_validator_fields(input, true)?.ok_or_else(|| {
+        Error::new_spanned(
+            input,
+            "koruma::validator requires a field marked with #[koruma(value)].\n\
+             Example:\n\
+             #[koruma(value)]\n\
+             actual: Option<i32>",
+        )
+    })
+}
+
+fn parse_validator_fields(
+    input: &ItemStruct,
+    require_value: bool,
+) -> Result<Option<ValidatorStructSpec>> {
     let Fields::Named(ref fields) = input.fields else {
         return Ok(None);
     };
 
-    let mut found: Option<ValueFieldInfo> = None;
+    let mut parsed_fields: Vec<ValidatorFieldSpec> = Vec::new();
+    let mut value_index: Option<usize> = None;
 
     for field in &fields.named {
         let Some(field_name) = field.ident.clone() else {
             continue;
         };
-        let mut field_capture: Option<CapturePolicy> = None;
+
+        let mut value: Option<(Ident, ValidatorValueSpec)> = None;
+        let mut setter = ValidatorSetterSpec {
+            method: field_name.clone(),
+            into: false,
+            required: false,
+            default: SetterDefault::None,
+        };
+        let mut has_setter_metadata = false;
 
         for attr in field.attrs.to_vec().find_attribute("koruma") {
             let markers = validator_field_attr(&attr)?;
@@ -1470,44 +1600,102 @@ pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFi
             }
 
             for marker in markers.markers {
-                if let ValidatorFieldKorumaItem::Value { capture } = marker.item {
-                    if field_capture.is_some() {
-                        return Err(Error::new(
-                            marker.ident.span(),
-                            format!("field `{field_name}` has multiple `#[koruma(value)]` markers"),
-                        ));
-                    }
-
-                    field_capture = Some(capture);
-                    continue;
-                }
-
-                if marker.item == ValidatorFieldKorumaItem::Setter {
-                    continue;
+                match marker.item {
+                    ValidatorFieldKorumaItem::Value(value_spec) => {
+                        if value.is_some() {
+                            return Err(Error::new(
+                                marker.ident.span(),
+                                format!(
+                                    "field `{field_name}` has multiple `#[koruma(value)]` markers"
+                                ),
+                            ));
+                        }
+                        value = Some((marker.ident, value_spec));
+                    },
+                    ValidatorFieldKorumaItem::Setter(setter_options) => {
+                        has_setter_metadata = true;
+                        merge_setter_options(&mut setter, setter_options);
+                    },
                 }
             }
         }
 
-        if let Some(capture) = field_capture {
-            if let Some(existing) = &found {
+        if value.is_some() && has_setter_metadata {
+            return Err(Error::new_spanned(
+                field,
+                "`#[koruma(value)]` fields cannot also use `#[koruma(setter(...))]`",
+            ));
+        }
+
+        if setter.required && !matches!(setter.default, SetterDefault::None) {
+            return Err(Error::new_spanned(
+                field,
+                "`required` and `default` cannot be combined in `#[koruma(setter(...))]`",
+            ));
+        }
+
+        let role = if let Some((_, value_spec)) = value {
+            if let Some(existing_index) = value_index {
+                let existing = &parsed_fields[existing_index].name;
                 return Err(Error::new(
                     field_name.span(),
                     format!(
                         "koruma::validator requires exactly one `#[koruma(value)]` field, found both `{}` and `{}`",
-                        existing.name, field_name
+                        existing, field_name
                     ),
                 ));
             }
+            value_index = Some(parsed_fields.len());
+            ValidatorFieldRole::Value(value_spec)
+        } else {
+            ValidatorFieldRole::Setter(setter)
+        };
 
-            found = Some(ValueFieldInfo {
-                name: field_name,
-                ty: field.ty.clone(),
-                capture,
-            });
-        }
+        parsed_fields.push(ValidatorFieldSpec {
+            name: field_name,
+            ty: field.ty.clone(),
+            role,
+        });
     }
 
-    Ok(found)
+    match value_index {
+        Some(value_index) => Ok(Some(ValidatorStructSpec {
+            fields: parsed_fields,
+            value_index,
+        })),
+        None if require_value => Ok(None),
+        None => Ok(None),
+    }
+}
+
+fn merge_setter_options(setter: &mut ValidatorSetterSpec, options: ParsedSetterOptions) {
+    if let Some(method) = options.method {
+        setter.method = method;
+    }
+    setter.into |= options.into;
+    setter.required |= options.required;
+    if !matches!(options.default, SetterDefault::None) {
+        setter.default = options.default;
+    }
+}
+
+/// Find the field marked with `#[koruma(value)]` and return its parsed info.
+///
+/// This strict variant validates that validator structs use exactly one
+/// `#[koruma(value)]` marker and that validator-field `#[koruma(...)]`
+/// attributes only contain the `value`, `value(capture = skip)`, and `setter(...)` markers.
+pub fn find_value_field_info_strict(input: &ItemStruct) -> Result<Option<ValueFieldInfo>> {
+    Ok(parse_validator_fields(input, false)?.map(|spec| {
+        let value_field = spec.value_field();
+        let ValidatorFieldRole::Value(value) = &value_field.role else {
+            unreachable!("value field should have value role")
+        };
+        ValueFieldInfo {
+            name: value_field.name.clone(),
+            ty: value_field.ty.clone(),
+            capture: value.capture,
+        }
+    }))
 }
 
 /// Find the field marked with `#[koruma(value)]` and return its name and type.

@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 252
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -136,11 +137,12 @@ impl UserProfile {
         };
         let mut has_error = false;
         let __field_value = &self.username;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 StringLengthValidation::min(1).max(50),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<StringLengthValidation as ::renamed_koruma::Validate<
             String,
         >>::validate(&validator, __field_value) {
@@ -148,11 +150,12 @@ impl UserProfile {
             has_error = true;
         }
         if let Some(ref __field_value) = self.bio {
-            let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::BuildValidator::build_validator(
+                ::renamed_koruma::CaptureValueRef::capture_value_ref(
                     StringLengthValidation::min(1).max(200),
                     __field_value,
-                )
-                .build();
+                ),
+            );
             if !<StringLengthValidation as ::renamed_koruma::Validate<
                 String,
             >>::validate(&validator, __field_value) {

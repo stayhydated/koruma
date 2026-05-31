@@ -17,4 +17,8 @@ in validation, `None` for skipped or unannotated fields, and `Err` for invalid m
 Participating fields expose a `ParsedFieldSpec` shape, which separates regular, nested, and
 newtype validation so invalid combinations cannot be represented after parsing.
 
+`parse_validator_fields_strict` returns `ValidatorStructSpec` for `#[koruma::validator]` structs.
+It keeps `value`, `value(capture = skip)`, and `setter(...)` metadata typed in this crate before
+the proc-macro renderer builds validator builders.
+
 Most users should depend on `koruma` (or `koruma-derive`) instead of this crate directly.

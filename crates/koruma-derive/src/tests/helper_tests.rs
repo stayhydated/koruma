@@ -7,8 +7,11 @@ use crate::expand::{
     },
     effective_validation_type,
     plan::{
-        ErrorStorage, PlannedField, PlannedValidatorTypeArg, StructPlan, TargetAccess,
-        TargetCardinality, TargetPolicy, TargetScope, ValidationPlan,
+        ErrorStorage, PlannedErrorDefault, PlannedErrorGetter, PlannedErrorIsEmpty, PlannedField,
+        PlannedFieldErrorKind, PlannedMainErrorStorage, PlannedRegularAll,
+        PlannedRegularFieldErrorDoc, PlannedRegularFieldErrorIsEmpty,
+        PlannedRegularFieldErrorStorage, PlannedValidationOperation, PlannedValidatorTypeArg,
+        StructPlan, TargetAccess, TargetCardinality, TargetPolicy, TargetScope, ValidationPlan,
     },
 };
 use koruma_derive_core::*;
@@ -709,6 +712,262 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
         panic!("expected inferred element validator type");
     };
     assert_eq!(quote!(#resolved_ty).to_string(), "String");
+}
+
+#[test]
+fn test_validation_plan_exposes_render_ready_validation_operations() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        struct Planned {
+            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>::min(1))]
+            name: Option<String>,
+            #[koruma(each(full(ItemRequired::<_>), ItemLength::<_>::min(1)))]
+            tags: Vec<Option<String>>,
+        }
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    let operations = plan.validation_operations();
+    assert_eq!(operations.len(), 2);
+
+    let PlannedValidationOperation::Regular(name_operation) = &operations[0] else {
+        panic!("expected regular validation operation");
+    };
+    assert_eq!(name_operation.field.name.to_string(), "name");
+    assert!(name_operation.field_validators.field_optional);
+    assert_eq!(
+        name_operation.field_validators.full_type_validators.len(),
+        1
+    );
+    assert_eq!(
+        name_operation.field_validators.unwrapped_validators.len(),
+        1
+    );
+    assert!(name_operation.element_validators.is_none());
+
+    let PlannedValidationOperation::Regular(tags_operation) = &operations[1] else {
+        panic!("expected regular validation operation");
+    };
+    assert!(!tags_operation.field_validators.has_any());
+    let element = tags_operation
+        .element_validators
+        .as_ref()
+        .expect("expected element operation");
+    assert!(!element.field_optional);
+    assert!(element.element_optional);
+    assert_eq!(element.full_type_validators.len(), 1);
+    assert_eq!(element.unwrapped_validators.len(), 1);
+}
+
+#[test]
+fn test_validation_plan_exposes_main_error_layout() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        #[koruma(newtype)]
+        struct Planned(#[koruma(nested)] Child);
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    let layout = plan.main_error_layout();
+    assert_eq!(layout.fields.len(), 1);
+    assert_eq!(layout.fields[0].field.name.to_string(), "_0");
+    assert_eq!(
+        layout.fields[0].storage,
+        PlannedMainErrorStorage::NestedDirect
+    );
+    assert_eq!(layout.fields[0].getter, PlannedErrorGetter::NestedDirect);
+    assert_eq!(layout.fields[0].default, PlannedErrorDefault::NestedDirect);
+    assert_eq!(layout.fields[0].is_empty, PlannedErrorIsEmpty::NestedDirect);
+
+    let input: syn::DeriveInput = syn::parse_quote! {
+        struct Planned {
+            #[koruma(nested)]
+            child: Option<Child>,
+            #[koruma(newtype)]
+            raw: Wrapper,
+            #[koruma(newtype)]
+            wrapper: Option<Wrapper>,
+            #[koruma(newtype, RequiredValidation)]
+            checked: Wrapper,
+            #[koruma(newtype, RequiredValidation)]
+            maybe_checked: Option<Wrapper>,
+            #[koruma(RangeValidation::min(0), each(ItemValidation))]
+            values: Vec<i32>,
+        }
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    let layout = plan.main_error_layout();
+    assert_eq!(layout.fields.len(), 6);
+
+    assert_eq!(
+        layout.fields[0].storage,
+        PlannedMainErrorStorage::NestedOptional
+    );
+    assert_eq!(layout.fields[0].getter, PlannedErrorGetter::NestedOptional);
+    assert_eq!(layout.fields[0].default, PlannedErrorDefault::None);
+    assert_eq!(
+        layout.fields[0].is_empty,
+        PlannedErrorIsEmpty::NestedOptional
+    );
+
+    assert_eq!(
+        layout.fields[1].storage,
+        PlannedMainErrorStorage::FieldError
+    );
+    assert_eq!(
+        layout.fields[1].getter,
+        PlannedErrorGetter::NewtypeInnerDirect
+    );
+    assert_eq!(
+        layout.fields[1].default,
+        PlannedErrorDefault::FieldErrorDefault
+    );
+    assert_eq!(layout.fields[1].is_empty, PlannedErrorIsEmpty::FieldError);
+
+    assert_eq!(
+        layout.fields[2].storage,
+        PlannedMainErrorStorage::FieldError
+    );
+    assert_eq!(
+        layout.fields[2].getter,
+        PlannedErrorGetter::NewtypeInnerOptional
+    );
+    assert_eq!(
+        layout.fields[2].default,
+        PlannedErrorDefault::FieldErrorDefault
+    );
+    assert_eq!(layout.fields[2].is_empty, PlannedErrorIsEmpty::FieldError);
+
+    assert_eq!(
+        layout.fields[3].storage,
+        PlannedMainErrorStorage::FieldError
+    );
+    assert_eq!(layout.fields[3].getter, PlannedErrorGetter::FieldError);
+    assert_eq!(
+        layout.fields[3].default,
+        PlannedErrorDefault::NewtypeWithValidators {
+            inner_optional: false,
+        }
+    );
+    assert_eq!(layout.fields[3].is_empty, PlannedErrorIsEmpty::FieldError);
+
+    assert_eq!(
+        layout.fields[4].storage,
+        PlannedMainErrorStorage::FieldError
+    );
+    assert_eq!(layout.fields[4].getter, PlannedErrorGetter::FieldError);
+    assert_eq!(
+        layout.fields[4].default,
+        PlannedErrorDefault::NewtypeWithValidators {
+            inner_optional: true,
+        }
+    );
+    assert_eq!(layout.fields[4].is_empty, PlannedErrorIsEmpty::FieldError);
+
+    assert_eq!(
+        layout.fields[5].storage,
+        PlannedMainErrorStorage::FieldError
+    );
+    assert_eq!(layout.fields[5].getter, PlannedErrorGetter::FieldError);
+    assert_eq!(
+        layout.fields[5].default,
+        PlannedErrorDefault::Regular {
+            has_field_validators: true,
+            has_element_validators: true,
+        }
+    );
+    assert_eq!(layout.fields[5].is_empty, PlannedErrorIsEmpty::FieldError);
+}
+
+#[test]
+fn test_validation_plan_exposes_field_error_layout() {
+    let input: syn::DeriveInput = syn::parse_quote! {
+        struct Planned {
+            #[koruma(nested)]
+            child: Child,
+            #[koruma(newtype)]
+            raw: Wrapper,
+            #[koruma(newtype)]
+            wrapper: Option<Wrapper>,
+            #[koruma(newtype, RequiredValidation)]
+            checked: Wrapper,
+            #[koruma(RequiredValidation)]
+            name: String,
+            #[koruma(each(ItemValidation))]
+            tags: Vec<String>,
+            #[koruma(LengthValidation::min(1), each(ItemValidation))]
+            values: Vec<String>,
+        }
+    };
+
+    let plan = ValidationPlan::build(&input, "Koruma").expect("expected plan");
+    let layout = plan.field_error_layout();
+    assert_eq!(layout.fields.len(), 6);
+
+    assert_eq!(layout.fields[0].field.name.to_string(), "raw");
+    assert_eq!(
+        layout.fields[0].kind,
+        PlannedFieldErrorKind::NewtypeInner {
+            inner_optional: false,
+            deref: true,
+        }
+    );
+
+    assert_eq!(layout.fields[1].field.name.to_string(), "wrapper");
+    assert_eq!(
+        layout.fields[1].kind,
+        PlannedFieldErrorKind::NewtypeInner {
+            inner_optional: true,
+            deref: false,
+        }
+    );
+
+    assert_eq!(layout.fields[2].field.name.to_string(), "checked");
+    assert_eq!(
+        layout.fields[2].kind,
+        PlannedFieldErrorKind::NewtypeWithValidators {
+            inner_optional: false,
+        }
+    );
+    assert_eq!(layout.fields[2].field_validators.len(), 1);
+
+    assert_eq!(layout.fields[3].field.name.to_string(), "name");
+    assert_eq!(
+        layout.fields[3].kind,
+        PlannedFieldErrorKind::Regular {
+            storage: PlannedRegularFieldErrorStorage::FieldValidators,
+            doc: PlannedRegularFieldErrorDoc::FieldValidators,
+            all: PlannedRegularAll::FieldValidators,
+            is_empty: PlannedRegularFieldErrorIsEmpty::FieldValidators,
+            has_element_error: false,
+        }
+    );
+
+    assert_eq!(layout.fields[4].field.name.to_string(), "tags");
+    assert_eq!(
+        layout.fields[4].kind,
+        PlannedFieldErrorKind::Regular {
+            storage: PlannedRegularFieldErrorStorage::ElementErrors,
+            doc: PlannedRegularFieldErrorDoc::ElementValidators,
+            all: PlannedRegularAll::None,
+            is_empty: PlannedRegularFieldErrorIsEmpty::ElementErrors,
+            has_element_error: true,
+        }
+    );
+    assert_eq!(layout.fields[4].element_validators.len(), 1);
+
+    assert_eq!(layout.fields[5].field.name.to_string(), "values");
+    assert_eq!(
+        layout.fields[5].kind,
+        PlannedFieldErrorKind::Regular {
+            storage: PlannedRegularFieldErrorStorage::FieldAndElementErrors,
+            doc: PlannedRegularFieldErrorDoc::FieldAndElementValidators,
+            all: PlannedRegularAll::FieldValidators,
+            is_empty: PlannedRegularFieldErrorIsEmpty::FieldAndElementValidators,
+            has_element_error: true,
+        }
+    );
+    assert_eq!(layout.fields[5].field_validators.len(), 1);
+    assert_eq!(layout.fields[5].element_validators.len(), 1);
 }
 
 #[test]

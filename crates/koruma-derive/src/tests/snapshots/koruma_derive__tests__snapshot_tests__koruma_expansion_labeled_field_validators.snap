@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 97
 expression: printed
 ---
 #[doc = concat!(
@@ -84,22 +85,24 @@ impl LabeledItem {
         };
         let mut has_error = false;
         let __field_value = &self.value;
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 LengthValidation::<String>::min(3),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<LengthValidation<
             String,
         > as ::renamed_koruma::Validate<String>>::validate(&validator, __field_value) {
             error.value.min_len = Some(validator);
             has_error = true;
         }
-        let validator = ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::BuildValidator::build_validator(
+            ::renamed_koruma::CaptureValueRef::capture_value_ref(
                 LengthValidation::<String>::max(30),
                 __field_value,
-            )
-            .build();
+            ),
+        );
         if !<LengthValidation<
             String,
         > as ::renamed_koruma::Validate<String>>::validate(&validator, __field_value) {

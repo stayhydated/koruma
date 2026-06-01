@@ -1,0 +1,735 @@
+use syn::{
+    Error, Field, Ident, Index, Member, Path, Result, Token, Type, parenthesized,
+    parse::{Parse, ParseStream},
+    spanned::Spanned,
+    token,
+};
+use syn_cfg_attr::AttributeHelpers;
+
+use super::validator_chain::ValidatorAttr;
+use super::{KorumaAttrContext, SpannedValue, context_error};
+
+/// Field-level modifier parsed from `#[koruma(...)]`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FieldModifierKind {
+    Skip,
+    Nested,
+    Newtype,
+}
+
+/// A parsed field-level modifier inside `#[koruma(...)]`.
+#[derive(Clone, Debug)]
+pub struct FieldModifier {
+    pub kind: FieldModifierKind,
+    pub ident: Ident,
+    pub source: SpannedValue<FieldModifierKind>,
+}
+
+impl FieldModifier {
+    fn span(&self) -> proc_macro2::Span {
+        self.source.span
+    }
+}
+
+/// A parsed validator occurrence inside a data-field `#[koruma(...)]` attribute.
+#[derive(Clone, Debug)]
+pub struct ParsedValidatorUse {
+    pub validator: ValidatorAttr,
+    pub label: Option<Ident>,
+    pub label_source: Option<SpannedValue<Ident>>,
+    pub target: ValidatorTargetSelector,
+    pub source_span: proc_macro2::Span,
+}
+
+impl ParsedValidatorUse {
+    pub fn unlabeled(validator: ValidatorAttr) -> Self {
+        let source_span = validator.validator.span();
+        Self {
+            validator,
+            label: None,
+            label_source: None,
+            target: ValidatorTargetSelector::Default,
+            source_span,
+        }
+    }
+
+    pub fn new(
+        label: Option<Ident>,
+        target: ValidatorTargetSelector,
+        validator: ValidatorAttr,
+    ) -> Self {
+        let source_span = validator.validator.span();
+        let label_source = label
+            .as_ref()
+            .map(|label| SpannedValue::new(label.clone(), label.span()));
+        Self {
+            validator,
+            label,
+            label_source,
+            target,
+            source_span,
+        }
+    }
+
+    pub fn labeled(label: Ident, validator: ValidatorAttr) -> Self {
+        Self::new(Some(label), ValidatorTargetSelector::Default, validator)
+    }
+
+    pub fn label_span(&self) -> Option<proc_macro2::Span> {
+        self.label_source.as_ref().map(|label| label.span)
+    }
+}
+
+/// Explicit validation target selection for optional fields or optional `each(...)` elements.
+#[derive(Clone, Debug)]
+pub enum ValidatorTargetSelector {
+    /// Use Koruma's default target: unwrap `Option<T>` and skip `None`.
+    Default,
+    /// Validate the full field or element value, including `Option<T>`.
+    Full { marker: SpannedValue<Ident> },
+    /// Explicit spelling of the default unwrapped target.
+    Unwrapped { marker: SpannedValue<Ident> },
+}
+
+impl ValidatorTargetSelector {
+    pub fn marker_span(&self) -> Option<proc_macro2::Span> {
+        match self {
+            Self::Default => None,
+            Self::Full { marker } | Self::Unwrapped { marker } => Some(marker.span),
+        }
+    }
+
+    pub fn is_full(&self) -> bool {
+        matches!(self, Self::Full { .. })
+    }
+}
+
+/// A parsed direct field validator inside `#[koruma(...)]`.
+#[derive(Clone, Debug)]
+pub struct FieldValidationSpec {
+    pub validator: ParsedValidatorUse,
+}
+
+/// A parsed `each(...)` element-validation block inside `#[koruma(...)]`.
+#[derive(Clone, Debug)]
+pub struct ElementValidationSpec {
+    pub marker: Ident,
+    pub marker_source: SpannedValue<Ident>,
+    pub validators: Vec<ParsedValidatorUse>,
+}
+
+/// A single typed item inside data-field `#[koruma(...)]`.
+#[derive(Clone, Debug)]
+pub enum DataFieldKorumaItem {
+    Modifier(FieldModifier),
+    FieldValidation(FieldValidationSpec),
+    ElementValidation(ElementValidationSpec),
+}
+
+/// Represents a parsed data-field `#[koruma(...)]` attribute which can contain multiple validators
+/// separated by commas: `#[koruma(Validator1::a(1), Validator2)]`
+///
+/// Can also include:
+/// - `each(...)` modifier for collection validation
+/// - `skip` to skip validation for a field
+/// - `nested` to validate nested structs that also derive Koruma
+/// - `newtype` to validate a newtype wrapper with transparent error access
+///
+/// # Examples
+///
+/// ```rust
+/// use koruma_derive_core::DataFieldKorumaAttr;
+///
+/// let multiple: DataFieldKorumaAttr = syn::parse_quote!(
+///     Validator1::a(1),
+///     Validator2::b(2)
+/// );
+/// assert_eq!(multiple.field_validator_count(), 2);
+///
+/// let with_each: DataFieldKorumaAttr = syn::parse_quote!(
+///     VecValidator::min(0),
+///     each(ElementValidator::max(100))
+/// );
+/// assert_eq!(with_each.field_validator_count(), 1);
+/// assert_eq!(with_each.element_validator_count(), 1);
+///
+/// let skip: DataFieldKorumaAttr = syn::parse_quote!(skip);
+/// assert!(skip.is_skip());
+///
+/// let nested: DataFieldKorumaAttr = syn::parse_quote!(nested);
+/// assert!(nested.is_nested());
+/// ```
+#[derive(Clone, Debug, Default)]
+pub struct DataFieldKorumaAttr {
+    pub items: Vec<DataFieldKorumaItem>,
+}
+
+impl DataFieldKorumaAttr {
+    /// Returns whether this attribute has any validators (field or element).
+    pub fn has_validators(&self) -> bool {
+        self.items.iter().any(|item| match item {
+            DataFieldKorumaItem::FieldValidation(_) => true,
+            DataFieldKorumaItem::ElementValidation(spec) => !spec.validators.is_empty(),
+            DataFieldKorumaItem::Modifier(_) => false,
+        })
+    }
+
+    /// Returns whether this attribute represents a modifier (skip, nested, newtype).
+    pub fn is_modifier(&self) -> bool {
+        self.items
+            .iter()
+            .any(|item| matches!(item, DataFieldKorumaItem::Modifier(_)))
+    }
+
+    pub fn is_skip(&self) -> bool {
+        self.items.iter().any(|item| {
+            matches!(
+                item,
+                DataFieldKorumaItem::Modifier(FieldModifier {
+                    kind: FieldModifierKind::Skip,
+                    ..
+                })
+            )
+        })
+    }
+
+    pub fn is_nested(&self) -> bool {
+        self.items.iter().any(|item| {
+            matches!(
+                item,
+                DataFieldKorumaItem::Modifier(FieldModifier {
+                    kind: FieldModifierKind::Nested,
+                    ..
+                })
+            )
+        })
+    }
+
+    pub fn is_newtype(&self) -> bool {
+        self.items.iter().any(|item| {
+            matches!(
+                item,
+                DataFieldKorumaItem::Modifier(FieldModifier {
+                    kind: FieldModifierKind::Newtype,
+                    ..
+                })
+            )
+        })
+    }
+
+    pub fn field_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
+        self.items.iter().filter_map(|item| match item {
+            DataFieldKorumaItem::FieldValidation(spec) => Some(&spec.validator.validator),
+            DataFieldKorumaItem::Modifier(_) | DataFieldKorumaItem::ElementValidation(_) => None,
+        })
+    }
+
+    pub fn element_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
+        self.items.iter().flat_map(|item| {
+            match item {
+                DataFieldKorumaItem::ElementValidation(spec) => spec.validators.as_slice(),
+                DataFieldKorumaItem::Modifier(_) | DataFieldKorumaItem::FieldValidation(_) => &[],
+            }
+            .iter()
+            .map(|validator_use| &validator_use.validator)
+        })
+    }
+
+    pub fn field_validator_count(&self) -> usize {
+        self.field_validators().count()
+    }
+
+    pub fn element_validator_count(&self) -> usize {
+        self.element_validators().count()
+    }
+
+    pub fn has_field_validators(&self) -> bool {
+        self.field_validators().next().is_some()
+    }
+
+    pub fn has_element_validators(&self) -> bool {
+        self.element_validators().next().is_some()
+    }
+}
+
+impl DataFieldKorumaItem {
+    pub fn modifier(&self) -> Option<FieldModifierKind> {
+        match self {
+            DataFieldKorumaItem::Modifier(modifier) => Some(modifier.kind),
+            DataFieldKorumaItem::FieldValidation(_) | DataFieldKorumaItem::ElementValidation(_) => {
+                None
+            },
+        }
+    }
+}
+
+impl Parse for DataFieldKorumaAttr {
+    fn parse(input: ParseStream) -> Result<Self> {
+        if input.is_empty() {
+            return Err(Error::new(
+                input.span(),
+                "`#[koruma(...)]` must contain a modifier, validator, or `each(...)` block",
+            ));
+        }
+
+        let mut attr = DataFieldKorumaAttr::default();
+
+        // Parse comma-separated items (validators or each(...))
+        while !input.is_empty() {
+            if let Some(modifier) = try_parse_field_modifier(input)? {
+                attr.items.push(DataFieldKorumaItem::Modifier(modifier));
+            } else if let Some(item) = try_parse_each(input)? {
+                attr.items.push(item);
+            } else {
+                attr.items
+                    .push(DataFieldKorumaItem::FieldValidation(FieldValidationSpec {
+                        validator: parse_validator_use(input)?,
+                    }));
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(attr)
+    }
+}
+
+fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>> {
+    if !input.peek(Ident) {
+        return Ok(None);
+    }
+
+    let fork = input.fork();
+    let ident: Ident = fork.parse()?;
+    if matches!(ident.to_string().as_str(), "value" | "try_new") {
+        return Err(context_error(&ident, KorumaAttrContext::DataField));
+    }
+
+    let kind = if ident == "skip" {
+        FieldModifierKind::Skip
+    } else if ident == "nested" {
+        FieldModifierKind::Nested
+    } else if ident == "newtype" {
+        FieldModifierKind::Newtype
+    } else {
+        return Ok(None);
+    };
+
+    if fork.peek(token::Paren) {
+        return Err(Error::new(
+            ident.span(),
+            format!(
+                "`{ident}(...)` is not valid in a derive data field `#[koruma(...)]` attribute; expected {}",
+                KorumaAttrContext::DataField.accepted_items()
+            ),
+        ));
+    }
+
+    if fork.peek(Token![::]) {
+        return Err(Error::new(
+            ident.span(),
+            format!(
+                "`{ident}` is a reserved koruma field modifier; use a different validator path or separate `newtype` from validators with a comma"
+            ),
+        ));
+    }
+
+    if !fork.is_empty() && !fork.peek(Token![,]) {
+        return Ok(None);
+    }
+
+    let ident = input.parse::<Ident>()?;
+    let span = ident.span();
+    Ok(Some(FieldModifier {
+        kind,
+        source: SpannedValue::new(kind, span),
+        ident,
+    }))
+}
+
+fn parse_validator_use(input: ParseStream) -> Result<ParsedValidatorUse> {
+    let label = if input.peek(Ident) {
+        let fork = input.fork();
+        let label: Ident = fork.parse()?;
+        if fork.peek(Token![=]) {
+            input.parse::<Ident>()?;
+            input.parse::<Token![=]>()?;
+            Some(label)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let (target, validator) = parse_targeted_validator(input)?;
+    Ok(ParsedValidatorUse::new(label, target, validator))
+}
+
+fn parse_targeted_validator(
+    input: ParseStream,
+) -> Result<(ValidatorTargetSelector, ValidatorAttr)> {
+    if input.peek(Ident) {
+        let fork = input.fork();
+        let marker: Ident = fork.parse()?;
+        if matches!(marker.to_string().as_str(), "full" | "unwrapped") {
+            if fork.peek(token::Paren) {
+                let marker = input.parse::<Ident>()?;
+                let content;
+                parenthesized!(content in input);
+                if content.is_empty() {
+                    return Err(Error::new(
+                        content.span(),
+                        format!("`{marker}(...)` must contain exactly one validator"),
+                    ));
+                }
+                let validator = content.parse::<ValidatorAttr>()?;
+                if !content.is_empty() {
+                    return Err(Error::new(
+                        content.span(),
+                        format!("`{marker}(...)` accepts exactly one validator"),
+                    ));
+                }
+                let target = if marker == "full" {
+                    let span = marker.span();
+                    ValidatorTargetSelector::Full {
+                        marker: SpannedValue::new(marker, span),
+                    }
+                } else {
+                    let span = marker.span();
+                    ValidatorTargetSelector::Unwrapped {
+                        marker: SpannedValue::new(marker, span),
+                    }
+                };
+                return Ok((target, validator));
+            }
+
+            if !fork.peek(Token![::]) {
+                return Err(Error::new(
+                    marker.span(),
+                    format!(
+                        "`{marker}` is a reserved koruma target selector; use `{marker}(Validator::<_>)`"
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok((
+        ValidatorTargetSelector::Default,
+        input.parse::<ValidatorAttr>()?,
+    ))
+}
+
+fn try_parse_each(input: ParseStream) -> Result<Option<DataFieldKorumaItem>> {
+    if !input.peek(Ident) {
+        return Ok(None);
+    }
+
+    let fork = input.fork();
+    let ident: Ident = fork.parse()?;
+    if ident != "each" || !fork.peek(token::Paren) {
+        if ident == "each" && !fork.peek(Token![::]) {
+            return Err(Error::new(
+                ident.span(),
+                "`each` is only valid as `each(...)` in a derive data field `#[koruma(...)]` attribute",
+            ));
+        }
+        return Ok(None);
+    }
+
+    let marker = input.parse::<Ident>()?;
+    let marker_source = SpannedValue::new(marker.clone(), marker.span());
+    let content;
+    parenthesized!(content in input);
+    if content.is_empty() {
+        return Err(Error::new(
+            content.span(),
+            "`each(...)` must contain at least one validator",
+        ));
+    }
+
+    let mut validators = Vec::new();
+    while !content.is_empty() {
+        validators.push(parse_validator_use(&content)?);
+        if content.peek(Token![,]) {
+            content.parse::<Token![,]>()?;
+        } else {
+            break;
+        }
+    }
+
+    Ok(Some(DataFieldKorumaItem::ElementValidation(
+        ElementValidationSpec {
+            marker,
+            marker_source,
+            validators,
+        },
+    )))
+}
+
+/// Parsed field metadata extracted from all `#[koruma(...)]` attributes on a field.
+#[derive(Clone, Debug)]
+pub enum ParsedFieldSpec {
+    Skipped,
+    Regular {
+        field_validators: Vec<ParsedValidatorUse>,
+        element_validators: Vec<ParsedValidatorUse>,
+    },
+    Nested {
+        marker: Ident,
+    },
+    Newtype {
+        marker: Ident,
+        field_validators: Vec<ParsedValidatorUse>,
+    },
+}
+
+/// Field information extracted from parsing `#[koruma(...)]` attributes.
+///
+/// This struct contains all the parsed validation information for a single field,
+/// including validators, element validators (for collection), and modifier flags.
+#[derive(Clone, Debug)]
+pub struct FieldInfo {
+    /// The field name
+    pub name: Ident,
+    /// The struct member access (Named or Unnamed index)
+    pub member: Member,
+    /// The field type
+    pub ty: Type,
+    /// The original zero-based field index in the struct declaration.
+    pub index: usize,
+    /// Validation info for this field
+    pub validation: ParsedFieldSpec,
+}
+
+impl FieldInfo {
+    pub fn field_validators(&self) -> &[ParsedValidatorUse] {
+        match &self.validation {
+            ParsedFieldSpec::Regular {
+                field_validators, ..
+            }
+            | ParsedFieldSpec::Newtype {
+                field_validators, ..
+            } => field_validators,
+            ParsedFieldSpec::Skipped | ParsedFieldSpec::Nested { .. } => &[],
+        }
+    }
+
+    pub fn element_validators(&self) -> &[ParsedValidatorUse] {
+        match &self.validation {
+            ParsedFieldSpec::Regular {
+                element_validators, ..
+            } => element_validators,
+            ParsedFieldSpec::Skipped
+            | ParsedFieldSpec::Nested { .. }
+            | ParsedFieldSpec::Newtype { .. } => &[],
+        }
+    }
+
+    /// Returns true if this field has element validators (uses `each(...)`)
+    pub fn has_element_validators(&self) -> bool {
+        !self.element_validators().is_empty()
+    }
+
+    /// Returns true if this field has any validators (field or element)
+    pub fn has_validators(&self) -> bool {
+        !self.field_validators().is_empty() || !self.element_validators().is_empty()
+    }
+
+    /// Returns true if this field is a nested Koruma struct
+    pub fn is_nested(&self) -> bool {
+        matches!(self.validation, ParsedFieldSpec::Nested { .. })
+    }
+
+    /// Returns true if this field is a newtype wrapper
+    pub fn is_newtype(&self) -> bool {
+        matches!(self.validation, ParsedFieldSpec::Newtype { .. })
+    }
+
+    /// Returns an iterator over all validator names on this field.
+    pub fn validator_names(&self) -> impl Iterator<Item = &Ident> {
+        self.field_validators()
+            .iter()
+            .chain(self.element_validators().iter())
+            .map(|v| v.validator.name())
+    }
+}
+
+/// Parse a single field and extract its koruma validation information.
+///
+/// This function handles:
+/// - Multiple `#[koruma(...)]` attributes on the same field
+/// - Combining validators from multiple attributes
+/// - Preserving optional validator labels for downstream name generation
+/// - The `skip`, `nested`, and `newtype` modifiers
+///
+/// # Returns
+///
+/// - `Ok(Some(FieldInfo))` if the field participates in validation.
+/// - `Ok(None)` if the field has no koruma attributes or is marked with `skip`.
+/// - `Err(Error)` if parsing failed, such as duplicate or conflicting modifiers.
+pub fn parse_field(field: &Field, index: usize) -> Result<Option<FieldInfo>> {
+    let (name, member) = match field.ident.clone() {
+        Some(ident) => (ident.clone(), Member::Named(ident)),
+        None => (
+            quote::format_ident!("_{}", index),
+            Member::Unnamed(Index::from(index)),
+        ),
+    };
+    let ty = field.ty.clone();
+
+    // Collect typed items from ALL #[koruma(...)] attributes on this field.
+    let mut items = Vec::new();
+
+    for attr in field.attrs.to_vec().find_attribute("koruma") {
+        match attr.parse_args::<DataFieldKorumaAttr>() {
+            Ok(koruma_attr) => items.extend(koruma_attr.items),
+            Err(e) => return Err(e),
+        }
+    }
+
+    let validation = normalize_field_items(field, items)?;
+    if matches!(validation, None | Some(ParsedFieldSpec::Skipped)) {
+        return Ok(None);
+    }
+    let validation = validation.expect("checked above");
+
+    Ok(Some(FieldInfo {
+        name,
+        member,
+        ty,
+        index,
+        validation,
+    }))
+}
+
+fn normalize_field_items(
+    field: &Field,
+    items: Vec<DataFieldKorumaItem>,
+) -> Result<Option<ParsedFieldSpec>> {
+    let mut all_field_validators = Vec::new();
+    let mut all_element_validators = Vec::new();
+    let mut modifier_kind: Option<FieldModifierKind> = None;
+    let mut mode_modifier: Option<FieldModifier> = None;
+    let mut first_field_validator_path: Option<Path> = None;
+    let mut first_element_marker: Option<SpannedValue<Ident>> = None;
+
+    for item in items {
+        match item {
+            DataFieldKorumaItem::Modifier(modifier) => {
+                if modifier_kind.is_some() {
+                    return Err(Error::new(
+                        modifier.span(),
+                        "duplicate or conflicting field modifier across `#[koruma(...)]` attributes",
+                    ));
+                }
+                modifier_kind = Some(modifier.kind);
+                mode_modifier = Some(modifier);
+            },
+            DataFieldKorumaItem::FieldValidation(spec) => {
+                let validator = spec.validator;
+                if first_field_validator_path.is_none() {
+                    first_field_validator_path = Some(validator.validator.validator.clone());
+                }
+                all_field_validators.push(validator);
+            },
+            DataFieldKorumaItem::ElementValidation(spec) => {
+                if first_element_marker.is_none() {
+                    first_element_marker = Some(spec.marker_source.clone());
+                }
+                for validator in spec.validators {
+                    all_element_validators.push(validator);
+                }
+            },
+        }
+    }
+
+    if modifier_kind == Some(FieldModifierKind::Skip)
+        && (!all_field_validators.is_empty() || !all_element_validators.is_empty())
+    {
+        return Err(Error::new(
+            first_field_validator_path
+                .as_ref()
+                .map(Spanned::span)
+                .or_else(|| first_element_marker.as_ref().map(|marker| marker.span))
+                .unwrap_or_else(|| {
+                    mode_modifier
+                        .as_ref()
+                        .map(FieldModifier::span)
+                        .unwrap_or_else(|| field.span())
+                }),
+            "fields marked `#[koruma(skip)]` cannot also use validators or `each(...)`",
+        ));
+    }
+
+    if modifier_kind == Some(FieldModifierKind::Skip) {
+        return Ok(Some(ParsedFieldSpec::Skipped));
+    }
+
+    if modifier_kind == Some(FieldModifierKind::Nested)
+        && (!all_field_validators.is_empty() || !all_element_validators.is_empty())
+    {
+        return Err(Error::new(
+            first_field_validator_path
+                .as_ref()
+                .map(Spanned::span)
+                .or_else(|| first_element_marker.as_ref().map(|marker| marker.span))
+                .unwrap_or_else(|| {
+                    mode_modifier
+                        .as_ref()
+                        .map(FieldModifier::span)
+                        .unwrap_or_else(|| field.span())
+                }),
+            "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`, even across multiple `#[koruma(...)]` attributes",
+        ));
+    }
+
+    if modifier_kind == Some(FieldModifierKind::Newtype) && !all_element_validators.is_empty() {
+        return Err(Error::new(
+            first_element_marker
+                .as_ref()
+                .map(|marker| marker.span)
+                .unwrap_or_else(|| {
+                    mode_modifier
+                        .as_ref()
+                        .map(FieldModifier::span)
+                        .unwrap_or_else(|| field.span())
+                }),
+            "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers",
+        ));
+    }
+
+    // Must have at least one validator or modifier
+    if modifier_kind.is_none()
+        && all_field_validators.is_empty()
+        && all_element_validators.is_empty()
+    {
+        return Ok(None);
+    }
+
+    let spec = match modifier_kind {
+        Some(FieldModifierKind::Nested) => ParsedFieldSpec::Nested {
+            marker: mode_modifier
+                .expect("nested modifier should carry its source ident")
+                .ident,
+        },
+        Some(FieldModifierKind::Newtype) => ParsedFieldSpec::Newtype {
+            marker: mode_modifier
+                .expect("newtype modifier should carry its source ident")
+                .ident,
+            field_validators: all_field_validators,
+        },
+        Some(FieldModifierKind::Skip) => ParsedFieldSpec::Skipped,
+        None => ParsedFieldSpec::Regular {
+            field_validators: all_field_validators,
+            element_validators: all_element_validators,
+        },
+    };
+
+    Ok(Some(spec))
+}

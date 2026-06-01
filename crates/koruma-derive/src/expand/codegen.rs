@@ -1,4 +1,4 @@
-use koruma_derive_core::{TypeShape, is_option_type};
+use koruma_derive_core::{KnownTypeShape, is_option_type};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
 use std::collections::BTreeSet;
@@ -355,12 +355,15 @@ pub(crate) struct EachCollection<'a> {
 
 pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection<'_>, syn::Error> {
     let outer_cardinality = FieldCardinality::for_type(field_ty);
-    let collection_ty = match TypeShape::of(field_ty) {
-        TypeShape::Option { inner } => inner,
-        _ => field_ty,
+    let (collection_ty, unwrapped_optional) = match KnownTypeShape::of(field_ty) {
+        KnownTypeShape::Option { inner, .. } => (inner, true),
+        _ => (field_ty, false),
     };
     let Some((element_ty, iteration)) = classify_each_collection_inner(collection_ty) else {
-        return Err(unsupported_each_collection_error(field_ty, collection_ty));
+        return Err(unsupported_each_collection_error(
+            collection_ty,
+            unwrapped_optional,
+        ));
     };
 
     Ok(EachCollection {
@@ -373,21 +376,26 @@ pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection
 }
 
 fn classify_each_collection_inner(ty: &Type) -> Option<(&Type, EachIterationKind)> {
-    match TypeShape::of(ty) {
-        TypeShape::Array { inner } => Some((inner, EachIterationKind::Array)),
-        TypeShape::Reference { inner } => classify_each_collection_inner(inner),
-        TypeShape::Slice { inner } => Some((inner, EachIterationKind::Slice)),
-        TypeShape::Vec { inner } => Some((inner, EachIterationKind::VecLike)),
-        TypeShape::Option { .. } | TypeShape::Other(_) => None,
+    match KnownTypeShape::of(ty) {
+        KnownTypeShape::Array { inner, .. } => Some((inner, EachIterationKind::Array)),
+        KnownTypeShape::Reference { inner, .. } => classify_each_collection_inner(inner),
+        KnownTypeShape::Slice { inner, .. } => Some((inner, EachIterationKind::Slice)),
+        KnownTypeShape::Vec { inner, .. } => Some((inner, EachIterationKind::VecLike)),
+        KnownTypeShape::Option { .. } | KnownTypeShape::Other(_) => None,
     }
 }
 
-fn unsupported_each_collection_error(field_ty: &Type, collection_ty: &Type) -> syn::Error {
+fn unsupported_each_collection_error(collection_ty: &Type, unwrapped_optional: bool) -> syn::Error {
     let rendered = quote! { #collection_ty }.to_string();
+    let target = if unwrapped_optional {
+        "the unwrapped optional collection"
+    } else {
+        "the outer field type"
+    };
     syn::Error::new_spanned(
-        field_ty,
+        collection_ty,
         format!(
-            "`each(...)` currently only supports syntactic `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those, found `{rendered}`; koruma derives do not resolve type aliases or custom collection types"
+            "`each(...)` currently only supports syntactic `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those; {target} was `{rendered}`. Koruma derives do not resolve type aliases or custom collection types."
         ),
     )
 }

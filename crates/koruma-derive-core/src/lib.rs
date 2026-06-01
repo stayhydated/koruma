@@ -34,12 +34,12 @@ mod tests;
 pub use parse::{
     BuilderMethodCall, CapturePolicy, DataFieldKorumaAttr, DataFieldKorumaItem,
     ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldValidationSpec,
-    KorumaAttrContext, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, StructConstructor,
-    StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions, ValidatorAttr,
-    ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec, ValidatorSetterArg,
-    ValidatorSetterSpec, ValidatorStructSpec, ValidatorTypeArg, ValidatorValueSpec, ValueFieldInfo,
-    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
-    parse_validator_fields_strict,
+    KorumaAttrContext, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, SpannedValue,
+    StructConstructor, StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions,
+    ValidatorAttr, ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec,
+    ValidatorSetterArg, ValidatorSetterSpec, ValidatorStructSpec, ValidatorTargetSelector,
+    ValidatorTypeArg, ValidatorValueSpec, parse_field, parse_struct_options,
+    parse_validator_struct,
 };
 
 #[cfg(feature = "internal-showcase")]
@@ -47,7 +47,7 @@ pub use parse::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_a
 
 // Re-export utility functions
 pub use utils::{
-    TypeShape, contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
+    KnownTypeShape, contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
     option_inner_type, substitute_infer_type, substitute_infer_type_from_source, type_to_ident,
     vec_inner_type,
 };

@@ -104,13 +104,13 @@ store an error.
 
 | Validator                       | Rule                  | Example attribute                             | Feature    |
 | ------------------------------- | --------------------- | --------------------------------------------- | ---------- |
-| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation::<_>)]` | `default`  |
+| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(full(general::RequiredValidation::<_>))]` | `default`  |
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
 `collection::NonEmptyValidation::<_>` when you need an emptiness check. It also uses
 `#[koruma(value(capture = skip))]` internally, so `Option<NonCloneType>` fields do not need `Clone`
-just to report a missing-value error. Koruma validates the whole `Option<T>` for this validator so
-`None` can be reported as a missing value.
+just to report a missing-value error. Wrap it in `full(...)` so Koruma validates the whole
+`Option<T>` and can report `None` as a missing value.
 
 ## Example
 
@@ -129,7 +129,7 @@ struct SignupInput {
     #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(general::RequiredValidation::<_>)]
+    #[koruma(full(general::RequiredValidation::<_>))]
     display_name: Option<String>,
 }
 

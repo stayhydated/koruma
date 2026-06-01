@@ -47,8 +47,8 @@ pub(crate) use names::validator_names;
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    DataFieldKorumaAttr, FieldInfo, ParsedFieldSpec, StructOptions, ValidatorAttr,
-    find_value_field_strict, parse_field, parse_struct_options,
+    DataFieldKorumaAttr, FieldInfo, ParsedFieldSpec, StructOptions, ValidatorAttr, parse_field,
+    parse_struct_options,
 };
 #[cfg(feature = "internal-showcase")]
 #[allow(unused_imports)]

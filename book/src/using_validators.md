@@ -14,9 +14,12 @@ Use `TypeName::<_>` when a zero-configuration generic validator should infer its
 `TypeName::<_>::first_setter(...)` when the validator has configurable fields.
 
 For `Option<T>` fields and optional `each(...)` elements, validators normally run only for `Some`
-values and receive the inner `T`. Use `Validator::<Option<_>>` when a validator should receive the
-whole optional value. `koruma_collection::general::RequiredValidation::<_>` uses the whole
-`Option<T>` automatically so presence checks stay concise.
+values and receive the inner `T`. Wrap a validator in `full(...)` when it should receive the whole
+optional value instead:
+
+```rust
+#[koruma(full(koruma_collection::general::RequiredValidation::<_>))]
+```
 
 Give validators lower-snake labels when you want stable, descriptive accessors or when two
 validators would otherwise generate the same accessor name:
@@ -76,7 +79,8 @@ match item.validate() {
 If a field has no `#[koruma(...)]` attribute, `koruma` does not validate it.
 
 For per-element validation, `each(...)` supports `Vec<T>`, borrowed slices like
-`&[T]`, arrays like `[T; N]`, and optional variants of those:
+`&[T]`, arrays like `[T; N]`, and optional variants of those. This recognition is syntactic:
+type aliases and custom collection types are not expanded or resolved by the macro.
 
 ```rust
 #[derive(Koruma)]

@@ -1,8 +1,100 @@
 use crate::expand::codegen::{helper_generics_for_usages, ref_enum_generics_for_usages};
-use crate::expand::plan::{PlannedFieldErrorKind, ValidationPlan};
+use crate::expand::plan::{PlannedFieldErrorKind, PlannedValidator, ValidationPlan};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Generics, Ident, Type};
+
+struct ValidatorGroupRenderPlan<'a> {
+    enum_name: &'a Ident,
+    validators: &'a [&'a PlannedValidator],
+}
+
+impl<'a> ValidatorGroupRenderPlan<'a> {
+    fn new(enum_name: &'a Ident, validators: &'a [&'a PlannedValidator]) -> Self {
+        Self {
+            enum_name,
+            validators,
+        }
+    }
+
+    fn validator_types(&self) -> Vec<Type> {
+        self.validators
+            .iter()
+            .map(|v| v.validator_type.as_type())
+            .collect()
+    }
+
+    fn validator_names_list(&self) -> String {
+        self.validators
+            .iter()
+            .map(|v| v.doc_name())
+            .collect::<Vec<_>>()
+            .join("`], `[")
+    }
+
+    fn storage_fields(&self) -> Vec<TokenStream2> {
+        self.validators
+            .iter()
+            .map(|v| {
+                let validator_snake = &v.field_ident;
+                let vtype = &v.validator_type;
+                quote! { #validator_snake: Option<#vtype> }
+            })
+            .collect()
+    }
+
+    fn getters(&self) -> Vec<TokenStream2> {
+        self.validators
+            .iter()
+            .map(|v| {
+                let validator_snake = &v.field_ident;
+                let validator_name = v.doc_name();
+                let vtype = &v.validator_type;
+                quote! {
+                    #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
+                    pub fn #validator_snake(&self) -> Option<&#vtype> {
+                        self.#validator_snake.as_ref()
+                    }
+                }
+            })
+            .collect()
+    }
+
+    fn is_empty_checks(&self) -> Vec<TokenStream2> {
+        self.validators
+            .iter()
+            .map(|v| {
+                let validator_snake = &v.field_ident;
+                quote! { self.#validator_snake.is_none() }
+            })
+            .collect()
+    }
+
+    fn enum_variants(&self) -> Vec<TokenStream2> {
+        self.validators
+            .iter()
+            .map(|v| {
+                let variant_name = &v.variant_ident;
+                let vtype = &v.validator_type;
+                quote! { #variant_name(&'koruma #vtype) }
+            })
+            .collect()
+    }
+
+    fn all_pushes(&self) -> Vec<TokenStream2> {
+        let enum_name = self.enum_name;
+        self.validators
+            .iter()
+            .map(|v| {
+                let validator_snake = &v.field_ident;
+                let variant_name = &v.variant_ident;
+                quote! {
+                    self.#validator_snake.as_ref().map(#enum_name::#variant_name)
+                }
+            })
+            .collect()
+    }
+}
 
 pub(crate) fn render_field_error_structs(
     plan: &ValidationPlan,
@@ -31,12 +123,14 @@ pub(crate) fn render_field_error_structs(
                 let struct_name_str = struct_name.to_string();
 
                 if !has_field_validators {
-                    let PlannedFieldErrorKind::NewtypeInner {
-                        inner_optional: field_is_optional,
-                        deref,
-                    } = field_error.kind
-                    else {
-                        unreachable!("newtype field without validators should have inner layout")
+                    let Some((field_is_optional, deref)) = (match field_error.kind {
+                        PlannedFieldErrorKind::NewtypeInner {
+                            inner_optional,
+                            deref,
+                        } => Some((inner_optional, deref)),
+                        _ => None,
+                    }) else {
+                        return quote! {};
                     };
                     let helper_usages: Vec<Type> =
                         vec![syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }];
@@ -109,17 +203,11 @@ pub(crate) fn render_field_error_structs(
                     };
                 }
 
-                let field_validator_names: Vec<String> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| v.doc_name())
-                    .collect();
-                let validators_list = field_validator_names.join("`], `[");
-                let mut helper_usages: Vec<Type> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| v.validator_type.as_type())
-                    .collect();
+                let enum_name = &field_plan.generated_names.field_validator_ref_enum;
+                let field_group =
+                    ValidatorGroupRenderPlan::new(enum_name, &field_error.field_validators);
+                let validators_list = field_group.validator_names_list();
+                let mut helper_usages = field_group.validator_types();
                 helper_usages
                     .push(syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error });
                 let helper_generics = helper_generics_for_usages(generics, &helper_usages);
@@ -127,77 +215,28 @@ pub(crate) fn render_field_error_structs(
                 let helper_impl_generics = &helper_generics.impl_generics;
                 let helper_ty_generics = &helper_generics.ty_generics;
                 let helper_where_clause = &helper_generics.where_clause;
-                let PlannedFieldErrorKind::NewtypeWithValidators {
-                    inner_optional: field_is_optional,
-                } = field_error.kind
-                else {
-                    unreachable!("newtype field with validators should have validator layout")
+                let Some(field_is_optional) = (match field_error.kind {
+                    PlannedFieldErrorKind::NewtypeWithValidators { inner_optional } => {
+                        Some(inner_optional)
+                    },
+                    _ => None,
+                }) else {
+                    return quote! {};
                 };
 
-                let field_validator_fields: Vec<TokenStream2> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        let vtype = &v.validator_type;
-                        quote! { #validator_snake: Option<#vtype> }
-                    })
-                    .collect();
-
-                let field_validator_getters: Vec<TokenStream2> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        let validator_name = v.doc_name();
-                        let vtype = &v.validator_type;
-                        quote! {
-                            #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
-                            pub fn #validator_snake(&self) -> Option<&#vtype> {
-                                self.#validator_snake.as_ref()
-                            }
-                        }
-                    })
-                    .collect();
-
-                let field_is_empty_checks: Vec<TokenStream2> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        quote! { self.#validator_snake.is_none() }
-                    })
-                    .collect();
-
-                let enum_name = &field_plan.generated_names.field_validator_ref_enum;
+                let field_validator_fields = field_group.storage_fields();
+                let field_validator_getters = field_group.getters();
+                let field_is_empty_checks = field_group.is_empty_checks();
                 let enum_generics = ref_enum_generics_for_usages(generics, &helper_usages);
                 let enum_definition = &enum_generics.definition;
                 let enum_path = enum_generics.return_type_path(enum_name);
 
-                let enum_variants: Vec<TokenStream2> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| {
-                        let variant_name = &v.variant_ident;
-                        let vtype = &v.validator_type;
-                        quote! { #variant_name(&'koruma #vtype) }
-                    })
-                    .collect();
+                let enum_variants = field_group.enum_variants();
 
                 let inner_error_ty = quote! { <#inner_ty as #koruma::ValidateExt>::Error };
                 let inner_variant = quote! { Inner(&'koruma #inner_error_ty) };
 
-                let all_pushes: Vec<TokenStream2> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        let variant_name = &v.variant_ident;
-                        quote! {
-                            self.#validator_snake.as_ref().map(#enum_name::#variant_name)
-                        }
-                    })
-                    .collect();
+                let all_pushes = field_group.all_pushes();
 
                 let inner_push = quote! {
                     self.inner
@@ -280,60 +319,26 @@ pub(crate) fn render_field_error_structs(
                 };
             }
 
-            let PlannedFieldErrorKind::Regular {
-                has_element_error: has_element_validators,
-                ..
-            } = field_error.kind
-            else {
-                unreachable!("non-newtype field error layout should be regular")
+            let Some(has_element_validators) = (match field_error.kind {
+                PlannedFieldErrorKind::Regular {
+                    has_element_error, ..
+                } => Some(has_element_error),
+                _ => None,
+            }) else {
+                return quote! {};
             };
 
-            let field_validator_fields: Vec<TokenStream2> = field_error
-                .field_validators
-                .iter()
-                .map(|v| {
-                    let validator_snake = &v.field_ident;
-                    let vtype = &v.validator_type;
-                    quote! { #validator_snake: Option<#vtype> }
-                })
-                .collect();
-
-            let field_validator_getters: Vec<TokenStream2> = field_error
-                .field_validators
-                .iter()
-                .map(|v| {
-                    let validator_snake = &v.field_ident;
-                    let validator_name = v.doc_name();
-                    let vtype = &v.validator_type;
-                    quote! {
-                        #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
-                        pub fn #validator_snake(&self) -> Option<&#vtype> {
-                            self.#validator_snake.as_ref()
-                        }
-                    }
-                })
-                .collect();
-
-            let field_is_empty_checks: Vec<TokenStream2> = field_error
-                .field_validators
-                .iter()
-                .map(|v| {
-                    let validator_snake = &v.field_ident;
-                    quote! { self.#validator_snake.is_none() }
-                })
-                .collect();
-            let field_validator_usages: Vec<Type> = field_error
-                .field_validators
-                .iter()
-                .map(|v| v.validator_type.as_type())
-                .collect();
+            let enum_name = &field_plan.generated_names.field_validator_ref_enum;
+            let field_group = ValidatorGroupRenderPlan::new(enum_name, &field_error.field_validators);
+            let field_validator_fields = field_group.storage_fields();
+            let field_validator_getters = field_group.getters();
+            let field_is_empty_checks = field_group.is_empty_checks();
+            let field_validator_usages = field_group.validator_types();
             let element_error_struct_name = &field_plan.generated_names.element_error_struct;
             let element_enum_name = &field_plan.generated_names.element_validator_ref_enum;
-            let element_validator_usages: Vec<Type> = field_error
-                .element_validators
-                .iter()
-                .map(|v| v.validator_type.as_type())
-                .collect();
+            let element_group =
+                ValidatorGroupRenderPlan::new(element_enum_name, &field_error.element_validators);
+            let element_validator_usages = element_group.validator_types();
             let element_helper_generics = has_element_validators
                 .then(|| helper_generics_for_usages(generics, &element_validator_usages));
             let element_error_path = element_helper_generics
@@ -351,8 +356,9 @@ pub(crate) fn render_field_error_structs(
             let field_error_where_clause = &field_error_helper_generics.where_clause;
 
             let element_error_struct = if has_element_validators {
-                let element_helper_generics =
-                    element_helper_generics.as_ref().expect("element validators checked");
+                let Some(element_helper_generics) = element_helper_generics.as_ref() else {
+                    return quote! {};
+                };
                 let element_definition = &element_helper_generics.definition;
                 let element_impl_generics = &element_helper_generics.impl_generics;
                 let element_ty_generics = &element_helper_generics.ty_generics;
@@ -362,71 +368,15 @@ pub(crate) fn render_field_error_structs(
                 let element_enum_definition = &element_enum_generics.definition;
                 let element_enum_path = element_enum_generics.return_type_path(element_enum_name);
 
-                let element_validator_names: Vec<String> = field_error
-                    .element_validators
-                    .iter()
-                    .map(|v| v.doc_name())
-                    .collect();
-                let element_validators_list = element_validator_names.join("`], `[");
+                let element_validators_list = element_group.validator_names_list();
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
 
-                let element_validator_fields: Vec<TokenStream2> = field_error
-                    .element_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        let vtype = &v.validator_type;
-                        quote! { #validator_snake: Option<#vtype> }
-                    })
-                    .collect();
-
-                let element_validator_getters: Vec<TokenStream2> = field_error
-                    .element_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        let validator_name = v.doc_name();
-                        let vtype = &v.validator_type;
-                        quote! {
-                            #[doc = concat!("Returns the failed `", #validator_name, "` validator, if any.")]
-                            pub fn #validator_snake(&self) -> Option<&#vtype> {
-                                self.#validator_snake.as_ref()
-                            }
-                        }
-                    })
-                    .collect();
-
-                let element_is_empty_checks: Vec<TokenStream2> = field_error
-                    .element_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        quote! { self.#validator_snake.is_none() }
-                    })
-                    .collect();
-
-                let element_enum_variants: Vec<TokenStream2> = field_error
-                    .element_validators
-                    .iter()
-                    .map(|v| {
-                        let variant_name = &v.variant_ident;
-                        let vtype = &v.validator_type;
-                        quote! { #variant_name(&'koruma #vtype) }
-                    })
-                    .collect();
-
-                let element_all_pushes: Vec<TokenStream2> = field_error
-                    .element_validators
-                    .iter()
-                    .map(|v| {
-                        let validator_snake = &v.field_ident;
-                        let variant_name = &v.variant_ident;
-                        quote! {
-                            self.#validator_snake.as_ref().map(#element_enum_name::#variant_name)
-                        }
-                    })
-                    .collect();
+                let element_validator_fields = element_group.storage_fields();
+                let element_validator_getters = element_group.getters();
+                let element_is_empty_checks = element_group.is_empty_checks();
+                let element_enum_variants = element_group.enum_variants();
+                let element_all_pushes = element_group.all_pushes();
 
                 quote! {
                     #[doc = concat!("Element validators for the `", #field_name_str, "` field of [`", #struct_name_str, "`]: [`", #element_validators_list, "`].")]
@@ -468,9 +418,9 @@ pub(crate) fn render_field_error_structs(
             };
 
             let element_errors_getter = if has_element_validators {
-                let element_error_path = element_error_path
-                    .as_ref()
-                    .expect("element validators should have an error path");
+                let Some(element_error_path) = element_error_path.as_ref() else {
+                    return quote! {};
+                };
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
                 quote! {
@@ -489,43 +439,18 @@ pub(crate) fn render_field_error_structs(
                 quote! {}
             };
 
-            let enum_name = &field_plan.generated_names.field_validator_ref_enum;
             let field_enum_helper_generics =
                 ref_enum_generics_for_usages(generics, &field_validator_usages);
             let field_enum_definition = &field_enum_helper_generics.definition;
             let field_enum_path = field_enum_helper_generics.return_type_path(enum_name);
 
-            let enum_variants: Vec<TokenStream2> = field_error
-                .field_validators
-                .iter()
-                .map(|v| {
-                    let variant_name = &v.variant_ident;
-                    let vtype = &v.validator_type;
-                    quote! { #variant_name(&'koruma #vtype) }
-                })
-                .collect();
-
-            let all_pushes: Vec<TokenStream2> = field_error
-                .field_validators
-                .iter()
-                .map(|v| {
-                    let validator_snake = &v.field_ident;
-                    let variant_name = &v.variant_ident;
-                    quote! {
-                        self.#validator_snake.as_ref().map(#enum_name::#variant_name)
-                    }
-                })
-                .collect();
+            let enum_variants = field_group.enum_variants();
+            let all_pushes = field_group.all_pushes();
 
             let enum_and_all = if !has_field_validators {
                 quote! {}
             } else {
-                let validator_names: Vec<String> = field_error
-                    .field_validators
-                    .iter()
-                    .map(|v| v.doc_name())
-                    .collect();
-                let validators_list = validator_names.join("`], `[");
+                let validators_list = field_group.validator_names_list();
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
                 quote! {
@@ -564,18 +489,8 @@ pub(crate) fn render_field_error_structs(
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
                 if has_element_validators && has_field_validators {
-                    let field_validator_names: Vec<String> = field_error
-                        .field_validators
-                        .iter()
-                        .map(|v| v.doc_name())
-                        .collect();
-                    let field_validators = field_validator_names.join("`], `[");
-                    let element_validator_names: Vec<String> = field_error
-                        .element_validators
-                        .iter()
-                        .map(|v| v.doc_name())
-                        .collect();
-                    let element_validators = element_validator_names.join("`], `[");
+                    let field_validators = field_group.validator_names_list();
+                    let element_validators = element_group.validator_names_list();
                     quote! {
                         #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].\n\nField validators: [`", #field_validators, "`]. Element validators: [`", #element_validators, "`].")]
                     }
@@ -584,12 +499,7 @@ pub(crate) fn render_field_error_structs(
                         #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`] (element validators only).")]
                     }
                 } else if has_field_validators {
-                    let field_validator_names: Vec<String> = field_error
-                        .field_validators
-                        .iter()
-                        .map(|v| v.doc_name())
-                        .collect();
-                    let field_validators = field_validator_names.join("`], `[");
+                    let field_validators = field_group.validator_names_list();
                     quote! {
                         #[doc = concat!("Validation errors for the `", #field_name_str, "` field of [`", #struct_name_str, "`].\n\nValidators: [`", #field_validators, "`].")]
                     }
@@ -599,17 +509,17 @@ pub(crate) fn render_field_error_structs(
             };
 
             let struct_fields = if has_field_validators && has_element_validators {
-                let element_error_path = element_error_path
-                    .as_ref()
-                    .expect("element validators should have an error path");
+                let Some(element_error_path) = element_error_path.as_ref() else {
+                    return quote! {};
+                };
                 quote! {
                     #(#field_validator_fields,)*
                     element_errors: Vec<(usize, #element_error_path)>
                 }
             } else if has_element_validators {
-                let element_error_path = element_error_path
-                    .as_ref()
-                    .expect("element validators should have an error path");
+                let Some(element_error_path) = element_error_path.as_ref() else {
+                    return quote! {};
+                };
                 quote! {
                     element_errors: Vec<(usize, #element_error_path)>
                 }

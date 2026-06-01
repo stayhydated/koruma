@@ -7,6 +7,10 @@ Parsing utilities for `koruma` derive macros. This crate exposes the data model 
 `#[koruma(...)]` attributes, including Rust-native direct validator chains and setter access for
 downstream tooling and proc-macro internals.
 
+The parser API is split by macro context: data-field attributes, struct-level options,
+validator-struct fields, direct validator chains, and showcase metadata each have their own
+typed parser surface.
+
 Data-field validators may be labeled with lower-snake identifiers, such as
 `#[koruma(username_prefix = string::PrefixValidation::<_>::prefix("user:"))]` or
 `#[koruma(each(tag_prefix = string::PrefixValidation::<_>::prefix("tag:")))]`.
@@ -17,8 +21,8 @@ in validation, `None` for skipped or unannotated fields, and `Err` for invalid m
 Participating fields expose a `ParsedFieldSpec` shape, which separates regular, nested, and
 newtype validation so invalid combinations cannot be represented after parsing.
 
-`parse_validator_fields_strict` returns `ValidatorStructSpec` for `#[koruma::validator]` structs.
-It keeps `value`, `value(capture = skip)`, and `setter(...)` metadata typed in this crate before
-the proc-macro renderer builds validator builders.
+`parse_validator_struct` returns `ValidatorStructSpec` for `#[koruma::validator]` structs. It keeps
+`value`, `value(capture = skip)`, and `setter(...)` metadata typed in this crate before the
+proc-macro renderer builds validator builders.
 
 Most users should depend on `koruma` (or `koruma-derive`) instead of this crate directly.

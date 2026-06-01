@@ -270,7 +270,7 @@ fn test_koruma_expansion_optional_with_generic() {
 fn test_koruma_expansion_full_optional_field_target_path() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalPresence {
-            #[koruma(RequiredValidation::<_>)]
+            #[koruma(full(RequiredValidation::<_>))]
             pub value: Option<String>,
         }
     };
@@ -296,7 +296,7 @@ fn test_koruma_expansion_optional_element_target_path() {
 fn test_koruma_expansion_full_optional_element_target_path() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalElementPresence {
-            #[koruma(each(RequiredValidation::<_>))]
+            #[koruma(each(full(RequiredValidation::<_>)))]
             pub values: Vec<Option<i32>>,
         }
     };
@@ -476,7 +476,7 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
 fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct RichNewtypeField {
-            #[koruma(newtype, RequiredValidation::<_>, GenericRange::<_>::min(0).max(10), PlainValidation::min(1))]
+            #[koruma(newtype, full(RequiredValidation::<_>), GenericRange::<_>::min(0).max(10), PlainValidation::min(1))]
             pub wrapped: Option<WrappedValue>,
         }
     };
@@ -533,7 +533,7 @@ fn test_koruma_expansion_labeled_qualified_validators_generate_distinct_members(
 fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalMixedValidators {
-            #[koruma(RequiredValidation::<_>, GenericRange::<_>::min(0).max(10))]
+            #[koruma(full(RequiredValidation::<_>), GenericRange::<_>::min(0).max(10))]
             pub value: Option<i32>,
         }
     };
@@ -548,7 +548,7 @@ fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
 fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalConcreteFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<String>>)]
+            #[koruma(full(RequiredValidation::<Option<String>>))]
             pub value: Option<String>,
         }
     };
@@ -568,7 +568,7 @@ fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
 fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalElementValidators {
-            #[koruma(each(RequiredValidation::<_>))]
+            #[koruma(each(full(RequiredValidation::<_>)))]
             pub values: Vec<Option<i32>>,
         }
     };
@@ -1100,7 +1100,7 @@ fn test_koruma_expansion_try_from_option_field() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype(try_from))]
         pub struct OptionalWrapper {
-            #[koruma(newtype, RequiredValidation::<_>)]
+            #[koruma(newtype, full(RequiredValidation::<_>))]
             pub inner: Option<InnerValue>,
         }
     };

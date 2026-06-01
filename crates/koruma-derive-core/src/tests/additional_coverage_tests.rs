@@ -1,8 +1,8 @@
 use crate::{
-    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, StructKorumaAttr, StructKorumaItem,
-    TypeShape, ValidatorAttr, contains_infer_type, expr_as_simple_ident,
-    find_value_field_info_strict, find_value_field_strict, first_generic_arg, option_inner_type,
-    parse_field, parse_struct_options, substitute_infer_type, substitute_infer_type_from_source,
+    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, KnownTypeShape, StructKorumaAttr,
+    StructKorumaItem, ValidatorAttr, ValidatorTargetSelector, contains_infer_type,
+    expr_as_simple_ident, first_generic_arg, option_inner_type, parse_field, parse_struct_options,
+    parse_validator_struct, substitute_infer_type, substitute_infer_type_from_source,
     type_to_ident, vec_inner_type,
 };
 
@@ -132,6 +132,46 @@ fn context_specific_koruma_attr_types_parse_normalized_items() {
 }
 
 #[test]
+fn parsed_semantic_nodes_keep_actionable_source_markers() {
+    let data_attr: DataFieldKorumaAttr = syn::parse_quote!(
+        required = full(RequiredValidation::<_>),
+        each(item_required = unwrapped(RequiredValidation::<_>))
+    );
+
+    let DataFieldKorumaItem::FieldValidation(field_spec) = &data_attr.items[0] else {
+        panic!("expected field validator");
+    };
+    assert_eq!(
+        field_spec
+            .validator
+            .label_source
+            .as_ref()
+            .map(|label| label.value.to_string()),
+        Some("required".to_owned())
+    );
+    assert!(matches!(
+        field_spec.validator.target,
+        ValidatorTargetSelector::Full { .. }
+    ));
+
+    let DataFieldKorumaItem::ElementValidation(element_spec) = &data_attr.items[1] else {
+        panic!("expected element validator");
+    };
+    assert_eq!(element_spec.marker_source.value.to_string(), "each");
+    assert_eq!(
+        element_spec.validators[0]
+            .label_source
+            .as_ref()
+            .map(|label| label.value.to_string()),
+        Some("item_required".to_owned())
+    );
+    assert!(matches!(
+        element_spec.validators[0].target,
+        ValidatorTargetSelector::Unwrapped { .. }
+    ));
+}
+
+#[test]
 fn field_info_and_parse_field_option_result_helpers() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::min(0).max(10), each(PositiveValidation))]
@@ -218,18 +258,28 @@ fn parse_field_allows_distinct_fully_qualified_validators() {
 }
 
 #[test]
-fn find_value_field_returns_none_without_marker() {
+fn parse_validator_struct_rejects_missing_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         struct Validator {
             actual: i32,
         }
     };
-    assert!(find_value_field_strict(&input).unwrap().is_none());
+    assert!(
+        parse_validator_struct(&input)
+            .expect_err("expected missing value field")
+            .to_string()
+            .contains("requires a field marked with #[koruma(value)]")
+    );
 
     let tuple_input: syn::ItemStruct = syn::parse_quote! {
         struct TupleValidator(i32);
     };
-    assert!(find_value_field_strict(&tuple_input).unwrap().is_none());
+    assert!(
+        parse_validator_struct(&tuple_input)
+            .expect_err("expected tuple validator missing value field")
+            .to_string()
+            .contains("requires a field marked with #[koruma(value)]")
+    );
 }
 
 #[test]
@@ -318,25 +368,33 @@ fn utility_functions_cover_non_happy_paths() {
     assert!(vec_inner_type(&vec_const).is_none());
 
     let qualified_option: syn::Type = syn::parse_quote!(std::option::Option<String>);
-    let TypeShape::Option { inner } = TypeShape::of(&qualified_option) else {
+    let KnownTypeShape::Option { segment, inner } = KnownTypeShape::of(&qualified_option) else {
         panic!("expected qualified option shape");
     };
+    assert_eq!(segment.ident.to_string(), "Option");
     assert_eq!(quote::quote!(#inner).to_string(), "String");
 
     let qualified_vec: syn::Type = syn::parse_quote!(std::vec::Vec<u8>);
-    let TypeShape::Vec { inner } = TypeShape::of(&qualified_vec) else {
+    let KnownTypeShape::Vec { segment, inner } = KnownTypeShape::of(&qualified_vec) else {
         panic!("expected qualified vec shape");
     };
+    assert_eq!(segment.ident.to_string(), "Vec");
     assert_eq!(quote::quote!(#inner).to_string(), "u8");
 
     let reference: syn::Type = syn::parse_quote!(&[u8]);
-    let TypeShape::Reference { inner } = TypeShape::of(&reference) else {
+    let KnownTypeShape::Reference { inner, .. } = KnownTypeShape::of(&reference) else {
         panic!("expected reference shape");
     };
-    assert!(matches!(TypeShape::of(inner), TypeShape::Slice { .. }));
+    assert!(matches!(
+        KnownTypeShape::of(inner),
+        KnownTypeShape::Slice { .. }
+    ));
 
     let array: syn::Type = syn::parse_quote!([u8; 4]);
-    assert!(matches!(TypeShape::of(&array), TypeShape::Array { .. }));
+    assert!(matches!(
+        KnownTypeShape::of(&array),
+        KnownTypeShape::Array { .. }
+    ));
 
     let named_type: syn::Type = syn::parse_quote!(Age);
     assert_eq!(
@@ -621,10 +679,8 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
         }
     };
 
-    let info = find_value_field_info_strict(&input)
-        .expect("expected valid value field lookup")
-        .expect("expected value field info");
-    assert_eq!(info.name.to_string(), "actual");
+    let spec = parse_validator_struct(&input).expect("expected valid validator struct");
+    assert_eq!(spec.value_field().name.to_string(), "actual");
 
     let bad_input: syn::ItemStruct = syn::parse_quote! {
         struct Validator {
@@ -634,7 +690,7 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
     };
 
     assert!(
-        find_value_field_info_strict(&bad_input)
+        parse_validator_struct(&bad_input)
             .expect_err("expected empty marker error")
             .to_string()
             .contains(

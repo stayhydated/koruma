@@ -3,9 +3,10 @@
 //! These utilities are used for working with syn types, particularly
 //! for handling `Option<T>`, `Vec<T>`, and type inference placeholders.
 
+use proc_macro2::Span;
 use syn::{
     AngleBracketedGenericArguments, Expr, GenericArgument, Ident, ParenthesizedGenericArguments,
-    Path, PathArguments, ReturnType, Type, TypeParamBound,
+    Path, PathArguments, PathSegment, ReturnType, Type, TypeParamBound, spanned::Spanned,
 };
 
 /// Substitute infer placeholders (`_`) in a type with the actual inferred type.
@@ -857,31 +858,55 @@ pub fn expr_as_simple_ident(expr: &Expr) -> Option<&Ident> {
 ///
 /// This is intentionally syntax-only macro recognition. It does not resolve
 /// type aliases or trait implementations.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TypeShape<'a> {
-    Option { inner: &'a Type },
-    Vec { inner: &'a Type },
-    Slice { inner: &'a Type },
-    Array { inner: &'a Type },
-    Reference { inner: &'a Type },
+#[derive(Clone, Copy, Debug)]
+pub enum KnownTypeShape<'a> {
+    Option {
+        segment: &'a PathSegment,
+        inner: &'a Type,
+    },
+    Vec {
+        segment: &'a PathSegment,
+        inner: &'a Type,
+    },
+    Slice {
+        span: Span,
+        inner: &'a Type,
+    },
+    Array {
+        span: Span,
+        inner: &'a Type,
+    },
+    Reference {
+        span: Span,
+        inner: &'a Type,
+    },
     Other(&'a Type),
 }
 
-impl<'a> TypeShape<'a> {
+impl<'a> KnownTypeShape<'a> {
     pub fn of(ty: &'a Type) -> Self {
         match ty {
             Type::Group(group) => Self::of(&group.elem),
             Type::Paren(paren) => Self::of(&paren.elem),
-            Type::Array(array) => Self::Array { inner: &array.elem },
+            Type::Array(array) => Self::Array {
+                span: array.span(),
+                inner: &array.elem,
+            },
             Type::Reference(reference) => Self::Reference {
+                span: reference.span(),
                 inner: &reference.elem,
             },
-            Type::Slice(slice) => Self::Slice { inner: &slice.elem },
+            Type::Slice(slice) => Self::Slice {
+                span: slice.span(),
+                inner: &slice.elem,
+            },
             Type::Path(type_path) => {
-                if let Some(inner) = path_last_generic_type(&type_path.path, "Option") {
-                    Self::Option { inner }
-                } else if let Some(inner) = path_last_generic_type(&type_path.path, "Vec") {
-                    Self::Vec { inner }
+                if let Some((segment, inner)) = path_last_generic_type(&type_path.path, "Option") {
+                    Self::Option { segment, inner }
+                } else if let Some((segment, inner)) =
+                    path_last_generic_type(&type_path.path, "Vec")
+                {
+                    Self::Vec { segment, inner }
                 } else {
                     Self::Other(ty)
                 }
@@ -889,9 +914,28 @@ impl<'a> TypeShape<'a> {
             _ => Self::Other(ty),
         }
     }
+
+    pub fn recognized_name(&self) -> Option<&Ident> {
+        match self {
+            Self::Option { segment, .. } | Self::Vec { segment, .. } => Some(&segment.ident),
+            Self::Slice { .. } | Self::Array { .. } | Self::Reference { .. } | Self::Other(_) => {
+                None
+            },
+        }
+    }
+
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Option { segment, .. } | Self::Vec { segment, .. } => segment.span(),
+            Self::Slice { span, .. } | Self::Array { span, .. } | Self::Reference { span, .. } => {
+                *span
+            },
+            Self::Other(ty) => ty.span(),
+        }
+    }
 }
 
-fn path_last_generic_type<'a>(path: &'a Path, ident: &str) -> Option<&'a Type> {
+fn path_last_generic_type<'a>(path: &'a Path, ident: &str) -> Option<(&'a PathSegment, &'a Type)> {
     let segment = path.segments.last()?;
     if segment.ident != ident {
         return None;
@@ -902,7 +946,7 @@ fn path_last_generic_type<'a>(path: &'a Path, ident: &str) -> Option<&'a Type> {
     };
 
     match args.args.first()? {
-        GenericArgument::Type(inner) => Some(inner),
+        GenericArgument::Type(inner) => Some((segment, inner)),
         _ => None,
     }
 }
@@ -928,8 +972,8 @@ fn path_last_generic_type<'a>(path: &'a Path, ident: &str) -> Option<&'a Type> {
 /// assert!(inner2.is_none());
 /// ```
 pub fn option_inner_type(ty: &Type) -> Option<&Type> {
-    match TypeShape::of(ty) {
-        TypeShape::Option { inner } => Some(inner),
+    match KnownTypeShape::of(ty) {
+        KnownTypeShape::Option { inner, .. } => Some(inner),
         _ => None,
     }
 }
@@ -955,8 +999,8 @@ pub fn option_inner_type(ty: &Type) -> Option<&Type> {
 /// assert!(inner2.is_none());
 /// ```
 pub fn vec_inner_type(ty: &Type) -> Option<&Type> {
-    match TypeShape::of(ty) {
-        TypeShape::Vec { inner } => Some(inner),
+    match KnownTypeShape::of(ty) {
+        KnownTypeShape::Vec { inner, .. } => Some(inner),
         _ => None,
     }
 }

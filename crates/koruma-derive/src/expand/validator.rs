@@ -5,11 +5,11 @@ use heck::{ToSnakeCase, ToUpperCamelCase};
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{
-    CapturePolicy, SetterDefault, ValidatorFieldRole, option_inner_type,
-    parse_validator_fields_strict,
+    CapturePolicy, SetterDefault, ValidatorFieldRole, option_inner_type, parse_validator_struct,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
+use std::collections::{HashMap, HashSet};
 use syn::{Field, Fields, GenericParam, Ident, ItemStruct, Type, Visibility, parse_quote};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
@@ -31,7 +31,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     #[cfg(feature = "internal-showcase")]
     let showcase_attr = find_showcase_attr(&input)?;
 
-    let validator_spec = parse_validator_fields_strict(&input)?;
+    let validator_spec = parse_validator_struct(&input)?;
     let value_field = validator_spec.value_field();
     let value_field_name = value_field.name.clone();
     let value_field_type = value_field.ty.clone();
@@ -69,7 +69,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         }
     }
 
-    let slots = builder_slots(&validator_spec);
+    let slots = builder_slots(&validator_spec, &input.generics)?;
 
     let Fields::Named(ref mut fields) = input.fields else {
         return Err(syn::Error::new_spanned(
@@ -292,72 +292,126 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
 }
 
 enum BuilderSlot {
-    Value(ValueSlot),
-    Setter(SetterSlot),
+    CapturedValue(CapturedValueSlot),
+    SkippedValue(SkippedValueSlot),
+    RequiredSetter(RequiredSetterSlot),
+    OptionalSetter(OptionalSetterSlot),
+    DefaultedSetter(DefaultedSetterSlot),
 }
 
-struct ValueSlot {
+struct CapturedValueSlot {
     ident: Ident,
     ty: Type,
-    capture: CapturePolicy,
+    state_ident: Ident,
 }
 
-struct SetterSlot {
+struct SkippedValueSlot {
+    ident: Ident,
+    ty: Type,
+}
+
+struct RequiredSetterSlot {
     ident: Ident,
     ty: Type,
     method: Ident,
-    requirement: SetterRequirement,
-    default: SetterDefault,
+    into: bool,
+    state_ident: Ident,
+}
+
+struct OptionalSetterSlot {
+    ident: Ident,
+    ty: Type,
+    method: Ident,
     into: bool,
 }
 
-enum SetterRequirement {
-    Required { state_ident: Ident },
-    Optional,
+struct DefaultedSetterSlot {
+    ident: Ident,
+    ty: Type,
+    method: Ident,
+    into: bool,
+    default: SetterDefaultValue,
+}
+
+enum SetterDefaultValue {
+    Default,
+    Expr(syn::Expr),
+}
+
+struct SetterRenderParts<'a> {
+    ident: &'a Ident,
+    ty: &'a Type,
+    method: &'a Ident,
+    into: bool,
+    required: bool,
 }
 
 impl BuilderSlot {
     fn ident(&self) -> &Ident {
         match self {
-            Self::Value(slot) => &slot.ident,
-            Self::Setter(slot) => &slot.ident,
+            Self::CapturedValue(slot) => &slot.ident,
+            Self::SkippedValue(slot) => &slot.ident,
+            Self::RequiredSetter(slot) => &slot.ident,
+            Self::OptionalSetter(slot) => &slot.ident,
+            Self::DefaultedSetter(slot) => &slot.ident,
         }
     }
 
     fn ty(&self) -> &Type {
         match self {
-            Self::Value(slot) => &slot.ty,
-            Self::Setter(slot) => &slot.ty,
+            Self::CapturedValue(slot) => &slot.ty,
+            Self::SkippedValue(slot) => &slot.ty,
+            Self::RequiredSetter(slot) => &slot.ty,
+            Self::OptionalSetter(slot) => &slot.ty,
+            Self::DefaultedSetter(slot) => &slot.ty,
         }
     }
 
     fn is_required(&self) -> bool {
-        match self {
-            Self::Value(slot) => slot.capture == CapturePolicy::CloneInput,
-            Self::Setter(slot) => slot.is_required(),
-        }
+        matches!(self, Self::CapturedValue(_) | Self::RequiredSetter(_))
     }
 
     fn required_state_ident(&self) -> Option<Ident> {
         match self {
-            Self::Value(slot) if slot.capture == CapturePolicy::CloneInput => {
-                Some(state_ident_for(&slot.ident))
-            },
-            Self::Value(_) => None,
-            Self::Setter(slot) => slot.required_state_ident().cloned(),
+            Self::CapturedValue(slot) => Some(slot.state_ident.clone()),
+            Self::RequiredSetter(slot) => Some(slot.state_ident.clone()),
+            Self::SkippedValue(_) | Self::OptionalSetter(_) | Self::DefaultedSetter(_) => None,
         }
     }
-}
 
-impl SetterSlot {
-    fn is_required(&self) -> bool {
-        matches!(self.requirement, SetterRequirement::Required { .. })
+    fn setter_method(&self) -> Option<&Ident> {
+        match self {
+            Self::RequiredSetter(slot) => Some(&slot.method),
+            Self::OptionalSetter(slot) => Some(&slot.method),
+            Self::DefaultedSetter(slot) => Some(&slot.method),
+            Self::CapturedValue(_) | Self::SkippedValue(_) => None,
+        }
     }
 
-    fn required_state_ident(&self) -> Option<&Ident> {
-        match &self.requirement {
-            SetterRequirement::Required { state_ident } => Some(state_ident),
-            SetterRequirement::Optional => None,
+    fn setter_render_parts(&self) -> Option<SetterRenderParts<'_>> {
+        match self {
+            Self::RequiredSetter(slot) => Some(SetterRenderParts {
+                ident: &slot.ident,
+                ty: &slot.ty,
+                method: &slot.method,
+                into: slot.into,
+                required: true,
+            }),
+            Self::OptionalSetter(slot) => Some(SetterRenderParts {
+                ident: &slot.ident,
+                ty: &slot.ty,
+                method: &slot.method,
+                into: slot.into,
+                required: false,
+            }),
+            Self::DefaultedSetter(slot) => Some(SetterRenderParts {
+                ident: &slot.ident,
+                ty: &slot.ty,
+                method: &slot.method,
+                into: slot.into,
+                required: false,
+            }),
+            Self::CapturedValue(_) | Self::SkippedValue(_) => None,
         }
     }
 }
@@ -366,42 +420,159 @@ fn state_ident_for(ident: &Ident) -> Ident {
     format_ident!("__Koruma{}State", ident.to_string().to_upper_camel_case())
 }
 
-fn builder_slots(validator_spec: &koruma_derive_core::ValidatorStructSpec) -> Vec<BuilderSlot> {
-    validator_spec
-        .fields
+fn builder_slots(
+    validator_spec: &koruma_derive_core::ValidatorStructSpec,
+    generics: &syn::Generics,
+) -> Result<Vec<BuilderSlot>, syn::Error> {
+    let user_generic_names: HashSet<String> = generics
+        .params
         .iter()
-        .map(|field| {
-            let ident = field.name.clone();
-            match &field.role {
-                ValidatorFieldRole::Value(value) => BuilderSlot::Value(ValueSlot {
+        .filter_map(|param| match param {
+            GenericParam::Type(param) => Some(param.ident.to_string()),
+            GenericParam::Const(param) => Some(param.ident.to_string()),
+            GenericParam::Lifetime(_) => None,
+        })
+        .collect();
+    let mut slots = Vec::new();
+
+    for field in &validator_spec.fields {
+        if field.name == "_state" {
+            return Err(syn::Error::new(
+                field.name.span(),
+                "validator field name `_state` is reserved for the generated builder",
+            ));
+        }
+
+        let ident = field.name.clone();
+        let slot = match &field.role {
+            ValidatorFieldRole::Value(value) => match value.capture {
+                CapturePolicy::CloneInput => {
+                    let state_ident = state_ident_for(&ident);
+                    reject_state_ident_collision(&state_ident, &user_generic_names)?;
+                    BuilderSlot::CapturedValue(CapturedValueSlot {
+                        ident,
+                        ty: field.ty.clone(),
+                        state_ident,
+                    })
+                },
+                CapturePolicy::Skip => BuilderSlot::SkippedValue(SkippedValueSlot {
                     ident,
                     ty: field.ty.clone(),
-                    capture: value.capture,
                 }),
-                ValidatorFieldRole::Setter(setter) => {
-                    let field_is_option = option_inner_type(&field.ty).is_some();
-                    let required = setter.required
-                        || (!field_is_option && matches!(setter.default, SetterDefault::None));
-                    let requirement = if required {
-                        SetterRequirement::Required {
-                            state_ident: state_ident_for(&ident),
-                        }
-                    } else {
-                        SetterRequirement::Optional
-                    };
+            },
+            ValidatorFieldRole::Setter(setter) => {
+                let field_is_option = option_inner_type(&field.ty).is_some();
+                let required = setter.required
+                    || (!field_is_option && matches!(setter.default, SetterDefault::None));
 
-                    BuilderSlot::Setter(SetterSlot {
+                if required {
+                    let state_ident = state_ident_for(&ident);
+                    reject_state_ident_collision(&state_ident, &user_generic_names)?;
+                    BuilderSlot::RequiredSetter(RequiredSetterSlot {
                         ident,
                         ty: field.ty.clone(),
                         method: setter.method.clone(),
-                        requirement,
-                        default: setter.default.clone(),
+                        into: setter.into,
+                        state_ident,
+                    })
+                } else if matches!(setter.default, SetterDefault::None) {
+                    BuilderSlot::OptionalSetter(OptionalSetterSlot {
+                        ident,
+                        ty: field.ty.clone(),
+                        method: setter.method.clone(),
                         into: setter.into,
                     })
-                },
-            }
-        })
-        .collect()
+                } else if let Some(default) = setter_default_value(&setter.default) {
+                    BuilderSlot::DefaultedSetter(DefaultedSetterSlot {
+                        ident,
+                        ty: field.ty.clone(),
+                        method: setter.method.clone(),
+                        into: setter.into,
+                        default,
+                    })
+                } else {
+                    BuilderSlot::OptionalSetter(OptionalSetterSlot {
+                        ident,
+                        ty: field.ty.clone(),
+                        method: setter.method.clone(),
+                        into: setter.into,
+                    })
+                }
+            },
+        };
+        slots.push(slot);
+    }
+
+    reject_generated_method_collisions(&slots)?;
+    Ok(slots)
+}
+
+fn setter_default_value(default: &SetterDefault) -> Option<SetterDefaultValue> {
+    match default {
+        SetterDefault::None => None,
+        SetterDefault::Default => Some(SetterDefaultValue::Default),
+        SetterDefault::Expr(expr) => Some(SetterDefaultValue::Expr(expr.clone())),
+    }
+}
+
+fn reject_state_ident_collision(
+    state_ident: &Ident,
+    user_generic_names: &HashSet<String>,
+) -> Result<(), syn::Error> {
+    if user_generic_names.contains(&state_ident.to_string()) {
+        return Err(syn::Error::new(
+            state_ident.span(),
+            format!(
+                "generated required-state generic `{state_ident}` collides with a user generic"
+            ),
+        ));
+    }
+    Ok(())
+}
+
+fn reject_generated_method_collisions(slots: &[BuilderSlot]) -> Result<(), syn::Error> {
+    let reserved = ["with_value", "build", "__koruma_builder"];
+    let mut direct_methods: HashMap<String, Ident> = HashMap::new();
+
+    for slot in slots {
+        let Some(method) = slot.setter_method() else {
+            continue;
+        };
+        let method_name = method.to_string();
+        if reserved.contains(&method_name.as_str()) {
+            return Err(syn::Error::new(
+                method.span(),
+                format!("setter method name `{method_name}` is reserved by koruma"),
+            ));
+        }
+        if let Some(first) = direct_methods.insert(method_name.clone(), method.clone()) {
+            return Err(syn::Error::new(
+                method.span(),
+                format!("setter method `{method_name}` collides with another setter `{first}`"),
+            ));
+        }
+    }
+
+    for slot in slots {
+        let BuilderSlot::OptionalSetter(slot) = slot else {
+            continue;
+        };
+        if option_inner_type(&slot.ty).is_none() {
+            continue;
+        }
+        let maybe_method = format_ident!("maybe_{}", slot.method);
+        let maybe_name = maybe_method.to_string();
+        if let Some(first) = direct_methods.get(&maybe_name) {
+            return Err(syn::Error::new(
+                slot.method.span(),
+                format!(
+                    "generated optional setter method `{maybe_name}` collides with setter `{first}`"
+                ),
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 fn reject_builder_attrs(field: &Field) -> Result<(), syn::Error> {
@@ -555,11 +726,32 @@ fn render_builder_setter(
     generic_args: &[TokenStream2],
 ) -> TokenStream2 {
     match slot {
-        BuilderSlot::Value(slot) => {
-            render_value_setter(builder_name, module_name, slots, slot, generic_args)
-        },
-        BuilderSlot::Setter(slot) => {
-            render_setter_slot(builder_name, module_name, slots, slot, generic_args)
+        BuilderSlot::CapturedValue(slot) => render_value_setter(
+            builder_name,
+            module_name,
+            slots,
+            &slot.ident,
+            &slot.ty,
+            true,
+            generic_args,
+        ),
+        BuilderSlot::SkippedValue(slot) => render_value_setter(
+            builder_name,
+            module_name,
+            slots,
+            &slot.ident,
+            &slot.ty,
+            false,
+            generic_args,
+        ),
+        BuilderSlot::RequiredSetter(_)
+        | BuilderSlot::OptionalSetter(_)
+        | BuilderSlot::DefaultedSetter(_) => {
+            if let Some(parts) = slot.setter_render_parts() {
+                render_setter_slot(builder_name, module_name, slots, parts, generic_args)
+            } else {
+                quote! {}
+            }
         },
     }
 }
@@ -568,11 +760,11 @@ fn render_setter_slot(
     builder_name: &Ident,
     module_name: &Ident,
     slots: &[BuilderSlot],
-    slot: &SetterSlot,
+    slot: SetterRenderParts<'_>,
     generic_args: &[TokenStream2],
 ) -> TokenStream2 {
-    let method = &slot.method;
-    let ty = &slot.ty;
+    let method = slot.method;
+    let ty = slot.ty;
     let arg_ty = if slot.into {
         quote! { impl ::std::convert::Into<#ty> }
     } else {
@@ -583,20 +775,14 @@ fn render_setter_slot(
     } else {
         quote! { value }
     };
-    let return_ty = if slot.is_required() {
-        builder_type_with_replaced_state(
-            builder_name,
-            generic_args,
-            module_name,
-            slots,
-            &slot.ident,
-        )
+    let return_ty = if slot.required {
+        builder_type_with_replaced_state(builder_name, generic_args, module_name, slots, slot.ident)
     } else {
         quote! { Self }
     };
-    let assignments = builder_assignments(slots, &slot.ident, quote! { #value_expr });
-    let maybe_method = if !slot.is_required() {
-        option_inner_type(&slot.ty).map(|inner_ty| {
+    let assignments = builder_assignments(slots, slot.ident, quote! { #value_expr });
+    let maybe_method = if !slot.required {
+        option_inner_type(slot.ty).map(|inner_ty| {
             let maybe_method = format_ident!("maybe_{}", method);
             quote! {
                 pub fn #maybe_method(self, value: ::std::option::Option<#inner_ty>) -> Self {
@@ -624,27 +810,24 @@ fn render_value_setter(
     builder_name: &Ident,
     module_name: &Ident,
     slots: &[BuilderSlot],
-    slot: &ValueSlot,
+    ident: &Ident,
+    ty: &Type,
+    capture_required: bool,
     generic_args: &[TokenStream2],
 ) -> TokenStream2 {
     let method = format_ident!("with_value");
-    let inner_ty = option_inner_type(&slot.ty).unwrap_or(&slot.ty);
-    let value_expr = if option_inner_type(&slot.ty).is_some() {
+    let inner_ty = option_inner_type(ty).unwrap_or(ty);
+    let value_expr = if option_inner_type(ty).is_some() {
         quote! { ::std::option::Option::Some(value) }
     } else {
         quote! { value }
     };
-    let return_ty = match slot.capture {
-        CapturePolicy::CloneInput => builder_type_with_replaced_state(
-            builder_name,
-            generic_args,
-            module_name,
-            slots,
-            &slot.ident,
-        ),
-        CapturePolicy::Skip => quote! { Self },
+    let return_ty = if capture_required {
+        builder_type_with_replaced_state(builder_name, generic_args, module_name, slots, ident)
+    } else {
+        quote! { Self }
     };
-    let assignments = builder_assignments(slots, &slot.ident, value_expr);
+    let assignments = builder_assignments(slots, ident, value_expr);
 
     quote! {
         pub fn #method(self, value: #inner_ty) -> #return_ty {
@@ -687,9 +870,10 @@ fn builder_type_with_replaced_state(
         .map(|slot| {
             if slot.ident() == target {
                 quote! { #module_name::Set }
-            } else {
-                let state_ident = slot.required_state_ident().expect("required slot");
+            } else if let Some(state_ident) = slot.required_state_ident() {
                 quote! { #state_ident }
+            } else {
+                quote! {}
             }
         })
         .collect();
@@ -735,42 +919,38 @@ fn render_build_impl(
 
 fn build_value_expr(slot: &BuilderSlot) -> TokenStream2 {
     match slot {
-        BuilderSlot::Value(slot) => {
+        BuilderSlot::CapturedValue(slot) => {
             let ident = &slot.ident;
-            match slot.capture {
-                CapturePolicy::CloneInput => quote! {
-                    self.#ident.expect("required koruma validator builder field should be set")
-                },
-                CapturePolicy::Skip => quote! {
-                    self.#ident.unwrap_or(::std::option::Option::None)
-                },
+            quote! {
+                self.#ident.expect("required koruma validator builder field should be set")
             }
         },
-        BuilderSlot::Setter(slot) => {
+        BuilderSlot::SkippedValue(slot) => {
             let ident = &slot.ident;
-            if slot.is_required() {
-                return quote! {
-                    self.#ident.expect("required koruma validator builder field should be set")
-                };
+            quote! {
+                self.#ident.unwrap_or(::std::option::Option::None)
             }
-
+        },
+        BuilderSlot::RequiredSetter(slot) => {
+            let ident = &slot.ident;
+            quote! {
+                self.#ident.expect("required koruma validator builder field should be set")
+            }
+        },
+        BuilderSlot::OptionalSetter(slot) => {
+            let ident = &slot.ident;
+            quote! {
+                self.#ident.unwrap_or(::std::option::Option::None)
+            }
+        },
+        BuilderSlot::DefaultedSetter(slot) => {
+            let ident = &slot.ident;
             match &slot.default {
-                SetterDefault::Expr(expr) => quote! {
+                SetterDefaultValue::Expr(expr) => quote! {
                     self.#ident.unwrap_or_else(|| #expr)
                 },
-                SetterDefault::Default => quote! {
+                SetterDefaultValue::Default => quote! {
                     self.#ident.unwrap_or_default()
-                },
-                SetterDefault::None => {
-                    if option_inner_type(&slot.ty).is_some() {
-                        quote! {
-                            self.#ident.unwrap_or(::std::option::Option::None)
-                        }
-                    } else {
-                        quote! {
-                            self.#ident.expect("defaulted koruma validator builder field should be set")
-                        }
-                    }
                 },
             }
         },
@@ -863,10 +1043,7 @@ fn direct_builder_methods(
 ) -> Vec<TokenStream2> {
     slots
         .iter()
-        .filter_map(|slot| match slot {
-            BuilderSlot::Value(_) => None,
-            BuilderSlot::Setter(slot) => Some(slot),
-        })
+        .filter_map(BuilderSlot::setter_render_parts)
         .map(|slot| {
             render_direct_builder_method(
                 slot,
@@ -880,14 +1057,14 @@ fn direct_builder_methods(
 }
 
 fn render_direct_builder_method(
-    slot: &SetterSlot,
+    slot: SetterRenderParts<'_>,
     builder_name: &Ident,
     builder_generic_args: &[TokenStream2],
     required_slots: &[&BuilderSlot],
     module_name: &Ident,
 ) -> TokenStream2 {
-    let method = &slot.method;
-    let ty = &slot.ty;
+    let method = slot.method;
+    let ty = slot.ty;
     let arg_ty = if slot.into {
         quote! { impl ::std::convert::Into<#ty> }
     } else {
@@ -896,14 +1073,14 @@ fn render_direct_builder_method(
     let state_args: Vec<_> = required_slots
         .iter()
         .map(|required| {
-            if required.ident() == &slot.ident {
+            if required.ident() == slot.ident {
                 quote! { #module_name::Set }
             } else {
                 quote! { #module_name::Empty }
             }
         })
         .collect();
-    let output_builder_ty = if slot.is_required() {
+    let output_builder_ty = if slot.required {
         builder_type_path(builder_name, builder_generic_args, &state_args)
     } else {
         let empty_state_args: Vec<_> = required_slots
@@ -914,8 +1091,8 @@ fn render_direct_builder_method(
     };
     let method_name_str = method.to_string();
 
-    let maybe_method = if !slot.is_required() {
-        option_inner_type(&slot.ty).map(|inner_ty| {
+    let maybe_method = if !slot.required {
+        option_inner_type(slot.ty).map(|inner_ty| {
             let maybe_method = format_ident!("maybe_{}", method);
             let maybe_method_name_str = maybe_method.to_string();
             quote! {

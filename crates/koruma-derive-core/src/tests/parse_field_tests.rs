@@ -4,8 +4,7 @@
 
 use crate::{
     CapturePolicy, FieldInfo, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, ValidatorAttr,
-    ValidatorFieldRole, find_value_field_info_strict, find_value_field_strict, parse_field,
-    parse_struct_options, parse_validator_fields_strict,
+    ValidatorFieldRole, parse_field, parse_struct_options, parse_validator_struct,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -136,23 +135,20 @@ fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), S
 }
 
 fn find_value_field_name(input: &syn::ItemStruct) -> Option<String> {
-    find_value_field_strict(input)
+    parse_validator_struct(input)
         .ok()
-        .flatten()
-        .map(|(name, _)| name.to_string())
+        .map(|spec| spec.value_field().name.to_string())
 }
 
-fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<Option<String>, String> {
-    find_value_field_strict(input)
-        .map(|value| value.map(|(name, _)| name.to_string()))
+fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<String, String> {
+    parse_validator_struct(input)
+        .map(|spec| spec.value_field().name.to_string())
         .map_err(|err| err.to_string())
 }
 
-fn find_value_field_capture_strict(
-    input: &syn::ItemStruct,
-) -> Result<Option<CapturePolicy>, String> {
-    find_value_field_info_strict(input)
-        .map(|value| value.map(|info| info.capture))
+fn find_value_field_capture_strict(input: &syn::ItemStruct) -> Result<CapturePolicy, String> {
+    parse_validator_struct(input)
+        .map(|spec| spec.value_spec().capture)
         .map_err(|err| err.to_string())
 }
 
@@ -585,7 +581,7 @@ fn test_find_value_field_cfg_attr_complex_condition() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_duplicate_markers_on_same_field() {
+fn test_parse_validator_struct_rejects_duplicate_markers_on_same_field() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             min: i32,
@@ -596,7 +592,7 @@ fn test_find_value_field_strict_rejects_duplicate_markers_on_same_field() {
         }
     };
 
-    let err = find_value_field_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("field `actual` has multiple `#[koruma(value)]` markers")
@@ -604,7 +600,7 @@ fn test_find_value_field_strict_rejects_duplicate_markers_on_same_field() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_multiple_fields() {
+fn test_parse_validator_struct_rejects_multiple_value_fields() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(value)]
@@ -614,7 +610,7 @@ fn test_find_value_field_strict_rejects_multiple_fields() {
         }
     };
 
-    let err = find_value_field_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("requires exactly one `#[koruma(value)]` field")
@@ -622,7 +618,7 @@ fn test_find_value_field_strict_rejects_multiple_fields() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_unknown_marker() {
+fn test_parse_validator_struct_rejects_unknown_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(other)]
@@ -630,14 +626,14 @@ fn test_find_value_field_strict_rejects_unknown_marker() {
         }
     };
 
-    let err = find_value_field_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     let message = err.to_string();
     assert!(message.contains("validator field"));
     assert!(message.contains("expected `value`, `value(capture = skip)`, or `setter(...)`"));
 }
 
 #[test]
-fn test_find_value_field_strict_still_returns_name() {
+fn test_parse_validator_struct_returns_value_name() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             min: i32,
@@ -648,12 +644,12 @@ fn test_find_value_field_strict_still_returns_name() {
 
     assert_eq!(
         find_value_field_name_strict(&input).unwrap(),
-        Some("actual".to_string())
+        "actual".to_string()
     );
 }
 
 #[test]
-fn test_find_value_field_strict_ignores_setter_metadata() {
+fn test_parse_validator_struct_preserves_setter_metadata() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(setter(into, name = lower_bound))]
@@ -665,12 +661,12 @@ fn test_find_value_field_strict_ignores_setter_metadata() {
 
     assert_eq!(
         find_value_field_name_strict(&input).unwrap(),
-        Some("actual".to_string())
+        "actual".to_string()
     );
 }
 
 #[test]
-fn test_find_value_field_strict_supports_capture_skip_policy() {
+fn test_parse_validator_struct_supports_capture_skip_policy() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             min: i32,
@@ -681,12 +677,12 @@ fn test_find_value_field_strict_supports_capture_skip_policy() {
 
     assert_eq!(
         find_value_field_capture_strict(&input).unwrap(),
-        Some(CapturePolicy::Skip)
+        CapturePolicy::Skip
     );
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_unknown_validator_field_marker() {
+fn test_parse_validator_struct_rejects_unknown_validator_field_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(capture)]
@@ -695,7 +691,7 @@ fn test_find_value_field_strict_rejects_unknown_validator_field_marker() {
         }
     };
 
-    let err = find_value_field_info_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("`capture` is not valid in a validator field")
@@ -703,7 +699,7 @@ fn test_find_value_field_strict_rejects_unknown_validator_field_marker() {
 }
 
 #[test]
-fn test_parse_validator_fields_strict_parses_typed_setter_metadata() {
+fn test_parse_validator_struct_parses_typed_setter_metadata() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(setter(into, name = label))]
@@ -717,7 +713,7 @@ fn test_parse_validator_fields_strict_parses_typed_setter_metadata() {
         }
     };
 
-    let spec = parse_validator_fields_strict(&input).unwrap();
+    let spec = parse_validator_struct(&input).unwrap();
     assert_eq!(spec.value_field().name.to_string(), "actual");
     assert!(matches!(spec.value_spec().capture, CapturePolicy::Skip));
 
@@ -745,7 +741,7 @@ fn test_parse_validator_fields_strict_parses_typed_setter_metadata() {
 }
 
 #[test]
-fn test_parse_validator_fields_strict_rejects_value_with_setter() {
+fn test_parse_validator_struct_rejects_value_with_setter() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(value, setter(required))]
@@ -753,7 +749,7 @@ fn test_parse_validator_fields_strict_rejects_value_with_setter() {
         }
     };
 
-    let err = parse_validator_fields_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("fields cannot also use `#[koruma(setter(...))]`")
@@ -761,7 +757,7 @@ fn test_parse_validator_fields_strict_rejects_value_with_setter() {
 }
 
 #[test]
-fn test_parse_validator_fields_strict_rejects_required_default_setter() {
+fn test_parse_validator_struct_rejects_required_default_setter() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(setter(required, default))]
@@ -771,7 +767,7 @@ fn test_parse_validator_fields_strict_rejects_required_default_setter() {
         }
     };
 
-    let err = parse_validator_fields_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("`required` and `default` cannot be combined")
@@ -779,7 +775,7 @@ fn test_parse_validator_fields_strict_rejects_required_default_setter() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_duplicate_value_markers_with_capture() {
+fn test_parse_validator_struct_rejects_duplicate_value_markers_with_capture() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(value(capture = skip))]
@@ -788,7 +784,7 @@ fn test_find_value_field_strict_rejects_duplicate_value_markers_with_capture() {
         }
     };
 
-    let err = find_value_field_info_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("field `actual` has multiple `#[koruma(value)]` markers")
@@ -796,7 +792,7 @@ fn test_find_value_field_strict_rejects_duplicate_value_markers_with_capture() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_unknown_value_option() {
+fn test_parse_validator_struct_rejects_unknown_value_option() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(value(mode = skip))]
@@ -804,7 +800,7 @@ fn test_find_value_field_strict_rejects_unknown_value_option() {
         }
     };
 
-    let err = find_value_field_info_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("unsupported `value(...)` option; supported option is `capture = skip`")
@@ -812,7 +808,7 @@ fn test_find_value_field_strict_rejects_unknown_value_option() {
 }
 
 #[test]
-fn test_find_value_field_strict_rejects_unknown_capture_policy() {
+fn test_parse_validator_struct_rejects_unknown_capture_policy() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             #[koruma(value(capture = clone))]
@@ -820,7 +816,7 @@ fn test_find_value_field_strict_rejects_unknown_capture_policy() {
         }
     };
 
-    let err = find_value_field_info_strict(&input).unwrap_err();
+    let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
             .contains("unsupported capture policy; supported policy is `skip`")

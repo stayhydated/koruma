@@ -2,11 +2,11 @@
 
 use koruma_derive_core::{
     BuilderMethodCall, FieldInfo, ParsedValidatorUse, StructOptions, ValidatorAttr,
-    ValidatorSetterArg, contains_infer_type, expr_as_simple_ident, option_inner_type,
-    parse_struct_options, substitute_infer_type_from_source,
+    ValidatorSetterArg, ValidatorTargetSelector, contains_infer_type, expr_as_simple_ident,
+    option_inner_type, parse_struct_options, substitute_infer_type_from_source,
 };
 use quote::quote;
-use syn::{DeriveInput, Fields, Ident, Member, Path, Type};
+use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned};
 
 use super::codegen::{EachIterationKind, FieldCardinality, classify_each_collection};
 use super::collect_field_infos;
@@ -794,7 +794,13 @@ impl PlannedValidator {
         known_field_names: &[Ident],
     ) -> Result<Self, syn::Error> {
         let validator = &validator_use.validator;
-        let target = ValidationTarget::for_validator(validator, &field.ty, scope, &field.name)?;
+        let target = ValidationTarget::for_validator(
+            validator,
+            &validator_use.target,
+            &field.ty,
+            scope,
+            &field.name,
+        )?;
         let resolved_explicit_type = target.resolve_explicit_infer_type(validator)?;
         let resolved_type_arg = PlannedValidatorTypeArg::for_validator(
             validator,
@@ -982,6 +988,7 @@ pub(crate) struct UnwrappedElementTarget {
 impl ValidationTarget {
     fn for_validator(
         validator: &ValidatorAttr,
+        target_selector: &ValidatorTargetSelector,
         field_ty: &Type,
         scope: ValidationTargetScope,
         field_name: &Ident,
@@ -992,7 +999,35 @@ impl ValidationTarget {
             field_ty.clone()
         };
 
-        if should_use_full_target(validator, &raw_type) {
+        Self::reject_option_target_type_arg_on_default_target(
+            validator,
+            target_selector,
+            scope,
+            field_name,
+        )?;
+
+        if target_selector.is_full() {
+            if validator
+                .explicit_type()
+                .is_some_and(|ty| option_inner_type(ty).is_some())
+                && option_inner_type(&raw_type).is_none()
+            {
+                let target_context = if scope.is_element() {
+                    format!("element validators on field `{field_name}`")
+                } else {
+                    format!("field `{field_name}`")
+                };
+                return Err(syn::Error::new(
+                    target_selector
+                        .marker_span()
+                        .unwrap_or_else(|| validator.validator.span()),
+                    format!(
+                        "explicit `Option<...>` validator type arguments require an optional validation target for {target_context}; `{}` is targeting a non-optional value",
+                        validator.path_name()
+                    ),
+                ));
+            }
+
             let cardinality = TargetCardinality::for_type(&raw_type);
             return Ok(match scope {
                 ValidationTargetScope::Field => Self::FieldFull(FullFieldTarget {
@@ -1006,9 +1041,6 @@ impl ValidationTarget {
             });
         }
 
-        Self::reject_option_target_type_arg_on_non_optional_target(
-            validator, &raw_type, scope, field_name,
-        )?;
         let validate_type = option_inner_type(&raw_type).unwrap_or(&raw_type).clone();
 
         Ok(match scope {
@@ -1023,9 +1055,9 @@ impl ValidationTarget {
         })
     }
 
-    fn reject_option_target_type_arg_on_non_optional_target(
+    fn reject_option_target_type_arg_on_default_target(
         validator: &ValidatorAttr,
-        raw_type: &Type,
+        target_selector: &ValidatorTargetSelector,
         scope: ValidationTargetScope,
         field_name: &Ident,
     ) -> Result<(), syn::Error> {
@@ -1035,7 +1067,7 @@ impl ValidationTarget {
         if option_inner_type(explicit_ty).is_none() {
             return Ok(());
         }
-        if option_inner_type(raw_type).is_some() {
+        if target_selector.is_full() {
             return Ok(());
         }
 
@@ -1049,7 +1081,7 @@ impl ValidationTarget {
         Err(syn::Error::new_spanned(
             explicit_ty,
             format!(
-                "explicit `Option<...>` validator type arguments require an optional validation target for {target_context}; `{validator_name}` is targeting a non-optional value"
+                "explicit `Option<...>` validator type arguments require `full(...)` target selection for {target_context}; write `full({validator_name}::<Option<_>>)` or use `::<_>` inside `full(...)`"
             ),
         ))
     }
@@ -1099,26 +1131,6 @@ impl ValidationTarget {
             Self::ElementUnwrapped(target) => &target.validate_type,
         }
     }
-}
-
-fn should_use_full_target(validator: &ValidatorAttr, raw_type: &Type) -> bool {
-    explicit_option_type_arg_targets_optional_value(validator, raw_type)
-        || should_required_validation_use_full_target(validator, raw_type)
-}
-
-fn explicit_option_type_arg_targets_optional_value(
-    validator: &ValidatorAttr,
-    raw_type: &Type,
-) -> bool {
-    validator
-        .explicit_type()
-        .is_some_and(|ty| option_inner_type(ty).is_some())
-        && option_inner_type(raw_type).is_some()
-}
-
-fn should_required_validation_use_full_target(validator: &ValidatorAttr, raw_type: &Type) -> bool {
-    // Proc macros cannot resolve paths, so this intentionally keys off the final path segment.
-    validator.name() == "RequiredValidation" && option_inner_type(raw_type).is_some()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

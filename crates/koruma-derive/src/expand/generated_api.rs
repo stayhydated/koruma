@@ -75,7 +75,20 @@ pub(crate) fn reserved_error_api_name(name: &str) -> bool {
 }
 
 pub(crate) fn reserved_builder_method_name(name: &str) -> bool {
-    matches!(name, "with_value" | "build" | "__koruma_builder")
+    RESERVED_BUILDER_METHOD_NAMES.contains(&name)
+}
+
+const RESERVED_BUILDER_METHOD_NAMES: &[&str] = &["with_value", "build", "__koruma_builder"];
+
+pub(crate) fn builder_method_namespace() -> GeneratedApiNamespace {
+    let mut namespace = GeneratedApiNamespace::new();
+    for reserved in RESERVED_BUILDER_METHOD_NAMES {
+        namespace.reserve_ident(
+            &format_ident!("{reserved}"),
+            GeneratedApiNameKind::ReservedBuilderMethod,
+        );
+    }
+    namespace
 }
 
 pub(crate) fn seed_existing_fields(fields: &[Ident]) -> GeneratedApiNamespace {

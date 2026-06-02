@@ -10,7 +10,7 @@ fn test_validator_attr_parse_simple() {
     assert_eq!(attr.codegen_snake_name(), "range_validation");
     assert_eq!(attr.codegen_upper_camel_name(), "RangeValidation");
     assert!(!attr.uses_type_inference());
-    assert!(attr.builder_methods.is_empty());
+    assert!(attr.setter_calls().is_empty());
 }
 
 #[test]
@@ -18,9 +18,9 @@ fn test_validator_attr_parse_with_args() {
     let attr: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0).max(100));
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert!(!attr.uses_type_inference());
-    assert_eq!(attr.builder_methods.len(), 2);
-    assert_eq!(attr.builder_methods[0].method.to_string(), "min");
-    assert_eq!(attr.builder_methods[1].method.to_string(), "max");
+    assert_eq!(attr.setter_calls().len(), 2);
+    assert_eq!(attr.setter_calls()[0].method().to_string(), "min");
+    assert_eq!(attr.setter_calls()[1].method().to_string(), "max");
 }
 
 #[test]
@@ -28,7 +28,7 @@ fn test_validator_attr_parse_generic() {
     let attr: ValidatorAttr = syn::parse_quote!(GenericRange::<_>::min(0.0).max(1.0));
     assert_eq!(attr.name().to_string(), "GenericRange");
     assert!(attr.uses_type_inference());
-    assert_eq!(attr.builder_methods.len(), 2);
+    assert_eq!(attr.setter_calls().len(), 2);
 }
 
 #[test]
@@ -37,10 +37,10 @@ fn test_validator_attr_parse_direct_chain() {
         syn::parse_quote!(RangeValidation::min(0).max(100).exclusive_max(true));
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert!(!attr.uses_type_inference());
-    assert_eq!(attr.builder_methods.len(), 3);
-    assert_eq!(attr.builder_methods[0].method.to_string(), "min");
-    assert_eq!(attr.builder_methods[1].method.to_string(), "max");
-    assert_eq!(attr.builder_methods[2].method.to_string(), "exclusive_max");
+    assert_eq!(attr.setter_calls().len(), 3);
+    assert_eq!(attr.setter_calls()[0].method().to_string(), "min");
+    assert_eq!(attr.setter_calls()[1].method().to_string(), "max");
+    assert_eq!(attr.setter_calls()[2].method().to_string(), "exclusive_max");
 }
 
 #[test]
@@ -50,7 +50,7 @@ fn test_validator_attr_parse_direct_chain_with_turbofish_inference() {
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert_eq!(attr.path_name(), "validators::numeric::RangeValidation");
     assert!(attr.uses_type_inference());
-    assert_eq!(attr.builder_methods.len(), 2);
+    assert_eq!(attr.setter_calls().len(), 2);
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn test_validator_attr_parse_direct_chain_with_explicit_option_type() {
     assert_eq!(attr.name().to_string(), "RequiredValidation");
     assert!(!attr.uses_type_inference());
     assert!(attr.explicit_type().is_some());
-    assert!(attr.builder_methods.is_empty());
+    assert!(attr.setter_calls().is_empty());
 }
 
 #[test]
@@ -92,11 +92,11 @@ fn test_koruma_attr_parse_labeled_field_validator() {
         panic!("expected field validator");
     };
     assert_eq!(
-        spec.validator.label.as_ref().map(ToString::to_string),
+        spec.validator.label().map(ToString::to_string),
         Some("username_prefix".to_string())
     );
     assert_eq!(
-        spec.validator.validator.name().to_string(),
+        spec.validator.validator().name().to_string(),
         "PrefixValidation"
     );
 }
@@ -112,11 +112,11 @@ fn test_koruma_attr_parse_full_and_unwrapped_field_targets() {
         panic!("expected full field validator");
     };
     assert!(matches!(
-        full_spec.validator.target,
+        full_spec.validator.target(),
         ValidatorTargetSelector::Full { .. }
     ));
     assert_eq!(
-        full_spec.validator.label.as_ref().map(ToString::to_string),
+        full_spec.validator.label().map(ToString::to_string),
         Some("required".to_string())
     );
 
@@ -124,7 +124,7 @@ fn test_koruma_attr_parse_full_and_unwrapped_field_targets() {
         panic!("expected unwrapped field validator");
     };
     assert!(matches!(
-        unwrapped_spec.validator.target,
+        unwrapped_spec.validator.target(),
         ValidatorTargetSelector::Unwrapped { .. }
     ));
 }
@@ -139,11 +139,11 @@ fn test_koruma_attr_parse_labeled_element_validator() {
         panic!("expected element validator");
     };
     assert_eq!(
-        spec.validators[0].label.as_ref().map(ToString::to_string),
+        spec.validators[0].label().map(ToString::to_string),
         Some("tag_prefix".to_string())
     );
     assert_eq!(
-        spec.validators[0].validator.name().to_string(),
+        spec.validators[0].validator().name().to_string(),
         "PrefixValidation"
     );
 }
@@ -157,11 +157,11 @@ fn test_koruma_attr_parse_labeled_full_element_validator() {
         panic!("expected element validator");
     };
     assert!(matches!(
-        spec.validators[0].target,
+        spec.validators[0].target(),
         ValidatorTargetSelector::Full { .. }
     ));
     assert_eq!(
-        spec.validators[0].label.as_ref().map(ToString::to_string),
+        spec.validators[0].label().map(ToString::to_string),
         Some("item_required".to_string())
     );
 }

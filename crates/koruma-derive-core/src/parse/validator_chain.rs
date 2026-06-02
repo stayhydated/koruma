@@ -61,9 +61,52 @@ impl ToTokens for ValidatorSetterArg {
 #[derive(Clone, Debug)]
 pub struct BuilderMethodCall {
     /// The builder setter method name, such as `min` or `exclusive_max`.
-    pub method: Ident,
+    method: Ident,
     /// Positional typed arguments passed to the setter.
-    pub args: Vec<ValidatorSetterArg>,
+    args: Vec<ValidatorSetterArg>,
+}
+
+impl BuilderMethodCall {
+    pub fn method(&self) -> &Ident {
+        &self.method
+    }
+
+    pub fn args(&self) -> &[ValidatorSetterArg] {
+        &self.args
+    }
+}
+
+/// A parsed validator path that is guaranteed to have a terminal segment.
+#[derive(Clone, Debug)]
+pub struct ValidatorPath {
+    path: Path,
+    name: Ident,
+}
+
+impl ValidatorPath {
+    fn new(path: Path) -> Result<Self> {
+        let path_span = path.span();
+        let name = path
+            .segments
+            .last()
+            .ok_or_else(|| Error::new(path_span, "expected validator path"))?
+            .ident
+            .clone();
+
+        Ok(Self { path, name })
+    }
+
+    pub fn as_path(&self) -> &Path {
+        &self.path
+    }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
+
+    pub fn span(&self) -> proc_macro2::Span {
+        self.path.span()
+    }
 }
 
 /// Type argument syntax used by a validator path.
@@ -81,29 +124,35 @@ pub enum ValidatorTypeArg {
 pub struct ValidatorAttr {
     /// The validator path, which may be a simple identifier or a full path.
     /// Examples: `StringLengthValidation`, `validators::normal::NumberRangeValidation`
-    pub validator: Path,
+    validator: ValidatorPath,
     /// Parsed validator type argument syntax.
-    pub type_arg: ValidatorTypeArg,
+    type_arg: ValidatorTypeArg,
     /// Builder setter method calls collected from a direct validator chain.
     /// Used by `Validator::arg(value)...`.
-    pub builder_methods: Vec<BuilderMethodCall>,
+    builder_methods: Vec<BuilderMethodCall>,
 }
 
 impl ValidatorAttr {
     /// Returns the simple name of the validator (the last segment of the path).
     /// Used for generating field names and enum variants.
     pub fn name(&self) -> &Ident {
-        &self
-            .validator
-            .segments
-            .last()
-            .expect("path should have at least one segment")
-            .ident
+        self.validator.name()
+    }
+
+    /// Returns the validator path as written, without generic arguments.
+    pub fn path(&self) -> &Path {
+        self.validator.as_path()
+    }
+
+    /// Returns the parsed type argument syntax for this validator path.
+    pub fn type_arg(&self) -> &ValidatorTypeArg {
+        &self.type_arg
     }
 
     /// Returns the full validator path as written, without generic arguments.
     pub fn path_name(&self) -> String {
         self.validator
+            .as_path()
             .segments
             .iter()
             .map(|segment| segment.ident.to_string())
@@ -118,6 +167,7 @@ impl ValidatorAttr {
     /// additional disambiguation logic.
     pub fn codegen_snake_name(&self) -> String {
         self.validator
+            .as_path()
             .segments
             .iter()
             .map(|segment| segment.ident.to_string().to_snake_case())
@@ -132,6 +182,7 @@ impl ValidatorAttr {
     /// additional disambiguation logic.
     pub fn codegen_upper_camel_name(&self) -> String {
         self.validator
+            .as_path()
             .segments
             .iter()
             .map(|segment| segment.ident.to_string().to_upper_camel_case())
@@ -195,6 +246,7 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
     };
 
     let (validator, type_arg) = split_validator_path_type_args(validator)?;
+    let validator = ValidatorPath::new(validator)?;
 
     Ok(Some(ValidatorAttr {
         validator,

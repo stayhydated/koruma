@@ -102,22 +102,22 @@ pub(crate) fn render_field_error_structs(
     generics: &Generics,
     koruma: &TokenStream2,
 ) -> Vec<TokenStream2> {
-    let layout = plan.field_error_layout();
+    let render_plan = plan.field_error_render_plan();
 
-    layout
+    render_plan
         .fields
         .iter()
         .map(|field_error| {
             let field_plan = field_error.field;
             let field_name = &field_plan.name;
             let field_error_struct_name = &field_plan.generated_names.field_error_struct;
-            let has_field_validators = !field_error.field_validators.is_empty();
 
             if matches!(
                 field_error.kind,
                 PlannedFieldErrorKind::NewtypeInner { .. }
                     | PlannedFieldErrorKind::NewtypeWithValidators { .. }
             ) {
+                let has_field_validators = !field_error.field_validators.is_empty();
                 let inner_ty = field_plan.inner_type();
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
@@ -319,14 +319,14 @@ pub(crate) fn render_field_error_structs(
                 };
             }
 
-            let Some(has_element_validators) = (match field_error.kind {
-                PlannedFieldErrorKind::Regular {
-                    has_element_error, ..
-                } => Some(has_element_error),
+            let Some(regular_kind) = (match field_error.kind {
+                PlannedFieldErrorKind::Regular(kind) => Some(kind),
                 _ => None,
             }) else {
                 return quote! {};
             };
+            let has_field_validators = regular_kind.has_field_validators();
+            let has_element_validators = regular_kind.has_element_validators();
 
             let enum_name = &field_plan.generated_names.field_validator_ref_enum;
             let field_group = ValidatorGroupRenderPlan::new(enum_name, &field_error.field_validators);

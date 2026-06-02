@@ -15,8 +15,8 @@ mod validator_struct;
 
 pub use data_field::{
     DataFieldKorumaAttr, DataFieldKorumaItem, ElementValidationSpec, FieldInfo, FieldModifier,
-    FieldModifierKind, FieldValidationSpec, ParsedFieldSpec, ParsedValidatorUse, ValidatorLabel,
-    ValidatorTargetSelector, parse_field,
+    FieldModifierKind, FieldSource, FieldValidationSpec, ParsedDataField, ParsedFieldSpec,
+    ParsedValidatorUse, ValidatorLabel, ValidatorTargetSelector, parse_field,
 };
 pub use derive_struct::{
     StructConstructor, StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions,
@@ -24,7 +24,9 @@ pub use derive_struct::{
 };
 #[cfg(feature = "internal-showcase")]
 pub use showcase::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_attr};
-pub use validator_chain::{BuilderMethodCall, ValidatorAttr, ValidatorSetterArg, ValidatorTypeArg};
+pub use validator_chain::{
+    BuilderMethodCall, ValidatorAttr, ValidatorPath, ValidatorSetterArg, ValidatorTypeArg,
+};
 pub use validator_struct::{
     CapturePolicy, SetterDefault, ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec,
     ValidatorSetterSpec, ValidatorStructSpec, ValidatorValueSpec, parse_validator_struct,

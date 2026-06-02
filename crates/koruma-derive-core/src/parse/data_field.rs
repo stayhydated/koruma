@@ -71,15 +71,15 @@ impl fmt::Display for ValidatorLabel {
 /// A parsed validator occurrence inside a data-field `#[koruma(...)]` attribute.
 #[derive(Clone, Debug)]
 pub struct ParsedValidatorUse {
-    pub validator: ValidatorAttr,
-    pub label: Option<ValidatorLabel>,
-    pub target: ValidatorTargetSelector,
-    pub source_span: proc_macro2::Span,
+    validator: ValidatorAttr,
+    label: Option<ValidatorLabel>,
+    target: ValidatorTargetSelector,
+    source_span: proc_macro2::Span,
 }
 
 impl ParsedValidatorUse {
     pub fn unlabeled(validator: ValidatorAttr) -> Self {
-        let source_span = validator.validator.span();
+        let source_span = validator.path().span();
         Self {
             validator,
             label: None,
@@ -93,7 +93,7 @@ impl ParsedValidatorUse {
         target: ValidatorTargetSelector,
         validator: ValidatorAttr,
     ) -> Self {
-        let source_span = validator.validator.span();
+        let source_span = validator.path().span();
         Self {
             validator,
             label,
@@ -117,6 +117,22 @@ impl ParsedValidatorUse {
 
     pub fn label_span(&self) -> Option<proc_macro2::Span> {
         self.label.as_ref().map(ValidatorLabel::span)
+    }
+
+    pub fn label(&self) -> Option<&ValidatorLabel> {
+        self.label.as_ref()
+    }
+
+    pub fn validator(&self) -> &ValidatorAttr {
+        &self.validator
+    }
+
+    pub fn target(&self) -> &ValidatorTargetSelector {
+        &self.target
+    }
+
+    pub fn source_span(&self) -> proc_macro2::Span {
+        self.source_span
     }
 }
 
@@ -283,7 +299,7 @@ impl DataFieldKorumaAttr {
 
     pub fn field_validators(&self) -> impl Iterator<Item = &ValidatorAttr> {
         self.items.iter().filter_map(|item| match item {
-            DataFieldKorumaItem::FieldValidation(spec) => Some(&spec.validator.validator),
+            DataFieldKorumaItem::FieldValidation(spec) => Some(spec.validator.validator()),
             DataFieldKorumaItem::Modifier(_) | DataFieldKorumaItem::ElementValidation(_) => None,
         })
     }
@@ -295,7 +311,7 @@ impl DataFieldKorumaAttr {
                 DataFieldKorumaItem::Modifier(_) | DataFieldKorumaItem::FieldValidation(_) => &[],
             }
             .iter()
-            .map(|validator_use| &validator_use.validator)
+            .map(ParsedValidatorUse::validator)
         })
     }
 
@@ -549,7 +565,6 @@ fn try_parse_each(input: ParseStream) -> Result<Option<DataFieldKorumaItem>> {
 /// Parsed field metadata extracted from all `#[koruma(...)]` attributes on a field.
 #[derive(Clone, Debug)]
 pub enum ParsedFieldSpec {
-    Skipped,
     Regular {
         field_validators: Vec<ParsedValidatorUse>,
         element_validators: Vec<ParsedValidatorUse>,
@@ -563,25 +578,135 @@ pub enum ParsedFieldSpec {
     },
 }
 
+/// Source information for a struct field, independent of Koruma participation.
+#[derive(Clone, Debug)]
+pub struct FieldSource {
+    name: Ident,
+    member: Member,
+    ty: Type,
+    index: usize,
+}
+
+impl FieldSource {
+    fn from_field(field: &Field, index: usize) -> Self {
+        let (name, member) = match field.ident.clone() {
+            Some(ident) => (ident.clone(), Member::Named(ident)),
+            None => (
+                quote::format_ident!("_{}", index),
+                Member::Unnamed(Index::from(index)),
+            ),
+        };
+
+        Self {
+            name,
+            member,
+            ty: field.ty.clone(),
+            index,
+        }
+    }
+
+    pub fn new(name: Ident, member: Member, ty: Type, index: usize) -> Self {
+        Self {
+            name,
+            member,
+            ty,
+            index,
+        }
+    }
+
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
+
+    pub fn member(&self) -> &Member {
+        &self.member
+    }
+
+    pub fn ty(&self) -> &Type {
+        &self.ty
+    }
+
+    pub fn index(&self) -> usize {
+        self.index
+    }
+}
+
+/// Parsed data-field participation after all `#[koruma(...)]` attributes are merged.
+#[derive(Clone, Debug)]
+pub enum ParsedDataField {
+    Unannotated(FieldSource),
+    Skipped {
+        source: FieldSource,
+        marker: SpannedValue<Ident>,
+    },
+    Participating(FieldInfo),
+}
+
+impl ParsedDataField {
+    pub fn source(&self) -> &FieldSource {
+        match self {
+            Self::Unannotated(source) | Self::Skipped { source, .. } => source,
+            Self::Participating(info) => info.source(),
+        }
+    }
+
+    pub fn participating(self) -> Option<FieldInfo> {
+        match self {
+            Self::Participating(info) => Some(info),
+            Self::Unannotated(_) | Self::Skipped { .. } => None,
+        }
+    }
+}
+
 /// Field information extracted from parsing `#[koruma(...)]` attributes.
 ///
 /// This struct contains all the parsed validation information for a single field,
 /// including validators, element validators (for collection), and modifier flags.
 #[derive(Clone, Debug)]
 pub struct FieldInfo {
-    /// The field name
-    pub name: Ident,
-    /// The struct member access (Named or Unnamed index)
-    pub member: Member,
-    /// The field type
-    pub ty: Type,
-    /// The original zero-based field index in the struct declaration.
-    pub index: usize,
-    /// Validation info for this field
-    pub validation: ParsedFieldSpec,
+    source: FieldSource,
+    validation: ParsedFieldSpec,
 }
 
 impl FieldInfo {
+    fn new(source: FieldSource, validation: ParsedFieldSpec) -> Result<Self> {
+        Ok(Self { source, validation })
+    }
+
+    pub fn synthetic_newtype(source: FieldSource, marker: Ident) -> Self {
+        Self {
+            source,
+            validation: ParsedFieldSpec::Newtype {
+                marker,
+                field_validators: Vec::new(),
+            },
+        }
+    }
+
+    pub fn source(&self) -> &FieldSource {
+        &self.source
+    }
+
+    pub fn name(&self) -> &Ident {
+        self.source.name()
+    }
+
+    pub fn member(&self) -> &Member {
+        self.source.member()
+    }
+
+    pub fn ty(&self) -> &Type {
+        self.source.ty()
+    }
+
+    pub fn index(&self) -> usize {
+        self.source.index()
+    }
+
+    pub fn validation(&self) -> &ParsedFieldSpec {
+        &self.validation
+    }
+
     pub fn field_validators(&self) -> &[ParsedValidatorUse] {
         match &self.validation {
             ParsedFieldSpec::Regular {
@@ -590,7 +715,7 @@ impl FieldInfo {
             | ParsedFieldSpec::Newtype {
                 field_validators, ..
             } => field_validators,
-            ParsedFieldSpec::Skipped | ParsedFieldSpec::Nested { .. } => &[],
+            ParsedFieldSpec::Nested { .. } => &[],
         }
     }
 
@@ -599,9 +724,7 @@ impl FieldInfo {
             ParsedFieldSpec::Regular {
                 element_validators, ..
             } => element_validators,
-            ParsedFieldSpec::Skipped
-            | ParsedFieldSpec::Nested { .. }
-            | ParsedFieldSpec::Newtype { .. } => &[],
+            ParsedFieldSpec::Nested { .. } | ParsedFieldSpec::Newtype { .. } => &[],
         }
     }
 
@@ -630,7 +753,7 @@ impl FieldInfo {
         self.field_validators()
             .iter()
             .chain(self.element_validators().iter())
-            .map(|v| v.validator.name())
+            .map(|v| v.validator().name())
     }
 }
 
@@ -644,18 +767,12 @@ impl FieldInfo {
 ///
 /// # Returns
 ///
-/// - `Ok(Some(FieldInfo))` if the field participates in validation.
-/// - `Ok(None)` if the field has no koruma attributes or is marked with `skip`.
+/// - `Ok(ParsedDataField::Participating(FieldInfo))` if the field participates in validation.
+/// - `Ok(ParsedDataField::Unannotated(_))` if the field has no koruma attributes.
+/// - `Ok(ParsedDataField::Skipped { .. })` if the field is marked with `skip`.
 /// - `Err(Error)` if parsing failed, such as duplicate or conflicting modifiers.
-pub fn parse_field(field: &Field, index: usize) -> Result<Option<FieldInfo>> {
-    let (name, member) = match field.ident.clone() {
-        Some(ident) => (ident.clone(), Member::Named(ident)),
-        None => (
-            quote::format_ident!("_{}", index),
-            Member::Unnamed(Index::from(index)),
-        ),
-    };
-    let ty = field.ty.clone();
+pub fn parse_field(field: &Field, index: usize) -> Result<ParsedDataField> {
+    let source = FieldSource::from_field(field, index);
 
     // Collect typed items from ALL #[koruma(...)] attributes on this field.
     let mut items = Vec::new();
@@ -668,24 +785,25 @@ pub fn parse_field(field: &Field, index: usize) -> Result<Option<FieldInfo>> {
     }
 
     let validation = normalize_field_items(field, items)?;
-    if matches!(validation, None | Some(ParsedFieldSpec::Skipped)) {
-        return Ok(None);
+    match validation {
+        NormalizedFieldSpec::Unannotated => Ok(ParsedDataField::Unannotated(source)),
+        NormalizedFieldSpec::Skipped { marker } => Ok(ParsedDataField::Skipped { source, marker }),
+        NormalizedFieldSpec::Participating(validation) => Ok(ParsedDataField::Participating(
+            FieldInfo::new(source, validation)?,
+        )),
     }
-    let validation = validation.expect("checked above");
+}
 
-    Ok(Some(FieldInfo {
-        name,
-        member,
-        ty,
-        index,
-        validation,
-    }))
+enum NormalizedFieldSpec {
+    Unannotated,
+    Skipped { marker: SpannedValue<Ident> },
+    Participating(ParsedFieldSpec),
 }
 
 fn normalize_field_items(
     field: &Field,
     items: Vec<DataFieldKorumaItem>,
-) -> Result<Option<ParsedFieldSpec>> {
+) -> Result<NormalizedFieldSpec> {
     let mut all_field_validators = Vec::new();
     let mut all_element_validators = Vec::new();
     let mut modifier_kind: Option<FieldModifierKind> = None;
@@ -708,7 +826,7 @@ fn normalize_field_items(
             DataFieldKorumaItem::FieldValidation(spec) => {
                 let validator = spec.validator;
                 if first_field_validator_path.is_none() {
-                    first_field_validator_path = Some(validator.validator.validator.clone());
+                    first_field_validator_path = Some(validator.validator().path().clone());
                 }
                 all_field_validators.push(validator);
             },
@@ -742,7 +860,9 @@ fn normalize_field_items(
     }
 
     if modifier_kind == Some(FieldModifierKind::Skip) {
-        return Ok(Some(ParsedFieldSpec::Skipped));
+        let modifier = mode_modifier.expect("skip modifier should carry its source ident");
+        let marker = SpannedValue::new(modifier.ident, modifier.source.span);
+        return Ok(NormalizedFieldSpec::Skipped { marker });
     }
 
     if modifier_kind == Some(FieldModifierKind::Nested)
@@ -783,7 +903,7 @@ fn normalize_field_items(
         && all_field_validators.is_empty()
         && all_element_validators.is_empty()
     {
-        return Ok(None);
+        return Ok(NormalizedFieldSpec::Unannotated);
     }
 
     let spec = match modifier_kind {
@@ -798,12 +918,12 @@ fn normalize_field_items(
                 .ident,
             field_validators: all_field_validators,
         },
-        Some(FieldModifierKind::Skip) => ParsedFieldSpec::Skipped,
         None => ParsedFieldSpec::Regular {
             field_validators: all_field_validators,
             element_validators: all_element_validators,
         },
+        Some(FieldModifierKind::Skip) => unreachable!("skip returned before spec construction"),
     };
 
-    Ok(Some(spec))
+    Ok(NormalizedFieldSpec::Participating(spec))
 }

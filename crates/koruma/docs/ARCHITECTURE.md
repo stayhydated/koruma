@@ -8,7 +8,7 @@
 
 - `crates/koruma/src/lib.rs`: re-exports, feature gating, and README docs via `include_str!`.
 - `koruma::__private`: hidden facade namespace for macro-generated runtime hooks such as
-  `BuildValidator` and `CaptureValueRef`.
+  `BuildValidator` and `CaptureValueRef`, re-exported from `koruma_core::__private`.
 
 ## Dependency edges
 

@@ -8,7 +8,7 @@ use koruma_derive_core::{
 use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned};
 
-use super::codegen::{Cardinality, classify_each_collection};
+use super::codegen::{Cardinality, EachCollection, classify_each_collection};
 use super::collect_field_infos;
 use super::error_bag::ErrorBag;
 use super::names::validate_validator_uses;
@@ -95,9 +95,14 @@ impl ValidationPlan {
     }
 
     pub(crate) fn validation_operations(&self) -> Vec<PlannedValidationOperation<'_>> {
+        self.validation_render_plan().operations
+    }
+
+    pub(crate) fn validation_render_plan(&self) -> ValidationRenderPlan<'_> {
         let struct_is_newtype = self.struct_newtype().is_some();
 
-        self.fields
+        let operations = self
+            .fields
             .iter()
             .map(|field| {
                 if field.is_nested() {
@@ -138,10 +143,12 @@ impl ValidationPlan {
                     PlannedValidationOperation::RegularRequired(operation)
                 }
             })
-            .collect()
+            .collect();
+
+        ValidationRenderPlan { operations }
     }
 
-    pub(crate) fn main_error_layout(&self) -> PlannedMainErrorLayout<'_> {
+    pub(crate) fn main_error_render_plan(&self) -> MainErrorRenderPlan<'_> {
         let struct_is_newtype = self.struct_newtype().is_some();
         let fields = self
             .fields
@@ -149,18 +156,23 @@ impl ValidationPlan {
             .map(|field| PlannedMainErrorField::for_field(field, struct_is_newtype))
             .collect();
 
-        PlannedMainErrorLayout { fields }
+        MainErrorRenderPlan { fields }
     }
 
-    pub(crate) fn field_error_layout(&self) -> PlannedFieldErrorLayout<'_> {
+    pub(crate) fn field_error_render_plan(&self) -> FieldErrorRenderPlan<'_> {
         let fields = self
             .fields
             .iter()
             .filter_map(PlannedFieldError::for_field)
             .collect();
 
-        PlannedFieldErrorLayout { fields }
+        FieldErrorRenderPlan { fields }
     }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct ValidationRenderPlan<'a> {
+    pub operations: Vec<PlannedValidationOperation<'a>>,
 }
 
 fn struct_fields<'a>(input: &'a DeriveInput, derive_name: &str) -> Result<&'a Fields, syn::Error> {
@@ -182,7 +194,7 @@ pub(crate) enum StructPlan {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct PlannedMainErrorLayout<'a> {
+pub(crate) struct MainErrorRenderPlan<'a> {
     pub fields: Vec<PlannedMainErrorField<'a>>,
 }
 
@@ -295,7 +307,7 @@ pub(crate) enum PlannedErrorIsEmpty {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct PlannedFieldErrorLayout<'a> {
+pub(crate) struct FieldErrorRenderPlan<'a> {
     pub fields: Vec<PlannedFieldError<'a>>,
 }
 
@@ -325,34 +337,18 @@ impl<'a> PlannedFieldError<'a> {
                     inner_optional: cardinality == Cardinality::Optional,
                 }
             },
-            ErrorStorage::RegularEmpty => PlannedFieldErrorKind::Regular {
-                storage: PlannedRegularFieldErrorStorage::Empty,
-                doc: PlannedRegularFieldErrorDoc::None,
-                all: PlannedRegularAll::None,
-                is_empty: PlannedRegularFieldErrorIsEmpty::Always,
-                has_element_error: false,
+            ErrorStorage::RegularEmpty => {
+                PlannedFieldErrorKind::Regular(PlannedRegularFieldErrorKind::Empty)
             },
-            ErrorStorage::RegularFieldValidators => PlannedFieldErrorKind::Regular {
-                storage: PlannedRegularFieldErrorStorage::FieldValidators,
-                doc: PlannedRegularFieldErrorDoc::FieldValidators,
-                all: PlannedRegularAll::FieldValidators,
-                is_empty: PlannedRegularFieldErrorIsEmpty::FieldValidators,
-                has_element_error: false,
+            ErrorStorage::RegularFieldValidators => {
+                PlannedFieldErrorKind::Regular(PlannedRegularFieldErrorKind::FieldValidators)
             },
-            ErrorStorage::RegularElementValidators => PlannedFieldErrorKind::Regular {
-                storage: PlannedRegularFieldErrorStorage::ElementErrors,
-                doc: PlannedRegularFieldErrorDoc::ElementValidators,
-                all: PlannedRegularAll::None,
-                is_empty: PlannedRegularFieldErrorIsEmpty::ElementErrors,
-                has_element_error: true,
+            ErrorStorage::RegularElementValidators => {
+                PlannedFieldErrorKind::Regular(PlannedRegularFieldErrorKind::ElementValidators)
             },
-            ErrorStorage::RegularFieldAndElementValidators => PlannedFieldErrorKind::Regular {
-                storage: PlannedRegularFieldErrorStorage::FieldAndElementErrors,
-                doc: PlannedRegularFieldErrorDoc::FieldAndElementValidators,
-                all: PlannedRegularAll::FieldValidators,
-                is_empty: PlannedRegularFieldErrorIsEmpty::FieldAndElementValidators,
-                has_element_error: true,
-            },
+            ErrorStorage::RegularFieldAndElementValidators => PlannedFieldErrorKind::Regular(
+                PlannedRegularFieldErrorKind::FieldAndElementValidators,
+            ),
             ErrorStorage::Nested { .. } => return None,
         };
 
@@ -367,50 +363,33 @@ impl<'a> PlannedFieldError<'a> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PlannedFieldErrorKind {
-    NewtypeInner {
-        inner_optional: bool,
-        deref: bool,
-    },
-    NewtypeWithValidators {
-        inner_optional: bool,
-    },
-    Regular {
-        storage: PlannedRegularFieldErrorStorage,
-        doc: PlannedRegularFieldErrorDoc,
-        all: PlannedRegularAll,
-        is_empty: PlannedRegularFieldErrorIsEmpty,
-        has_element_error: bool,
-    },
+    NewtypeInner { inner_optional: bool, deref: bool },
+    NewtypeWithValidators { inner_optional: bool },
+    Regular(PlannedRegularFieldErrorKind),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PlannedRegularFieldErrorStorage {
+pub(crate) enum PlannedRegularFieldErrorKind {
     Empty,
-    FieldValidators,
-    ElementErrors,
-    FieldAndElementErrors,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PlannedRegularFieldErrorDoc {
-    None,
     FieldValidators,
     ElementValidators,
     FieldAndElementValidators,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PlannedRegularAll {
-    None,
-    FieldValidators,
-}
+impl PlannedRegularFieldErrorKind {
+    pub(crate) fn has_field_validators(self) -> bool {
+        matches!(
+            self,
+            Self::FieldValidators | Self::FieldAndElementValidators
+        )
+    }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum PlannedRegularFieldErrorIsEmpty {
-    Always,
-    FieldValidators,
-    ElementErrors,
-    FieldAndElementValidators,
+    pub(crate) fn has_element_validators(self) -> bool {
+        matches!(
+            self,
+            Self::ElementValidators | Self::FieldAndElementValidators
+        )
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -526,7 +505,7 @@ impl FieldPlan {
     ) -> Result<Self, syn::Error> {
         let mut errors = ErrorBag::new();
         let each_collection = if field.has_element_validators() {
-            errors.push_result(classify_each_collection(&field.ty))
+            errors.push_result(classify_each_collection(field.ty()))
         } else {
             None
         };
@@ -541,9 +520,12 @@ impl FieldPlan {
         ));
         errors.finish()?;
 
+        let target_context = FieldTargetContext::new(field.ty(), each_collection.as_ref());
+
         let field_validators = plan_validators(
             field.field_validators(),
             field,
+            &target_context,
             ValidationTargetScope::Field,
             known_field_names,
         )?;
@@ -551,21 +533,21 @@ impl FieldPlan {
         let element_validators = plan_validators(
             field.element_validators(),
             field,
+            &target_context,
             ValidationTargetScope::Element,
             known_field_names,
         )?;
 
-        let field_cardinality = each_collection
+        let field_cardinality = target_context.field.cardinality;
+        let inner_type = target_context.field.inner_ty.clone();
+        let element_type = target_context
+            .element
             .as_ref()
-            .map(|collection| collection.outer_cardinality)
-            .unwrap_or_else(|| Cardinality::for_type(&field.ty));
-        let inner_type = option_inner_type(&field.ty).unwrap_or(&field.ty).clone();
-        let element_type = each_collection
+            .map(|element| element.element.raw_ty.clone());
+        let element_cardinality = target_context
+            .element
             .as_ref()
-            .map(|collection| collection.element_ty.clone());
-        let element_cardinality = each_collection
-            .as_ref()
-            .map(|collection| collection.element_cardinality)
+            .map(|element| element.element.cardinality)
             .unwrap_or(Cardinality::Required);
         let generated_names = GeneratedNames::for_field(struct_name, field);
 
@@ -592,12 +574,12 @@ impl FieldPlan {
         };
 
         Ok(Self {
-            name: field.name.clone(),
+            name: field.name().clone(),
             source: FieldSource {
-                name: field.name.clone(),
-                member: field.member.clone(),
-                ty: field.ty.clone(),
-                index: field.index,
+                name: field.name().clone(),
+                member: field.member().clone(),
+                ty: field.ty().clone(),
+                index: field.index(),
             },
             generated_names,
             shape,
@@ -732,6 +714,60 @@ pub(crate) struct NewtypeFieldPlan {
     pub field_validators: Vec<PlannedValidator>,
 }
 
+pub(crate) struct FieldTargetContext<'a> {
+    pub field: ValueTargetContext,
+    pub element: Option<ElementTargetContext<'a>>,
+}
+
+impl<'a> FieldTargetContext<'a> {
+    fn new(field_ty: &Type, each_collection: Option<&EachCollection<'a>>) -> Self {
+        let field = ValueTargetContext::new(field_ty, each_collection.map(|c| c.outer_cardinality));
+        let element = each_collection.map(|collection| ElementTargetContext {
+            collection: *collection,
+            element: ValueTargetContext::new(
+                collection.element_ty,
+                Some(collection.element_cardinality),
+            ),
+        });
+
+        Self { field, element }
+    }
+
+    fn for_scope(&self, scope: ValidationTargetScope) -> &ValueTargetContext {
+        match scope {
+            ValidationTargetScope::Field => &self.field,
+            ValidationTargetScope::Element => {
+                &self
+                    .element
+                    .as_ref()
+                    .expect("element target context should exist for element validators")
+                    .element
+            },
+        }
+    }
+}
+
+pub(crate) struct ValueTargetContext {
+    pub raw_ty: Type,
+    pub inner_ty: Type,
+    pub cardinality: Cardinality,
+}
+
+impl ValueTargetContext {
+    fn new(raw_ty: &Type, cardinality: Option<Cardinality>) -> Self {
+        Self {
+            raw_ty: raw_ty.clone(),
+            inner_ty: option_inner_type(raw_ty).unwrap_or(raw_ty).clone(),
+            cardinality: cardinality.unwrap_or_else(|| Cardinality::for_type(raw_ty)),
+        }
+    }
+}
+
+pub(crate) struct ElementTargetContext<'a> {
+    pub collection: EachCollection<'a>,
+    pub element: ValueTargetContext,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct PlannedValidator {
     pub attr: ValidatorAttr,
@@ -748,6 +784,7 @@ pub(crate) struct PlannedValidator {
 fn plan_validators(
     validators: &[ParsedValidatorUse],
     field: &FieldInfo,
+    target_context: &FieldTargetContext<'_>,
     scope: ValidationTargetScope,
     known_field_names: &[Ident],
 ) -> Result<Vec<PlannedValidator>, syn::Error> {
@@ -758,6 +795,7 @@ fn plan_validators(
         if let Some(validator) = errors.push_result(PlannedValidator::build(
             validator,
             field,
+            target_context,
             scope,
             known_field_names,
         )) {
@@ -780,16 +818,17 @@ impl PlannedValidator {
     fn build(
         validator_use: &ParsedValidatorUse,
         field: &FieldInfo,
+        target_context: &FieldTargetContext<'_>,
         scope: ValidationTargetScope,
         known_field_names: &[Ident],
     ) -> Result<Self, syn::Error> {
-        let validator = &validator_use.validator;
+        let validator = validator_use.validator();
         let target = ValidationTarget::for_validator(
             validator,
-            &validator_use.target,
-            &field.ty,
+            validator_use.target(),
+            target_context,
             scope,
-            &field.name,
+            field.name(),
         )?;
         let resolved_explicit_type = target.resolve_explicit_infer_type(validator)?;
         let resolved_type_arg = PlannedValidatorTypeArg::for_validator(
@@ -800,11 +839,11 @@ impl PlannedValidator {
         let concrete_type_arg =
             concrete_validator_type_arg(validator, &target, resolved_explicit_type);
         let validator_type =
-            PlannedValidatorType::new(validator.validator.clone(), concrete_type_arg.as_ref());
+            PlannedValidatorType::new(validator.path().clone(), concrete_type_arg.as_ref());
         let builder_type_arg =
             builder_validator_type_arg(validator, concrete_type_arg.as_ref().cloned());
         let builder_type =
-            PlannedValidatorType::new(validator.validator.clone(), builder_type_arg.as_ref());
+            PlannedValidatorType::new(validator.path().clone(), builder_type_arg.as_ref());
         let setter_calls = planned_setter_calls(validator.setter_calls(), known_field_names)?;
         let siblings = if scope.is_element() {
             field.element_validators()
@@ -815,7 +854,7 @@ impl PlannedValidator {
 
         Ok(Self {
             attr: validator.clone(),
-            label: validator_use.label.clone(),
+            label: validator_use.label().cloned(),
             target,
             resolved_type_arg,
             validator_type: validator_type.clone(),
@@ -851,18 +890,18 @@ fn planned_setter_calls(
     let mut planned = Vec::new();
 
     for call in calls {
-        let mut call_valid = true;
-        for arg in &call.args {
-            if let Err(error) = validate_setter_arg(arg, known_field_names) {
-                errors.push(error);
-                call_valid = false;
+        let mut planned_args = Vec::new();
+        for arg in call.args() {
+            match plan_setter_arg(arg, known_field_names) {
+                Ok(arg) => planned_args.push(arg),
+                Err(error) => errors.push(error),
             }
         }
 
-        if call_valid {
+        if planned_args.len() == call.args().len() {
             planned.push(PlannedSetterCall {
-                method: call.method.clone(),
-                args: call.args.clone(),
+                method: call.method().clone(),
+                args: planned_args,
             });
         }
     }
@@ -871,10 +910,10 @@ fn planned_setter_calls(
     Ok(planned)
 }
 
-fn validate_setter_arg(
+fn plan_setter_arg(
     arg: &ValidatorSetterArg,
     known_field_names: &[Ident],
-) -> Result<(), syn::Error> {
+) -> Result<PlannedSetterArg, syn::Error> {
     match arg {
         ValidatorSetterArg::Expr(expr) => {
             if let Some(field_ident) = expr_as_simple_ident(expr)
@@ -888,15 +927,20 @@ fn validate_setter_arg(
                 ));
             }
 
-            Ok(())
+            Ok(PlannedSetterArg::Expr(expr.clone()))
         },
     }
 }
 
 #[derive(Clone, Debug)]
+pub(crate) enum PlannedSetterArg {
+    Expr(syn::Expr),
+}
+
+#[derive(Clone, Debug)]
 pub(crate) struct PlannedSetterCall {
     pub method: Ident,
-    pub args: Vec<ValidatorSetterArg>,
+    pub args: Vec<PlannedSetterArg>,
 }
 
 fn concrete_validator_type_arg(
@@ -989,15 +1033,11 @@ impl ValidationTarget {
     fn for_validator(
         validator: &ValidatorAttr,
         target_selector: &ValidatorTargetSelector,
-        field_ty: &Type,
+        target_context: &FieldTargetContext<'_>,
         scope: ValidationTargetScope,
         field_name: &Ident,
     ) -> Result<Self, syn::Error> {
-        let raw_type = if scope.is_element() {
-            classify_each_collection(field_ty)?.element_ty.clone()
-        } else {
-            field_ty.clone()
-        };
+        let value_context = target_context.for_scope(scope);
 
         Self::reject_option_target_type_arg_on_default_target(
             validator,
@@ -1010,7 +1050,7 @@ impl ValidationTarget {
             if validator
                 .explicit_type()
                 .is_some_and(|ty| option_inner_type(ty).is_some())
-                && option_inner_type(&raw_type).is_none()
+                && option_inner_type(&value_context.raw_ty).is_none()
             {
                 let target_context = if scope.is_element() {
                     format!("element validators on field `{field_name}`")
@@ -1020,7 +1060,7 @@ impl ValidationTarget {
                 return Err(syn::Error::new(
                     target_selector
                         .marker_span()
-                        .unwrap_or_else(|| validator.validator.span()),
+                        .unwrap_or_else(|| validator.path().span()),
                     format!(
                         "explicit `Option<...>` validator type arguments require an optional validation target for {target_context}; `{}` is targeting a non-optional value",
                         validator.path_name()
@@ -1028,32 +1068,29 @@ impl ValidationTarget {
                 ));
             }
 
-            let cardinality = Cardinality::for_type(&raw_type);
             return Ok(match scope {
                 ValidationTargetScope::Field => Self::FieldFull(FullFieldTarget {
-                    ty: raw_type,
-                    cardinality,
+                    ty: value_context.raw_ty.clone(),
+                    cardinality: value_context.cardinality,
                     borrow: TargetBorrow::Reference,
                 }),
                 ValidationTargetScope::Element => Self::ElementFull(FullElementTarget {
-                    ty: raw_type,
-                    cardinality,
+                    ty: value_context.raw_ty.clone(),
+                    cardinality: value_context.cardinality,
                     borrow: TargetBorrow::AlreadyBorrowed,
                 }),
             });
         }
 
-        let validate_type = option_inner_type(&raw_type).unwrap_or(&raw_type).clone();
-
         Ok(match scope {
             ValidationTargetScope::Field => Self::FieldUnwrapped(UnwrappedFieldTarget {
-                raw_type,
-                validate_type,
+                raw_type: value_context.raw_ty.clone(),
+                validate_type: value_context.inner_ty.clone(),
                 borrow: TargetBorrow::AlreadyBorrowed,
             }),
             ValidationTargetScope::Element => Self::ElementUnwrapped(UnwrappedElementTarget {
-                raw_type,
-                validate_type,
+                raw_type: value_context.raw_ty.clone(),
+                validate_type: value_context.inner_ty.clone(),
                 borrow: TargetBorrow::AlreadyBorrowed,
             }),
         })

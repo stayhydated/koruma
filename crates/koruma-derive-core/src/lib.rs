@@ -9,12 +9,14 @@
 //! # Example
 //!
 //! ```rust
-//! use koruma_derive_core::parse_field;
+//! use koruma_derive_core::{ParsedDataField, parse_field};
 //! use syn::{Field, parse_quote};
 //!
 //! fn validator_count(field: &Field) -> syn::Result<Option<usize>> {
-//!     Ok(parse_field(field, 0)?
-//!         .map(|info| info.field_validators().len()))
+//!     Ok(match parse_field(field, 0)? {
+//!         ParsedDataField::Participating(info) => Some(info.field_validators().len()),
+//!         ParsedDataField::Unannotated(_) | ParsedDataField::Skipped { .. } => None,
+//!     })
 //! }
 //!
 //! let field: Field = parse_quote! {
@@ -33,13 +35,13 @@ mod tests;
 // Re-export parsing types
 pub use parse::{
     BuilderMethodCall, CapturePolicy, DataFieldKorumaAttr, DataFieldKorumaItem,
-    ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldValidationSpec,
-    KorumaAttrContext, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, SpannedValue,
-    StructConstructor, StructKorumaAttr, StructKorumaItem, StructNewtypeOptions, StructOptions,
-    ValidatorAttr, ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec,
-    ValidatorLabel, ValidatorSetterArg, ValidatorSetterSpec, ValidatorStructSpec,
-    ValidatorTargetSelector, ValidatorTypeArg, ValidatorValueSpec, parse_field,
-    parse_struct_options, parse_validator_struct,
+    ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldSource,
+    FieldValidationSpec, KorumaAttrContext, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse,
+    SetterDefault, SpannedValue, StructConstructor, StructKorumaAttr, StructKorumaItem,
+    StructNewtypeOptions, StructOptions, ValidatorAttr, ValidatorFieldKorumaItem,
+    ValidatorFieldRole, ValidatorFieldSpec, ValidatorLabel, ValidatorPath, ValidatorSetterArg,
+    ValidatorSetterSpec, ValidatorStructSpec, ValidatorTargetSelector, ValidatorTypeArg,
+    ValidatorValueSpec, parse_field, parse_struct_options, parse_validator_struct,
 };
 
 #[cfg(feature = "internal-showcase")]

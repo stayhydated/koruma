@@ -27,9 +27,9 @@ pub(crate) fn render_main_error(
     generics: &Generics,
     koruma: &TokenStream2,
 ) -> MainErrorRender {
-    let layout = plan.main_error_layout();
+    let render_plan = plan.main_error_render_plan();
 
-    let main_error_usages: Vec<Type> = layout
+    let main_error_usages: Vec<Type> = render_plan
         .fields
         .iter()
         .map(|field| main_error_storage_type(field, generics, koruma))
@@ -44,19 +44,19 @@ pub(crate) fn render_main_error(
     let ty_generics = helper_generics.ty_generics;
     let where_clause = helper_generics.where_clause;
 
-    let fields: Vec<TokenStream2> = layout
+    let fields: Vec<TokenStream2> = render_plan
         .fields
         .iter()
         .map(|field| render_main_error_field_storage(field, generics, koruma))
         .collect();
 
-    let getter_methods: Vec<TokenStream2> = layout
+    let getter_methods: Vec<TokenStream2> = render_plan
         .fields
         .iter()
         .map(|field| render_main_error_getter(field, struct_name, generics, koruma))
         .collect();
 
-    let is_empty_checks: Vec<TokenStream2> = layout
+    let is_empty_checks: Vec<TokenStream2> = render_plan
         .fields
         .iter()
         .map(render_main_error_is_empty_check)
@@ -67,7 +67,7 @@ pub(crate) fn render_main_error(
         quote! { #(#is_empty_checks)&&* }
     };
 
-    let defaults: Vec<TokenStream2> = layout
+    let defaults: Vec<TokenStream2> = render_plan
         .fields
         .iter()
         .map(|field| render_main_error_default(field, koruma))

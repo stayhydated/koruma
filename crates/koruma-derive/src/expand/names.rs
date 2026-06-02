@@ -18,7 +18,7 @@ pub(crate) struct GeneratedNames {
 
 impl GeneratedNames {
     pub(crate) fn for_field(struct_name: &Ident, field: &FieldInfo) -> Self {
-        let field_stem = field.name.to_string().to_upper_camel_case();
+        let field_stem = field.name().to_string().to_upper_camel_case();
         Self {
             field_error_struct: format_ident!("{struct_name}{field_stem}KorumaValidationError"),
             field_validator_ref_enum: format_ident!("{struct_name}{field_stem}KorumaValidatorRef"),
@@ -93,11 +93,11 @@ fn register_validator_names(
     let field_name = validator_field_name(validator_use);
     let variant_name = validator_variant_name(validator_use);
 
-    if validator_use.label.is_none() && reserved_error_api_name(&field_name) {
+    if validator_use.label().is_none() && reserved_error_api_name(&field_name) {
         return Err(Error::new(
             validator_use
                 .label_span()
-                .unwrap_or(validator_use.source_span),
+                .unwrap_or_else(|| validator_use.source_span()),
             format!(
                 "`{field_name}` is reserved by generated Koruma error APIs; use a different validator label"
             ),
@@ -122,7 +122,7 @@ fn register_validator_names(
 }
 
 fn validate_reserved_label(validator_use: &ParsedValidatorUse) -> Result<()> {
-    let Some(label) = validator_use.label.as_ref() else {
+    let Some(label) = validator_use.label() else {
         return Ok(());
     };
     let label_text = label.to_string();
@@ -151,7 +151,7 @@ fn validator_collision_message(
         );
     }
 
-    if validator_use.label.is_some() {
+    if validator_use.label().is_some() {
         return format!(
             "validator label `{field_name}` collides with another validator getter or `{variant_name}` enum variant in this field; use a unique label"
         );
@@ -159,33 +159,31 @@ fn validator_collision_message(
 
     format!(
         "validator `{}` generates duplicate getter `{field_name}` or `{variant_name}` enum variant in this field; add explicit validator labels such as `label_name = Validator`",
-        validator_use.validator.path_name()
+        validator_use.validator().path_name()
     )
 }
 
 fn generated_ident(validator_use: &ParsedValidatorUse, name: &str) -> Ident {
     match validator_use.label_span() {
         Some(span) => format_ident!("{}", name, span = span),
-        None => format_ident!("{}", name, span = validator_use.source_span),
+        None => format_ident!("{}", name, span = validator_use.source_span()),
     }
 }
 
 fn validator_field_name(validator_use: &ParsedValidatorUse) -> String {
     validator_use
-        .label
-        .as_ref()
+        .label()
         .map(ToString::to_string)
-        .unwrap_or_else(|| validator_use.validator.name().to_string().to_snake_case())
+        .unwrap_or_else(|| validator_use.validator().name().to_string().to_snake_case())
 }
 
 fn validator_variant_name(validator_use: &ParsedValidatorUse) -> String {
     validator_use
-        .label
-        .as_ref()
+        .label()
         .map(|label| label.to_string().to_upper_camel_case())
         .unwrap_or_else(|| {
             validator_use
-                .validator
+                .validator()
                 .name()
                 .to_string()
                 .to_upper_camel_case()

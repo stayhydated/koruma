@@ -6,17 +6,24 @@
 
 ## Modules
 
-- `crates/koruma-core/src/lib.rs`: trait definitions and the optional `showcase` module.
+- `crates/koruma-core/src/lib.rs`: trait definitions, hidden macro glue under
+  `__private`, and the optional `showcase` module.
 - `crates/koruma-core/src/lib.rs::showcase` (feature-gated): type-erased registry types backed by `inventory`.
 
 ## Core traits
 
 - `Validate<T>`: implemented by validator structs; returns `true`/`false`.
 - `ValidationError`: implemented by generated error structs; supplies `is_empty()` and `has_errors()`.
-- `BuildValidator`: hidden trait implemented for ready generated validator-builder states so generated validation code has a typed build boundary.
-- `CaptureValueRef<T>`: hidden borrowed-value hook used by derived validation to apply field values to validator builders while letting generated capture-policy impls decide whether to clone or skip capture. Its output must implement `BuildValidator`.
 - `ValidateExt`: implemented by `#[derive(Koruma)]` for nested/newtype validation.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.
+
+## Hidden macro glue
+
+- `__private::BuildValidator`: hidden trait implemented for ready generated validator-builder
+  states so generated validation code has a typed build boundary.
+- `__private::CaptureValueRef<T>`: hidden borrowed-value hook used by derived validation to
+  apply field values to validator builders while letting generated capture-policy impls decide
+  whether to clone or skip capture. Its output must implement `BuildValidator`.
 
 ## Showcase registry (feature `internal-showcase`)
 
@@ -35,8 +42,8 @@
 - Derive macros emit error types implementing `ValidationError` and `ValidateExt`.
 - `#[koruma::validator]` emits inherent `with_value(...)` methods for validator
   builders that capture the validated value.
-- Derived validation code uses `CaptureValueRef` to feed borrowed field values through validator
-  capture policies, then `BuildValidator` to produce the validator instance.
+- Derived validation code reaches these hidden hooks through the facade path
+  `koruma::__private`, which re-exports `koruma_core::__private`.
 - Nested/newtype validation relies on `ValidateExt::Error` for typed error state.
 
 ## Validator Error Model

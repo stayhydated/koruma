@@ -1,15 +1,17 @@
 use crate::{
-    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, KnownTypeShape, StructKorumaAttr,
-    StructKorumaItem, ValidatorAttr, ValidatorTargetSelector, contains_infer_type,
-    expr_as_simple_ident, first_generic_arg, option_inner_type, parse_field, parse_struct_options,
-    parse_validator_struct, substitute_infer_type, substitute_infer_type_from_source,
-    type_to_ident, vec_inner_type,
+    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, KnownTypeShape, ParsedDataField,
+    StructKorumaAttr, StructKorumaItem, ValidatorAttr, ValidatorTargetSelector,
+    contains_infer_type, expr_as_simple_ident, first_generic_arg, option_inner_type, parse_field,
+    parse_struct_options, parse_validator_struct, substitute_infer_type,
+    substitute_infer_type_from_source, type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
-    parse_field(field, 0)
-        .expect("expected field parse")
-        .expect("expected validated field")
+    let ParsedDataField::Participating(info) = parse_field(field, 0).expect("expected field parse")
+    else {
+        panic!("expected participating field")
+    };
+    info
 }
 
 #[test]
@@ -23,8 +25,8 @@ fn validator_attr_helpers_and_error_paths() {
     assert!(with_builder_methods.has_args());
     let builder_calls = with_builder_methods.setter_calls();
     assert_eq!(builder_calls.len(), 2);
-    assert_eq!(builder_calls[0].method.to_string(), "min");
-    assert_eq!(builder_calls[1].method.to_string(), "max");
+    assert_eq!(builder_calls[0].method().to_string(), "min");
+    assert_eq!(builder_calls[1].method().to_string(), "max");
 
     let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>);
     assert!(infer.uses_type_inference());
@@ -142,11 +144,11 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
         panic!("expected field validator");
     };
     assert_eq!(
-        field_spec.validator.label.as_ref().map(ToString::to_string),
+        field_spec.validator.label().map(ToString::to_string),
         Some("required".to_owned())
     );
     assert!(matches!(
-        field_spec.validator.target,
+        field_spec.validator.target(),
         ValidatorTargetSelector::Full { .. }
     ));
 
@@ -155,20 +157,17 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
     };
     assert_eq!(element_spec.marker_source.value.to_string(), "each");
     assert_eq!(
-        element_spec.validators[0]
-            .label
-            .as_ref()
-            .map(ToString::to_string),
+        element_spec.validators[0].label().map(ToString::to_string),
         Some("item_required".to_owned())
     );
     assert!(matches!(
-        element_spec.validators[0].target,
+        element_spec.validators[0].target(),
         ValidatorTargetSelector::Unwrapped { .. }
     ));
 }
 
 #[test]
-fn field_info_and_parse_field_option_result_helpers() {
+fn field_info_and_parse_field_participation_helpers() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::min(0).max(10), each(PositiveValidation))]
         value: Vec<i32>
@@ -197,22 +196,30 @@ fn field_info_and_parse_field_option_result_helpers() {
     assert!(parse_field_info(&newtype_field).is_newtype());
 
     let valid_result = parse_field(&field, 0);
-    assert!(valid_result.expect("expected field parse").is_some());
+    assert!(matches!(
+        valid_result.expect("expected field parse"),
+        ParsedDataField::Participating(_)
+    ));
 
     let skip_field: syn::Field = syn::parse_quote! { plain: i32 };
     let skip_result = parse_field(&skip_field, 0);
-    assert!(skip_result.expect("expected field parse").is_none());
+    assert!(matches!(
+        skip_result.expect("expected field parse"),
+        ParsedDataField::Unannotated(_)
+    ));
 
     let generic_field: syn::Field = syn::parse_quote! {
         #[koruma(RangeValidation::<_>)]
         broken: i32
     };
-    let generic_info = parse_field(&generic_field, 0)
-        .expect("expected field parse")
-        .expect("expected parsed field info");
+    let ParsedDataField::Participating(generic_info) =
+        parse_field(&generic_field, 0).expect("expected field parse")
+    else {
+        panic!("expected parsed field info")
+    };
     assert!(
         generic_info.field_validators()[0]
-            .validator
+            .validator()
             .uses_type_inference()
     );
 
@@ -220,12 +227,14 @@ fn field_info_and_parse_field_option_result_helpers() {
         #[koruma(RangeValidation::<i32>::min(0).max(10))]
         constrained: i32
     };
-    let explicit_info = parse_field(&explicit_field, 0)
-        .expect("expected field parse")
-        .expect("expected parsed field info");
+    let ParsedDataField::Participating(explicit_info) =
+        parse_field(&explicit_field, 0).expect("expected field parse")
+    else {
+        panic!("expected parsed field info")
+    };
     assert!(
         explicit_info.field_validators()[0]
-            .validator
+            .validator()
             .explicit_type()
             .is_some()
     );
@@ -245,7 +254,7 @@ fn parse_field_allows_distinct_fully_qualified_validators() {
     let validator_paths: Vec<_> = info
         .field_validators()
         .iter()
-        .map(|validator_use| validator_use.validator.path_name())
+        .map(|validator_use| validator_use.validator().path_name())
         .collect();
     assert_eq!(
         validator_paths,
@@ -676,7 +685,7 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
     };
 
     let spec = parse_validator_struct(&input).expect("expected valid validator struct");
-    assert_eq!(spec.value_field().name.to_string(), "actual");
+    assert_eq!(spec.value_field().name().to_string(), "actual");
 
     let bad_input: syn::ItemStruct = syn::parse_quote! {
         struct Validator {

@@ -3,8 +3,9 @@
 //! Tests parsing of #[koruma(...)] attributes both directly and via #[cfg_attr(...)].
 
 use crate::{
-    CapturePolicy, FieldInfo, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, ValidatorAttr,
-    ValidatorFieldRole, ValidatorLabel, parse_field, parse_struct_options, parse_validator_struct,
+    CapturePolicy, FieldInfo, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse, SetterDefault,
+    ValidatorAttr, ValidatorFieldRole, ValidatorLabel, parse_field, parse_struct_options,
+    parse_validator_struct,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -58,12 +59,12 @@ fn snapshot_validator(
         infer_type: validator.uses_type_inference(),
         explicit_type: validator.explicit_type().map(normalize_tokens),
         builder_methods: validator
-            .builder_methods
+            .setter_calls()
             .iter()
             .map(|method| {
                 (
-                    method.method.to_string(),
-                    method.args.iter().map(normalize_tokens).collect(),
+                    method.method().to_string(),
+                    method.args().iter().map(normalize_tokens).collect(),
                 )
             })
             .collect(),
@@ -71,7 +72,7 @@ fn snapshot_validator(
 }
 
 fn snapshot_validator_use(validator_use: &ParsedValidatorUse) -> SnapshotValidator {
-    snapshot_validator(validator_use.label.as_ref(), &validator_use.validator)
+    snapshot_validator(validator_use.label(), validator_use.validator())
 }
 
 fn snapshot_validation(validation: &ParsedFieldSpec) -> SnapshotValidationInfo {
@@ -105,27 +106,25 @@ fn snapshot_validation(validation: &ParsedFieldSpec) -> SnapshotValidationInfo {
                 .collect(),
             element_validators: Vec::new(),
         },
-        ParsedFieldSpec::Skipped => SnapshotValidationInfo {
-            shape: "skipped".to_owned(),
-            field_validators: Vec::new(),
-            element_validators: Vec::new(),
-        },
     }
 }
 
 fn snapshot_field_info(info: FieldInfo) -> SnapshotFieldInfo {
     SnapshotFieldInfo {
-        name: info.name.to_string(),
-        member: normalize_tokens(&info.member),
-        ty: normalize_tokens(&info.ty),
-        validation: snapshot_validation(&info.validation),
+        name: info.name().to_string(),
+        member: normalize_tokens(info.member()),
+        ty: normalize_tokens(info.ty()),
+        validation: snapshot_validation(info.validation()),
     }
 }
 
 fn parse_field_result(field: &syn::Field) -> SnapshotParsedField {
     match parse_field(field, 0) {
-        Ok(Some(info)) => SnapshotParsedField::Valid(Box::new(snapshot_field_info(info))),
-        Ok(None) => SnapshotParsedField::Skip,
+        Ok(ParsedDataField::Participating(info)) => {
+            SnapshotParsedField::Valid(Box::new(snapshot_field_info(info)))
+        },
+        Ok(ParsedDataField::Skipped { .. }) => SnapshotParsedField::Skip,
+        Ok(ParsedDataField::Unannotated(_)) => SnapshotParsedField::Skip,
         Err(err) => SnapshotParsedField::Error(err.to_string()),
     }
 }
@@ -140,24 +139,24 @@ fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), S
 fn find_value_field_name(input: &syn::ItemStruct) -> Option<String> {
     parse_validator_struct(input)
         .ok()
-        .map(|spec| spec.value_field().name.to_string())
+        .map(|spec| spec.value_field().name().to_string())
 }
 
 fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<String, String> {
     parse_validator_struct(input)
-        .map(|spec| spec.value_field().name.to_string())
+        .map(|spec| spec.value_field().name().to_string())
         .map_err(|err| err.to_string())
 }
 
 fn find_value_field_capture_strict(input: &syn::ItemStruct) -> Result<CapturePolicy, String> {
     parse_validator_struct(input)
-        .map(|spec| spec.value_spec().capture)
+        .map(|spec| spec.value_spec().capture())
         .map_err(|err| err.to_string())
 }
 
 fn parse_field_snapshot(field: &syn::Field) -> Option<SnapshotFieldInfo> {
     match parse_field(field, 0) {
-        Ok(Some(info)) => Some(snapshot_field_info(info)),
+        Ok(ParsedDataField::Participating(info)) => Some(snapshot_field_info(info)),
         _ => None,
     }
 }
@@ -745,27 +744,27 @@ fn test_parse_validator_struct_parses_typed_setter_metadata() {
     };
 
     let spec = parse_validator_struct(&input).unwrap();
-    assert_eq!(spec.value_field().name.to_string(), "actual");
-    assert!(matches!(spec.value_spec().capture, CapturePolicy::Skip));
+    assert_eq!(spec.value_field().name().to_string(), "actual");
+    assert!(matches!(spec.value_spec().capture(), CapturePolicy::Skip));
 
-    let ValidatorFieldRole::Setter(title) = &spec.fields[0].role else {
+    let ValidatorFieldRole::Setter(title) = spec.fields()[0].role() else {
         panic!("expected setter field");
     };
-    assert_eq!(title.method.to_string(), "label");
-    assert!(title.into);
-    assert!(!title.required);
-    assert!(matches!(title.default, SetterDefault::None));
+    assert_eq!(title.method().to_string(), "label");
+    assert!(title.into());
+    assert!(!title.required());
+    assert!(matches!(title.default(), SetterDefault::None));
 
-    let ValidatorFieldRole::Setter(limit) = &spec.fields[1].role else {
+    let ValidatorFieldRole::Setter(limit) = spec.fields()[1].role() else {
         panic!("expected setter field");
     };
-    assert_eq!(limit.method.to_string(), "limit");
-    assert!(limit.required);
+    assert_eq!(limit.method().to_string(), "limit");
+    assert!(limit.required());
 
-    let ValidatorFieldRole::Setter(fallback) = &spec.fields[2].role else {
+    let ValidatorFieldRole::Setter(fallback) = spec.fields()[2].role() else {
         panic!("expected setter field");
     };
-    let SetterDefault::Expr(expr) = &fallback.default else {
+    let SetterDefault::Expr(expr) = fallback.default() else {
         panic!("expected expression default");
     };
     assert_eq!(expr.to_token_stream().to_string(), "10");

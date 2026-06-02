@@ -48,8 +48,8 @@ pub(crate) use names::validator_names;
 pub(crate) use koruma_derive_core::find_showcase_attr;
 #[allow(unused_imports)]
 pub(crate) use koruma_derive_core::{
-    DataFieldKorumaAttr, FieldInfo, ParsedFieldSpec, StructOptions, ValidatorAttr, parse_field,
-    parse_struct_options,
+    DataFieldKorumaAttr, FieldInfo, FieldSource, ParsedDataField, ParsedFieldSpec, StructOptions,
+    ValidatorAttr, parse_field, parse_struct_options,
 };
 #[cfg(feature = "internal-showcase")]
 #[allow(unused_imports)]
@@ -70,7 +70,9 @@ pub(crate) fn collect_field_infos(
     let mut errors = ErrorBag::new();
 
     for (i, field) in fields.iter().enumerate() {
-        if let Some(info) = errors.push_result(parse_field(field, i)).flatten() {
+        if let Some(parsed) = errors.push_result(parse_field(field, i))
+            && let ParsedDataField::Participating(info) = parsed
+        {
             field_infos.push(info);
         }
     }
@@ -118,14 +120,8 @@ fn synthetic_struct_newtype_field_info(field: &Field, index: usize) -> FieldInfo
         ),
     };
 
-    FieldInfo {
-        name,
-        member,
-        ty: field.ty.clone(),
-        index,
-        validation: ParsedFieldSpec::Newtype {
-            marker: format_ident!("newtype"),
-            field_validators: Vec::new(),
-        },
-    }
+    FieldInfo::synthetic_newtype(
+        FieldSource::new(name, member, field.ty.clone(), index),
+        format_ident!("newtype"),
+    )
 }

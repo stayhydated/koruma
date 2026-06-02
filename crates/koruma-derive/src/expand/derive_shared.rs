@@ -1,5 +1,5 @@
 use crate::expand::codegen::helper_generics_for_usages;
-use crate::expand::plan::{FieldPlan, PlannedValidator, PlannedValidatorType};
+use crate::expand::plan::{FieldPlan, PlannedSetterArg, PlannedValidator, PlannedValidatorType};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{ToTokens, quote};
 use syn::{Generics, Type};
@@ -11,6 +11,14 @@ impl ToTokens for PlannedValidatorType {
             quote! { #validator<#type_arg> }.to_tokens(tokens);
         } else {
             quote! { #validator }.to_tokens(tokens);
+        }
+    }
+}
+
+impl ToTokens for PlannedSetterArg {
+    fn to_tokens(&self, tokens: &mut TokenStream2) {
+        match self {
+            Self::Expr(expr) => expr.to_tokens(tokens),
         }
     }
 }

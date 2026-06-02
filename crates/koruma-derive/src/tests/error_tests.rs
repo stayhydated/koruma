@@ -262,6 +262,17 @@ fn test_validator_error_generated_setter_method_collisions() {
         (
             syn::parse_quote! {
                 pub struct BadValidator {
+                    #[koruma(setter(name = __koruma_builder))]
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "setter method name `__koruma_builder` is reserved",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
                     maybe_min: i32,
                     min: Option<i32>,
                     #[koruma(value)]

@@ -10,7 +10,13 @@ use super::{KorumaAttrContext, SpannedValue, context_error};
 /// Parsed validator-field `value` marker metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorValueSpec {
-    pub capture: CapturePolicy,
+    capture: CapturePolicy,
+}
+
+impl ValidatorValueSpec {
+    pub fn capture(&self) -> CapturePolicy {
+        self.capture
+    }
 }
 
 /// Default behavior requested by `#[koruma(setter(default...))]`.
@@ -24,10 +30,28 @@ pub enum SetterDefault {
 /// Parsed validator-field `setter(...)` metadata.
 #[derive(Clone, Debug)]
 pub struct ValidatorSetterSpec {
-    pub method: Ident,
-    pub into: bool,
-    pub required: bool,
-    pub default: SetterDefault,
+    method: Ident,
+    into: bool,
+    required: bool,
+    default: SetterDefault,
+}
+
+impl ValidatorSetterSpec {
+    pub fn method(&self) -> &Ident {
+        &self.method
+    }
+
+    pub fn into(&self) -> bool {
+        self.into
+    }
+
+    pub fn required(&self) -> bool {
+        self.required
+    }
+
+    pub fn default(&self) -> &SetterDefault {
+        &self.default
+    }
 }
 
 /// Typed role of a field inside a `#[koruma::validator]` struct.
@@ -40,25 +64,47 @@ pub enum ValidatorFieldRole {
 /// Typed metadata for one field inside a `#[koruma::validator]` struct.
 #[derive(Clone, Debug)]
 pub struct ValidatorFieldSpec {
-    pub name: Ident,
-    pub ty: Type,
-    pub role: ValidatorFieldRole,
+    name: Ident,
+    ty: Type,
+    role: ValidatorFieldRole,
+}
+
+impl ValidatorFieldSpec {
+    pub fn name(&self) -> &Ident {
+        &self.name
+    }
+
+    pub fn ty(&self) -> &Type {
+        &self.ty
+    }
+
+    pub fn role(&self) -> &ValidatorFieldRole {
+        &self.role
+    }
 }
 
 /// Fully parsed and normalized `#[koruma::validator]` struct-field metadata.
 #[derive(Clone, Debug)]
 pub struct ValidatorStructSpec {
-    pub fields: Vec<ValidatorFieldSpec>,
-    pub value_index: usize,
+    fields: Vec<ValidatorFieldSpec>,
+    value_index: usize,
 }
 
 impl ValidatorStructSpec {
+    pub fn fields(&self) -> &[ValidatorFieldSpec] {
+        &self.fields
+    }
+
+    pub fn value_index(&self) -> usize {
+        self.value_index
+    }
+
     pub fn value_field(&self) -> &ValidatorFieldSpec {
         &self.fields[self.value_index]
     }
 
     pub fn value_spec(&self) -> &ValidatorValueSpec {
-        let ValidatorFieldRole::Value(value) = &self.value_field().role else {
+        let ValidatorFieldRole::Value(value) = self.value_field().role() else {
             unreachable!("value_index should point at a value field")
         };
         value

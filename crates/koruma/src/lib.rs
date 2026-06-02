@@ -10,7 +10,7 @@ pub use koruma_derive::KorumaAllFluent;
 
 #[doc(hidden)]
 pub mod __private {
-    pub use koruma_core::{BuildValidator, CaptureValueRef};
+    pub use koruma_core::__private::{BuildValidator, CaptureValueRef};
 }
 
 #[doc(hidden)]

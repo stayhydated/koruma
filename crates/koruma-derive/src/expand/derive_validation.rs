@@ -2,7 +2,7 @@ use crate::expand::derive_shared::validator_builder_expr;
 use crate::expand::plan::{
     FieldPlan, PlannedElementValidation, PlannedNestedValidation, PlannedNewtypeValidation,
     PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, TargetBorrow,
-    ValidationPlan, ValidationTarget,
+    ValidationPlan, ValidationRenderPlan, ValidationTarget,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -65,7 +65,16 @@ pub(crate) fn render_validation_checks(
     plan: &ValidationPlan,
     koruma: &TokenStream2,
 ) -> Result<Vec<TokenStream2>, syn::Error> {
-    plan.validation_operations()
+    let render_plan = plan.validation_render_plan();
+    render_validation_render_plan(&render_plan, koruma)
+}
+
+fn render_validation_render_plan(
+    render_plan: &ValidationRenderPlan<'_>,
+    koruma: &TokenStream2,
+) -> Result<Vec<TokenStream2>, syn::Error> {
+    render_plan
+        .operations
         .iter()
         .map(|operation| -> Result<TokenStream2, syn::Error> {
             Ok(render_validation_operation(operation, koruma))

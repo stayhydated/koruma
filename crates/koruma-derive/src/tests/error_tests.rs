@@ -76,8 +76,7 @@ fn test_validator_error_on_multiple_value_fields() {
 fn test_validator_error_on_duplicate_value_marker_same_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
-            #[koruma(value)]
-            #[koruma(value)]
+            #[koruma(value, value)]
             actual: i32,
         }
     };
@@ -105,7 +104,7 @@ fn test_validator_error_capture_skip_requires_option_value_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`#[koruma(value(capture = skip))]` currently requires an `Option<T>` field")
+            .contains("`#[koruma(value(capture = skip))]` requires an `Option<T>` field")
     );
 }
 
@@ -213,7 +212,7 @@ fn test_validator_error_duplicate_setter_options() {
 }
 
 #[test]
-fn test_validator_error_duplicate_setter_options_across_attrs() {
+fn test_validator_error_rejects_multiple_field_attrs() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
             #[koruma(setter(default))]
@@ -224,11 +223,11 @@ fn test_validator_error_duplicate_setter_options_across_attrs() {
         }
     };
 
-    let err = expand_validator(input).expect_err("expected duplicate setter option error");
+    let err = expand_validator(input).expect_err("expected repeated attribute error");
     assert!(
         err.to_string()
-            .contains("duplicate `setter(default)` option"),
-        "got: {err}"
+            .contains("only one validator-field `#[koruma(...)]` attribute is allowed"),
+        "expected repeated validator-field attribute error, got: {err}"
     );
 }
 
@@ -425,9 +424,9 @@ fn test_koruma_error_on_duplicate_validator_same_attr() {
 }
 
 #[test]
-fn test_koruma_error_on_duplicate_validator_separate_attrs() {
+fn test_koruma_error_on_repeated_field_attrs() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct DuplicateValidatorSeparateAttrs {
+        pub struct RepeatedFieldAttrs {
             #[koruma(RangeValidation::min(0).max(100))]
             #[koruma(RangeValidation::min(10).max(50))]
             pub value: i32,
@@ -438,8 +437,9 @@ fn test_koruma_error_on_duplicate_validator_separate_attrs() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("add explicit validator labels"),
-        "expected label-required duplicate-name error, got: {}",
+        err.to_string()
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {}",
         err
     );
 }
@@ -448,8 +448,7 @@ fn test_koruma_error_on_duplicate_validator_separate_attrs() {
 fn test_koruma_error_on_duplicate_element_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateElementValidator {
-            #[koruma(each(RangeValidation::min(0).max(100)))]
-            #[koruma(each(RangeValidation::min(10).max(50)))]
+            #[koruma(each(RangeValidation::min(0).max(100), RangeValidation::min(10).max(50)))]
             pub values: Vec<i32>,
         }
     };
@@ -591,9 +590,9 @@ fn test_koruma_error_on_direct_chain_with_build_call() {
 }
 
 #[test]
-fn test_koruma_error_on_constructor_style_args() {
+fn test_koruma_error_on_invalid_validator_call() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct ConstructorStyleSyntax {
+        pub struct InvalidValidatorSyntax {
             #[koruma(NumberRangeValidation(min = 0, max = 100))]
             pub value: i32,
         }
@@ -624,7 +623,7 @@ fn test_koruma_error_on_each_non_vec_collection() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`each(...)` currently only supports syntactic `Vec<T>`, slice fields"),
+            .contains("`each(...)` supports syntactic `Vec<T>`, slice fields"),
         "expected each(...) collection diagnostic, got: {err}",
     );
     assert!(
@@ -745,8 +744,8 @@ fn test_koruma_error_on_nested_field_with_split_validators() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("cannot also use validators or `each(...)`"),
-        "expected nested+validator combination error, got: {err}"
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {err}"
     );
 }
 
@@ -765,8 +764,8 @@ fn test_koruma_error_on_newtype_field_with_each() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("cannot also use `each(...)`; element validation is not supported"),
-        "expected newtype + each rejection, got: {err}"
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {err}"
     );
 }
 
@@ -785,7 +784,7 @@ fn test_koruma_error_on_field_with_nested_and_newtype() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("duplicate or conflicting field modifier"),
-        "expected nested + newtype rejection, got: {err}"
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {err}"
     );
 }

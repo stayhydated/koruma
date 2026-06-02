@@ -10,6 +10,8 @@ access for downstream tooling and proc-macro internals.
 The parser API is split by macro context: data-field attributes, struct-level options,
 validator-struct fields, direct validator chains, and showcase metadata each have their own
 typed parser surface.
+Each target accepts one `#[koruma(...)]` attribute; multiple items are expressed inside that
+attribute with comma-separated syntax.
 
 Data-field validators may be labeled with lower-snake identifiers, such as
 `#[koruma(username_prefix = string::PrefixValidation::<_>::prefix("user:"))]` or

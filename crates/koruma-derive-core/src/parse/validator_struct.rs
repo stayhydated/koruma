@@ -1,6 +1,7 @@
 use syn::{
     Error, Expr, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
+    spanned::Spanned,
 };
 use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
@@ -349,45 +350,56 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
         let mut setter_required_marker: Option<SpannedValue<Ident>> = None;
         let mut setter_default_marker: Option<SpannedValue<Ident>> = None;
 
-        for attr in field.attrs.to_vec().find_attribute("koruma") {
-            let markers = validator_field_attr(&attr)?;
-            if markers.markers.is_empty() {
-                return Err(Error::new_spanned(
-                    attr.path(),
-                    format!(
-                        "`#[koruma(...)]` on validator fields must contain {}; data-field modifiers like `nested`, `newtype`, and validators are only valid on derive data fields",
-                        KorumaAttrContext::ValidatorField.accepted_items()
-                    ),
+        let attrs = field.attrs.to_vec();
+        let koruma_attrs = attrs.find_attribute("koruma");
+        match koruma_attrs.as_slice() {
+            [] => {},
+            [_, duplicate, ..] => {
+                return Err(Error::new(
+                    duplicate.path().span(),
+                    "only one validator-field `#[koruma(...)]` attribute is allowed; combine markers in a single attribute",
                 ));
-            }
-
-            for marker in markers.markers {
-                match marker.item {
-                    ValidatorFieldKorumaItem::Value(value_spec) => {
-                        if value.is_some() {
-                            return Err(Error::new(
-                                marker.ident.span(),
-                                format!(
-                                    "field `{field_name}` has multiple `#[koruma(value)]` markers"
-                                ),
-                            ));
-                        }
-                        value = Some((marker.ident, value_spec));
-                    },
-                    ValidatorFieldKorumaItem::Setter(setter_options) => {
-                        has_setter_metadata = true;
-                        merge_setter_options(
-                            &mut setter,
-                            setter_options,
-                            &mut setter_method_marker,
-                            &mut setter_into_marker,
-                            &mut setter_required_marker,
-                            &mut setter_default_marker,
-                        )?;
-                    },
+            },
+            [attr] => {
+                let markers = validator_field_attr(&attr)?;
+                if markers.markers.is_empty() {
+                    return Err(Error::new_spanned(
+                        attr.path(),
+                        format!(
+                            "`#[koruma(...)]` on validator fields must contain {}; data-field modifiers like `nested`, `newtype`, and validators are only valid on derive data fields",
+                            KorumaAttrContext::ValidatorField.accepted_items()
+                        ),
+                    ));
                 }
-            }
-        }
+
+                for marker in markers.markers {
+                    match marker.item {
+                        ValidatorFieldKorumaItem::Value(value_spec) => {
+                            if value.is_some() {
+                                return Err(Error::new(
+                                    marker.ident.span(),
+                                    format!(
+                                        "field `{field_name}` has multiple `#[koruma(value)]` markers"
+                                    ),
+                                ));
+                            }
+                            value = Some((marker.ident, value_spec));
+                        },
+                        ValidatorFieldKorumaItem::Setter(setter_options) => {
+                            has_setter_metadata = true;
+                            merge_setter_options(
+                                &mut setter,
+                                setter_options,
+                                &mut setter_method_marker,
+                                &mut setter_into_marker,
+                                &mut setter_required_marker,
+                                &mut setter_default_marker,
+                            )?;
+                        },
+                    }
+                }
+            },
+        };
 
         if value.is_some() && has_setter_metadata {
             return Err(Error::new_spanned(

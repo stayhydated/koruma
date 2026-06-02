@@ -6,11 +6,10 @@ use super::fixtures::{
     Address, AddressWrapper, ArrayOrder, BorrowedOrder, BorrowedTags, BorrowedUsername,
     BorrowedUsernameExplicitInfer, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
     DirectPasswordConfirmation, DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem,
-    Item, MultiAttrItem, MultiValidatorItem, NonCloneSecret, NonCloneValidatorItem,
-    OptionalBorrowedOrder, OptionalElementMixedValidators, OptionalElementPresenceOrder,
-    OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation, PositiveNumber,
-    PresenceOnlyNonClone, QualifiedPathProfile, RequiredElementFullTypeOrder,
-    StaticSecretConfirmation, UserProfile,
+    Item, MultiValidatorItem, NonCloneSecret, NonCloneValidatorItem, OptionalBorrowedOrder,
+    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
+    QualifiedPathProfile, RequiredElementFullTypeOrder, StaticSecretConfirmation, UserProfile,
 };
 use super::validators::{GenericRangeValidation, PrefixBytesValidation};
 
@@ -245,31 +244,6 @@ fn test_all_validators() {
     assert_eq!(value_errors.count(), 1);
 }
 
-// Tests for multiple separate #[koruma(...)] attributes per field
-#[test]
-fn test_multi_attr_valid() {
-    let item = MultiAttrItem { value: 50 }; // In range AND even
-    assert!(item.validate().is_ok());
-}
-
-#[test]
-fn test_multi_attr_out_of_range() {
-    let item = MultiAttrItem { value: 150 }; // Out of range, but even
-    let err = item.validate().unwrap_err();
-
-    assert!(err.value().number_range_validation().is_some());
-    assert!(err.value().even_number_validation().is_none()); // 150 is even
-}
-
-#[test]
-fn test_multi_attr_odd() {
-    let item = MultiAttrItem { value: 51 }; // In range, but odd
-    let err = item.validate().unwrap_err();
-
-    assert!(err.value().number_range_validation().is_none()); // 51 is in range
-    assert!(err.value().even_number_validation().is_some());
-}
-
 #[test]
 fn test_required_validation_supports_non_clone_option_payload() {
     let valid = PresenceOnlyNonClone {
@@ -287,38 +261,6 @@ fn test_required_validation_supports_non_clone_option_payload() {
     let err = missing.validate().unwrap_err();
     let validation = err.token().required_validation().unwrap();
     assert!(validation.actual().is_none());
-}
-
-#[test]
-fn test_multi_attr_both_fail() {
-    let item = MultiAttrItem { value: 151 }; // Out of range AND odd
-    let err = item.validate().unwrap_err();
-
-    // Both validators should fail (from separate #[koruma] attributes)
-    assert!(err.value().number_range_validation().is_some());
-    assert!(err.value().even_number_validation().is_some());
-
-    // Check the actual values
-    assert_eq!(
-        *err.value().number_range_validation().unwrap().actual(),
-        151
-    );
-    assert_eq!(*err.value().even_number_validation().unwrap().actual(), 151);
-}
-
-#[test]
-fn test_multi_attr_all_validators() {
-    // Multiple separate attributes - both fail
-    let item = MultiAttrItem { value: 151 };
-    let err = item.validate().unwrap_err();
-    let value_errors = err.value().all();
-    assert_eq!(value_errors.count(), 2);
-
-    // Multiple separate attributes - one fails
-    let item = MultiAttrItem { value: 150 }; // even but out of range
-    let err = item.validate().unwrap_err();
-    let value_errors = err.value().all();
-    assert_eq!(value_errors.count(), 1);
 }
 
 #[test]

@@ -1,0 +1,5 @@
+error: validator syntax requires a direct validator chain such as `RequiredValidation::<_>` or `RangeValidation::<_>::min(value).max(value)`
+ --> tests/ui/invalid_validator_syntax.rs:5:14
+  |
+5 |     #[koruma(Validator(value = 1))]
+  |              ^^^^^^^^^

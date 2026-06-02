@@ -258,7 +258,7 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
 fn invalid_validator_syntax_error(input: ParseStream) -> Error {
     Error::new(
         input.span(),
-        "validator syntax requires a direct validator chain such as `RequiredValidation::<_>` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted",
+        "validator syntax requires a direct validator chain such as `RequiredValidation::<_>` or `RangeValidation::<_>::min(value).max(value)`",
     )
 }
 
@@ -374,7 +374,7 @@ fn analyze_direct_validator_call_expr(
 
         return Err(Error::new(
             path_expr.path.span(),
-            "validator `::builder()` syntax is not supported; use direct syntax such as `Validator::min(value)` or bare `Validator` for validators without configuration fields",
+            "`::builder()` is outside Koruma's validator attribute grammar; use direct syntax such as `Validator::min(value)` or bare `Validator` for validators without configuration fields",
         ));
     }
 
@@ -400,7 +400,7 @@ fn analyze_direct_validator_call_expr(
 
 fn reserved_builder_method_error(method: ReservedBuilderMethod, method_name: &str) -> String {
     if method.is_builder() {
-        return "validator `::builder()` syntax is not supported; use direct syntax such as `Validator::min(value)` or bare `Validator` for validators without configuration fields"
+        return "`::builder()` is outside Koruma's validator attribute grammar; use direct syntax such as `Validator::min(value)` or bare `Validator` for validators without configuration fields"
             .to_owned();
     }
 

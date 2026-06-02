@@ -474,21 +474,24 @@ fn test_parse_struct_options_cfg_attr_both() {
 }
 
 #[test]
-fn test_parse_struct_options_multiple_attrs_merge() {
+fn test_parse_struct_options_rejects_multiple_attrs() {
     let input: syn::ItemStruct = syn::parse_quote! {
         #[koruma(try_new)]
         #[koruma(newtype)]
         pub struct Email(String);
     };
 
-    assert_eq!(parse_struct_options_result(&input).unwrap(), (true, true));
+    let err = parse_struct_options(&input.attrs).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("only one struct-level `#[koruma(...)]` attribute is allowed")
+    );
 }
 
 #[test]
-fn test_parse_struct_options_multiple_attrs_duplicate_error() {
+fn test_parse_struct_options_rejects_duplicate_option() {
     let input: syn::ItemStruct = syn::parse_quote! {
-        #[koruma(try_new)]
-        #[koruma(try_new)]
+        #[koruma(try_new, try_new)]
         pub struct Email(String);
     };
 
@@ -611,7 +614,7 @@ fn test_find_value_field_cfg_attr_complex_condition() {
 }
 
 #[test]
-fn test_parse_validator_struct_rejects_duplicate_markers_on_same_field() {
+fn test_parse_validator_struct_rejects_multiple_attrs_on_same_field() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             min: i32,
@@ -625,7 +628,7 @@ fn test_parse_validator_struct_rejects_duplicate_markers_on_same_field() {
     let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("field `actual` has multiple `#[koruma(value)]` markers")
+            .contains("only one validator-field `#[koruma(...)]` attribute is allowed")
     );
 }
 
@@ -715,8 +718,7 @@ fn test_parse_validator_struct_supports_capture_skip_policy() {
 fn test_parse_validator_struct_rejects_unknown_validator_field_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(capture)]
-            #[koruma(value)]
+            #[koruma(capture, value)]
             actual: Option<i32>,
         }
     };
@@ -808,8 +810,7 @@ fn test_parse_validator_struct_rejects_required_default_setter() {
 fn test_parse_validator_struct_rejects_duplicate_value_markers_with_capture() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(value(capture = skip))]
-            #[koruma(value)]
+            #[koruma(value(capture = skip), value)]
             actual: Option<i32>,
         }
     };

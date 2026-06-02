@@ -126,6 +126,12 @@ impl Parse for StructNewtypeOptions {
             let ident: Ident = input.parse()?;
             match KorumaKeyword::from_ident(&ident) {
                 Some(KorumaKeyword::TryFrom) => {
+                    if options.try_from_marker.is_some() {
+                        return Err(Error::new(
+                            ident.span(),
+                            "duplicate `newtype(try_from)` option",
+                        ));
+                    }
                     options.try_from = true;
                     options.try_from_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
                 },
@@ -233,10 +239,22 @@ impl Parse for StructOptions {
         for item in attr.item_sources {
             match item.kind {
                 StructKorumaItemSourceKind::TryNew => {
+                    if options.try_new_marker.is_some() {
+                        return Err(Error::new(
+                            item.marker.span,
+                            "duplicate struct-level koruma option `try_new`",
+                        ));
+                    }
                     options.constructor = options.constructor.with_try_new();
                     options.try_new_marker = Some(item.marker);
                 },
                 StructKorumaItemSourceKind::Newtype => {
+                    if options.newtype_marker.is_some() {
+                        return Err(Error::new(
+                            item.marker.span,
+                            "duplicate struct-level koruma option `newtype`",
+                        ));
+                    }
                     options.newtype = true;
                     options.newtype_marker = Some(item.marker);
                     if let Some(try_from_marker) = item.try_from_marker {
@@ -255,45 +273,14 @@ impl Parse for StructOptions {
 ///
 /// Returns `StructOptions::default()` if no `#[koruma(...)]` attribute is found.
 pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
-    let mut merged = StructOptions::default();
-
-    for attr in attrs.to_vec().find_attribute("koruma") {
-        let parsed = attr.parse_args::<StructOptions>()?;
-
-        if parsed.try_new() {
-            if merged.try_new() {
-                return Err(Error::new(
-                    parsed
-                        .try_new_marker
-                        .as_ref()
-                        .map(|marker| marker.span)
-                        .unwrap_or_else(|| attr.path().span()),
-                    "duplicate struct-level koruma option `try_new`",
-                ));
-            }
-            merged.constructor = merged.constructor.with_try_new();
-            merged.try_new_marker = parsed.try_new_marker.clone();
-        }
-
-        if parsed.is_newtype() {
-            if merged.is_newtype() {
-                return Err(Error::new(
-                    parsed
-                        .newtype_marker
-                        .as_ref()
-                        .map(|marker| marker.span)
-                        .unwrap_or_else(|| attr.path().span()),
-                    "duplicate struct-level koruma option `newtype`",
-                ));
-            }
-            merged.newtype = true;
-            merged.newtype_marker = parsed.newtype_marker.clone();
-            if parsed.try_from() {
-                merged.constructor = merged.constructor.with_try_from();
-                merged.try_from_marker = parsed.try_from_marker.clone();
-            }
-        }
+    let attrs = attrs.to_vec();
+    let koruma_attrs = attrs.find_attribute("koruma");
+    match koruma_attrs.as_slice() {
+        [] => Ok(StructOptions::default()),
+        [attr] => attr.parse_args::<StructOptions>(),
+        [_, duplicate, ..] => Err(Error::new(
+            duplicate.path().span(),
+            "only one struct-level `#[koruma(...)]` attribute is allowed; combine options in a single attribute",
+        )),
     }
-
-    Ok(merged)
 }

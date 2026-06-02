@@ -1,4 +1,4 @@
-error: duplicate or conflicting field modifier across `#[koruma(...)]` attributes
+error: duplicate or conflicting field modifier in `#[koruma(...)]`
  --> tests/ui/duplicate_modifiers.rs:5:22
   |
 5 |     #[koruma(nested, nested)]

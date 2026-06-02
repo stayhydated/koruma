@@ -631,7 +631,7 @@ impl FieldSource {
     }
 }
 
-/// Parsed data-field participation after all `#[koruma(...)]` attributes are merged.
+/// Parsed data-field participation after field-level `#[koruma(...)]` parsing.
 #[derive(Clone, Debug)]
 pub enum ParsedDataField {
     Unannotated(FieldSource),
@@ -760,8 +760,6 @@ impl FieldInfo {
 /// Parse a single field and extract its koruma validation information.
 ///
 /// This function handles:
-/// - Multiple `#[koruma(...)]` attributes on the same field
-/// - Combining validators from multiple attributes
 /// - Preserving optional validator labels for downstream name generation
 /// - The `skip`, `nested`, and `newtype` modifiers
 ///
@@ -774,15 +772,18 @@ impl FieldInfo {
 pub fn parse_field(field: &Field, index: usize) -> Result<ParsedDataField> {
     let source = FieldSource::from_field(field, index);
 
-    // Collect typed items from ALL #[koruma(...)] attributes on this field.
-    let mut items = Vec::new();
-
-    for attr in field.attrs.to_vec().find_attribute("koruma") {
-        match attr.parse_args::<DataFieldKorumaAttr>() {
-            Ok(koruma_attr) => items.extend(koruma_attr.items),
-            Err(e) => return Err(e),
-        }
-    }
+    let attrs = field.attrs.to_vec();
+    let koruma_attrs = attrs.find_attribute("koruma");
+    let items = match koruma_attrs.as_slice() {
+        [] => Vec::new(),
+        [attr] => attr.parse_args::<DataFieldKorumaAttr>()?.items,
+        [_, duplicate, ..] => {
+            return Err(Error::new(
+                duplicate.path().span(),
+                "only one field-level `#[koruma(...)]` attribute is allowed; combine validators and modifiers in a single attribute",
+            ));
+        },
+    };
 
     let validation = normalize_field_items(field, items)?;
     match validation {
@@ -817,7 +818,7 @@ fn normalize_field_items(
                 if modifier_kind.is_some() {
                     return Err(Error::new(
                         modifier.span(),
-                        "duplicate or conflicting field modifier across `#[koruma(...)]` attributes",
+                        "duplicate or conflicting field modifier in `#[koruma(...)]`",
                     ));
                 }
                 modifier_kind = Some(modifier.kind);
@@ -879,7 +880,7 @@ fn normalize_field_items(
                         .map(FieldModifier::span)
                         .unwrap_or_else(|| field.span())
                 }),
-            "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`, even across multiple `#[koruma(...)]` attributes",
+            "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`",
         ));
     }
 
@@ -894,7 +895,7 @@ fn normalize_field_items(
                         .map(FieldModifier::span)
                         .unwrap_or_else(|| field.span())
                 }),
-            "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; element validation is not supported for newtype wrappers",
+            "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; validate elements before wrapping or attach validators to the inner type",
         ));
     }
 

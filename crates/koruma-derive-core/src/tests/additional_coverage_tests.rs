@@ -537,7 +537,7 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
         disallowed_builder_chain
             .expect_err("expected builder chain syntax rejection")
             .to_string()
-            .contains("validator `::builder()` syntax is not supported")
+            .contains("`::builder()` is outside Koruma's validator attribute grammar")
     );
 
     let direct_with_value: Result<ValidatorAttr, _> =
@@ -573,8 +573,7 @@ fn struct_options_from_attrs(item: &syn::ItemStruct) -> crate::StructOptions {
 #[test]
 fn parse_field_rejects_duplicate_modifiers() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(newtype)]
-        #[koruma(newtype)]
+        #[koruma(newtype, newtype)]
         wrapped: Wrapper
     };
 
@@ -599,17 +598,16 @@ fn field_info_has_validators_covers_element_only_branch() {
 }
 
 #[test]
-fn parse_field_rejects_newtype_with_each_across_attributes() {
+fn parse_field_rejects_newtype_with_each() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(newtype)]
-        #[koruma(each(PositiveValidation))]
+        #[koruma(newtype, each(PositiveValidation))]
         wrapped: Wrapper
     };
 
     let err = parse_field(&field, 0).expect_err("expected newtype + each(...) to be rejected");
     assert!(
         err.to_string()
-            .contains("cannot also use `each(...)`; element validation is not supported"),
+            .contains("cannot also use `each(...)`; validate elements before wrapping"),
         "expected newtype + each rejection, got: {err}",
     );
 }
@@ -617,8 +615,7 @@ fn parse_field_rejects_newtype_with_each_across_attributes() {
 #[test]
 fn parse_field_rejects_nested_and_newtype_combination() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(nested)]
-        #[koruma(newtype)]
+        #[koruma(nested, newtype)]
         wrapped: Wrapper
     };
 
@@ -649,7 +646,7 @@ fn utility_functions_cover_remaining_line_paths() {
 }
 
 #[test]
-fn struct_options_report_duplicate_newtype_and_try_from() {
+fn struct_options_reject_repeated_attrs() {
     let duplicate_newtype: syn::ItemStruct = syn::parse_quote! {
         #[koruma(newtype)]
         #[koruma(newtype)]
@@ -657,9 +654,9 @@ fn struct_options_report_duplicate_newtype_and_try_from() {
     };
     assert!(
         parse_struct_options(&duplicate_newtype.attrs)
-            .expect_err("expected duplicate newtype error")
+            .expect_err("expected repeated attribute error")
             .to_string()
-            .contains("duplicate struct-level koruma option `newtype`")
+            .contains("only one struct-level `#[koruma(...)]` attribute is allowed")
     );
 
     let duplicate_try_from: syn::ItemStruct = syn::parse_quote! {
@@ -669,9 +666,9 @@ fn struct_options_report_duplicate_newtype_and_try_from() {
     };
     assert!(
         parse_struct_options(&duplicate_try_from.attrs)
-            .expect_err("expected duplicate newtype error")
+            .expect_err("expected repeated attribute error")
             .to_string()
-            .contains("duplicate struct-level koruma option `newtype`")
+            .contains("only one struct-level `#[koruma(...)]` attribute is allowed")
     );
 }
 

@@ -48,7 +48,7 @@
 
 ## Validator Error Model
 
-Koruma currently keeps the failed validator instance as the typed error payload:
+Koruma keeps the failed validator instance as the typed error payload:
 `Validate<T>` returns `bool`, and derived validation stores the configured validator when validation
 fails. This preserves concrete accessor types, `all()` borrowing, `Display`, and Fluent rendering
 without introducing a second associated error type on every validator. Validators that do not

@@ -384,7 +384,7 @@ fn unsupported_each_collection_error(collection_ty: &Type, unwrapped_optional: b
     syn::Error::new_spanned(
         collection_ty,
         format!(
-            "`each(...)` currently only supports syntactic `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those; {target} was `{rendered}`. Koruma derives do not resolve type aliases or custom collection types."
+            "`each(...)` supports syntactic `Vec<T>`, slice fields like `&[T]`, arrays like `[T; N]`, and optional variants of those; {target} was `{rendered}`. Koruma derives do not resolve type aliases or custom collection types."
         ),
     )
 }

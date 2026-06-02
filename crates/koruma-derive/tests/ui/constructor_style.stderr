@@ -1,5 +1,0 @@
-error: validator syntax requires a direct validator chain such as `RequiredValidation::<_>` or `RangeValidation::<_>::min(value).max(value)`; `::builder()` chains and constructor-style validator args like `Validator(field = value)` are not accepted
- --> tests/ui/constructor_style.rs:5:14
-  |
-5 |     #[koruma(Validator(value = 1))]
-  |              ^^^^^^^^^

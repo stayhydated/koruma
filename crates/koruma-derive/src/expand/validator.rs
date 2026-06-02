@@ -64,6 +64,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     let value_field_name = builder_plan.value_slot().ident().clone();
     let value_field_type = builder_plan.value_slot().ty().clone();
     let inner_type = builder_plan.value_inner_type().clone();
+    #[cfg(feature = "internal-showcase")]
     let value_field_capture = builder_plan.capture_policy();
 
     let Fields::Named(ref mut fields) = input.fields else {
@@ -285,7 +286,7 @@ impl ValidatorBuilderPlan {
         if capture_policy == CapturePolicy::Skip && option_inner_type(value_slot.ty()).is_none() {
             return Err(syn::Error::new_spanned(
                 value_slot.ty(),
-                "`#[koruma(value(capture = skip))]` currently requires an `Option<T>` field",
+                "`#[koruma(value(capture = skip))]` requires an `Option<T>` field",
             ));
         }
 
@@ -404,6 +405,7 @@ impl ValidatorBuilderPlan {
             .collect()
     }
 
+    #[cfg(any(test, feature = "internal-showcase"))]
     pub(crate) fn capture_policy(&self) -> CapturePolicy {
         self.capture_policy
     }

@@ -116,7 +116,7 @@ pub fn main() {
             Ok(()) => println!("User is valid!"),
             Err(errors) => {
                 if let Some(id_err) = errors.id().is_even_number_validation() {
-                    // This now prints in the language selected above
+                    // Render with the language selected above.
                     println!("  - id: {}", i18n::localize(id_err));
                 }
 

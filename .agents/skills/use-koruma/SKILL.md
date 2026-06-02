@@ -34,6 +34,8 @@ adds `koruma-collection` when built-in validators fit the rule:
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use
    `TypeName::<_>` for zero-configuration generic validators or
    `TypeName::<_>::first_setter(...)` when configuring generic validators.
+   Put all validators and field modifiers for a field in one `#[koruma(...)]`
+   attribute, separated by commas.
    Optional fields and optional `each(...)` elements unwrap by default; wrap a
    validator in `full(...)` when it should receive the whole optional value.
    Add lower-snake labels with `label_name = Validator::<_>` when you need

@@ -1,5 +1,5 @@
 use crate::expand::codegen::{helper_generics_for_usages, ref_enum_generics_for_usages};
-use crate::expand::plan::{PlannedFieldErrorKind, PlannedValidator, ValidationPlan};
+use crate::expand::plan::{PlannedValidator, ValidationPlan};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Generics, Ident, Type};
@@ -112,26 +112,17 @@ pub(crate) fn render_field_error_structs(
             let field_name = &field_plan.name;
             let field_error_struct_name = &field_plan.generated_names.field_error_struct;
 
-            if matches!(
-                field_error.kind,
-                PlannedFieldErrorKind::NewtypeInner { .. }
-                    | PlannedFieldErrorKind::NewtypeWithValidators { .. }
-            ) {
-                let has_field_validators = !field_error.field_validators.is_empty();
+            if field_error.shape.is_newtype() {
+                let has_field_validators = field_error.has_field_validators();
                 let inner_ty = field_plan.inner_type();
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
 
                 if !has_field_validators {
-                    let Some((field_is_optional, deref)) = (match field_error.kind {
-                        PlannedFieldErrorKind::NewtypeInner {
-                            inner_optional,
-                            deref,
-                        } => Some((inner_optional, deref)),
-                        _ => None,
-                    }) else {
+                    let Some(field_is_optional) = field_error.shape.newtype_inner_optional() else {
                         return quote! {};
                     };
+                    let deref = field_error.shape.newtype_inner_deref();
                     let helper_usages: Vec<Type> =
                         vec![syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }];
                     let helper_generics = helper_generics_for_usages(generics, &helper_usages);
@@ -215,12 +206,7 @@ pub(crate) fn render_field_error_structs(
                 let helper_impl_generics = &helper_generics.impl_generics;
                 let helper_ty_generics = &helper_generics.ty_generics;
                 let helper_where_clause = &helper_generics.where_clause;
-                let Some(field_is_optional) = (match field_error.kind {
-                    PlannedFieldErrorKind::NewtypeWithValidators { inner_optional } => {
-                        Some(inner_optional)
-                    },
-                    _ => None,
-                }) else {
+                let Some(field_is_optional) = field_error.shape.newtype_inner_optional() else {
                     return quote! {};
                 };
 
@@ -319,14 +305,11 @@ pub(crate) fn render_field_error_structs(
                 };
             }
 
-            let Some(regular_kind) = (match field_error.kind {
-                PlannedFieldErrorKind::Regular(kind) => Some(kind),
-                _ => None,
-            }) else {
+            if field_error.shape.is_newtype() {
                 return quote! {};
-            };
-            let has_field_validators = regular_kind.has_field_validators();
-            let has_element_validators = regular_kind.has_element_validators();
+            }
+            let has_field_validators = field_error.has_field_validators();
+            let has_element_validators = field_error.has_element_validators();
 
             let enum_name = &field_plan.generated_names.field_validator_ref_enum;
             let field_group = ValidatorGroupRenderPlan::new(enum_name, &field_error.field_validators);

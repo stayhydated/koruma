@@ -88,15 +88,15 @@ fn test_koruma_attr_parse_labeled_field_validator() {
     let attr: DataFieldKorumaAttr =
         syn::parse_quote!(username_prefix = string::PrefixValidation::<_>::prefix("user:"));
 
-    let DataFieldKorumaItem::FieldValidation(spec) = &attr.items[0] else {
+    let DataFieldKorumaItem::FieldValidation(spec) = &attr.items()[0] else {
         panic!("expected field validator");
     };
     assert_eq!(
-        spec.validator.label().map(ToString::to_string),
+        spec.validator().label().map(ToString::to_string),
         Some("username_prefix".to_string())
     );
     assert_eq!(
-        spec.validator.validator().name().to_string(),
+        spec.validator().validator().name().to_string(),
         "PrefixValidation"
     );
 }
@@ -108,23 +108,23 @@ fn test_koruma_attr_parse_full_and_unwrapped_field_targets() {
         len = unwrapped(string::LenValidation::<_>::min(1))
     );
 
-    let DataFieldKorumaItem::FieldValidation(full_spec) = &attr.items[0] else {
+    let DataFieldKorumaItem::FieldValidation(full_spec) = &attr.items()[0] else {
         panic!("expected full field validator");
     };
     assert!(matches!(
-        full_spec.validator.target(),
+        full_spec.validator().target(),
         ValidatorTargetSelector::Full { .. }
     ));
     assert_eq!(
-        full_spec.validator.label().map(ToString::to_string),
+        full_spec.validator().label().map(ToString::to_string),
         Some("required".to_string())
     );
 
-    let DataFieldKorumaItem::FieldValidation(unwrapped_spec) = &attr.items[1] else {
+    let DataFieldKorumaItem::FieldValidation(unwrapped_spec) = &attr.items()[1] else {
         panic!("expected unwrapped field validator");
     };
     assert!(matches!(
-        unwrapped_spec.validator.target(),
+        unwrapped_spec.validator().target(),
         ValidatorTargetSelector::Unwrapped { .. }
     ));
 }
@@ -135,15 +135,15 @@ fn test_koruma_attr_parse_labeled_element_validator() {
         tag_prefix = string::PrefixValidation::<_>::prefix("tag:")
     ));
 
-    let DataFieldKorumaItem::ElementValidation(spec) = &attr.items[0] else {
+    let DataFieldKorumaItem::ElementValidation(spec) = &attr.items()[0] else {
         panic!("expected element validator");
     };
     assert_eq!(
-        spec.validators[0].label().map(ToString::to_string),
+        spec.validators()[0].label().map(ToString::to_string),
         Some("tag_prefix".to_string())
     );
     assert_eq!(
-        spec.validators[0].validator().name().to_string(),
+        spec.validators()[0].validator().name().to_string(),
         "PrefixValidation"
     );
 }
@@ -153,15 +153,15 @@ fn test_koruma_attr_parse_labeled_full_element_validator() {
     let attr: DataFieldKorumaAttr =
         syn::parse_quote!(each(item_required = full(general::RequiredValidation::<_>)));
 
-    let DataFieldKorumaItem::ElementValidation(spec) = &attr.items[0] else {
+    let DataFieldKorumaItem::ElementValidation(spec) = &attr.items()[0] else {
         panic!("expected element validator");
     };
     assert!(matches!(
-        spec.validators[0].target(),
+        spec.validators()[0].target(),
         ValidatorTargetSelector::Full { .. }
     ));
     assert_eq!(
-        spec.validators[0].label().map(ToString::to_string),
+        spec.validators()[0].label().map(ToString::to_string),
         Some("item_required".to_string())
     );
 }
@@ -285,8 +285,10 @@ fn test_validator_attr_parse_invalid_call_error() {
 #[test]
 fn test_struct_options_parse_try_new() {
     let opts: StructOptions = syn::parse_quote!(try_new);
-    assert!(opts.try_new());
-    assert_eq!(opts.constructor(), StructConstructor::TryNew);
+    let StructMode::Regular { constructor } = opts.mode() else {
+        panic!("expected regular mode");
+    };
+    assert_eq!(*constructor, RegularConstructor::TryNew);
 }
 
 #[test]

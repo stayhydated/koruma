@@ -117,7 +117,7 @@ pub enum ValidatorTypeArg {
     /// The validator used `::<_>` and should infer from the validation target.
     Infer,
     /// The validator supplied an explicit type argument.
-    Explicit(Type),
+    Explicit(Box<Type>),
 }
 
 #[derive(Clone, Debug)]
@@ -213,7 +213,7 @@ impl ValidatorAttr {
     /// Returns the explicit validator type parameter when one was supplied.
     pub fn explicit_type(&self) -> Option<&Type> {
         match &self.type_arg {
-            ValidatorTypeArg::Explicit(ty) => Some(ty),
+            ValidatorTypeArg::Explicit(ty) => Some(ty.as_ref()),
             ValidatorTypeArg::None | ValidatorTypeArg::Infer => None,
         }
     }
@@ -283,7 +283,7 @@ fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, Validato
             let arg = angle_args.args.pop().expect("len checked").into_value();
             match arg {
                 GenericArgument::Type(Type::Infer(_)) => ValidatorTypeArg::Infer,
-                GenericArgument::Type(ty) => ValidatorTypeArg::Explicit(ty),
+                GenericArgument::Type(ty) => ValidatorTypeArg::Explicit(Box::new(ty)),
                 _ => Err(Error::new(
                     arg.span(),
                     "validator type syntax expects a type argument",

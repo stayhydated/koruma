@@ -4,10 +4,10 @@ use crate::expand::{
     codegen::{Cardinality, ValidationSite, classify_each_collection, helper_generics_for_usages},
     effective_validation_type,
     plan::{
-        ErrorStorage, PlannedElementValidation, PlannedErrorDefault, PlannedErrorGetter,
-        PlannedErrorIsEmpty, PlannedField, PlannedFieldErrorKind, PlannedMainErrorStorage,
-        PlannedRegularFieldErrorKind, PlannedValidationOperation, PlannedValidatorTypeArg,
-        StructPlan, TargetBorrow, ValidationPlan, ValidationTarget,
+        ErrorStorage, FieldErrorShape, PlannedElementValidation, PlannedErrorDefault,
+        PlannedErrorGetter, PlannedErrorIsEmpty, PlannedField, PlannedMainErrorStorage,
+        PlannedValidationOperation, PlannedValidatorTypeArg, StructPlan, TargetBorrow,
+        ValidationPlan, ValidationTarget,
     },
     validator::ValidatorBuilderPlan,
 };
@@ -649,6 +649,10 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     assert_eq!(plan.fields.len(), 2);
     assert!(matches!(plan.struct_plan, StructPlan::Record));
     assert_eq!(
+        plan.main_error_struct.to_string(),
+        "PlannedKorumaValidationError"
+    );
+    assert_eq!(
         plan.fields[0]
             .generated_names
             .field_error_struct
@@ -769,6 +773,7 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     else {
         panic!("expected inferred element validator type");
     };
+    let resolved_ty = resolved_ty.as_ref();
     assert_eq!(quote!(#resolved_ty).to_string(), "String");
 }
 
@@ -813,6 +818,7 @@ fn test_validation_plan_uses_explicit_full_targets() {
     else {
         panic!("expected explicit Option field type to resolve");
     };
+    let resolved_field_ty = resolved_field_ty.as_ref();
     assert_eq!(quote!(#resolved_field_ty).to_string(), "Option < i32 >");
 
     let element_validator = &plan.fields[1].element_validators()[0];
@@ -826,6 +832,7 @@ fn test_validation_plan_uses_explicit_full_targets() {
     else {
         panic!("expected explicit Option element type to resolve");
     };
+    let resolved_element_ty = resolved_element_ty.as_ref();
     assert_eq!(
         quote!(#resolved_element_ty).to_string(),
         "Option < String >"
@@ -861,7 +868,7 @@ fn test_validation_plan_exposes_render_ready_validation_operations() {
             "tags",
             0,
             0,
-            "optional_element(full=1, unwrapped=1)",
+            "required_collection_optional_element(full=1, unwrapped=1)",
         ),
     ]
     "###
@@ -891,7 +898,7 @@ fn test_validation_plan_exposes_render_ready_validation_operations() {
         .element_validators
         .as_ref()
         .expect("expected element operation");
-    let PlannedElementValidation::OptionalElement(element) = element else {
+    let PlannedElementValidation::RequiredCollectionOptional(element) = element else {
         panic!("expected optional element validation operation");
     };
     assert_eq!(element.full_type_validators.len(), 1);
@@ -954,13 +961,23 @@ fn validation_render_plan_summary(
 fn element_summary(element: Option<&PlannedElementValidation<'_>>) -> String {
     match element {
         None => "none".to_owned(),
-        Some(PlannedElementValidation::RequiredElement(element)) => format!(
-            "required_element(full={}, unwrapped={})",
+        Some(PlannedElementValidation::RequiredCollectionRequired(element)) => format!(
+            "required_collection_required_element(full={}, unwrapped={})",
             element.full_type_validators.len(),
             element.unwrapped_validators.len()
         ),
-        Some(PlannedElementValidation::OptionalElement(element)) => format!(
-            "optional_element(full={}, unwrapped={})",
+        Some(PlannedElementValidation::RequiredCollectionOptional(element)) => format!(
+            "required_collection_optional_element(full={}, unwrapped={})",
+            element.full_type_validators.len(),
+            element.unwrapped_validators.len()
+        ),
+        Some(PlannedElementValidation::OptionalCollectionRequired(element)) => format!(
+            "optional_collection_required_element(full={}, unwrapped={})",
+            element.full_type_validators.len(),
+            element.unwrapped_validators.len()
+        ),
+        Some(PlannedElementValidation::OptionalCollectionOptional(element)) => format!(
+            "optional_collection_optional_element(full={}, unwrapped={})",
             element.full_type_validators.len(),
             element.unwrapped_validators.len()
         ),
@@ -1114,48 +1131,34 @@ fn test_validation_plan_exposes_field_error_render_plan() {
 
     assert_eq!(layout.fields[0].field.name.to_string(), "raw");
     assert_eq!(
-        layout.fields[0].kind,
-        PlannedFieldErrorKind::NewtypeInner {
-            inner_optional: false,
-            deref: true,
-        }
+        layout.fields[0].shape,
+        FieldErrorShape::NewtypeInnerRequired
     );
 
     assert_eq!(layout.fields[1].field.name.to_string(), "wrapper");
     assert_eq!(
-        layout.fields[1].kind,
-        PlannedFieldErrorKind::NewtypeInner {
-            inner_optional: true,
-            deref: false,
-        }
+        layout.fields[1].shape,
+        FieldErrorShape::NewtypeInnerOptional
     );
 
     assert_eq!(layout.fields[2].field.name.to_string(), "checked");
     assert_eq!(
-        layout.fields[2].kind,
-        PlannedFieldErrorKind::NewtypeWithValidators {
-            inner_optional: false,
-        }
+        layout.fields[2].shape,
+        FieldErrorShape::NewtypeWithValidatorsRequired
     );
     assert_eq!(layout.fields[2].field_validators.len(), 1);
 
     assert_eq!(layout.fields[3].field.name.to_string(), "name");
-    assert_eq!(
-        layout.fields[3].kind,
-        PlannedFieldErrorKind::Regular(PlannedRegularFieldErrorKind::FieldValidators)
-    );
+    assert_eq!(layout.fields[3].shape, FieldErrorShape::RegularFieldOnly);
 
     assert_eq!(layout.fields[4].field.name.to_string(), "tags");
-    assert_eq!(
-        layout.fields[4].kind,
-        PlannedFieldErrorKind::Regular(PlannedRegularFieldErrorKind::ElementValidators)
-    );
+    assert_eq!(layout.fields[4].shape, FieldErrorShape::RegularElementOnly);
     assert_eq!(layout.fields[4].element_validators.len(), 1);
 
     assert_eq!(layout.fields[5].field.name.to_string(), "values");
     assert_eq!(
-        layout.fields[5].kind,
-        PlannedFieldErrorKind::Regular(PlannedRegularFieldErrorKind::FieldAndElementValidators)
+        layout.fields[5].shape,
+        FieldErrorShape::RegularFieldAndElement
     );
     assert_eq!(layout.fields[5].field_validators.len(), 1);
     assert_eq!(layout.fields[5].element_validators.len(), 1);

@@ -10,7 +10,6 @@ use syn::{
 /// Required `input_type` must be `Text` or `Numeric`.
 /// Optional `module` can be "string", "format", "numeric", "collection", or "general".
 /// `module` defaults to `general` when omitted.
-
 #[cfg(feature = "internal-showcase")]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ShowcaseInputType {

@@ -257,7 +257,7 @@ fn render_regular_required_validation(
     let element_validation = operation
         .element_validators
         .as_ref()
-        .map(|element| render_element_validation(field_plan, element, false, koruma))
+        .map(|element| render_element_validation(field_plan, element, koruma))
         .unwrap_or_else(|| quote! {});
 
     match (
@@ -305,7 +305,7 @@ fn render_regular_optional_validation(
     let element_validation = operation
         .element_validators
         .as_ref()
-        .map(|element| render_element_validation(field_plan, element, true, koruma))
+        .map(|element| render_element_validation(field_plan, element, koruma))
         .unwrap_or_else(|| quote! {});
 
     match (
@@ -362,7 +362,6 @@ fn render_field_validator_checks(
 fn render_element_validation(
     field_plan: &FieldPlan,
     element: &PlannedElementValidation<'_>,
-    field_optional: bool,
     koruma: &TokenStream2,
 ) -> TokenStream2 {
     let field_name = &field_plan.name;
@@ -370,8 +369,10 @@ fn render_element_validation(
     let element_error_struct_name = &field_plan.generated_names.element_error_struct;
     let groups = element.groups();
     let full_element_target_expr = match element {
-        PlannedElementValidation::RequiredElement(_) => quote! { __item_value },
-        PlannedElementValidation::OptionalElement(_) => quote! { item },
+        PlannedElementValidation::RequiredCollectionRequired(_)
+        | PlannedElementValidation::OptionalCollectionRequired(_) => quote! { __item_value },
+        PlannedElementValidation::RequiredCollectionOptional(_)
+        | PlannedElementValidation::OptionalCollectionOptional(_) => quote! { item },
     };
     let full_type_element_checks = render_element_validator_checks(
         &groups.full_type_validators,
@@ -392,8 +393,8 @@ fn render_element_validation(
         })
         .collect();
 
-    match (field_optional, element) {
-        (true, PlannedElementValidation::OptionalElement(_)) => quote! {
+    match element {
+        PlannedElementValidation::OptionalCollectionOptional(_) => quote! {
             if let Some(ref __collection_value) = self.#field_member {
                 for (idx, item) in __collection_value.iter().enumerate() {
                     let mut element_error = #element_error_struct_name {
@@ -414,7 +415,7 @@ fn render_element_validation(
                 }
             }
         },
-        (true, PlannedElementValidation::RequiredElement(_)) => quote! {
+        PlannedElementValidation::OptionalCollectionRequired(_) => quote! {
             if let Some(ref __collection_value) = self.#field_member {
                 for (idx, __item_value) in __collection_value.iter().enumerate() {
                     let mut element_error = #element_error_struct_name {
@@ -432,7 +433,7 @@ fn render_element_validation(
                 }
             }
         },
-        (false, PlannedElementValidation::OptionalElement(_)) => quote! {
+        PlannedElementValidation::RequiredCollectionOptional(_) => quote! {
             for (idx, item) in self.#field_member.iter().enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*
@@ -451,7 +452,7 @@ fn render_element_validation(
                 }
             }
         },
-        (false, PlannedElementValidation::RequiredElement(_)) => quote! {
+        PlannedElementValidation::RequiredCollectionRequired(_) => quote! {
             for (idx, __item_value) in self.#field_member.iter().enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*

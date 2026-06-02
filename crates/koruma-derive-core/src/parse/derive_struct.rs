@@ -6,42 +6,61 @@ use syn::{
 };
 use syn_cfg_attr::AttributeHelpers;
 
+use super::SpannedValue;
+use super::diagnostics::{KorumaAttrContext, context_error};
 use super::keywords::KorumaKeyword;
-use super::{KorumaAttrContext, SpannedValue, context_error};
 
 /// Struct-level options parsed from `#[koruma(...)]`.
 #[derive(Clone, Debug)]
 pub struct StructOptions {
-    /// Constructor integrations requested at the struct level.
-    constructor: StructConstructor,
-    /// Whether struct-level newtype behavior is enabled.
-    newtype: bool,
-    try_new_marker: Option<SpannedValue<Ident>>,
-    newtype_marker: Option<SpannedValue<Ident>>,
-    try_from_marker: Option<SpannedValue<Ident>>,
+    mode: StructMode,
 }
 
 impl Default for StructOptions {
     fn default() -> Self {
         Self {
-            constructor: StructConstructor::None,
-            newtype: false,
-            try_new_marker: None,
-            newtype_marker: None,
-            try_from_marker: None,
+            mode: StructMode::Regular {
+                constructor: RegularConstructor::None,
+            },
         }
     }
 }
 
+/// Normalized struct-level derive mode.
+#[derive(Clone, Debug)]
+pub enum StructMode {
+    Regular {
+        constructor: RegularConstructor,
+    },
+    Newtype {
+        constructor: NewtypeConstructor,
+        marker: SpannedValue<Ident>,
+    },
+}
+
+/// Constructor integrations available on regular structs.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum StructConstructor {
+pub enum RegularConstructor {
+    None,
+    TryNew,
+}
+
+impl RegularConstructor {
+    pub fn try_new(self) -> bool {
+        matches!(self, Self::TryNew)
+    }
+}
+
+/// Constructor integrations available on struct-level newtypes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum NewtypeConstructor {
     None,
     TryNew,
     TryFrom,
     TryNewAndTryFrom,
 }
 
-impl StructConstructor {
+impl NewtypeConstructor {
     fn with_try_new(self) -> Self {
         match self {
             Self::None => Self::TryNew,
@@ -68,20 +87,8 @@ impl StructConstructor {
 }
 
 impl StructOptions {
-    pub fn constructor(&self) -> StructConstructor {
-        self.constructor
-    }
-
-    pub fn is_newtype(&self) -> bool {
-        self.newtype
-    }
-
-    pub fn try_new(&self) -> bool {
-        self.constructor.try_new()
-    }
-
-    pub fn try_from(&self) -> bool {
-        self.constructor.try_from()
+    pub fn mode(&self) -> &StructMode {
+        &self.mode
     }
 }
 
@@ -108,14 +115,26 @@ enum StructKorumaItemSourceKind {
 /// Options for the struct-level `newtype(...)` attribute.
 #[derive(Clone, Debug, Default)]
 pub struct StructNewtypeOptions {
-    pub try_from: bool,
+    try_from: bool,
     try_from_marker: Option<SpannedValue<Ident>>,
+}
+
+impl StructNewtypeOptions {
+    pub fn try_from(&self) -> bool {
+        self.try_from
+    }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct StructKorumaAttr {
-    pub items: Vec<StructKorumaItem>,
+    items: Vec<StructKorumaItem>,
     item_sources: Vec<StructKorumaItemSource>,
+}
+
+impl StructKorumaAttr {
+    pub fn items(&self) -> &[StructKorumaItem] {
+        &self.items
+    }
 }
 
 impl Parse for StructNewtypeOptions {
@@ -234,38 +253,58 @@ impl Parse for StructKorumaAttr {
 impl Parse for StructOptions {
     fn parse(input: ParseStream) -> Result<Self> {
         let attr: StructKorumaAttr = input.parse()?;
-        let mut options = StructOptions::default();
+        let mut try_new_marker: Option<SpannedValue<Ident>> = None;
+        let mut newtype_marker: Option<SpannedValue<Ident>> = None;
+        let mut try_from_marker: Option<SpannedValue<Ident>> = None;
 
         for item in attr.item_sources {
             match item.kind {
                 StructKorumaItemSourceKind::TryNew => {
-                    if options.try_new_marker.is_some() {
+                    if try_new_marker.is_some() {
                         return Err(Error::new(
                             item.marker.span,
                             "duplicate struct-level koruma option `try_new`",
                         ));
                     }
-                    options.constructor = options.constructor.with_try_new();
-                    options.try_new_marker = Some(item.marker);
+                    try_new_marker = Some(item.marker);
                 },
                 StructKorumaItemSourceKind::Newtype => {
-                    if options.newtype_marker.is_some() {
+                    if newtype_marker.is_some() {
                         return Err(Error::new(
                             item.marker.span,
                             "duplicate struct-level koruma option `newtype`",
                         ));
                     }
-                    options.newtype = true;
-                    options.newtype_marker = Some(item.marker);
-                    if let Some(try_from_marker) = item.try_from_marker {
-                        options.constructor = options.constructor.with_try_from();
-                        options.try_from_marker = Some(try_from_marker);
+                    newtype_marker = Some(item.marker);
+                    if let Some(marker) = item.try_from_marker {
+                        try_from_marker = Some(marker);
                     }
                 },
             }
         }
 
-        Ok(options)
+        let mode = if let Some(marker) = newtype_marker {
+            let mut constructor = NewtypeConstructor::None;
+            if try_new_marker.is_some() {
+                constructor = constructor.with_try_new();
+            }
+            if try_from_marker.is_some() {
+                constructor = constructor.with_try_from();
+            }
+            StructMode::Newtype {
+                constructor,
+                marker,
+            }
+        } else {
+            let constructor = if try_new_marker.is_some() {
+                RegularConstructor::TryNew
+            } else {
+                RegularConstructor::None
+            };
+            StructMode::Regular { constructor }
+        };
+
+        Ok(StructOptions { mode })
     }
 }
 

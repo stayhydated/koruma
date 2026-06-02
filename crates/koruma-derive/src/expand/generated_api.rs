@@ -7,8 +7,15 @@ use syn::{Error, Ident, Result};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum GeneratedApiNameKind {
     ExistingField,
+    MainErrorStruct,
+    FieldErrorStruct,
+    FieldValidatorRefEnum,
+    ElementErrorStruct,
+    ElementValidatorRefEnum,
     ValidatorGetter,
     ValidatorVariant,
+    BuilderType,
+    BuilderModule,
     BuilderMethod,
     OptionalBuilderMethod,
     ReservedBuilderMethod,

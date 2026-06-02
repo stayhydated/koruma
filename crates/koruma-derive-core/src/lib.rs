@@ -36,12 +36,13 @@ mod tests;
 pub use parse::{
     BuilderMethodCall, CapturePolicy, DataFieldKorumaAttr, DataFieldKorumaItem,
     ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldSource,
-    FieldValidationSpec, KorumaAttrContext, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse,
-    SetterDefault, SpannedValue, StructConstructor, StructKorumaAttr, StructKorumaItem,
-    StructNewtypeOptions, StructOptions, ValidatorAttr, ValidatorFieldKorumaItem,
-    ValidatorFieldRole, ValidatorFieldSpec, ValidatorLabel, ValidatorPath, ValidatorSetterArg,
-    ValidatorSetterSpec, ValidatorStructSpec, ValidatorTargetSelector, ValidatorTypeArg,
-    ValidatorValueSpec, parse_field, parse_struct_options, parse_validator_struct,
+    FieldValidationSpec, KorumaAttrContext, NewtypeConstructor, ParsedDataField, ParsedFieldSpec,
+    ParsedValidatorUse, RegularConstructor, SetterDefault, SetterInputPolicy, SetterPresence,
+    SpannedValue, StructKorumaAttr, StructKorumaItem, StructMode, StructNewtypeOptions,
+    StructOptions, ValidatorAttr, ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec,
+    ValidatorLabel, ValidatorPath, ValidatorSetterArg, ValidatorSetterSpec, ValidatorStructSpec,
+    ValidatorTargetSelector, ValidatorTypeArg, ValidatorValueSpec, parse_field,
+    parse_struct_options, parse_validator_struct,
 };
 
 #[cfg(feature = "internal-showcase")]

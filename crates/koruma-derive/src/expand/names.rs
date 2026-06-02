@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use heck::{ToSnakeCase, ToUpperCamelCase};
 use koruma_derive_core::{FieldInfo, ParsedValidatorUse};
 use quote::format_ident;
@@ -5,7 +7,8 @@ use syn::{Error, Ident, Result};
 
 use super::error_bag::ErrorBag;
 use super::generated_api::{
-    GeneratedApiNameKind, RegisteredApiName, reserved_error_api_name, seed_existing_fields,
+    GeneratedApiNameKind, GeneratedApiNamespace, RegisteredApiName, reserved_error_api_name,
+    seed_existing_fields,
 };
 
 #[derive(Clone, Debug)]
@@ -29,6 +32,43 @@ impl GeneratedNames {
                 "{struct_name}{field_stem}ElementKorumaValidatorRef"
             ),
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct GeneratedDeriveApi {
+    pub main_error_struct: Ident,
+    fields: HashMap<usize, GeneratedNames>,
+}
+
+impl GeneratedDeriveApi {
+    pub(crate) fn build(struct_name: &Ident, fields: &[FieldInfo]) -> Result<Self> {
+        let mut namespace = GeneratedApiNamespace::new();
+        let main_error_struct = main_error_struct_ident(struct_name);
+        namespace.register_ident(
+            &main_error_struct,
+            GeneratedApiNameKind::MainErrorStruct,
+            |existing| generated_type_collision_message(&main_error_struct, existing),
+        )?;
+
+        let mut planned_fields = HashMap::new();
+        for field in fields {
+            let names = GeneratedNames::for_field(struct_name, field);
+            register_generated_field_names(&mut namespace, &names)?;
+            planned_fields.insert(field.index(), names);
+        }
+
+        Ok(Self {
+            main_error_struct,
+            fields: planned_fields,
+        })
+    }
+
+    pub(crate) fn field_names(&self, field: &FieldInfo) -> GeneratedNames {
+        self.fields
+            .get(&field.index())
+            .cloned()
+            .expect("generated derive API should have names for each parsed field")
     }
 }
 
@@ -119,6 +159,60 @@ fn register_validator_names(
     )?;
 
     Ok(())
+}
+
+fn register_generated_field_names(
+    namespace: &mut GeneratedApiNamespace,
+    names: &GeneratedNames,
+) -> Result<()> {
+    namespace.register_ident(
+        &names.field_error_struct,
+        GeneratedApiNameKind::FieldErrorStruct,
+        |existing| generated_type_collision_message(&names.field_error_struct, existing),
+    )?;
+    namespace.register_ident(
+        &names.field_validator_ref_enum,
+        GeneratedApiNameKind::FieldValidatorRefEnum,
+        |existing| generated_type_collision_message(&names.field_validator_ref_enum, existing),
+    )?;
+    namespace.register_ident(
+        &names.element_error_struct,
+        GeneratedApiNameKind::ElementErrorStruct,
+        |existing| generated_type_collision_message(&names.element_error_struct, existing),
+    )?;
+    namespace.register_ident(
+        &names.element_validator_ref_enum,
+        GeneratedApiNameKind::ElementValidatorRefEnum,
+        |existing| generated_type_collision_message(&names.element_validator_ref_enum, existing),
+    )
+}
+
+fn generated_type_collision_message(requested: &Ident, existing: &RegisteredApiName) -> String {
+    format!(
+        "generated API type `{requested}` collides with generated {} `{}`",
+        generated_name_kind_label(existing.kind),
+        existing.ident
+    )
+}
+
+fn generated_name_kind_label(kind: GeneratedApiNameKind) -> &'static str {
+    match kind {
+        GeneratedApiNameKind::MainErrorStruct => "main error struct",
+        GeneratedApiNameKind::FieldErrorStruct => "field error struct",
+        GeneratedApiNameKind::FieldValidatorRefEnum => "field validator enum",
+        GeneratedApiNameKind::ElementErrorStruct => "element error struct",
+        GeneratedApiNameKind::ElementValidatorRefEnum => "element validator enum",
+        GeneratedApiNameKind::ValidatorGetter => "validator getter",
+        GeneratedApiNameKind::ValidatorVariant => "validator enum variant",
+        GeneratedApiNameKind::ExistingField => "input field",
+        GeneratedApiNameKind::BuilderType => "builder type",
+        GeneratedApiNameKind::BuilderModule => "builder module",
+        GeneratedApiNameKind::BuilderMethod => "builder method",
+        GeneratedApiNameKind::OptionalBuilderMethod => "optional builder method",
+        GeneratedApiNameKind::ReservedBuilderMethod => "reserved builder method",
+        GeneratedApiNameKind::UserGeneric => "user generic",
+        GeneratedApiNameKind::RequiredStateGeneric => "required state generic",
+    }
 }
 
 fn validate_reserved_label(validator_use: &ParsedValidatorUse) -> Result<()> {

@@ -5,8 +5,8 @@ use heck::ToSnakeCase;
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{
-    CapturePolicy, SetterDefault, ValidatorFieldRole, ValidatorStructSpec, option_inner_type,
-    parse_validator_struct,
+    CapturePolicy, SetterDefault, SetterInputPolicy, SetterPresence, ValidatorFieldRole,
+    ValidatorStructSpec, option_inner_type, parse_validator_struct,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
@@ -47,16 +47,16 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
     };
     for field in &fields.named {
         reject_builder_attrs(field)?;
-        if field.ident.as_ref() == Some(&value_field_name) {
-            if !matches!(field.vis, Visibility::Inherited) {
-                return Err(syn::Error::new_spanned(
-                    &field.vis,
-                    format!(
-                        "`#[koruma(value)]` field `{}` must be private; use the generated getter instead",
-                        value_field_name
-                    ),
-                ));
-            }
+        if field.ident.as_ref() == Some(&value_field_name)
+            && !matches!(field.vis, Visibility::Inherited)
+        {
+            return Err(syn::Error::new_spanned(
+                &field.vis,
+                format!(
+                    "`#[koruma(value)]` field `{}` must be private; use the generated getter instead",
+                    value_field_name
+                ),
+            ));
         }
     }
 
@@ -275,6 +275,7 @@ impl ValidatorBuilderPlan {
         let struct_name = input.ident.clone();
         let builder_name = format_ident!("{}Builder", struct_name);
         let module_name = format_ident!("{}_builder", struct_name.to_string().to_snake_case());
+        reject_builder_helper_name_collisions(&builder_name, &module_name)?;
         let slots = builder_slots(validator_spec, &input.generics)?;
         let direct_methods = direct_method_plans(&slots);
         let capture_policy = validator_spec.value_spec().capture();
@@ -488,7 +489,7 @@ enum BuilderSlot {
     CapturedValue(CapturedValueSlot),
     SkippedValue(SkippedValueSlot),
     RequiredSetter(RequiredSetterSlot),
-    OptionalSetter(OptionalSetterSlot),
+    OptionalSetter(Box<OptionalSetterSlot>),
     DefaultedSetter(DefaultedSetterSlot),
 }
 
@@ -529,7 +530,7 @@ struct DefaultedSetterSlot {
 
 enum SetterDefaultValue {
     Default,
-    Expr(syn::Expr),
+    Expr(Box<syn::Expr>),
 }
 
 struct SetterRenderParts<'a> {
@@ -546,6 +547,79 @@ pub(crate) enum SetterSignature {
     Into(Type),
     OptionalInner { inner: Type, into: bool },
     OptionalExact { option_ty: Type },
+}
+
+enum ValidatorSlotSpec {
+    CapturedValue {
+        ident: Ident,
+        ty: Type,
+    },
+    SkippedValue {
+        ident: Ident,
+        ty: Type,
+    },
+    RequiredSetter {
+        ident: Ident,
+        ty: Type,
+        method: Ident,
+        input: SetterInputPolicy,
+    },
+    OptionalSetter {
+        ident: Ident,
+        ty: Type,
+        method: Ident,
+        input: SetterInputPolicy,
+    },
+    DefaultedSetter {
+        ident: Ident,
+        ty: Type,
+        method: Ident,
+        input: SetterInputPolicy,
+        default: SetterDefault,
+    },
+}
+
+impl ValidatorSlotSpec {
+    fn for_field(field: &koruma_derive_core::ValidatorFieldSpec) -> Self {
+        let ident = field.name().clone();
+        let ty = field.ty().clone();
+
+        match field.role() {
+            ValidatorFieldRole::Value(value) => match value.capture() {
+                CapturePolicy::CloneInput => Self::CapturedValue { ident, ty },
+                CapturePolicy::Skip => Self::SkippedValue { ident, ty },
+            },
+            ValidatorFieldRole::Setter(setter) => match setter.presence() {
+                SetterPresence::Required => Self::RequiredSetter {
+                    ident,
+                    ty,
+                    method: setter.method().clone(),
+                    input: setter.input(),
+                },
+                SetterPresence::Defaulted(default) => Self::DefaultedSetter {
+                    ident,
+                    ty,
+                    method: setter.method().clone(),
+                    input: setter.input(),
+                    default: default.clone(),
+                },
+                SetterPresence::Optional if option_inner_type(field.ty()).is_some() => {
+                    Self::OptionalSetter {
+                        ident,
+                        ty,
+                        method: setter.method().clone(),
+                        input: setter.input(),
+                    }
+                },
+                SetterPresence::Optional => Self::RequiredSetter {
+                    ident,
+                    ty,
+                    method: setter.method().clone(),
+                    input: setter.input(),
+                },
+            },
+        }
+    }
 }
 
 impl BuilderSlot {
@@ -654,69 +728,66 @@ fn builder_slots(
             ));
         }
 
-        let ident = field.name().clone();
-        let slot = match field.role() {
-            ValidatorFieldRole::Value(value) => match value.capture() {
-                CapturePolicy::CloneInput => {
-                    let state_ident = state_ident_for(&ident);
-                    reject_state_ident_collision(&mut generated_names, &state_ident)?;
-                    BuilderSlot::CapturedValue(CapturedValueSlot {
-                        ident,
-                        ty: field.ty().clone(),
-                        state_ident,
-                    })
-                },
-                CapturePolicy::Skip => BuilderSlot::SkippedValue(SkippedValueSlot {
+        let slot = match ValidatorSlotSpec::for_field(field) {
+            ValidatorSlotSpec::CapturedValue { ident, ty } => {
+                let state_ident = state_ident_for(&ident);
+                reject_state_ident_collision(&mut generated_names, &state_ident)?;
+                BuilderSlot::CapturedValue(CapturedValueSlot {
                     ident,
-                    ty: field.ty().clone(),
-                }),
+                    ty,
+                    state_ident,
+                })
             },
-            ValidatorFieldRole::Setter(setter) => {
-                let field_is_option = option_inner_type(field.ty()).is_some();
-                let required = setter.required()
-                    || (!field_is_option && matches!(setter.default(), SetterDefault::None));
-
-                if required {
-                    let state_ident = state_ident_for(&ident);
-                    reject_state_ident_collision(&mut generated_names, &state_ident)?;
-                    let signature = required_setter_signature(field.ty(), setter.into());
-                    BuilderSlot::RequiredSetter(RequiredSetterSlot {
-                        ident,
-                        ty: field.ty().clone(),
-                        method: setter.method().clone(),
-                        signature,
-                        state_ident,
-                    })
-                } else if matches!(setter.default(), SetterDefault::None) {
-                    let (signature, maybe_inner_ty) =
-                        optional_setter_signature(field.ty(), setter.into());
-                    BuilderSlot::OptionalSetter(OptionalSetterSlot {
-                        ident,
-                        ty: field.ty().clone(),
-                        method: setter.method().clone(),
-                        signature,
-                        maybe_inner_ty,
-                    })
-                } else if let Some(default) = setter_default_value(setter.default()) {
-                    let signature = defaulted_setter_signature(field.ty(), setter.into());
-                    BuilderSlot::DefaultedSetter(DefaultedSetterSlot {
-                        ident,
-                        ty: field.ty().clone(),
-                        method: setter.method().clone(),
-                        signature,
-                        default,
-                    })
-                } else {
-                    let (signature, maybe_inner_ty) =
-                        optional_setter_signature(field.ty(), setter.into());
-                    BuilderSlot::OptionalSetter(OptionalSetterSlot {
-                        ident,
-                        ty: field.ty().clone(),
-                        method: setter.method().clone(),
-                        signature,
-                        maybe_inner_ty,
-                    })
-                }
+            ValidatorSlotSpec::SkippedValue { ident, ty } => {
+                BuilderSlot::SkippedValue(SkippedValueSlot { ident, ty })
+            },
+            ValidatorSlotSpec::RequiredSetter {
+                ident,
+                ty,
+                method,
+                input,
+            } => {
+                let state_ident = state_ident_for(&ident);
+                reject_state_ident_collision(&mut generated_names, &state_ident)?;
+                let signature = required_setter_signature(&ty, input);
+                BuilderSlot::RequiredSetter(RequiredSetterSlot {
+                    ident,
+                    ty,
+                    method,
+                    signature,
+                    state_ident,
+                })
+            },
+            ValidatorSlotSpec::OptionalSetter {
+                ident,
+                ty,
+                method,
+                input,
+            } => {
+                let (signature, maybe_inner_ty) = optional_setter_signature(&ty, input);
+                BuilderSlot::OptionalSetter(Box::new(OptionalSetterSlot {
+                    ident,
+                    ty,
+                    method,
+                    signature,
+                    maybe_inner_ty,
+                }))
+            },
+            ValidatorSlotSpec::DefaultedSetter {
+                ident,
+                ty,
+                method,
+                input,
+                default,
+            } => {
+                let signature = defaulted_setter_signature(&ty, input);
+                BuilderSlot::DefaultedSetter(DefaultedSetterSlot {
+                    ident,
+                    ty,
+                    method,
+                    signature,
+                    default: setter_default_value(&default),
+                })
             },
         };
         slots.push(slot);
@@ -726,47 +797,49 @@ fn builder_slots(
     Ok(slots)
 }
 
-fn required_setter_signature(ty: &Type, into: bool) -> SetterSignature {
+fn required_setter_signature(ty: &Type, input: SetterInputPolicy) -> SetterSignature {
     if option_inner_type(ty).is_some() {
         SetterSignature::OptionalExact {
             option_ty: ty.clone(),
         }
-    } else if into {
+    } else if input.accepts_into() {
         SetterSignature::Into(ty.clone())
     } else {
         SetterSignature::Exact(ty.clone())
     }
 }
 
-fn optional_setter_signature(ty: &Type, into: bool) -> (SetterSignature, Option<Type>) {
+fn optional_setter_signature(
+    ty: &Type,
+    input: SetterInputPolicy,
+) -> (SetterSignature, Option<Type>) {
     if let Some(inner) = option_inner_type(ty) {
         (
             SetterSignature::OptionalInner {
                 inner: inner.clone(),
-                into,
+                into: input.accepts_into(),
             },
             Some(inner.clone()),
         )
-    } else if into {
+    } else if input.accepts_into() {
         (SetterSignature::Into(ty.clone()), None)
     } else {
         (SetterSignature::Exact(ty.clone()), None)
     }
 }
 
-fn defaulted_setter_signature(ty: &Type, into: bool) -> SetterSignature {
-    if into {
+fn defaulted_setter_signature(ty: &Type, input: SetterInputPolicy) -> SetterSignature {
+    if input.accepts_into() {
         SetterSignature::Into(ty.clone())
     } else {
         SetterSignature::Exact(ty.clone())
     }
 }
 
-fn setter_default_value(default: &SetterDefault) -> Option<SetterDefaultValue> {
+fn setter_default_value(default: &SetterDefault) -> SetterDefaultValue {
     match default {
-        SetterDefault::None => None,
-        SetterDefault::Default => Some(SetterDefaultValue::Default),
-        SetterDefault::Expr(expr) => Some(SetterDefaultValue::Expr(expr.clone())),
+        SetterDefault::Default => SetterDefaultValue::Default,
+        SetterDefault::Expr(expr) => SetterDefaultValue::Expr(expr.clone()),
     }
 }
 
@@ -778,6 +851,23 @@ fn reject_state_ident_collision(
         state_ident,
         GeneratedApiNameKind::RequiredStateGeneric,
         |existing| state_ident_collision_message(state_ident, existing),
+    )
+}
+
+fn reject_builder_helper_name_collisions(
+    builder_name: &Ident,
+    module_name: &Ident,
+) -> Result<(), syn::Error> {
+    let mut generated_names = GeneratedApiNamespace::new();
+    generated_names.register_ident(
+        builder_name,
+        GeneratedApiNameKind::BuilderType,
+        |existing| builder_helper_collision_message(builder_name, existing),
+    )?;
+    generated_names.register_ident(
+        module_name,
+        GeneratedApiNameKind::BuilderModule,
+        |existing| builder_helper_collision_message(module_name, existing),
     )
 }
 
@@ -853,6 +943,34 @@ fn optional_builder_method_collision_message(
             "generated optional setter method `{maybe_name}` collides with generated method `{}`",
             existing.ident
         ),
+    }
+}
+
+fn builder_helper_collision_message(requested: &Ident, existing: &RegisteredApiName) -> String {
+    format!(
+        "generated builder helper `{requested}` collides with generated {} `{}`",
+        builder_api_kind_label(existing.kind),
+        existing.ident
+    )
+}
+
+fn builder_api_kind_label(kind: GeneratedApiNameKind) -> &'static str {
+    match kind {
+        GeneratedApiNameKind::BuilderType => "builder type",
+        GeneratedApiNameKind::BuilderModule => "builder module",
+        GeneratedApiNameKind::BuilderMethod => "builder method",
+        GeneratedApiNameKind::OptionalBuilderMethod => "optional builder method",
+        GeneratedApiNameKind::ReservedBuilderMethod => "reserved builder method",
+        GeneratedApiNameKind::UserGeneric => "user generic",
+        GeneratedApiNameKind::RequiredStateGeneric => "required state generic",
+        GeneratedApiNameKind::ExistingField => "input field",
+        GeneratedApiNameKind::MainErrorStruct => "main error struct",
+        GeneratedApiNameKind::FieldErrorStruct => "field error struct",
+        GeneratedApiNameKind::FieldValidatorRefEnum => "field validator enum",
+        GeneratedApiNameKind::ElementErrorStruct => "element error struct",
+        GeneratedApiNameKind::ElementValidatorRefEnum => "element validator enum",
+        GeneratedApiNameKind::ValidatorGetter => "validator getter",
+        GeneratedApiNameKind::ValidatorVariant => "validator enum variant",
     }
 }
 
@@ -1203,8 +1321,11 @@ fn build_value_expr(slot: &BuilderSlot) -> TokenStream2 {
         BuilderSlot::DefaultedSetter(slot) => {
             let ident = &slot.ident;
             match &slot.default {
-                SetterDefaultValue::Expr(expr) => quote! {
-                    self.#ident.unwrap_or_else(|| #expr)
+                SetterDefaultValue::Expr(expr) => {
+                    let expr = expr.as_ref();
+                    quote! {
+                        self.#ident.unwrap_or_else(|| #expr)
+                    }
                 },
                 SetterDefaultValue::Default => quote! {
                     self.#ident.unwrap_or_default()

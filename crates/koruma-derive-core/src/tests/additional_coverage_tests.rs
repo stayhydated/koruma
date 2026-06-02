@@ -1,6 +1,6 @@
 use crate::{
     DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, KnownTypeShape, ParsedDataField,
-    StructKorumaAttr, StructKorumaItem, ValidatorAttr, ValidatorTargetSelector,
+    StructKorumaAttr, StructKorumaItem, StructMode, ValidatorAttr, ValidatorTargetSelector,
     contains_infer_type, expr_as_simple_ident, first_generic_arg, option_inner_type, parse_field,
     parse_struct_options, parse_validator_struct, substitute_infer_type,
     substitute_infer_type_from_source, type_to_ident, vec_inner_type,
@@ -110,27 +110,27 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 fn context_specific_koruma_attr_types_parse_normalized_items() {
     let data_attr: DataFieldKorumaAttr =
         syn::parse_quote!(nested, each(PositiveValidation), RangeValidation::min(0));
-    assert_eq!(data_attr.items.len(), 3);
+    assert_eq!(data_attr.items().len(), 3);
     assert!(matches!(
-        data_attr.items[0],
+        data_attr.items()[0],
         DataFieldKorumaItem::Modifier(_)
     ));
     assert!(matches!(
-        data_attr.items[1],
+        data_attr.items()[1],
         DataFieldKorumaItem::ElementValidation(_)
     ));
     assert!(matches!(
-        data_attr.items[2],
+        data_attr.items()[2],
         DataFieldKorumaItem::FieldValidation(_)
     ));
 
     let struct_attr: StructKorumaAttr = syn::parse_quote!(try_new, newtype(try_from));
-    assert_eq!(struct_attr.items.len(), 2);
-    assert!(matches!(struct_attr.items[0], StructKorumaItem::TryNew));
-    let StructKorumaItem::Newtype(newtype_options) = &struct_attr.items[1] else {
+    assert_eq!(struct_attr.items().len(), 2);
+    assert!(matches!(struct_attr.items()[0], StructKorumaItem::TryNew));
+    let StructKorumaItem::Newtype(newtype_options) = &struct_attr.items()[1] else {
         panic!("expected newtype options");
     };
-    assert!(newtype_options.try_from);
+    assert!(newtype_options.try_from());
 }
 
 #[test]
@@ -140,28 +140,30 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
         each(item_required = unwrapped(RequiredValidation::<_>))
     );
 
-    let DataFieldKorumaItem::FieldValidation(field_spec) = &data_attr.items[0] else {
+    let DataFieldKorumaItem::FieldValidation(field_spec) = &data_attr.items()[0] else {
         panic!("expected field validator");
     };
     assert_eq!(
-        field_spec.validator.label().map(ToString::to_string),
+        field_spec.validator().label().map(ToString::to_string),
         Some("required".to_owned())
     );
     assert!(matches!(
-        field_spec.validator.target(),
+        field_spec.validator().target(),
         ValidatorTargetSelector::Full { .. }
     ));
 
-    let DataFieldKorumaItem::ElementValidation(element_spec) = &data_attr.items[1] else {
+    let DataFieldKorumaItem::ElementValidation(element_spec) = &data_attr.items()[1] else {
         panic!("expected element validator");
     };
-    assert_eq!(element_spec.marker_source.value.to_string(), "each");
+    assert_eq!(element_spec.marker_source().value.to_string(), "each");
     assert_eq!(
-        element_spec.validators[0].label().map(ToString::to_string),
+        element_spec.validators()[0]
+            .label()
+            .map(ToString::to_string),
         Some("item_required".to_owned())
     );
     assert!(matches!(
-        element_spec.validators[0].target(),
+        element_spec.validators()[0].target(),
         ValidatorTargetSelector::Unwrapped { .. }
     ));
 }
@@ -528,8 +530,10 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
         #[koruma(newtype(try_from,))]
         struct Demo(String);
     });
-    assert!(newtype_options_with_trailing_comma.is_newtype());
-    assert!(newtype_options_with_trailing_comma.try_from());
+    let StructMode::Newtype { constructor, .. } = newtype_options_with_trailing_comma.mode() else {
+        panic!("expected newtype mode");
+    };
+    assert!(constructor.try_from());
 
     let disallowed_builder_chain: Result<ValidatorAttr, _> =
         syn::parse_str("RangeValidation::builder()");

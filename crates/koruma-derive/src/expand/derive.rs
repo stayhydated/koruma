@@ -6,7 +6,6 @@ use crate::expand::derive_newtype::{
 };
 use crate::expand::derive_validation::render_validation_checks;
 use crate::expand::koruma_crate_path;
-use crate::expand::names::main_error_struct_ident;
 use crate::expand::plan::ValidationPlan;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -17,11 +16,11 @@ use syn::DeriveInput;
 /// Takes a parsed DeriveInput and returns the expanded TokenStream.
 pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let struct_name = &input.ident;
-    let error_struct_name = main_error_struct_ident(struct_name);
     let generics = &input.generics;
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
     let plan = ValidationPlan::build(&input, "Koruma")?;
+    let error_struct_name = plan.main_error_struct.clone();
     let koruma = koruma_crate_path();
     let fields = match &input.data {
         syn::Data::Struct(data) => &data.fields,

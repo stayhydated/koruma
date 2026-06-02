@@ -5,8 +5,12 @@ use syn::{
 };
 use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
+use super::SpannedValue;
+use super::diagnostics::{
+    KorumaAttrContext, context_error, unsupported_capture_policy_error,
+    unsupported_setter_option_error, unsupported_value_option_error,
+};
 use super::keywords::KorumaKeyword;
-use super::{KorumaAttrContext, SpannedValue, context_error};
 
 /// Parsed validator-field `value` marker metadata.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -23,18 +27,38 @@ impl ValidatorValueSpec {
 /// Default behavior requested by `#[koruma(setter(default...))]`.
 #[derive(Clone, Debug)]
 pub enum SetterDefault {
-    None,
     Default,
-    Expr(Expr),
+    Expr(Box<Expr>),
+}
+
+/// Input conversion policy requested by `#[koruma(setter(...))]`.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum SetterInputPolicy {
+    #[default]
+    Exact,
+    Into,
+}
+
+impl SetterInputPolicy {
+    pub fn accepts_into(self) -> bool {
+        matches!(self, Self::Into)
+    }
+}
+
+/// Presence policy requested by `#[koruma(setter(...))]`.
+#[derive(Clone, Debug)]
+pub enum SetterPresence {
+    Required,
+    Optional,
+    Defaulted(SetterDefault),
 }
 
 /// Parsed validator-field `setter(...)` metadata.
 #[derive(Clone, Debug)]
 pub struct ValidatorSetterSpec {
     method: Ident,
-    into: bool,
-    required: bool,
-    default: SetterDefault,
+    input: SetterInputPolicy,
+    presence: SetterPresence,
 }
 
 impl ValidatorSetterSpec {
@@ -42,16 +66,12 @@ impl ValidatorSetterSpec {
         &self.method
     }
 
-    pub fn into(&self) -> bool {
-        self.into
+    pub fn input(&self) -> SetterInputPolicy {
+        self.input
     }
 
-    pub fn required(&self) -> bool {
-        self.required
-    }
-
-    pub fn default(&self) -> &SetterDefault {
-        &self.default
+    pub fn presence(&self) -> &SetterPresence {
+        &self.presence
     }
 }
 
@@ -115,18 +135,18 @@ impl ValidatorStructSpec {
 #[derive(Clone, Debug)]
 pub enum ValidatorFieldKorumaItem {
     Value(ValidatorValueSpec),
-    Setter(ParsedSetterOptions),
+    Setter(Box<ParsedSetterOptions>),
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ParsedSetterOptions {
     method: Option<Ident>,
     method_marker: Option<SpannedValue<Ident>>,
-    into: bool,
+    input: SetterInputPolicy,
     into_marker: Option<SpannedValue<Ident>>,
     required: bool,
     required_marker: Option<SpannedValue<Ident>>,
-    default: SetterDefault,
+    default: Option<SetterDefault>,
     default_marker: Option<SpannedValue<Ident>>,
 }
 
@@ -139,12 +159,6 @@ struct ValidatorFieldMarker {
 #[derive(Clone, Debug, Default)]
 struct ValidatorFieldKorumaAttr {
     markers: Vec<ValidatorFieldMarker>,
-}
-
-impl Default for SetterDefault {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl Parse for ValidatorFieldKorumaAttr {
@@ -163,7 +177,7 @@ impl Parse for ValidatorFieldKorumaAttr {
                     ValidatorFieldKorumaItem::Value(ValidatorValueSpec { capture })
                 },
                 Some(KorumaKeyword::Setter) => {
-                    ValidatorFieldKorumaItem::Setter(parse_setter_options(input)?)
+                    ValidatorFieldKorumaItem::Setter(Box::new(parse_setter_options(input)?))
                 },
                 _ => return Err(context_error(&ident, KorumaAttrContext::ValidatorField)),
             };
@@ -192,7 +206,7 @@ fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
                 if options.into_marker.is_some() {
                     return Err(Error::new(ident.span(), "duplicate `setter(into)` option"));
                 }
-                options.into = true;
+                options.input = SetterInputPolicy::Into;
                 options.into_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
             },
             Some(KorumaKeyword::Required) => {
@@ -223,22 +237,15 @@ fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
                         "duplicate `setter(default)` option",
                     ));
                 }
-                options.default = if content.peek(Token![=]) {
+                options.default = Some(if content.peek(Token![=]) {
                     content.parse::<Token![=]>()?;
-                    SetterDefault::Expr(content.parse()?)
+                    SetterDefault::Expr(Box::new(content.parse()?))
                 } else {
                     SetterDefault::Default
-                };
+                });
                 options.default_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
             },
-            _ => {
-                return Err(Error::new(
-                    ident.span(),
-                    format!(
-                        "unsupported `#[koruma(setter({ident}))]` option; supported options are `into`, `required`, `name`, and `default`"
-                    ),
-                ));
-            },
+            _ => return Err(unsupported_setter_option_error(&ident)),
         }
 
         if content.peek(Token![,]) {
@@ -260,10 +267,7 @@ fn parse_value_capture_policy(input: ParseStream) -> Result<CapturePolicy> {
         KorumaKeyword::from_ident(&key),
         Some(KorumaKeyword::Capture)
     ) {
-        return Err(Error::new(
-            key.span(),
-            "unsupported `value(...)` option; supported option is `capture = skip`",
-        ));
+        return Err(unsupported_value_option_error(&key));
     }
     content.parse::<Token![=]>()?;
     let policy: Ident = content.parse()?;
@@ -273,10 +277,7 @@ fn parse_value_capture_policy(input: ParseStream) -> Result<CapturePolicy> {
     ) {
         CapturePolicy::Skip
     } else {
-        return Err(Error::new(
-            policy.span(),
-            "unsupported capture policy; supported policy is `skip`",
-        ));
+        return Err(unsupported_capture_policy_error(&policy));
     };
 
     if content.peek(Token![,]) {
@@ -340,9 +341,8 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
         let mut value: Option<(Ident, ValidatorValueSpec)> = None;
         let mut setter = ValidatorSetterSpec {
             method: field_name.clone(),
-            into: false,
-            required: false,
-            default: SetterDefault::None,
+            input: SetterInputPolicy::Exact,
+            presence: SetterPresence::Optional,
         };
         let mut has_setter_metadata = false;
         let mut setter_method_marker: Option<SpannedValue<Ident>> = None;
@@ -361,7 +361,7 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
                 ));
             },
             [attr] => {
-                let markers = validator_field_attr(&attr)?;
+                let markers = validator_field_attr(attr)?;
                 if markers.markers.is_empty() {
                     return Err(Error::new_spanned(
                         attr.path(),
@@ -389,7 +389,7 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
                             has_setter_metadata = true;
                             merge_setter_options(
                                 &mut setter,
-                                setter_options,
+                                *setter_options,
                                 &mut setter_method_marker,
                                 &mut setter_into_marker,
                                 &mut setter_required_marker,
@@ -408,7 +408,7 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
             ));
         }
 
-        if setter.required && !matches!(setter.default, SetterDefault::None) {
+        if setter_required_marker.is_some() && setter_default_marker.is_some() {
             return Err(Error::new_spanned(
                 field,
                 "`required` and `default` cannot be combined in `#[koruma(setter(...))]`",
@@ -470,7 +470,7 @@ fn merge_setter_options(
         *method_marker = options.method_marker;
         setter.method = method;
     }
-    if options.into {
+    if options.input == SetterInputPolicy::Into {
         if into_marker.is_some() {
             return Err(Error::new(
                 options
@@ -482,7 +482,7 @@ fn merge_setter_options(
             ));
         }
         *into_marker = options.into_marker;
-        setter.into = true;
+        setter.input = SetterInputPolicy::Into;
     }
     if options.required {
         if required_marker.is_some() {
@@ -496,9 +496,9 @@ fn merge_setter_options(
             ));
         }
         *required_marker = options.required_marker;
-        setter.required = true;
+        setter.presence = SetterPresence::Required;
     }
-    if !matches!(options.default, SetterDefault::None) {
+    if let Some(default) = options.default {
         if default_marker.is_some() {
             return Err(Error::new(
                 options
@@ -510,7 +510,7 @@ fn merge_setter_options(
             ));
         }
         *default_marker = options.default_marker;
-        setter.default = options.default;
+        setter.presence = SetterPresence::Defaulted(default);
     }
 
     Ok(())

@@ -6,8 +6,10 @@
 
 ## Modules
 
-- `crates/koruma-derive-core/src/parse.rs`: shared parser context, public re-exports, and
-  `SpannedValue<T>` source provenance helpers.
+- `crates/koruma-derive-core/src/parse.rs`: public parser re-exports and `SpannedValue<T>`
+  source provenance helpers.
+- `crates/koruma-derive-core/src/parse/diagnostics.rs`: context-specific diagnostic builders
+  shared by the parser modules, including accepted-item lists and validator-field option errors.
 - `crates/koruma-derive-core/src/parse/keywords.rs`: centralized Koruma attribute keywords and
   reserved generated builder methods used by context diagnostics.
 - `crates/koruma-derive-core/src/parse/validator_chain.rs`: direct validator-chain grammar,
@@ -35,19 +37,21 @@
   validator, an optional `ValidatorLabel`, target selection, and the source span used for
   diagnostics.
 - `StructKorumaAttr` / `StructKorumaItem`: struct-level `#[koruma(...)]` grammar for `try_new`, `newtype`, and `newtype(try_from)`.
-- `DataFieldKorumaAttr` / `DataFieldKorumaItem`: data-field `#[koruma(...)]` grammar for modifiers, direct field validators, optional `label = Validator` labels, explicit `full(...)`/`unwrapped(...)` target selectors, and `each(...)` element validators without a raw token bucket.
+- `DataFieldKorumaAttr` / `DataFieldKorumaItem`: data-field `#[koruma(...)]` grammar for modifiers, direct field validators, optional `label = Validator` labels, explicit `full(...)`/`unwrapped(...)` target selectors, and `each(...)` element validators without a raw token bucket. Attribute items and field/element validation specs expose read-only accessors instead of public mutable vectors.
 - `ValidatorStructSpec` / `ValidatorFieldSpec`: normalized validator-struct metadata for
   `#[koruma::validator]`. The spec proves that exactly one field is marked `#[koruma(value)]`,
   value fields do not also define setter metadata, and setter defaults are not combined with
   `required`. Field, value, and setter details are exposed through accessors rather than public
   fields.
-- `ValidatorValueSpec` / `ValidatorSetterSpec` / `SetterDefault`: typed validator-field
-  `#[koruma(...)]` grammar for `value`, `value(capture = skip)`, and `setter(...)`.
+- `ValidatorValueSpec` / `ValidatorSetterSpec` / `SetterInputPolicy` / `SetterPresence`:
+  typed validator-field `#[koruma(...)]` grammar for `value`, `value(capture = skip)`, and
+  `setter(...)`. Setter input conversion and required/optional/defaulted presence are normalized
+  as enums rather than independent flags.
 - `FieldSource`: source metadata derived from `syn::Field`, shared by unannotated, skipped, and participating data fields.
 - `ParsedDataField`: explicit data-field participation after field-level `#[koruma(...)]` parsing. It preserves unannotated fields, explicit skip markers, and participating `FieldInfo` as separate states.
 - `ParsedFieldSpec`: normalized field shape for participating fields. It is an enum with `Regular`, `Nested`, and `Newtype` variants so parser output cannot encode skipped-with-validator, nested-with-validator, or newtype-with-element-validator states.
 - `FieldInfo`: participating per-field metadata derived from `syn::Field`.
-- `StructOptions` / `StructConstructor`: normalized struct-level newtype and constructor intent for `try_new` and `newtype(try_from)`.
+- `StructOptions` / `StructMode`: normalized struct-level shape and constructor intent. Regular structs can request `try_new`; newtype structs carry their `newtype` marker and can request `try_new`, `try_from`, or both.
 - `KnownTypeShape`: centralized syntactic type recognition for `Option`, `Vec`, slices, arrays, and references, including the recognized path segment or syntax span for diagnostics. It is deliberately not Rust type resolution and does not resolve aliases or custom collection types.
 - `ValidatorStructSpec` / `CapturePolicy`: typed metadata for `#[koruma::validator]` structs,
   including the field marked `#[koruma(value)]` and whether capture clones the borrowed input or
@@ -61,6 +65,9 @@
 - Field modifiers, struct option markers, target selectors, labels, setter options, and
   `each(...)` markers carry source spans so duplicate and conflict diagnostics can point at the
   second actionable token instead of falling back to the whole field or attribute.
+- Reused context and option diagnostics are built in `parse/diagnostics.rs`; parser modules keep
+  local `syn::Error::new` calls only for shape-specific messages whose wording depends on local
+  grammar state.
 - `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
 - Generic validator bindings use standard Rust direct validator chains (`Validator::<_>::min(...)`) for type inference and substitution.
 - Data-field validators carry a `ValidatorTargetSelector`. Bare validators and

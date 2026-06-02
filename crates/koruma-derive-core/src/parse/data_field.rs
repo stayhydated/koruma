@@ -8,9 +8,10 @@ use syn::{
 };
 use syn_cfg_attr::AttributeHelpers;
 
+use super::SpannedValue;
+use super::diagnostics::{KorumaAttrContext, context_error};
 use super::keywords::KorumaKeyword;
 use super::validator_chain::ValidatorAttr;
-use super::{KorumaAttrContext, SpannedValue, context_error};
 
 /// Field-level modifier parsed from `#[koruma(...)]`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -187,22 +188,42 @@ impl ValidatorTargetSelector {
 /// A parsed direct field validator inside `#[koruma(...)]`.
 #[derive(Clone, Debug)]
 pub struct FieldValidationSpec {
-    pub validator: ParsedValidatorUse,
+    validator: ParsedValidatorUse,
+}
+
+impl FieldValidationSpec {
+    pub fn validator(&self) -> &ParsedValidatorUse {
+        &self.validator
+    }
 }
 
 /// A parsed `each(...)` element-validation block inside `#[koruma(...)]`.
 #[derive(Clone, Debug)]
 pub struct ElementValidationSpec {
-    pub marker: Ident,
-    pub marker_source: SpannedValue<Ident>,
-    pub validators: Vec<ParsedValidatorUse>,
+    marker: Ident,
+    marker_source: SpannedValue<Ident>,
+    validators: Vec<ParsedValidatorUse>,
+}
+
+impl ElementValidationSpec {
+    pub fn marker(&self) -> &Ident {
+        &self.marker
+    }
+
+    pub fn marker_source(&self) -> &SpannedValue<Ident> {
+        &self.marker_source
+    }
+
+    pub fn validators(&self) -> &[ParsedValidatorUse] {
+        &self.validators
+    }
 }
 
 /// A single typed item inside data-field `#[koruma(...)]`.
 #[derive(Clone, Debug)]
 pub enum DataFieldKorumaItem {
     Modifier(FieldModifier),
-    FieldValidation(FieldValidationSpec),
+    FieldValidation(Box<FieldValidationSpec>),
     ElementValidation(ElementValidationSpec),
 }
 
@@ -241,10 +262,18 @@ pub enum DataFieldKorumaItem {
 /// ```
 #[derive(Clone, Debug, Default)]
 pub struct DataFieldKorumaAttr {
-    pub items: Vec<DataFieldKorumaItem>,
+    items: Vec<DataFieldKorumaItem>,
 }
 
 impl DataFieldKorumaAttr {
+    pub fn items(&self) -> &[DataFieldKorumaItem] {
+        &self.items
+    }
+
+    pub fn into_items(self) -> Vec<DataFieldKorumaItem> {
+        self.items
+    }
+
     /// Returns whether this attribute has any validators (field or element).
     pub fn has_validators(&self) -> bool {
         self.items.iter().any(|item| match item {
@@ -362,9 +391,11 @@ impl Parse for DataFieldKorumaAttr {
                 attr.items.push(item);
             } else {
                 attr.items
-                    .push(DataFieldKorumaItem::FieldValidation(FieldValidationSpec {
-                        validator: parse_validator_use(input)?,
-                    }));
+                    .push(DataFieldKorumaItem::FieldValidation(Box::new(
+                        FieldValidationSpec {
+                            validator: parse_validator_use(input)?,
+                        },
+                    )));
             }
 
             if input.peek(Token![,]) {
@@ -776,7 +807,7 @@ pub fn parse_field(field: &Field, index: usize) -> Result<ParsedDataField> {
     let koruma_attrs = attrs.find_attribute("koruma");
     let items = match koruma_attrs.as_slice() {
         [] => Vec::new(),
-        [attr] => attr.parse_args::<DataFieldKorumaAttr>()?.items,
+        [attr] => attr.parse_args::<DataFieldKorumaAttr>()?.into_items(),
         [_, duplicate, ..] => {
             return Err(Error::new(
                 duplicate.path().span(),
@@ -825,7 +856,7 @@ fn normalize_field_items(
                 mode_modifier = Some(modifier);
             },
             DataFieldKorumaItem::FieldValidation(spec) => {
-                let validator = spec.validator;
+                let FieldValidationSpec { validator } = *spec;
                 if first_field_validator_path.is_none() {
                     first_field_validator_path = Some(validator.validator().path().clone());
                 }

@@ -4,8 +4,8 @@
 
 use crate::{
     CapturePolicy, FieldInfo, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse, SetterDefault,
-    ValidatorAttr, ValidatorFieldRole, ValidatorLabel, parse_field, parse_struct_options,
-    parse_validator_struct,
+    SetterInputPolicy, SetterPresence, StructMode, ValidatorAttr, ValidatorFieldRole,
+    ValidatorLabel, parse_field, parse_struct_options, parse_validator_struct,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -129,9 +129,15 @@ fn parse_field_result(field: &syn::Field) -> SnapshotParsedField {
     }
 }
 
-fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<(bool, bool), String> {
+fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<String, String> {
     match parse_struct_options(&item.attrs) {
-        Ok(options) => Ok((options.try_new(), options.is_newtype())),
+        Ok(options) => {
+            let summary = match options.mode() {
+                StructMode::Regular { constructor } => format!("regular::{constructor:?}"),
+                StructMode::Newtype { constructor, .. } => format!("newtype::{constructor:?}"),
+            };
+            Ok(summary)
+        },
         Err(err) => Err(err.to_string()),
     }
 }
@@ -753,23 +759,22 @@ fn test_parse_validator_struct_parses_typed_setter_metadata() {
         panic!("expected setter field");
     };
     assert_eq!(title.method().to_string(), "label");
-    assert!(title.into());
-    assert!(!title.required());
-    assert!(matches!(title.default(), SetterDefault::None));
+    assert_eq!(title.input(), SetterInputPolicy::Into);
+    assert!(matches!(title.presence(), SetterPresence::Optional));
 
     let ValidatorFieldRole::Setter(limit) = spec.fields()[1].role() else {
         panic!("expected setter field");
     };
     assert_eq!(limit.method().to_string(), "limit");
-    assert!(limit.required());
+    assert!(matches!(limit.presence(), SetterPresence::Required));
 
     let ValidatorFieldRole::Setter(fallback) = spec.fields()[2].role() else {
         panic!("expected setter field");
     };
-    let SetterDefault::Expr(expr) = fallback.default() else {
+    let SetterPresence::Defaulted(SetterDefault::Expr(expr)) = fallback.presence() else {
         panic!("expected expression default");
     };
-    assert_eq!(expr.to_token_stream().to_string(), "10");
+    assert_eq!(expr.as_ref().to_token_stream().to_string(), "10");
 }
 
 #[test]

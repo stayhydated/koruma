@@ -24,9 +24,13 @@ depend on caller-constructed raw paths.
 unannotated fields, explicit `#[koruma(skip)]` fields, and fields that participate in validation.
 Participating fields expose `FieldInfo` with a `ParsedFieldSpec` shape, which separates regular,
 nested, and newtype validation so invalid combinations cannot be represented after parsing.
+Raw data-field attribute items are exposed through read-only accessors such as
+`DataFieldKorumaAttr::items()` instead of public mutable fields.
 
 `parse_validator_struct` returns opaque `ValidatorStructSpec` metadata for `#[koruma::validator]`
 structs. It keeps `value`, `value(capture = skip)`, and `setter(...)` metadata typed behind
-accessors in this crate before the proc-macro renderer builds validator builders.
+accessors in this crate before the proc-macro renderer builds validator builders. Setter metadata
+uses `SetterInputPolicy` and `SetterPresence` so tooling sees exact, into, required, optional, and
+defaulted intent without combining raw boolean flags.
 
 Most users should depend on `koruma` (or `koruma-derive`) instead of this crate directly.

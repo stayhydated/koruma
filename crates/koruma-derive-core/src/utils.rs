@@ -60,7 +60,7 @@ pub fn substitute_infer_type(ty: &Type, infer_ty: &Type) -> Type {
         Type::Path(type_path) => {
             let mut new_path = type_path.clone();
             if let Some(qself) = &mut new_path.qself {
-                qself.ty = Box::new(substitute_infer_type(&qself.ty, infer_ty));
+                *qself.ty = substitute_infer_type(&qself.ty, infer_ty);
             }
             substitute_path(&mut new_path.path, infer_ty);
             Type::Path(new_path)
@@ -301,9 +301,7 @@ fn substitute_infer_type_from_source_inner(ty: &Type, source_ty: &Type) -> Optio
 
             let mut source_index = 0usize;
             if let Some(qself) = &mut new_path.qself {
-                qself.ty = Box::new(substitute_infer_type_from_source_inner(
-                    &qself.ty, source_ty,
-                )?);
+                *qself.ty = substitute_infer_type_from_source_inner(&qself.ty, source_ty)?;
             }
             let last_segment_index = new_path.path.segments.len().saturating_sub(1);
             for (index, segment) in new_path.path.segments.iter_mut().enumerate() {

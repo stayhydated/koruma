@@ -1,4 +1,5 @@
 use crate::expand::plan::ValidationPlan;
+use koruma_derive_core::StructMode;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Fields, Ident};
@@ -9,7 +10,11 @@ pub(crate) fn render_try_new_fn(
     struct_name_str: &str,
     main_error_path: &TokenStream2,
 ) -> TokenStream2 {
-    if !plan.struct_options.try_new() {
+    let has_try_new = match plan.struct_options.mode() {
+        StructMode::Regular { constructor } => constructor.try_new(),
+        StructMode::Newtype { constructor, .. } => constructor.try_new(),
+    };
+    if !has_try_new {
         return quote! {};
     }
 
@@ -84,10 +89,12 @@ pub(crate) fn render_try_from_impl(
     where_clause: &TokenStream2,
     main_error_path: &TokenStream2,
 ) -> TokenStream2 {
-    if !plan.struct_options.try_from() {
+    let StructMode::Newtype { constructor, .. } = plan.struct_options.mode() else {
+        return quote! {};
+    };
+    if !constructor.try_from() {
         return quote! {};
     }
-
     let Some(field_plan) = plan.struct_newtype() else {
         return quote! {};
     };

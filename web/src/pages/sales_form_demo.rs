@@ -314,114 +314,130 @@ pub(crate) fn SalesFormPage() -> Element {
                             }
                         }
                         div { class: "sales-form-grid",
-                            {sales_text_field(
-                                "sales-company",
-                                i18n.localize_message(&SalesFormMessage::CompanyLabel),
-                                current.company.clone(),
-                                i18n.localize_message(&SalesFormMessage::CompanyPlaceholder),
-                                "text",
-                                field_status(&feedback.company, &current.company, false),
-                                status_text(field_status(&feedback.company, &current.company, false), &status_valid, &status_invalid, &status_optional),
-                                feedback.company.clone(),
-                                None,
-                                EventHandler::new(move |event: Event<FormData>| {
+                            {sales_text_field(SalesTextField {
+                                ui: SalesFieldUi::new(
+                                    "sales-company",
+                                    i18n.localize_message(&SalesFormMessage::CompanyLabel),
+                                    current.company.clone(),
+                                    i18n.localize_message(&SalesFormMessage::CompanyPlaceholder),
+                                    field_status(&feedback.company, &current.company, false),
+                                    status_text(field_status(&feedback.company, &current.company, false), &status_valid, &status_invalid, &status_optional),
+                                    feedback.company.clone(),
+                                ),
+                                input_type: "text",
+                                hint: None,
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().company = event.value();
                                 }),
-                            )}
-                            {sales_text_field(
-                                "sales-contact",
-                                i18n.localize_message(&SalesFormMessage::ContactNameLabel),
-                                current.contact_name.clone(),
-                                i18n.localize_message(&SalesFormMessage::ContactNamePlaceholder),
-                                "text",
-                                field_status(&feedback.contact_name, &current.contact_name, false),
-                                status_text(field_status(&feedback.contact_name, &current.contact_name, false), &status_valid, &status_invalid, &status_optional),
-                                feedback.contact_name.clone(),
-                                None,
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_text_field(SalesTextField {
+                                ui: SalesFieldUi::new(
+                                    "sales-contact",
+                                    i18n.localize_message(&SalesFormMessage::ContactNameLabel),
+                                    current.contact_name.clone(),
+                                    i18n.localize_message(&SalesFormMessage::ContactNamePlaceholder),
+                                    field_status(&feedback.contact_name, &current.contact_name, false),
+                                    status_text(field_status(&feedback.contact_name, &current.contact_name, false), &status_valid, &status_invalid, &status_optional),
+                                    feedback.contact_name.clone(),
+                                ),
+                                input_type: "text",
+                                hint: None,
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().contact_name = event.value();
                                 }),
-                            )}
-                            {sales_text_field(
-                                "sales-email",
-                                i18n.localize_message(&SalesFormMessage::EmailLabel),
-                                current.email.clone(),
-                                i18n.localize_message(&SalesFormMessage::EmailPlaceholder),
-                                "email",
-                                field_status(&feedback.email, &current.email, false),
-                                status_text(field_status(&feedback.email, &current.email, false), &status_valid, &status_invalid, &status_optional),
-                                feedback.email.clone(),
-                                None,
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_text_field(SalesTextField {
+                                ui: SalesFieldUi::new(
+                                    "sales-email",
+                                    i18n.localize_message(&SalesFormMessage::EmailLabel),
+                                    current.email.clone(),
+                                    i18n.localize_message(&SalesFormMessage::EmailPlaceholder),
+                                    field_status(&feedback.email, &current.email, false),
+                                    status_text(field_status(&feedback.email, &current.email, false), &status_valid, &status_invalid, &status_optional),
+                                    feedback.email.clone(),
+                                ),
+                                input_type: "email",
+                                hint: None,
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().email = event.value();
                                 }),
-                            )}
-                            {sales_text_field(
-                                "sales-phone",
-                                i18n.localize_message(&SalesFormMessage::PhoneLabel),
-                                current.phone.clone(),
-                                i18n.localize_message(&SalesFormMessage::PhonePlaceholder),
-                                "tel",
-                                field_status(&feedback.phone, &current.phone, true),
-                                status_text(field_status(&feedback.phone, &current.phone, true), &status_valid, &status_invalid, &status_optional),
-                                feedback.phone.clone(),
-                                Some(i18n.localize_message(&SalesFormMessage::PhoneHint)),
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_text_field(SalesTextField {
+                                ui: SalesFieldUi::new(
+                                    "sales-phone",
+                                    i18n.localize_message(&SalesFormMessage::PhoneLabel),
+                                    current.phone.clone(),
+                                    i18n.localize_message(&SalesFormMessage::PhonePlaceholder),
+                                    field_status(&feedback.phone, &current.phone, true),
+                                    status_text(field_status(&feedback.phone, &current.phone, true), &status_valid, &status_invalid, &status_optional),
+                                    feedback.phone.clone(),
+                                ),
+                                input_type: "tel",
+                                hint: Some(i18n.localize_message(&SalesFormMessage::PhoneHint)),
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().phone = event.value();
                                 }),
-                            )}
-                            {sales_text_field(
-                                "sales-deal-value",
-                                i18n.localize_message(&SalesFormMessage::DealValueLabel),
-                                current.deal_value.clone(),
-                                i18n.localize_message(&SalesFormMessage::DealValuePlaceholder),
-                                "number",
-                                field_status(&feedback.deal_value, &current.deal_value, false),
-                                status_text(field_status(&feedback.deal_value, &current.deal_value, false), &status_valid, &status_invalid, &status_optional),
-                                feedback.deal_value.clone(),
-                                None,
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_text_field(SalesTextField {
+                                ui: SalesFieldUi::new(
+                                    "sales-deal-value",
+                                    i18n.localize_message(&SalesFormMessage::DealValueLabel),
+                                    current.deal_value.clone(),
+                                    i18n.localize_message(&SalesFormMessage::DealValuePlaceholder),
+                                    field_status(&feedback.deal_value, &current.deal_value, false),
+                                    status_text(field_status(&feedback.deal_value, &current.deal_value, false), &status_valid, &status_invalid, &status_optional),
+                                    feedback.deal_value.clone(),
+                                ),
+                                input_type: "number",
+                                hint: None,
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().deal_value = event.value();
                                 }),
-                            )}
-                            {sales_select_field(
-                                "sales-stage",
-                                i18n.localize_message(&SalesFormMessage::StageLabel),
-                                current.stage.clone(),
-                                i18n.localize_message(&SalesFormMessage::StagePlaceholder),
-                                field_status(&feedback.stage, &current.stage, false),
-                                status_text(field_status(&feedback.stage, &current.stage, false), &status_valid, &status_invalid, &status_optional),
-                                feedback.stage.clone(),
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_select_field(SalesSelectField {
+                                ui: SalesFieldUi::new(
+                                    "sales-stage",
+                                    i18n.localize_message(&SalesFormMessage::StageLabel),
+                                    current.stage.clone(),
+                                    i18n.localize_message(&SalesFormMessage::StagePlaceholder),
+                                    field_status(&feedback.stage, &current.stage, false),
+                                    status_text(field_status(&feedback.stage, &current.stage, false), &status_valid, &status_invalid, &status_optional),
+                                    feedback.stage.clone(),
+                                ),
+                                on_change: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().stage = event.value();
                                 }),
-                            )}
-                            {sales_text_field(
-                                "sales-source-url",
-                                i18n.localize_message(&SalesFormMessage::SourceUrlLabel),
-                                current.source_url.clone(),
-                                i18n.localize_message(&SalesFormMessage::SourceUrlPlaceholder),
-                                "url",
-                                field_status(&feedback.source_url, &current.source_url, true),
-                                status_text(field_status(&feedback.source_url, &current.source_url, true), &status_valid, &status_invalid, &status_optional),
-                                feedback.source_url.clone(),
-                                Some(i18n.localize_message(&SalesFormMessage::SourceUrlHint)),
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_text_field(SalesTextField {
+                                ui: SalesFieldUi::new(
+                                    "sales-source-url",
+                                    i18n.localize_message(&SalesFormMessage::SourceUrlLabel),
+                                    current.source_url.clone(),
+                                    i18n.localize_message(&SalesFormMessage::SourceUrlPlaceholder),
+                                    field_status(&feedback.source_url, &current.source_url, true),
+                                    status_text(field_status(&feedback.source_url, &current.source_url, true), &status_valid, &status_invalid, &status_optional),
+                                    feedback.source_url.clone(),
+                                ),
+                                input_type: "url",
+                                hint: Some(i18n.localize_message(&SalesFormMessage::SourceUrlHint)),
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().source_url = event.value();
                                 }),
-                            )}
-                            {sales_text_area(
-                                "sales-next-step",
-                                i18n.localize_message(&SalesFormMessage::NextStepLabel),
-                                current.next_step.clone(),
-                                i18n.localize_message(&SalesFormMessage::NextStepPlaceholder),
-                                field_status(&feedback.next_step, &current.next_step, false),
-                                status_text(field_status(&feedback.next_step, &current.next_step, false), &status_valid, &status_invalid, &status_optional),
-                                feedback.next_step.clone(),
-                                EventHandler::new(move |event: Event<FormData>| {
+                            })}
+                            {sales_text_area(SalesTextArea {
+                                ui: SalesFieldUi::new(
+                                    "sales-next-step",
+                                    i18n.localize_message(&SalesFormMessage::NextStepLabel),
+                                    current.next_step.clone(),
+                                    i18n.localize_message(&SalesFormMessage::NextStepPlaceholder),
+                                    field_status(&feedback.next_step, &current.next_step, false),
+                                    status_text(field_status(&feedback.next_step, &current.next_step, false), &status_valid, &status_invalid, &status_optional),
+                                    feedback.next_step.clone(),
+                                ),
+                                on_input: EventHandler::new(move |event: Event<FormData>| {
                                     draft.write().next_step = event.value();
                                 }),
-                            )}
+                            })}
                         }
                     }
                     aside { class: "sales-summary-panel",
@@ -488,18 +504,71 @@ pub(crate) fn SalesFormPage() -> Element {
     }
 }
 
-fn sales_text_field(
+struct SalesFieldUi {
     input_id: &'static str,
+    status: FieldStatus,
+    status_label: String,
     label: String,
     value: String,
     placeholder: String,
-    input_type: &'static str,
-    status: FieldStatus,
-    status_label: String,
     errors: Vec<String>,
+}
+
+impl SalesFieldUi {
+    fn new(
+        input_id: &'static str,
+        label: String,
+        value: String,
+        placeholder: String,
+        status: FieldStatus,
+        status_label: String,
+        errors: Vec<String>,
+    ) -> Self {
+        Self {
+            input_id,
+            status,
+            status_label,
+            label,
+            value,
+            placeholder,
+            errors,
+        }
+    }
+}
+
+struct SalesTextField {
+    ui: SalesFieldUi,
+    input_type: &'static str,
     hint: Option<String>,
     on_input: EventHandler<Event<FormData>>,
-) -> Element {
+}
+
+struct SalesSelectField {
+    ui: SalesFieldUi,
+    on_change: EventHandler<Event<FormData>>,
+}
+
+struct SalesTextArea {
+    ui: SalesFieldUi,
+    on_input: EventHandler<Event<FormData>>,
+}
+
+fn sales_text_field(field: SalesTextField) -> Element {
+    let SalesTextField {
+        ui,
+        input_type,
+        hint,
+        on_input,
+    } = field;
+    let SalesFieldUi {
+        input_id,
+        status,
+        status_label,
+        label,
+        value,
+        placeholder,
+        errors,
+    } = ui;
     let control_class = format!("sales-control {}", status.class());
     let badge_class = format!("sales-field-status {}", status.class());
 
@@ -526,16 +595,17 @@ fn sales_text_field(
     }
 }
 
-fn sales_select_field(
-    input_id: &'static str,
-    label: String,
-    value: String,
-    placeholder: String,
-    status: FieldStatus,
-    status_label: String,
-    errors: Vec<String>,
-    on_change: EventHandler<Event<FormData>>,
-) -> Element {
+fn sales_select_field(field: SalesSelectField) -> Element {
+    let SalesSelectField { ui, on_change } = field;
+    let SalesFieldUi {
+        input_id,
+        status,
+        status_label,
+        label,
+        value,
+        placeholder,
+        errors,
+    } = ui;
     let control_class = format!("sales-control {}", status.class());
     let badge_class = format!("sales-field-status {}", status.class());
 
@@ -564,16 +634,17 @@ fn sales_select_field(
     }
 }
 
-fn sales_text_area(
-    input_id: &'static str,
-    label: String,
-    value: String,
-    placeholder: String,
-    status: FieldStatus,
-    status_label: String,
-    errors: Vec<String>,
-    on_input: EventHandler<Event<FormData>>,
-) -> Element {
+fn sales_text_area(field: SalesTextArea) -> Element {
+    let SalesTextArea { ui, on_input } = field;
+    let SalesFieldUi {
+        input_id,
+        status,
+        status_label,
+        label,
+        value,
+        placeholder,
+        errors,
+    } = ui;
     let control_class = format!("sales-control {}", status.class());
     let badge_class = format!("sales-field-status {}", status.class());
 

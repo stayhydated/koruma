@@ -19,6 +19,7 @@ pub(crate) mod display;
 pub(crate) mod error_bag;
 #[cfg(feature = "fluent")]
 pub(crate) mod fluent;
+pub(crate) mod generated_api;
 pub(crate) mod names;
 pub(crate) mod plan;
 pub(crate) mod validator;

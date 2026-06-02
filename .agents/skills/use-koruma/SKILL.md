@@ -141,7 +141,10 @@ failing input use this pattern internally.
 
 For direct setter generation on custom validators, use
 `#[koruma(setter(...))]` on configuration fields. Supported setter options are
-`into`, `required`, `name`, and `default`.
+`into`, `required`, `name`, and `default`. Optional non-required `Option<T>`
+setter fields generate a direct setter that takes `T` and a `maybe_*` setter
+that takes `Option<T>`. Use `setter(required)` on `Option<T>` when callers must
+pass `Some(...)` or `None` explicitly.
 
 Read generated errors through field and validator accessors:
 

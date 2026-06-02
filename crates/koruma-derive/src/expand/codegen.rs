@@ -318,12 +318,12 @@ impl ValidationSite {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum FieldCardinality {
+pub(crate) enum Cardinality {
     Required,
     Optional,
 }
 
-impl FieldCardinality {
+impl Cardinality {
     pub(crate) fn for_type(ty: &Type) -> Self {
         if is_option_type(ty) {
             Self::Optional
@@ -337,29 +337,20 @@ impl FieldCardinality {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum EachIterationKind {
-    VecLike,
-    Slice,
-    Array,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct EachCollection<'a> {
-    pub collection_ty: &'a Type,
     pub element_ty: &'a Type,
-    pub outer_cardinality: FieldCardinality,
-    pub element_cardinality: FieldCardinality,
-    pub iteration: EachIterationKind,
+    pub outer_cardinality: Cardinality,
+    pub element_cardinality: Cardinality,
 }
 
 pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection<'_>, syn::Error> {
-    let outer_cardinality = FieldCardinality::for_type(field_ty);
+    let outer_cardinality = Cardinality::for_type(field_ty);
     let (collection_ty, unwrapped_optional) = match KnownTypeShape::of(field_ty) {
         KnownTypeShape::Option { inner, .. } => (inner, true),
         _ => (field_ty, false),
     };
-    let Some((element_ty, iteration)) = classify_each_collection_inner(collection_ty) else {
+    let Some(element_ty) = classify_each_collection_inner(collection_ty) else {
         return Err(unsupported_each_collection_error(
             collection_ty,
             unwrapped_optional,
@@ -367,20 +358,18 @@ pub(crate) fn classify_each_collection(field_ty: &Type) -> Result<EachCollection
     };
 
     Ok(EachCollection {
-        collection_ty,
         element_ty,
         outer_cardinality,
-        element_cardinality: FieldCardinality::for_type(element_ty),
-        iteration,
+        element_cardinality: Cardinality::for_type(element_ty),
     })
 }
 
-fn classify_each_collection_inner(ty: &Type) -> Option<(&Type, EachIterationKind)> {
+fn classify_each_collection_inner(ty: &Type) -> Option<&Type> {
     match KnownTypeShape::of(ty) {
-        KnownTypeShape::Array { inner, .. } => Some((inner, EachIterationKind::Array)),
+        KnownTypeShape::Array { inner, .. } => Some(inner),
         KnownTypeShape::Reference { inner, .. } => classify_each_collection_inner(inner),
-        KnownTypeShape::Slice { inner, .. } => Some((inner, EachIterationKind::Slice)),
-        KnownTypeShape::Vec { inner, .. } => Some((inner, EachIterationKind::VecLike)),
+        KnownTypeShape::Slice { inner, .. } => Some(inner),
+        KnownTypeShape::Vec { inner, .. } => Some(inner),
         KnownTypeShape::Option { .. } | KnownTypeShape::Other(_) => None,
     }
 }

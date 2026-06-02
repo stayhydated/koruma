@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
 use koruma_derive_core::{
-    BuilderMethodCall, FieldInfo, ParsedValidatorUse, StructOptions, ValidatorAttr,
+    BuilderMethodCall, FieldInfo, ParsedValidatorUse, StructOptions, ValidatorAttr, ValidatorLabel,
     ValidatorSetterArg, ValidatorTargetSelector, contains_infer_type, expr_as_simple_ident,
     option_inner_type, parse_struct_options, substitute_infer_type_from_source,
 };
 use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned};
 
-use super::codegen::{EachIterationKind, FieldCardinality, classify_each_collection};
+use super::codegen::{Cardinality, classify_each_collection};
 use super::collect_field_infos;
 use super::error_bag::ErrorBag;
 use super::names::validate_validator_uses;
@@ -317,12 +317,12 @@ impl<'a> PlannedFieldError<'a> {
         let element_validators: Vec<_> = field.element_validators().iter().collect();
         let kind = match field.error_storage() {
             ErrorStorage::NewtypeInner { cardinality } => PlannedFieldErrorKind::NewtypeInner {
-                inner_optional: cardinality == FieldCardinality::Optional,
-                deref: cardinality == FieldCardinality::Required,
+                inner_optional: cardinality == Cardinality::Optional,
+                deref: cardinality == Cardinality::Required,
             },
             ErrorStorage::NewtypeWithValidators { cardinality } => {
                 PlannedFieldErrorKind::NewtypeWithValidators {
-                    inner_optional: cardinality == FieldCardinality::Optional,
+                    inner_optional: cardinality == Cardinality::Optional,
                 }
             },
             ErrorStorage::RegularEmpty => PlannedFieldErrorKind::Regular {
@@ -558,21 +558,15 @@ impl FieldPlan {
         let field_cardinality = each_collection
             .as_ref()
             .map(|collection| collection.outer_cardinality)
-            .unwrap_or_else(|| FieldCardinality::for_type(&field.ty));
+            .unwrap_or_else(|| Cardinality::for_type(&field.ty));
         let inner_type = option_inner_type(&field.ty).unwrap_or(&field.ty).clone();
-        let collection_type = each_collection
-            .as_ref()
-            .map(|collection| collection.collection_ty.clone());
         let element_type = each_collection
             .as_ref()
             .map(|collection| collection.element_ty.clone());
         let element_cardinality = each_collection
             .as_ref()
             .map(|collection| collection.element_cardinality)
-            .unwrap_or(FieldCardinality::Required);
-        let each_iteration = each_collection
-            .as_ref()
-            .map(|collection| collection.iteration);
+            .unwrap_or(Cardinality::Required);
         let generated_names = GeneratedNames::for_field(struct_name, field);
 
         let shape = if field.is_nested() {
@@ -590,10 +584,8 @@ impl FieldPlan {
             PlannedField::Regular(RegularFieldPlan {
                 cardinality: field_cardinality,
                 inner_type,
-                collection_type,
                 element_type,
                 element_cardinality,
-                each_iteration,
                 field_validators,
                 element_validators,
             })
@@ -631,7 +623,7 @@ impl FieldPlan {
         self.field_cardinality().is_optional()
     }
 
-    pub(crate) fn field_cardinality(&self) -> FieldCardinality {
+    pub(crate) fn field_cardinality(&self) -> Cardinality {
         match &self.shape {
             PlannedField::Regular(plan) => plan.cardinality,
             PlannedField::Nested(plan) => plan.cardinality,
@@ -658,10 +650,10 @@ impl FieldPlan {
         self.element_cardinality().is_optional()
     }
 
-    pub(crate) fn element_cardinality(&self) -> FieldCardinality {
+    pub(crate) fn element_cardinality(&self) -> Cardinality {
         match &self.shape {
             PlannedField::Regular(plan) => plan.element_cardinality,
-            PlannedField::Nested(_) | PlannedField::Newtype(_) => FieldCardinality::Required,
+            PlannedField::Nested(_) | PlannedField::Newtype(_) => Cardinality::Required,
         }
     }
 
@@ -719,25 +711,23 @@ pub(crate) enum PlannedField {
 
 #[derive(Clone, Debug)]
 pub(crate) struct RegularFieldPlan {
-    pub cardinality: FieldCardinality,
+    pub cardinality: Cardinality,
     pub inner_type: Type,
-    pub collection_type: Option<Type>,
     pub element_type: Option<Type>,
-    pub element_cardinality: FieldCardinality,
-    pub each_iteration: Option<EachIterationKind>,
+    pub element_cardinality: Cardinality,
     pub field_validators: Vec<PlannedValidator>,
     pub element_validators: Vec<PlannedValidator>,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct NestedFieldPlan {
-    pub cardinality: FieldCardinality,
+    pub cardinality: Cardinality,
     pub inner_type: Type,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct NewtypeFieldPlan {
-    pub cardinality: FieldCardinality,
+    pub cardinality: Cardinality,
     pub inner_type: Type,
     pub field_validators: Vec<PlannedValidator>,
 }
@@ -745,7 +735,7 @@ pub(crate) struct NewtypeFieldPlan {
 #[derive(Clone, Debug)]
 pub(crate) struct PlannedValidator {
     pub attr: ValidatorAttr,
-    pub label: Option<Ident>,
+    pub label: Option<ValidatorLabel>,
     pub target: ValidationTarget,
     pub resolved_type_arg: PlannedValidatorTypeArg,
     pub validator_type: PlannedValidatorType,
@@ -961,28 +951,38 @@ pub(crate) enum ValidationTarget {
     ElementUnwrapped(UnwrappedElementTarget),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum TargetBorrow {
+    Reference,
+    AlreadyBorrowed,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct FullFieldTarget {
     pub ty: Type,
-    pub cardinality: TargetCardinality,
+    pub cardinality: Cardinality,
+    pub borrow: TargetBorrow,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct UnwrappedFieldTarget {
     pub raw_type: Type,
     pub validate_type: Type,
+    pub borrow: TargetBorrow,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct FullElementTarget {
     pub ty: Type,
-    pub cardinality: TargetCardinality,
+    pub cardinality: Cardinality,
+    pub borrow: TargetBorrow,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct UnwrappedElementTarget {
     pub raw_type: Type,
     pub validate_type: Type,
+    pub borrow: TargetBorrow,
 }
 
 impl ValidationTarget {
@@ -1028,15 +1028,17 @@ impl ValidationTarget {
                 ));
             }
 
-            let cardinality = TargetCardinality::for_type(&raw_type);
+            let cardinality = Cardinality::for_type(&raw_type);
             return Ok(match scope {
                 ValidationTargetScope::Field => Self::FieldFull(FullFieldTarget {
                     ty: raw_type,
                     cardinality,
+                    borrow: TargetBorrow::Reference,
                 }),
                 ValidationTargetScope::Element => Self::ElementFull(FullElementTarget {
                     ty: raw_type,
                     cardinality,
+                    borrow: TargetBorrow::AlreadyBorrowed,
                 }),
             });
         }
@@ -1047,10 +1049,12 @@ impl ValidationTarget {
             ValidationTargetScope::Field => Self::FieldUnwrapped(UnwrappedFieldTarget {
                 raw_type,
                 validate_type,
+                borrow: TargetBorrow::AlreadyBorrowed,
             }),
             ValidationTargetScope::Element => Self::ElementUnwrapped(UnwrappedElementTarget {
                 raw_type,
                 validate_type,
+                borrow: TargetBorrow::AlreadyBorrowed,
             }),
         })
     }
@@ -1131,6 +1135,15 @@ impl ValidationTarget {
             Self::ElementUnwrapped(target) => &target.validate_type,
         }
     }
+
+    pub(crate) fn borrow(&self) -> TargetBorrow {
+        match self {
+            Self::FieldFull(target) => target.borrow,
+            Self::FieldUnwrapped(target) => target.borrow,
+            Self::ElementFull(target) => target.borrow,
+            Self::ElementUnwrapped(target) => target.borrow,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1142,25 +1155,6 @@ enum ValidationTargetScope {
 impl ValidationTargetScope {
     pub(crate) fn is_element(self) -> bool {
         self == Self::Element
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum TargetCardinality {
-    Required,
-    Optional,
-}
-
-impl TargetCardinality {
-    fn for_type(ty: &Type) -> Self {
-        match FieldCardinality::for_type(ty) {
-            FieldCardinality::Required => Self::Required,
-            FieldCardinality::Optional => Self::Optional,
-        }
-    }
-
-    pub(crate) fn is_optional(self) -> bool {
-        self == Self::Optional
     }
 }
 
@@ -1201,9 +1195,9 @@ impl PlannedValidatorTypeArg {
 
 #[derive(Clone, Debug)]
 pub(crate) enum ErrorStorage {
-    Nested { cardinality: FieldCardinality },
-    NewtypeInner { cardinality: FieldCardinality },
-    NewtypeWithValidators { cardinality: FieldCardinality },
+    Nested { cardinality: Cardinality },
+    NewtypeInner { cardinality: Cardinality },
+    NewtypeWithValidators { cardinality: Cardinality },
     RegularEmpty,
     RegularFieldValidators,
     RegularElementValidators,

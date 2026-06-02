@@ -6,6 +6,7 @@ use syn::{
 };
 use syn_cfg_attr::AttributeHelpers;
 
+use super::keywords::KorumaKeyword;
 use super::{KorumaAttrContext, SpannedValue, context_error};
 
 /// Struct-level options parsed from `#[koruma(...)]`.
@@ -123,15 +124,15 @@ impl Parse for StructNewtypeOptions {
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
-            match ident.to_string().as_str() {
-                "try_from" => {
+            match KorumaKeyword::from_ident(&ident) {
+                Some(KorumaKeyword::TryFrom) => {
                     options.try_from = true;
                     options.try_from_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
                 },
-                other => {
+                _ => {
                     return Err(Error::new(
                         ident.span(),
-                        format!("unknown newtype option: `{}`. Expected `try_from`", other),
+                        format!("unknown newtype option: `{}`. Expected `try_from`", ident),
                     ));
                 },
             }
@@ -151,8 +152,8 @@ impl Parse for StructKorumaAttr {
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
-            match ident.to_string().as_str() {
-                "try_new" => {
+            match KorumaKeyword::from_ident(&ident) {
+                Some(KorumaKeyword::TryNew) => {
                     if input.peek(token::Paren) || input.peek(Token![::]) {
                         return Err(Error::new(
                             ident.span(),
@@ -169,7 +170,7 @@ impl Parse for StructKorumaAttr {
                         try_from_marker: None,
                     });
                 },
-                "newtype" => {
+                Some(KorumaKeyword::Newtype) => {
                     let mut newtype_options = StructNewtypeOptions::default();
                     if input.peek(syn::token::Paren) {
                         let content;
@@ -190,15 +191,26 @@ impl Parse for StructKorumaAttr {
                     });
                     attr.items.push(StructKorumaItem::Newtype(newtype_options));
                 },
-                other => {
-                    if matches!(other, "skip" | "nested" | "each" | "value") {
+                keyword => {
+                    if matches!(
+                        keyword,
+                        Some(
+                            KorumaKeyword::Skip
+                                | KorumaKeyword::Nested
+                                | KorumaKeyword::Each
+                                | KorumaKeyword::Value
+                                | KorumaKeyword::Setter
+                                | KorumaKeyword::Full
+                                | KorumaKeyword::Unwrapped
+                        )
+                    ) {
                         return Err(context_error(&ident, KorumaAttrContext::Struct));
                     }
                     return Err(Error::new(
                         ident.span(),
                         format!(
                             "unknown struct-level koruma option: `{}`. Expected `try_new` or `newtype`",
-                            other
+                            ident
                         ),
                     ));
                 },

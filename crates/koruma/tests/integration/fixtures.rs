@@ -1,4 +1,4 @@
-use koruma::{Koruma, Validate};
+use koruma::Koruma;
 
 use super::validators::{
     EvenNumberValidation, GenericRangeValidation, MatchesStaticStrValidation,

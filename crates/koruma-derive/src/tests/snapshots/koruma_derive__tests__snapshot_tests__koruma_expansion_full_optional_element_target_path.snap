@@ -116,8 +116,8 @@ impl OptionalElementPresence {
                 required_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::BuildValidator::build_validator(
-                ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                     RequiredValidation::<Option<i32>>::__koruma_builder(),
                     item,
                 ),

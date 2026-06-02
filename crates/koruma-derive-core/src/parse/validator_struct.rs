@@ -4,6 +4,7 @@ use syn::{
 };
 use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
+use super::keywords::KorumaKeyword;
 use super::{KorumaAttrContext, SpannedValue, context_error};
 
 /// Parsed validator-field `value` marker metadata.
@@ -105,17 +106,19 @@ impl Parse for ValidatorFieldKorumaAttr {
 
         while !input.is_empty() {
             let ident: Ident = input.parse()?;
-            let item = if ident == "value" {
-                let capture = if input.peek(syn::token::Paren) {
-                    parse_value_capture_policy(input)?
-                } else {
-                    CapturePolicy::CloneInput
-                };
-                ValidatorFieldKorumaItem::Value(ValidatorValueSpec { capture })
-            } else if ident == "setter" {
-                ValidatorFieldKorumaItem::Setter(parse_setter_options(input)?)
-            } else {
-                return Err(context_error(&ident, KorumaAttrContext::ValidatorField));
+            let item = match KorumaKeyword::from_ident(&ident) {
+                Some(KorumaKeyword::Value) => {
+                    let capture = if input.peek(syn::token::Paren) {
+                        parse_value_capture_policy(input)?
+                    } else {
+                        CapturePolicy::CloneInput
+                    };
+                    ValidatorFieldKorumaItem::Value(ValidatorValueSpec { capture })
+                },
+                Some(KorumaKeyword::Setter) => {
+                    ValidatorFieldKorumaItem::Setter(parse_setter_options(input)?)
+                },
+                _ => return Err(context_error(&ident, KorumaAttrContext::ValidatorField)),
             };
             attr.markers.push(ValidatorFieldMarker { ident, item });
 
@@ -137,52 +140,58 @@ fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
 
     while !content.is_empty() {
         let ident: Ident = content.parse()?;
-        if ident == "into" {
-            if options.into_marker.is_some() {
-                return Err(Error::new(ident.span(), "duplicate `setter(into)` option"));
-            }
-            options.into = true;
-            options.into_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
-        } else if ident == "required" {
-            if options.required_marker.is_some() {
-                return Err(Error::new(
-                    ident.span(),
-                    "duplicate `setter(required)` option",
-                ));
-            }
-            options.required = true;
-            options.required_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
-        } else if ident == "name" {
-            if options.method_marker.is_some() {
-                return Err(Error::new(
-                    ident.span(),
-                    "duplicate `setter(name = ...)` option",
-                ));
-            }
-            content.parse::<Token![=]>()?;
-            options.method = Some(content.parse()?);
-            options.method_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
-        } else if ident == "default" {
-            if options.default_marker.is_some() {
-                return Err(Error::new(
-                    ident.span(),
-                    "duplicate `setter(default)` option",
-                ));
-            }
-            options.default = if content.peek(Token![=]) {
+        match KorumaKeyword::from_ident(&ident) {
+            Some(KorumaKeyword::Into) => {
+                if options.into_marker.is_some() {
+                    return Err(Error::new(ident.span(), "duplicate `setter(into)` option"));
+                }
+                options.into = true;
+                options.into_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
+            },
+            Some(KorumaKeyword::Required) => {
+                if options.required_marker.is_some() {
+                    return Err(Error::new(
+                        ident.span(),
+                        "duplicate `setter(required)` option",
+                    ));
+                }
+                options.required = true;
+                options.required_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
+            },
+            Some(KorumaKeyword::Name) => {
+                if options.method_marker.is_some() {
+                    return Err(Error::new(
+                        ident.span(),
+                        "duplicate `setter(name = ...)` option",
+                    ));
+                }
                 content.parse::<Token![=]>()?;
-                SetterDefault::Expr(content.parse()?)
-            } else {
-                SetterDefault::Default
-            };
-            options.default_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
-        } else {
-            return Err(Error::new(
-                ident.span(),
-                format!(
-                    "unsupported `#[koruma(setter({ident}))]` option; supported options are `into`, `required`, `name`, and `default`"
-                ),
-            ));
+                options.method = Some(content.parse()?);
+                options.method_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
+            },
+            Some(KorumaKeyword::Default) => {
+                if options.default_marker.is_some() {
+                    return Err(Error::new(
+                        ident.span(),
+                        "duplicate `setter(default)` option",
+                    ));
+                }
+                options.default = if content.peek(Token![=]) {
+                    content.parse::<Token![=]>()?;
+                    SetterDefault::Expr(content.parse()?)
+                } else {
+                    SetterDefault::Default
+                };
+                options.default_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
+            },
+            _ => {
+                return Err(Error::new(
+                    ident.span(),
+                    format!(
+                        "unsupported `#[koruma(setter({ident}))]` option; supported options are `into`, `required`, `name`, and `default`"
+                    ),
+                ));
+            },
         }
 
         if content.peek(Token![,]) {
@@ -200,7 +209,10 @@ fn parse_value_capture_policy(input: ParseStream) -> Result<CapturePolicy> {
     parenthesized!(content in input);
 
     let key: Ident = content.parse()?;
-    if key != "capture" {
+    if !matches!(
+        KorumaKeyword::from_ident(&key),
+        Some(KorumaKeyword::Capture)
+    ) {
         return Err(Error::new(
             key.span(),
             "unsupported `value(...)` option; supported option is `capture = skip`",
@@ -208,7 +220,10 @@ fn parse_value_capture_policy(input: ParseStream) -> Result<CapturePolicy> {
     }
     content.parse::<Token![=]>()?;
     let policy: Ident = content.parse()?;
-    let capture = if policy == "skip" {
+    let capture = if matches!(
+        KorumaKeyword::from_ident(&policy),
+        Some(KorumaKeyword::Skip)
+    ) {
         CapturePolicy::Skip
     } else {
         return Err(Error::new(

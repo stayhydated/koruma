@@ -1,7 +1,7 @@
 use super::koruma_crate_path;
 #[cfg(feature = "internal-showcase")]
 use super::{ShowcaseInputType, ShowcaseModule};
-use heck::{ToSnakeCase, ToUpperCamelCase};
+use heck::ToSnakeCase;
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{
@@ -9,8 +9,12 @@ use koruma_derive_core::{
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use std::collections::{HashMap, HashSet};
 use syn::{Field, Fields, GenericParam, Ident, ItemStruct, Type, Visibility, parse_quote};
+
+use super::generated_api::{
+    GeneratedApiNameKind, GeneratedApiNamespace, RegisteredApiName, reserved_builder_method_name,
+    state_ident_for, user_generic_namespace,
+};
 
 /// Core expansion logic for the `#[validator]` attribute macro.
 ///
@@ -340,10 +344,17 @@ enum SetterDefaultValue {
 
 struct SetterRenderParts<'a> {
     ident: &'a Ident,
-    ty: &'a Type,
     method: &'a Ident,
-    into: bool,
+    input: SetterInput<'a>,
     required: bool,
+    maybe_inner_ty: Option<&'a Type>,
+}
+
+enum SetterInput<'a> {
+    Exact(&'a Type),
+    Into(&'a Type),
+    OptionalInner { inner: &'a Type, into: bool },
+    OptionalExact { option_ty: &'a Type },
 }
 
 impl BuilderSlot {
@@ -390,49 +401,70 @@ impl BuilderSlot {
 
     fn setter_render_parts(&self) -> Option<SetterRenderParts<'_>> {
         match self {
-            Self::RequiredSetter(slot) => Some(SetterRenderParts {
-                ident: &slot.ident,
-                ty: &slot.ty,
-                method: &slot.method,
-                into: slot.into,
-                required: true,
-            }),
-            Self::OptionalSetter(slot) => Some(SetterRenderParts {
-                ident: &slot.ident,
-                ty: &slot.ty,
-                method: &slot.method,
-                into: slot.into,
-                required: false,
-            }),
-            Self::DefaultedSetter(slot) => Some(SetterRenderParts {
-                ident: &slot.ident,
-                ty: &slot.ty,
-                method: &slot.method,
-                into: slot.into,
-                required: false,
-            }),
+            Self::RequiredSetter(slot) => {
+                let input = if option_inner_type(&slot.ty).is_some() {
+                    SetterInput::OptionalExact {
+                        option_ty: &slot.ty,
+                    }
+                } else if slot.into {
+                    SetterInput::Into(&slot.ty)
+                } else {
+                    SetterInput::Exact(&slot.ty)
+                };
+                Some(SetterRenderParts {
+                    ident: &slot.ident,
+                    method: &slot.method,
+                    input,
+                    required: true,
+                    maybe_inner_ty: None,
+                })
+            },
+            Self::OptionalSetter(slot) => {
+                let (input, maybe_inner_ty) = if let Some(inner) = option_inner_type(&slot.ty) {
+                    (
+                        SetterInput::OptionalInner {
+                            inner,
+                            into: slot.into,
+                        },
+                        Some(inner),
+                    )
+                } else if slot.into {
+                    (SetterInput::Into(&slot.ty), None)
+                } else {
+                    (SetterInput::Exact(&slot.ty), None)
+                };
+                Some(SetterRenderParts {
+                    ident: &slot.ident,
+                    method: &slot.method,
+                    input,
+                    required: false,
+                    maybe_inner_ty,
+                })
+            },
+            Self::DefaultedSetter(slot) => {
+                let input = if slot.into {
+                    SetterInput::Into(&slot.ty)
+                } else {
+                    SetterInput::Exact(&slot.ty)
+                };
+                Some(SetterRenderParts {
+                    ident: &slot.ident,
+                    method: &slot.method,
+                    input,
+                    required: false,
+                    maybe_inner_ty: None,
+                })
+            },
             Self::CapturedValue(_) | Self::SkippedValue(_) => None,
         }
     }
-}
-
-fn state_ident_for(ident: &Ident) -> Ident {
-    format_ident!("__Koruma{}State", ident.to_string().to_upper_camel_case())
 }
 
 fn builder_slots(
     validator_spec: &koruma_derive_core::ValidatorStructSpec,
     generics: &syn::Generics,
 ) -> Result<Vec<BuilderSlot>, syn::Error> {
-    let user_generic_names: HashSet<String> = generics
-        .params
-        .iter()
-        .filter_map(|param| match param {
-            GenericParam::Type(param) => Some(param.ident.to_string()),
-            GenericParam::Const(param) => Some(param.ident.to_string()),
-            GenericParam::Lifetime(_) => None,
-        })
-        .collect();
+    let mut generated_names = user_generic_namespace(generics);
     let mut slots = Vec::new();
 
     for field in &validator_spec.fields {
@@ -448,7 +480,7 @@ fn builder_slots(
             ValidatorFieldRole::Value(value) => match value.capture {
                 CapturePolicy::CloneInput => {
                     let state_ident = state_ident_for(&ident);
-                    reject_state_ident_collision(&state_ident, &user_generic_names)?;
+                    reject_state_ident_collision(&mut generated_names, &state_ident)?;
                     BuilderSlot::CapturedValue(CapturedValueSlot {
                         ident,
                         ty: field.ty.clone(),
@@ -467,7 +499,7 @@ fn builder_slots(
 
                 if required {
                     let state_ident = state_ident_for(&ident);
-                    reject_state_ident_collision(&state_ident, &user_generic_names)?;
+                    reject_state_ident_collision(&mut generated_names, &state_ident)?;
                     BuilderSlot::RequiredSetter(RequiredSetterSlot {
                         ident,
                         ty: field.ty.clone(),
@@ -516,41 +548,35 @@ fn setter_default_value(default: &SetterDefault) -> Option<SetterDefaultValue> {
 }
 
 fn reject_state_ident_collision(
+    generated_names: &mut GeneratedApiNamespace,
     state_ident: &Ident,
-    user_generic_names: &HashSet<String>,
 ) -> Result<(), syn::Error> {
-    if user_generic_names.contains(&state_ident.to_string()) {
-        return Err(syn::Error::new(
-            state_ident.span(),
-            format!(
-                "generated required-state generic `{state_ident}` collides with a user generic"
-            ),
-        ));
-    }
-    Ok(())
+    generated_names.register_ident(
+        state_ident,
+        GeneratedApiNameKind::RequiredStateGeneric,
+        |existing| state_ident_collision_message(state_ident, existing),
+    )
 }
 
 fn reject_generated_method_collisions(slots: &[BuilderSlot]) -> Result<(), syn::Error> {
-    let reserved = ["with_value", "build", "__koruma_builder"];
-    let mut direct_methods: HashMap<String, Ident> = HashMap::new();
+    let mut generated_names = GeneratedApiNamespace::new();
+    for reserved in ["with_value", "build", "__koruma_builder"] {
+        generated_names.reserve_ident(
+            &format_ident!("{reserved}"),
+            GeneratedApiNameKind::ReservedBuilderMethod,
+        );
+    }
 
     for slot in slots {
         let Some(method) = slot.setter_method() else {
             continue;
         };
         let method_name = method.to_string();
-        if reserved.contains(&method_name.as_str()) {
-            return Err(syn::Error::new(
-                method.span(),
-                format!("setter method name `{method_name}` is reserved by koruma"),
-            ));
-        }
-        if let Some(first) = direct_methods.insert(method_name.clone(), method.clone()) {
-            return Err(syn::Error::new(
-                method.span(),
-                format!("setter method `{method_name}` collides with another setter `{first}`"),
-            ));
-        }
+        generated_names.register_ident(
+            method,
+            GeneratedApiNameKind::BuilderMethod,
+            |existing| builder_method_collision_message(&method_name, existing),
+        )?;
     }
 
     for slot in slots {
@@ -562,17 +588,55 @@ fn reject_generated_method_collisions(slots: &[BuilderSlot]) -> Result<(), syn::
         }
         let maybe_method = format_ident!("maybe_{}", slot.method);
         let maybe_name = maybe_method.to_string();
-        if let Some(first) = direct_methods.get(&maybe_name) {
-            return Err(syn::Error::new(
-                slot.method.span(),
-                format!(
-                    "generated optional setter method `{maybe_name}` collides with setter `{first}`"
-                ),
-            ));
-        }
+        generated_names.register_ident(
+            &maybe_method,
+            GeneratedApiNameKind::OptionalBuilderMethod,
+            |existing| optional_builder_method_collision_message(&maybe_name, existing),
+        )?;
     }
 
     Ok(())
+}
+
+fn state_ident_collision_message(state_ident: &Ident, existing: &RegisteredApiName) -> String {
+    match existing.kind {
+        GeneratedApiNameKind::UserGeneric => {
+            format!("generated required-state generic `{state_ident}` collides with a user generic")
+        },
+        _ => format!(
+            "generated required-state generic `{state_ident}` collides with generated name `{}`",
+            existing.ident
+        ),
+    }
+}
+
+fn builder_method_collision_message(method_name: &str, existing: &RegisteredApiName) -> String {
+    if reserved_builder_method_name(method_name)
+        || existing.kind == GeneratedApiNameKind::ReservedBuilderMethod
+    {
+        return format!("setter method name `{method_name}` is reserved by koruma");
+    }
+
+    format!(
+        "setter method `{method_name}` collides with another setter `{}`",
+        existing.ident
+    )
+}
+
+fn optional_builder_method_collision_message(
+    maybe_name: &str,
+    existing: &RegisteredApiName,
+) -> String {
+    match existing.kind {
+        GeneratedApiNameKind::BuilderMethod => format!(
+            "generated optional setter method `{maybe_name}` collides with setter `{}`",
+            existing.ident
+        ),
+        _ => format!(
+            "generated optional setter method `{maybe_name}` collides with generated method `{}`",
+            existing.ident
+        ),
+    }
 }
 
 fn reject_builder_attrs(field: &Field) -> Result<(), syn::Error> {
@@ -764,29 +828,22 @@ fn render_setter_slot(
     generic_args: &[TokenStream2],
 ) -> TokenStream2 {
     let method = slot.method;
-    let ty = slot.ty;
-    let arg_ty = if slot.into {
-        quote! { impl ::std::convert::Into<#ty> }
-    } else {
-        quote! { #ty }
-    };
-    let value_expr = if slot.into {
-        quote! { ::std::convert::Into::into(value) }
-    } else {
-        quote! { value }
-    };
+    let arg_ty = setter_arg_ty(&slot.input);
+    let value_expr = setter_value_expr(&slot.input);
     let return_ty = if slot.required {
         builder_type_with_replaced_state(builder_name, generic_args, module_name, slots, slot.ident)
     } else {
         quote! { Self }
     };
     let assignments = builder_assignments(slots, slot.ident, quote! { #value_expr });
-    let maybe_method = if !slot.required {
-        option_inner_type(slot.ty).map(|inner_ty| {
-            let maybe_method = format_ident!("maybe_{}", method);
-            quote! {
-                pub fn #maybe_method(self, value: ::std::option::Option<#inner_ty>) -> Self {
-                    self.#method(value)
+    let maybe_method = if let Some(inner_ty) = slot.maybe_inner_ty {
+        let maybe_method = format_ident!("maybe_{}", method);
+        let maybe_assignments = builder_assignments(slots, slot.ident, quote! { value });
+        Some(quote! {
+            pub fn #maybe_method(self, value: ::std::option::Option<#inner_ty>) -> Self {
+                #builder_name {
+                    #(#maybe_assignments,)*
+                    _state: ::std::marker::PhantomData,
                 }
             }
         })
@@ -803,6 +860,33 @@ fn render_setter_slot(
         }
 
         #maybe_method
+    }
+}
+
+fn setter_arg_ty(input: &SetterInput<'_>) -> TokenStream2 {
+    match input {
+        SetterInput::Exact(ty) | SetterInput::OptionalExact { option_ty: ty } => quote! { #ty },
+        SetterInput::Into(ty) => quote! { impl ::std::convert::Into<#ty> },
+        SetterInput::OptionalInner { inner, into } => {
+            if *into {
+                quote! { impl ::std::convert::Into<#inner> }
+            } else {
+                quote! { #inner }
+            }
+        },
+    }
+}
+
+fn setter_value_expr(input: &SetterInput<'_>) -> TokenStream2 {
+    match input {
+        SetterInput::Exact(_) | SetterInput::OptionalExact { .. } => quote! { value },
+        SetterInput::Into(_) => quote! { ::std::convert::Into::into(value) },
+        SetterInput::OptionalInner { into: false, .. } => {
+            quote! { ::std::option::Option::Some(value) }
+        },
+        SetterInput::OptionalInner { into: true, .. } => {
+            quote! { ::std::option::Option::Some(::std::convert::Into::into(value)) }
+        },
     }
 }
 
@@ -907,7 +991,7 @@ fn render_build_impl(
             }
         }
 
-        impl #impl_generics #koruma::BuildValidator for #build_ready_builder_ty #where_clause {
+        impl #impl_generics #koruma::__private::BuildValidator for #build_ready_builder_ty #where_clause {
             type Validator = #struct_name #type_generics;
 
             fn build_validator(self) -> Self::Validator {
@@ -998,10 +1082,10 @@ fn render_capture_value_ref_impl(
             capture_generics
                 .make_where_clause()
                 .predicates
-                .push(parse_quote!(#output_ty: #koruma::BuildValidator));
+                .push(parse_quote!(#output_ty: #koruma::__private::BuildValidator));
             let (impl_generics, _, where_clause) = capture_generics.split_for_impl();
             Ok(quote! {
-                impl #impl_generics #koruma::CaptureValueRef<#inner_type>
+                impl #impl_generics #koruma::__private::CaptureValueRef<#inner_type>
                     for #builder_ty #where_clause
                 {
                     type Output = #output_ty;
@@ -1017,10 +1101,10 @@ fn render_capture_value_ref_impl(
             capture_generics
                 .make_where_clause()
                 .predicates
-                .push(parse_quote!(#builder_ty: #koruma::BuildValidator));
+                .push(parse_quote!(#builder_ty: #koruma::__private::BuildValidator));
             let (impl_generics, _, where_clause) = capture_generics.split_for_impl();
             Ok(quote! {
-                impl #impl_generics #koruma::CaptureValueRef<#inner_type>
+                impl #impl_generics #koruma::__private::CaptureValueRef<#inner_type>
                     for #builder_ty #where_clause
                 {
                     type Output = Self;
@@ -1064,12 +1148,7 @@ fn render_direct_builder_method(
     module_name: &Ident,
 ) -> TokenStream2 {
     let method = slot.method;
-    let ty = slot.ty;
-    let arg_ty = if slot.into {
-        quote! { impl ::std::convert::Into<#ty> }
-    } else {
-        quote! { #ty }
-    };
+    let arg_ty = setter_arg_ty(&slot.input);
     let state_args: Vec<_> = required_slots
         .iter()
         .map(|required| {
@@ -1091,19 +1170,17 @@ fn render_direct_builder_method(
     };
     let method_name_str = method.to_string();
 
-    let maybe_method = if !slot.required {
-        option_inner_type(slot.ty).map(|inner_ty| {
-            let maybe_method = format_ident!("maybe_{}", method);
-            let maybe_method_name_str = maybe_method.to_string();
-            quote! {
-                #[doc = concat!(
-                    "Starts building this validator with `",
-                    #maybe_method_name_str,
-                    "` set."
-                )]
-                pub fn #maybe_method(value: ::std::option::Option<#inner_ty>) -> #output_builder_ty {
-                    Self::__koruma_builder().#maybe_method(value)
-                }
+    let maybe_method = if let Some(inner_ty) = slot.maybe_inner_ty {
+        let maybe_method = format_ident!("maybe_{}", method);
+        let maybe_method_name_str = maybe_method.to_string();
+        Some(quote! {
+            #[doc = concat!(
+                "Starts building this validator with `",
+                #maybe_method_name_str,
+                "` set."
+            )]
+            pub fn #maybe_method(value: ::std::option::Option<#inner_ty>) -> #output_builder_ty {
+                Self::__koruma_builder().#maybe_method(value)
             }
         })
     } else {

@@ -1,0 +1,11 @@
+error: koruma::validator can only be applied to structs
+ --> tests/ui/wrong_validator_target.rs:4:1
+  |
+4 | enum NotAStruct {
+  | ^^^^
+
+error: koruma::validator can only be applied to structs
+ --> tests/ui/wrong_validator_target.rs:9:1
+  |
+9 | fn not_a_struct() {}
+  | ^^

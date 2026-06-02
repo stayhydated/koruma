@@ -4,6 +4,9 @@ use quote::format_ident;
 use syn::{Error, Ident, Result};
 
 use super::error_bag::ErrorBag;
+use super::generated_api::{
+    GeneratedApiNameKind, RegisteredApiName, reserved_error_api_name, seed_existing_fields,
+};
 
 #[derive(Clone, Debug)]
 pub(crate) struct GeneratedNames {
@@ -43,19 +46,12 @@ pub(crate) struct ValidatorGeneratedNames {
     pub variant_ident: Ident,
 }
 
-#[derive(Clone, Debug)]
-struct ValidatorNameCandidate {
-    field_name: String,
-    variant_name: String,
-}
-
 pub(crate) fn validator_names(
     validator_use: &ParsedValidatorUse,
     siblings: &[ParsedValidatorUse],
     known_field_names: &[Ident],
 ) -> Result<ValidatorGeneratedNames> {
-    let candidates = name_candidates(siblings);
-    validate_name_candidate(validator_use, known_field_names, &candidates)?;
+    let _ = (siblings, known_field_names);
 
     let label_span = validator_use.label_span();
     let field_name = validator_field_name(validator_use);
@@ -79,40 +75,25 @@ pub(crate) fn validate_validator_uses(
     siblings: &[ParsedValidatorUse],
     known_field_names: &[Ident],
 ) -> Result<()> {
-    let candidates = name_candidates(siblings);
+    let mut namespace = seed_existing_fields(known_field_names);
     let mut errors = ErrorBag::new();
 
     for validator_use in siblings {
-        errors.push_result(validate_label(validator_use));
-        errors.push_result(validate_name_candidate(
-            validator_use,
-            known_field_names,
-            &candidates,
-        ));
+        errors.push_result(validate_reserved_label(validator_use));
+        errors.push_result(register_validator_names(&mut namespace, validator_use));
     }
 
     errors.finish()
 }
 
-fn name_candidates(siblings: &[ParsedValidatorUse]) -> Vec<ValidatorNameCandidate> {
-    siblings
-        .iter()
-        .map(|validator_use| ValidatorNameCandidate {
-            field_name: validator_field_name(validator_use),
-            variant_name: validator_variant_name(validator_use),
-        })
-        .collect()
-}
-
-fn validate_name_candidate(
+fn register_validator_names(
+    namespace: &mut super::generated_api::GeneratedApiNamespace,
     validator_use: &ParsedValidatorUse,
-    known_field_names: &[Ident],
-    candidates: &[ValidatorNameCandidate],
 ) -> Result<()> {
     let field_name = validator_field_name(validator_use);
     let variant_name = validator_variant_name(validator_use);
 
-    if validator_use.label.is_none() && reserved_validator_name(&field_name) {
+    if validator_use.label.is_none() && reserved_error_api_name(&field_name) {
         return Err(Error::new(
             validator_use
                 .label_span()
@@ -123,48 +104,30 @@ fn validate_name_candidate(
         ));
     }
 
-    if known_field_names.iter().any(|known| *known == field_name) {
-        return Err(Error::new(
-            validator_use
-                .label_span()
-                .unwrap_or(validator_use.source_span),
-            format!(
-                "validator label `{field_name}` conflicts with a generated field name; use a different label"
-            ),
-        ));
-    }
+    let field_ident = generated_ident(validator_use, &field_name);
+    namespace.register_ident(
+        &field_ident,
+        GeneratedApiNameKind::ValidatorGetter,
+        |existing| validator_collision_message(validator_use, &field_name, &variant_name, existing),
+    )?;
 
-    let collisions = candidates
-        .iter()
-        .filter(|candidate| {
-            candidate.field_name == field_name || candidate.variant_name == variant_name
-        })
-        .count();
-    if collisions > 1 {
-        return Err(name_collision_error(
-            validator_use,
-            &field_name,
-            &variant_name,
-        ));
-    }
+    let variant_ident = generated_ident(validator_use, &variant_name);
+    namespace.register_ident(
+        &variant_ident,
+        GeneratedApiNameKind::ValidatorVariant,
+        |existing| validator_collision_message(validator_use, &field_name, &variant_name, existing),
+    )?;
 
     Ok(())
 }
 
-fn validate_label(validator_use: &ParsedValidatorUse) -> Result<()> {
+fn validate_reserved_label(validator_use: &ParsedValidatorUse) -> Result<()> {
     let Some(label) = validator_use.label.as_ref() else {
         return Ok(());
     };
     let label_text = label.to_string();
 
-    if !is_lower_snake_ident(&label_text) {
-        return Err(Error::new(
-            label.span(),
-            format!("validator label `{label_text}` must be a lower-snake identifier"),
-        ));
-    }
-
-    if reserved_validator_name(&label_text) {
+    if reserved_error_api_name(&label_text) {
         return Err(Error::new(
             label.span(),
             format!(
@@ -176,30 +139,35 @@ fn validate_label(validator_use: &ParsedValidatorUse) -> Result<()> {
     Ok(())
 }
 
-fn name_collision_error(
+fn validator_collision_message(
     validator_use: &ParsedValidatorUse,
     field_name: &str,
     variant_name: &str,
-) -> Error {
-    let span = validator_use
-        .label_span()
-        .unwrap_or(validator_use.source_span);
-    if validator_use.label.is_some() {
-        return Error::new(
-            span,
-            format!(
-                "validator label `{field_name}` collides with another validator getter or `{variant_name}` enum variant in this field; use a unique label"
-            ),
+    existing: &RegisteredApiName,
+) -> String {
+    if existing.kind == GeneratedApiNameKind::ExistingField {
+        return format!(
+            "validator label `{field_name}` conflicts with a generated field name; use a different label"
         );
     }
 
-    Error::new(
-        span,
-        format!(
-            "validator `{}` generates duplicate getter `{field_name}` or `{variant_name}` enum variant in this field; add explicit validator labels such as `label_name = Validator`",
-            validator_use.validator.path_name()
-        ),
+    if validator_use.label.is_some() {
+        return format!(
+            "validator label `{field_name}` collides with another validator getter or `{variant_name}` enum variant in this field; use a unique label"
+        );
+    }
+
+    format!(
+        "validator `{}` generates duplicate getter `{field_name}` or `{variant_name}` enum variant in this field; add explicit validator labels such as `label_name = Validator`",
+        validator_use.validator.path_name()
     )
+}
+
+fn generated_ident(validator_use: &ParsedValidatorUse, name: &str) -> Ident {
+    match validator_use.label_span() {
+        Some(span) => format_ident!("{}", name, span = span),
+        None => format_ident!("{}", name, span = validator_use.source_span),
+    }
 }
 
 fn validator_field_name(validator_use: &ParsedValidatorUse) -> String {
@@ -222,35 +190,4 @@ fn validator_variant_name(validator_use: &ParsedValidatorUse) -> String {
                 .to_string()
                 .to_upper_camel_case()
         })
-}
-
-fn is_lower_snake_ident(label: &str) -> bool {
-    let mut previous_underscore = false;
-    for (index, ch) in label.chars().enumerate() {
-        let valid = if index == 0 {
-            ch.is_ascii_lowercase()
-        } else {
-            ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_'
-        };
-        if !valid {
-            return false;
-        }
-        if ch == '_' {
-            if previous_underscore {
-                return false;
-            }
-            previous_underscore = true;
-        } else {
-            previous_underscore = false;
-        }
-    }
-
-    !label.ends_with('_')
-}
-
-fn reserved_validator_name(name: &str) -> bool {
-    matches!(
-        name,
-        "inner" | "all" | "element_errors" | "is_empty" | "has_errors"
-    )
 }

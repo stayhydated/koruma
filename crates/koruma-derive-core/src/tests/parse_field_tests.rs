@@ -4,7 +4,7 @@
 
 use crate::{
     CapturePolicy, FieldInfo, ParsedFieldSpec, ParsedValidatorUse, SetterDefault, ValidatorAttr,
-    ValidatorFieldRole, parse_field, parse_struct_options, parse_validator_struct,
+    ValidatorFieldRole, ValidatorLabel, parse_field, parse_struct_options, parse_validator_struct,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -48,7 +48,10 @@ fn normalize_tokens<T: ToTokens>(value: &T) -> String {
     value.to_token_stream().to_string()
 }
 
-fn snapshot_validator(label: Option<&syn::Ident>, validator: &ValidatorAttr) -> SnapshotValidator {
+fn snapshot_validator(
+    label: Option<&ValidatorLabel>,
+    validator: &ValidatorAttr,
+) -> SnapshotValidator {
     SnapshotValidator {
         label: label.map(ToString::to_string),
         name: validator.name().to_string(),
@@ -214,6 +217,34 @@ fn test_parse_field_direct_labeled_validators() {
     };
 
     assert_debug_snapshot!(parse_field_snapshot(&field));
+}
+
+#[test]
+fn test_parse_field_rejects_non_lower_snake_validator_label() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(BadLabel = RangeValidation::min(0))]
+        pub value: i32
+    };
+
+    let err = parse_field(&field, 0).expect_err("invalid labels should fail during parsing");
+    assert!(
+        err.to_string().contains("lower-snake"),
+        "expected lower-snake label error, got: {err}"
+    );
+}
+
+#[test]
+fn test_parse_field_rejects_invalid_element_validator_label() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(each(bad__label = RangeValidation::min(0)))]
+        pub values: Vec<i32>
+    };
+
+    let err = parse_field(&field, 0).expect_err("invalid each labels should fail during parsing");
+    assert!(
+        err.to_string().contains("lower-snake"),
+        "expected lower-snake label error, got: {err}"
+    );
 }
 
 #[test]

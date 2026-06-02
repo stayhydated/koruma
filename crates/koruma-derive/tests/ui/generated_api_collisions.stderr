@@ -1,0 +1,31 @@
+error: validator label `other` conflicts with a generated field name; use a different label
+ --> tests/ui/generated_api_collisions.rs:5:14
+  |
+5 |     #[koruma(other = RequiredValidation)]
+  |              ^^^^^
+
+error: `element_errors` is reserved by generated Koruma error APIs; use a different validator label
+  --> tests/ui/generated_api_collisions.rs:12:14
+   |
+12 |     #[koruma(element_errors = RequiredValidation)]
+   |              ^^^^^^^^^^^^^^
+
+error: setter method name `build` is reserved by koruma
+  --> tests/ui/generated_api_collisions.rs:18:28
+   |
+18 |     #[koruma(setter(name = build))]
+   |                            ^^^^^
+
+error: generated optional setter method `maybe_min` collides with setter `maybe_min`
+  --> tests/ui/generated_api_collisions.rs:27:5
+   |
+27 |     min: Option<i32>,
+   |     ^^^
+
+error: generated required-state generic `__KorumaMinState` collides with a user generic
+  --> tests/ui/generated_api_collisions.rs:32:1
+   |
+32 | #[validator]
+   | ^^^^^^^^^^^^
+   |
+   = note: this error originates in the attribute macro `validator` (in Nightly builds, run with -Z macro-backtrace for more info)

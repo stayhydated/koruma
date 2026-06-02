@@ -7,6 +7,8 @@
 ## Key entry points
 
 - `crates/koruma/src/lib.rs`: re-exports, feature gating, and README docs via `include_str!`.
+- `koruma::__private`: hidden facade namespace for macro-generated runtime hooks such as
+  `BuildValidator` and `CaptureValueRef`.
 
 ## Dependency edges
 
@@ -35,4 +37,5 @@
 ## Extension points
 
 - Add new derives in `koruma-derive` and re-export them behind a feature gate here.
-- Add new core traits in `koruma-core`, then re-export them from this crate for downstream use.
+- Add new core traits in `koruma-core`, then re-export user-facing traits from this crate for
+  downstream use. Keep macro-only runtime hooks under `__private`.

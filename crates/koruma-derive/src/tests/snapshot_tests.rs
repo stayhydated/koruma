@@ -485,7 +485,7 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("::renamed_koruma::Validate<Option<WrappedValue>,>"));
     assert!(compact.contains("::validate(&validator,&self.wrapped)"));
-    assert!(compact.contains("CaptureValueRef::capture_value_ref("));
+    assert!(compact.contains("__private::CaptureValueRef::capture_value_ref("));
     assert!(compact.contains("PlainValidation::min(1)"));
     assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
     assert!(compact.contains("self.inner.as_ref()"));
@@ -557,7 +557,7 @@ fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("required_validation:Option<RequiredValidation<Option<String>>>"));
     assert!(compact.contains(
-        "CaptureValueRef::capture_value_ref(RequiredValidation::__koruma_builder(),&self.value,)"
+        "__private::CaptureValueRef::capture_value_ref(RequiredValidation::__koruma_builder(),&self.value,)"
     ));
     assert!(compact.contains("::renamed_koruma::Validate<Option<String>,>"));
     assert!(compact.contains("::validate(&validator,&self.value)"));
@@ -578,7 +578,7 @@ fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
     assert!(compact.contains("RequiredValidation::<Option<i32>>"));
     assert!(
         compact.contains(
-            "CaptureValueRef::capture_value_ref(RequiredValidation::<Option<i32>>::__koruma_builder(),item,)"
+            "__private::CaptureValueRef::capture_value_ref(RequiredValidation::<Option<i32>>::__koruma_builder(),item,)"
         )
     );
     assert!(
@@ -878,11 +878,15 @@ fn test_validator_expansion_respects_setter_metadata() {
         pub struct SetterMetadataValidation<T> {
             #[koruma(setter(into, name = label))]
             pub title: String,
+            #[koruma(setter(into))]
+            pub optional_title: Option<String>,
             #[koruma(setter(required))]
             pub required_limit: Option<usize>,
             pub optional_limit: Option<usize>,
             #[koruma(setter(default = 10))]
             pub defaulted: usize,
+            #[koruma(setter(default = Some(3)))]
+            pub defaulted_optional: Option<usize>,
             #[koruma(value)]
             actual: Option<T>,
         }
@@ -893,11 +897,15 @@ fn test_validator_expansion_respects_setter_metadata() {
     let compact = compact_ws(&rendered);
 
     assert!(compact.contains("pubfnlabel(value:impl::std::convert::Into<String>,)"));
+    assert!(compact.contains("pubfnoptional_title(value:impl::std::convert::Into<String>,)"));
+    assert!(compact.contains("pubfnmaybe_optional_title(value:::std::option::Option<String>,)"));
     assert!(compact.contains("pubfnrequired_limit(value:Option<usize>,)"));
     assert!(!compact.contains("maybe_required_limit"));
-    assert!(compact.contains("pubfnoptional_limit(value:Option<usize>,)"));
+    assert!(compact.contains("pubfnoptional_limit(value:usize,)"));
     assert!(compact.contains("pubfnmaybe_optional_limit(value:::std::option::Option<usize>,)"));
     assert!(compact.contains("pubfndefaulted(value:usize,)"));
+    assert!(compact.contains("pubfndefaulted_optional(value:Option<usize>,)"));
+    assert!(!compact.contains("maybe_defaulted_optional"));
     assert_snapshot!(rendered);
 }
 

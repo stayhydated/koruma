@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 282
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -136,8 +135,8 @@ impl OrderWithLenCheck {
         };
         let mut has_error = false;
         let __field_value = &self.scores;
-        let validator = ::renamed_koruma::BuildValidator::build_validator(
-            ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                 VecLenValidation::min(1).max(10),
                 __field_value,
             ),
@@ -153,8 +152,8 @@ impl OrderWithLenCheck {
                 range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::BuildValidator::build_validator(
-                ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                     RangeValidation::<i32>::min(0).max(100),
                     __item_value,
                 ),

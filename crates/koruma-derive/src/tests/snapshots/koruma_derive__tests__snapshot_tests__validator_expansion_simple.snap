@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 34
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -104,7 +103,7 @@ impl NumberRangeValidationBuilder<
         }
     }
 }
-impl ::renamed_koruma::BuildValidator
+impl ::renamed_koruma::__private::BuildValidator
 for NumberRangeValidationBuilder<
     number_range_validation_builder::Set,
     number_range_validation_builder::Set,
@@ -119,7 +118,7 @@ impl<
     __KorumaMinState,
     __KorumaMaxState,
     __KorumaActualState,
-> ::renamed_koruma::CaptureValueRef<i32>
+> ::renamed_koruma::__private::CaptureValueRef<i32>
 for NumberRangeValidationBuilder<__KorumaMinState, __KorumaMaxState, __KorumaActualState>
 where
     i32: ::std::clone::Clone,
@@ -127,7 +126,7 @@ where
         __KorumaMinState,
         __KorumaMaxState,
         number_range_validation_builder::Set,
-    >: ::renamed_koruma::BuildValidator,
+    >: ::renamed_koruma::__private::BuildValidator,
 {
     type Output = NumberRangeValidationBuilder<
         __KorumaMinState,

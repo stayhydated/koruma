@@ -1,7 +1,7 @@
 // Test case demonstrating the issue with external macro wrapping
 // This simulates what happens when gpui_form wraps a non-optional field
 
-use koruma::{Koruma, Validate};
+use koruma::Koruma;
 
 use super::validators::{NumberRangeValidation, RequiredValidation};
 

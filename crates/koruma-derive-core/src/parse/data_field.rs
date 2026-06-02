@@ -1,3 +1,5 @@
+use std::fmt;
+
 use syn::{
     Error, Field, Ident, Index, Member, Path, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
@@ -6,6 +8,7 @@ use syn::{
 };
 use syn_cfg_attr::AttributeHelpers;
 
+use super::keywords::KorumaKeyword;
 use super::validator_chain::ValidatorAttr;
 use super::{KorumaAttrContext, SpannedValue, context_error};
 
@@ -31,12 +34,45 @@ impl FieldModifier {
     }
 }
 
+/// Validated lower-snake label for a field or element validator.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatorLabel {
+    ident: Ident,
+}
+
+impl ValidatorLabel {
+    pub fn new(ident: Ident) -> Result<Self> {
+        let label_text = ident.to_string();
+        if !is_lower_snake_ident(&label_text) {
+            return Err(Error::new(
+                ident.span(),
+                format!("validator label `{label_text}` must be a lower-snake identifier"),
+            ));
+        }
+
+        Ok(Self { ident })
+    }
+
+    pub fn ident(&self) -> &Ident {
+        &self.ident
+    }
+
+    pub fn span(&self) -> proc_macro2::Span {
+        self.ident.span()
+    }
+}
+
+impl fmt::Display for ValidatorLabel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.ident, f)
+    }
+}
+
 /// A parsed validator occurrence inside a data-field `#[koruma(...)]` attribute.
 #[derive(Clone, Debug)]
 pub struct ParsedValidatorUse {
     pub validator: ValidatorAttr,
-    pub label: Option<Ident>,
-    pub label_source: Option<SpannedValue<Ident>>,
+    pub label: Option<ValidatorLabel>,
     pub target: ValidatorTargetSelector,
     pub source_span: proc_macro2::Span,
 }
@@ -47,37 +83,65 @@ impl ParsedValidatorUse {
         Self {
             validator,
             label: None,
-            label_source: None,
             target: ValidatorTargetSelector::Default,
             source_span,
         }
     }
 
     pub fn new(
-        label: Option<Ident>,
+        label: Option<ValidatorLabel>,
         target: ValidatorTargetSelector,
         validator: ValidatorAttr,
     ) -> Self {
         let source_span = validator.validator.span();
-        let label_source = label
-            .as_ref()
-            .map(|label| SpannedValue::new(label.clone(), label.span()));
         Self {
             validator,
             label,
-            label_source,
             target,
             source_span,
         }
     }
 
-    pub fn labeled(label: Ident, validator: ValidatorAttr) -> Self {
-        Self::new(Some(label), ValidatorTargetSelector::Default, validator)
+    pub fn try_new(
+        label: Option<Ident>,
+        target: ValidatorTargetSelector,
+        validator: ValidatorAttr,
+    ) -> Result<Self> {
+        let label = label.map(ValidatorLabel::new).transpose()?;
+        Ok(Self::new(label, target, validator))
+    }
+
+    pub fn labeled(label: Ident, validator: ValidatorAttr) -> Result<Self> {
+        Self::try_new(Some(label), ValidatorTargetSelector::Default, validator)
     }
 
     pub fn label_span(&self) -> Option<proc_macro2::Span> {
-        self.label_source.as_ref().map(|label| label.span)
+        self.label.as_ref().map(ValidatorLabel::span)
     }
+}
+
+fn is_lower_snake_ident(label: &str) -> bool {
+    let mut previous_underscore = false;
+    for (index, ch) in label.chars().enumerate() {
+        let valid = if index == 0 {
+            ch.is_ascii_lowercase()
+        } else {
+            ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_'
+        };
+        if !valid {
+            return false;
+        }
+        if ch == '_' {
+            if previous_underscore {
+                return false;
+            }
+            previous_underscore = true;
+        } else {
+            previous_underscore = false;
+        }
+    }
+
+    !label.ends_with('_')
 }
 
 /// Explicit validation target selection for optional fields or optional `each(...)` elements.
@@ -305,18 +369,18 @@ fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>>
 
     let fork = input.fork();
     let ident: Ident = fork.parse()?;
-    if matches!(ident.to_string().as_str(), "value" | "try_new") {
+    if matches!(
+        KorumaKeyword::from_ident(&ident),
+        Some(KorumaKeyword::Value | KorumaKeyword::TryNew | KorumaKeyword::Setter)
+    ) {
         return Err(context_error(&ident, KorumaAttrContext::DataField));
     }
 
-    let kind = if ident == "skip" {
-        FieldModifierKind::Skip
-    } else if ident == "nested" {
-        FieldModifierKind::Nested
-    } else if ident == "newtype" {
-        FieldModifierKind::Newtype
-    } else {
-        return Ok(None);
+    let kind = match KorumaKeyword::from_ident(&ident) {
+        Some(KorumaKeyword::Skip) => FieldModifierKind::Skip,
+        Some(KorumaKeyword::Nested) => FieldModifierKind::Nested,
+        Some(KorumaKeyword::Newtype) => FieldModifierKind::Newtype,
+        _ => return Ok(None),
     };
 
     if fork.peek(token::Paren) {
@@ -367,7 +431,7 @@ fn parse_validator_use(input: ParseStream) -> Result<ParsedValidatorUse> {
     };
 
     let (target, validator) = parse_targeted_validator(input)?;
-    Ok(ParsedValidatorUse::new(label, target, validator))
+    ParsedValidatorUse::try_new(label, target, validator)
 }
 
 fn parse_targeted_validator(
@@ -376,7 +440,10 @@ fn parse_targeted_validator(
     if input.peek(Ident) {
         let fork = input.fork();
         let marker: Ident = fork.parse()?;
-        if matches!(marker.to_string().as_str(), "full" | "unwrapped") {
+        if matches!(
+            KorumaKeyword::from_ident(&marker),
+            Some(KorumaKeyword::Full | KorumaKeyword::Unwrapped)
+        ) {
             if fork.peek(token::Paren) {
                 let marker = input.parse::<Ident>()?;
                 let content;
@@ -394,7 +461,10 @@ fn parse_targeted_validator(
                         format!("`{marker}(...)` accepts exactly one validator"),
                     ));
                 }
-                let target = if marker == "full" {
+                let target = if matches!(
+                    KorumaKeyword::from_ident(&marker),
+                    Some(KorumaKeyword::Full)
+                ) {
                     let span = marker.span();
                     ValidatorTargetSelector::Full {
                         marker: SpannedValue::new(marker, span),
@@ -432,8 +502,12 @@ fn try_parse_each(input: ParseStream) -> Result<Option<DataFieldKorumaItem>> {
 
     let fork = input.fork();
     let ident: Ident = fork.parse()?;
-    if ident != "each" || !fork.peek(token::Paren) {
-        if ident == "each" && !fork.peek(Token![::]) {
+    if !matches!(KorumaKeyword::from_ident(&ident), Some(KorumaKeyword::Each))
+        || !fork.peek(token::Paren)
+    {
+        if matches!(KorumaKeyword::from_ident(&ident), Some(KorumaKeyword::Each))
+            && !fork.peek(Token![::])
+        {
             return Err(Error::new(
                 ident.span(),
                 "`each` is only valid as `each(...)` in a derive data field `#[koruma(...)]` attribute",

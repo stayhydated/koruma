@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 128
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -82,8 +81,8 @@ impl GenericItem {
         };
         let mut has_error = false;
         let __field_value = &self.score;
-        let validator = ::renamed_koruma::BuildValidator::build_validator(
-            ::renamed_koruma::CaptureValueRef::capture_value_ref(
+        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                 GenericRangeValidation::<f64>::min(0.0).max(100.0),
                 __field_value,
             ),

@@ -91,6 +91,10 @@ pub struct PrefixValidation<T> {
 }
 ```
 
+For optional non-required configuration fields, `Option<T>` setters take `T` directly and wrap it
+in `Some(...)`. Use the generated `maybe_*` setter when you already have an `Option<T>`. Mark an
+`Option<T>` setter as `required` when `None` is a meaningful explicit configuration value.
+
 For validators that do not need to retain the failing input, use
 `#[koruma(value(capture = skip))]` on an `Option<T>` field. During derived validation, koruma leaves
 that field at `None` instead of cloning the input into the error value. If the validator still

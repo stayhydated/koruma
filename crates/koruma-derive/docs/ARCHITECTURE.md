@@ -42,12 +42,15 @@
   Field, element, and newtype validator docs, storage fields, getters, enum variants, and `all()`
   pushes are grouped through a `ValidatorGroupRenderPlan` so those generated surfaces stay in
   sync.
-- `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, field cardinality, typed `each(...)` collection classification, `ValidationTarget` decisions, generated-name decisions, and render-ready validation/error layout nodes. Validation operations encode required vs. optional field handling and required vs. optional element handling so renderers consume a single planned shape instead of recomputing those branches from raw field data.
+- `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, shared cardinality, typed `each(...)` collection classification, `ValidationTarget` decisions, generated-name decisions, and render-ready validation/error layout nodes. Validation operations encode required vs. optional field handling and required vs. optional element handling so renderers consume a single planned shape instead of recomputing those branches from raw field data.
 - Field error storage is derived from `FieldPlan::shape` through layout methods; `FieldPlan` does not cache a separate storage classification that can disagree with the shape.
-- `ValidationTarget`: models the four valid target shapes directly: full field, unwrapped field, full element, and unwrapped element. Each variant carries the raw and validation types needed for that target, and validation rendering derives borrow behavior from the variant instead of a separate access flag. Optional targets are unwrapped by default; `full(Validator::<_>)` selects the full optional field or element target explicitly, while bare validators and `unwrapped(Validator::<_>)` select the default unwrapped target.
+- `ValidationTarget`: models the four valid target shapes directly: full field, unwrapped field, full element, and unwrapped element. Each variant carries the raw and validation types plus explicit borrow behavior needed for that target, so validation rendering consumes planned access metadata instead of recomputing it from raw field data. Optional targets are unwrapped by default; `full(Validator::<_>)` selects the full optional field or element target explicitly, while bare validators and `unwrapped(Validator::<_>)` select the default unwrapped target.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
 - `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).
 - `expand/codegen.rs`: shared helpers for type resolution and argument transformations.
+- `expand/generated_api.rs`: owns generated API namespace registration for validator getter names,
+  enum variants, validator builder methods, optional `maybe_*` methods, and helper state generics
+  so collision policy is shared before rendering.
 - `expand/names.rs`: centralized construction of generated public names for error structs,
   validator reference enums, validator getter slots, enum variants, and tuple-field fallback
   identifiers. Validator labels provide explicit getter and enum variant names; unlabeled

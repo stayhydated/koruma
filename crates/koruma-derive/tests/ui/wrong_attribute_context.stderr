@@ -1,0 +1,17 @@
+error: `value` is not valid in a derive data field `#[koruma(...)]` attribute; expected `skip`, `nested`, `newtype`, validators, or `each(...)`
+ --> tests/ui/wrong_attribute_context.rs:5:14
+  |
+5 |     #[koruma(value)]
+  |              ^^^^^
+
+error: `setter` is not valid in a derive data field `#[koruma(...)]` attribute; expected `skip`, `nested`, `newtype`, validators, or `each(...)`
+ --> tests/ui/wrong_attribute_context.rs:7:14
+  |
+7 |     #[koruma(setter(required))]
+  |              ^^^^^^
+
+error: `try_new` is not valid in a derive data field `#[koruma(...)]` attribute; expected `skip`, `nested`, `newtype`, validators, or `each(...)`
+ --> tests/ui/wrong_attribute_context.rs:9:14
+  |
+9 |     #[koruma(try_new)]
+  |              ^^^^^^^

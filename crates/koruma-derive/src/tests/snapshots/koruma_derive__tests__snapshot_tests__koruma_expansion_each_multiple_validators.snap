@@ -1,6 +1,5 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 215
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -116,8 +115,8 @@ impl Order {
                 even_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::BuildValidator::build_validator(
-                ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                     RangeValidation::min(0).max(100),
                     __item_value,
                 ),
@@ -128,8 +127,8 @@ impl Order {
                 element_error.range_validation = Some(validator);
                 element_has_error = true;
             }
-            let validator = ::renamed_koruma::BuildValidator::build_validator(
-                ::renamed_koruma::CaptureValueRef::capture_value_ref(
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                     EvenValidation::__koruma_builder(),
                     __item_value,
                 ),

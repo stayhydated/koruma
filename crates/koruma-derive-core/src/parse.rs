@@ -7,6 +7,7 @@ use syn::{Error, Ident};
 
 mod data_field;
 mod derive_struct;
+mod keywords;
 #[cfg(feature = "internal-showcase")]
 mod showcase;
 mod validator_chain;
@@ -14,7 +15,7 @@ mod validator_struct;
 
 pub use data_field::{
     DataFieldKorumaAttr, DataFieldKorumaItem, ElementValidationSpec, FieldInfo, FieldModifier,
-    FieldModifierKind, FieldValidationSpec, ParsedFieldSpec, ParsedValidatorUse,
+    FieldModifierKind, FieldValidationSpec, ParsedFieldSpec, ParsedValidatorUse, ValidatorLabel,
     ValidatorTargetSelector, parse_field,
 };
 pub use derive_struct::{

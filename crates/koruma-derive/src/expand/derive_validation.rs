@@ -1,8 +1,8 @@
 use crate::expand::derive_shared::validator_builder_expr;
 use crate::expand::plan::{
     FieldPlan, PlannedElementValidation, PlannedNestedValidation, PlannedNewtypeValidation,
-    PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, ValidationPlan,
-    ValidationTarget,
+    PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, TargetBorrow,
+    ValidationPlan, ValidationTarget,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -26,11 +26,9 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     let validator_ty = &validator.validator_type;
     let validation_target_ty = check.target.validate_type();
     let target_expr = check.target_expr;
-    let target_ref = match check.target {
-        ValidationTarget::FieldFull(_) => quote! { &#target_expr },
-        ValidationTarget::FieldUnwrapped(_)
-        | ValidationTarget::ElementFull(_)
-        | ValidationTarget::ElementUnwrapped(_) => quote! { #target_expr },
+    let target_ref = match check.target.borrow() {
+        TargetBorrow::Reference => quote! { &#target_expr },
+        TargetBorrow::AlreadyBorrowed => quote! { #target_expr },
     };
     let error_assignment = match check.sink {
         ErrorSink::FieldValidator { field, slot } => {
@@ -48,8 +46,8 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     };
 
     quote! {
-        let validator = #koruma::BuildValidator::build_validator(
-            #koruma::CaptureValueRef::capture_value_ref(
+        let validator = #koruma::__private::BuildValidator::build_validator(
+            #koruma::__private::CaptureValueRef::capture_value_ref(
                 #builder_expr,
                 #target_ref,
             )

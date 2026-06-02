@@ -8,6 +8,8 @@
 
 - `crates/koruma-derive-core/src/parse.rs`: shared parser context, public re-exports, and
   `SpannedValue<T>` source provenance helpers.
+- `crates/koruma-derive-core/src/parse/keywords.rs`: centralized Koruma attribute keywords and
+  reserved generated builder methods used by context diagnostics.
 - `crates/koruma-derive-core/src/parse/validator_chain.rs`: direct validator-chain grammar,
   type-argument parsing, and builder setter call collection.
 - `crates/koruma-derive-core/src/parse/data_field.rs`: derive data-field grammar for
@@ -26,7 +28,11 @@
 - `ValidatorAttr`: a single direct validator chain (path, setter calls, type inference flags, and setter access via `setter_calls()`). Setter call arguments are represented as `ValidatorSetterArg` nodes; today that enum preserves normal Rust expressions through `Expr`, leaving room for explicit non-expression argument kinds later.
 - `SpannedValue<T>`: a small wrapper used when semantic nodes need to carry the source token
   span that introduced a marker, label, selector, or option.
-- `ParsedValidatorUse`: a single validator occurrence on a data field. It carries the parsed validator, an optional label slot for label-aware naming, label source provenance, target selection, and the source span used for diagnostics.
+- `ValidatorLabel`: a validated lower-snake label with its source span, used for label-aware
+  generated names.
+- `ParsedValidatorUse`: a single validator occurrence on a data field. It carries the parsed
+  validator, an optional `ValidatorLabel`, target selection, and the source span used for
+  diagnostics.
 - `StructKorumaAttr` / `StructKorumaItem`: struct-level `#[koruma(...)]` grammar for `try_new`, `newtype`, and `newtype(try_from)`.
 - `DataFieldKorumaAttr` / `DataFieldKorumaItem`: data-field `#[koruma(...)]` grammar for modifiers, direct field validators, optional `label = Validator` labels, explicit `full(...)`/`unwrapped(...)` target selectors, and `each(...)` element validators without a raw token bucket.
 - `ValidatorStructSpec` / `ValidatorFieldSpec`: normalized validator-struct metadata for

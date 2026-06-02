@@ -113,8 +113,8 @@ impl OptionalScores {
             };
             let mut element_has_error = false;
             if let Some(__item_value) = item {
-                let validator = ::renamed_koruma::BuildValidator::build_validator(
-                    ::renamed_koruma::CaptureValueRef::capture_value_ref(
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
                         GenericRangeValidation::<i32>::min(0).max(10),
                         __item_value,
                     ),

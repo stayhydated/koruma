@@ -121,6 +121,10 @@ pub struct PrefixValidation<T> {
 }
 ```
 
+For optional non-required configuration fields, `Option<T>` setters take `T` directly and wrap it
+in `Some(...)`. Use the generated `maybe_*` setter when you already have an `Option<T>`. Mark an
+`Option<T>` setter as `required` when `None` is a meaningful explicit configuration value.
+
 If a validator does not need to retain the failing input, you can opt out of capture on an
 `Option<T>` value field:
 

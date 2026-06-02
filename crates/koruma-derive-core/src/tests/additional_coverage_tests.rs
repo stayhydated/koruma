@@ -142,11 +142,7 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
         panic!("expected field validator");
     };
     assert_eq!(
-        field_spec
-            .validator
-            .label_source
-            .as_ref()
-            .map(|label| label.value.to_string()),
+        field_spec.validator.label.as_ref().map(ToString::to_string),
         Some("required".to_owned())
     );
     assert!(matches!(
@@ -160,9 +156,9 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
     assert_eq!(element_spec.marker_source.value.to_string(), "each");
     assert_eq!(
         element_spec.validators[0]
-            .label_source
+            .label
             .as_ref()
-            .map(|label| label.value.to_string()),
+            .map(ToString::to_string),
         Some("item_required".to_owned())
     );
     assert!(matches!(

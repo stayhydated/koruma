@@ -1,17 +1,14 @@
 //! Unit tests for helper functions in the expand module.
 
 use crate::expand::{
-    codegen::{
-        EachIterationKind, FieldCardinality, ValidationSite, classify_each_collection,
-        helper_generics_for_usages,
-    },
+    codegen::{Cardinality, ValidationSite, classify_each_collection, helper_generics_for_usages},
     effective_validation_type,
     plan::{
         ErrorStorage, PlannedElementValidation, PlannedErrorDefault, PlannedErrorGetter,
         PlannedErrorIsEmpty, PlannedField, PlannedFieldErrorKind, PlannedMainErrorStorage,
         PlannedRegularAll, PlannedRegularFieldErrorDoc, PlannedRegularFieldErrorIsEmpty,
         PlannedRegularFieldErrorStorage, PlannedValidationOperation, PlannedValidatorTypeArg,
-        StructPlan, TargetCardinality, ValidationPlan, ValidationTarget,
+        StructPlan, TargetBorrow, ValidationPlan, ValidationTarget,
     },
 };
 use koruma_derive_core::parse_validator_struct;
@@ -229,18 +226,13 @@ fn test_each_collection_accepts_arrays_groups_and_parentheses() {
     let array_ty: syn::Type = syn::parse_quote!([i32; 3]);
     let array_collection =
         classify_each_collection(&array_ty).expect("arrays should support each(...)");
-    assert_eq!(array_collection.iteration, EachIterationKind::Array);
-    assert_eq!(
-        array_collection.outer_cardinality,
-        FieldCardinality::Required
-    );
+    assert_eq!(array_collection.outer_cardinality, Cardinality::Required);
     let array_element_ty = array_collection.element_ty;
     assert_eq!(quote!(#array_element_ty).to_string(), "i32");
 
     let paren_ty: syn::Type = syn::parse_quote!((Vec<i32>));
     let paren_collection =
         classify_each_collection(&paren_ty).expect("parenthesized Vec should support each(...)");
-    assert_eq!(paren_collection.iteration, EachIterationKind::VecLike);
     let paren_element_ty = paren_collection.element_ty;
     assert_eq!(quote!(#paren_element_ty).to_string(), "i32");
 
@@ -250,10 +242,7 @@ fn test_each_collection_accepts_arrays_groups_and_parentheses() {
     });
     let group_collection =
         classify_each_collection(&group_ty).expect("grouped Vec should support each(...)");
-    assert_eq!(group_collection.iteration, EachIterationKind::VecLike);
-    let group_collection_ty = group_collection.collection_ty;
     let group_element_ty = group_collection.element_ty;
-    assert_eq!(quote!(#group_collection_ty).to_string(), "Vec < i32 >");
     assert_eq!(quote!(#group_element_ty).to_string(), "i32");
 }
 
@@ -262,26 +251,18 @@ fn test_each_collection_classifier_covers_supported_collection_shapes() {
     let optional_std_vec: syn::Type = syn::parse_quote!(Option<std::vec::Vec<Option<i32>>>);
     let collection =
         classify_each_collection(&optional_std_vec).expect("std::vec::Vec should classify");
-    assert_eq!(collection.iteration, EachIterationKind::VecLike);
-    assert_eq!(collection.outer_cardinality, FieldCardinality::Optional);
-    assert_eq!(collection.element_cardinality, FieldCardinality::Optional);
-    let collection_ty = collection.collection_ty;
+    assert_eq!(collection.outer_cardinality, Cardinality::Optional);
+    assert_eq!(collection.element_cardinality, Cardinality::Optional);
     let element_ty = collection.element_ty;
-    assert_eq!(
-        quote!(#collection_ty).to_string(),
-        "std :: vec :: Vec < Option < i32 > >"
-    );
     assert_eq!(quote!(#element_ty).to_string(), "Option < i32 >");
 
     let alloc_vec: syn::Type = syn::parse_quote!(alloc::vec::Vec<String>);
     let collection = classify_each_collection(&alloc_vec).expect("alloc::vec::Vec should classify");
-    assert_eq!(collection.iteration, EachIterationKind::VecLike);
     let element_ty = collection.element_ty;
     assert_eq!(quote!(#element_ty).to_string(), "String");
 
     let slice: syn::Type = syn::parse_quote!(&[u8]);
     let collection = classify_each_collection(&slice).expect("borrowed slice should classify");
-    assert_eq!(collection.iteration, EachIterationKind::Slice);
     let element_ty = collection.element_ty;
     assert_eq!(quote!(#element_ty).to_string(), "u8");
 
@@ -582,7 +563,8 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     let ValidationTarget::FieldFull(full_field_target) = full_field_target else {
         panic!("expected full field target");
     };
-    assert_eq!(full_field_target.cardinality, TargetCardinality::Optional);
+    assert_eq!(full_field_target.cardinality, Cardinality::Optional);
+    assert_eq!(full_field_target.borrow, TargetBorrow::Reference);
     let full_field_raw_type = &full_field_target.ty;
     let full_field_validate_type = &full_field_target.ty;
     assert_eq!(
@@ -598,6 +580,7 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     let ValidationTarget::FieldUnwrapped(unwrapped_field_target) = unwrapped_field_target else {
         panic!("expected unwrapped field target");
     };
+    assert_eq!(unwrapped_field_target.borrow, TargetBorrow::AlreadyBorrowed);
     let unwrapped_field_raw_type = &unwrapped_field_target.raw_type;
     let unwrapped_field_validate_type = &unwrapped_field_target.validate_type;
     assert_eq!(
@@ -610,7 +593,8 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     let ValidationTarget::ElementFull(full_element_target) = full_element_target else {
         panic!("expected full element target");
     };
-    assert_eq!(full_element_target.cardinality, TargetCardinality::Optional);
+    assert_eq!(full_element_target.cardinality, Cardinality::Optional);
+    assert_eq!(full_element_target.borrow, TargetBorrow::AlreadyBorrowed);
     let full_element_raw_type = &full_element_target.ty;
     let full_element_validate_type = &full_element_target.ty;
     assert_eq!(
@@ -627,6 +611,10 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
     else {
         panic!("expected unwrapped element target");
     };
+    assert_eq!(
+        unwrapped_element_target.borrow,
+        TargetBorrow::AlreadyBorrowed
+    );
     let unwrapped_element_raw_type = &unwrapped_element_target.raw_type;
     let unwrapped_element_validate_type = &unwrapped_element_target.validate_type;
     assert_eq!(
@@ -645,18 +633,6 @@ fn test_validation_plan_resolves_targets_names_and_type_args() {
         .element_type()
         .expect("expected planned element type");
     assert_eq!(quote!(#tags_element_type).to_string(), "Option < String >");
-    let PlannedField::Regular(tags_plan) = &plan.fields[1].shape else {
-        panic!("expected regular tags field");
-    };
-    let tags_collection_type = tags_plan
-        .collection_type
-        .as_ref()
-        .expect("expected classified collection type");
-    assert_eq!(
-        quote!(#tags_collection_type).to_string(),
-        "Vec < Option < String > >"
-    );
-    assert_eq!(tags_plan.each_iteration, Some(EachIterationKind::VecLike));
     assert_eq!(plan.fields[0].full_field_validators().count(), 1);
     assert_eq!(plan.fields[0].unwrapped_field_validators().count(), 1);
     assert_eq!(plan.fields[1].full_element_validators().count(), 1);
@@ -1023,7 +999,7 @@ fn test_validation_plan_uses_shape_specific_field_data() {
     let PlannedField::Nested(nested) = &plan.fields[0].shape else {
         panic!("expected nested planned field");
     };
-    assert_eq!(nested.cardinality, FieldCardinality::Required);
+    assert_eq!(nested.cardinality, Cardinality::Required);
     let nested_inner_type = &nested.inner_type;
     assert_eq!(quote!(#nested_inner_type).to_string(), "Child");
     assert!(plan.fields[0].field_validators().is_empty());
@@ -1031,14 +1007,14 @@ fn test_validation_plan_uses_shape_specific_field_data() {
     assert!(matches!(
         plan.fields[0].error_storage(),
         ErrorStorage::Nested {
-            cardinality: FieldCardinality::Required
+            cardinality: Cardinality::Required
         }
     ));
 
     let PlannedField::Newtype(newtype) = &plan.fields[1].shape else {
         panic!("expected newtype planned field");
     };
-    assert_eq!(newtype.cardinality, FieldCardinality::Optional);
+    assert_eq!(newtype.cardinality, Cardinality::Optional);
     let newtype_inner_type = &newtype.inner_type;
     assert_eq!(quote!(#newtype_inner_type).to_string(), "Wrapped");
     assert_eq!(newtype.field_validators.len(), 1);
@@ -1046,7 +1022,7 @@ fn test_validation_plan_uses_shape_specific_field_data() {
     assert!(matches!(
         plan.fields[1].error_storage(),
         ErrorStorage::NewtypeWithValidators {
-            cardinality: FieldCardinality::Optional
+            cardinality: Cardinality::Optional
         }
     ));
 }

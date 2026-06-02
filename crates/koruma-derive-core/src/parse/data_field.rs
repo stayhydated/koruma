@@ -833,12 +833,11 @@ enum NormalizedFieldSpec {
 }
 
 fn normalize_field_items(
-    field: &Field,
+    _field: &Field,
     items: Vec<DataFieldKorumaItem>,
 ) -> Result<NormalizedFieldSpec> {
     let mut all_field_validators = Vec::new();
     let mut all_element_validators = Vec::new();
-    let mut modifier_kind: Option<FieldModifierKind> = None;
     let mut mode_modifier: Option<FieldModifier> = None;
     let mut first_field_validator_path: Option<Path> = None;
     let mut first_element_marker: Option<SpannedValue<Ident>> = None;
@@ -846,13 +845,12 @@ fn normalize_field_items(
     for item in items {
         match item {
             DataFieldKorumaItem::Modifier(modifier) => {
-                if modifier_kind.is_some() {
+                if mode_modifier.is_some() {
                     return Err(Error::new(
                         modifier.span(),
                         "duplicate or conflicting field modifier in `#[koruma(...)]`",
                     ));
                 }
-                modifier_kind = Some(modifier.kind);
                 mode_modifier = Some(modifier);
             },
             DataFieldKorumaItem::FieldValidation(spec) => {
@@ -873,88 +871,66 @@ fn normalize_field_items(
         }
     }
 
-    if modifier_kind == Some(FieldModifierKind::Skip)
-        && (!all_field_validators.is_empty() || !all_element_validators.is_empty())
-    {
-        return Err(Error::new(
-            first_field_validator_path
-                .as_ref()
-                .map(Spanned::span)
-                .or_else(|| first_element_marker.as_ref().map(|marker| marker.span))
-                .unwrap_or_else(|| {
-                    mode_modifier
-                        .as_ref()
-                        .map(FieldModifier::span)
-                        .unwrap_or_else(|| field.span())
-                }),
-            "fields marked `#[koruma(skip)]` cannot also use validators or `each(...)`",
-        ));
-    }
+    let has_field_validators = !all_field_validators.is_empty();
+    let has_element_validators = !all_element_validators.is_empty();
 
-    if modifier_kind == Some(FieldModifierKind::Skip) {
-        let modifier = mode_modifier.expect("skip modifier should carry its source ident");
-        let marker = SpannedValue::new(modifier.ident, modifier.source.span);
-        return Ok(NormalizedFieldSpec::Skipped { marker });
-    }
+    let conflict_span = |fallback: proc_macro2::Span| {
+        first_field_validator_path
+            .as_ref()
+            .map(Spanned::span)
+            .or_else(|| first_element_marker.as_ref().map(|marker| marker.span))
+            .unwrap_or(fallback)
+    };
 
-    if modifier_kind == Some(FieldModifierKind::Nested)
-        && (!all_field_validators.is_empty() || !all_element_validators.is_empty())
-    {
-        return Err(Error::new(
-            first_field_validator_path
-                .as_ref()
-                .map(Spanned::span)
-                .or_else(|| first_element_marker.as_ref().map(|marker| marker.span))
-                .unwrap_or_else(|| {
-                    mode_modifier
-                        .as_ref()
-                        .map(FieldModifier::span)
-                        .unwrap_or_else(|| field.span())
-                }),
-            "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`",
-        ));
-    }
+    let spec = match mode_modifier {
+        Some(modifier) => match modifier.kind {
+            FieldModifierKind::Skip => {
+                if has_field_validators || has_element_validators {
+                    return Err(Error::new(
+                        conflict_span(modifier.span()),
+                        "fields marked `#[koruma(skip)]` cannot also use validators or `each(...)`",
+                    ));
+                }
 
-    if modifier_kind == Some(FieldModifierKind::Newtype) && !all_element_validators.is_empty() {
-        return Err(Error::new(
-            first_element_marker
-                .as_ref()
-                .map(|marker| marker.span)
-                .unwrap_or_else(|| {
-                    mode_modifier
-                        .as_ref()
-                        .map(FieldModifier::span)
-                        .unwrap_or_else(|| field.span())
-                }),
-            "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; validate elements before wrapping or attach validators to the inner type",
-        ));
-    }
+                let marker = SpannedValue::new(modifier.ident, modifier.source.span);
+                return Ok(NormalizedFieldSpec::Skipped { marker });
+            },
+            FieldModifierKind::Nested => {
+                if has_field_validators || has_element_validators {
+                    return Err(Error::new(
+                        conflict_span(modifier.span()),
+                        "fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`",
+                    ));
+                }
 
-    // Must have at least one validator or modifier
-    if modifier_kind.is_none()
-        && all_field_validators.is_empty()
-        && all_element_validators.is_empty()
-    {
-        return Ok(NormalizedFieldSpec::Unannotated);
-    }
+                ParsedFieldSpec::Nested {
+                    marker: modifier.ident,
+                }
+            },
+            FieldModifierKind::Newtype => {
+                if has_element_validators {
+                    return Err(Error::new(
+                        first_element_marker
+                            .as_ref()
+                            .map(|marker| marker.span)
+                            .unwrap_or_else(|| modifier.span()),
+                        "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; validate elements before wrapping or attach validators to the inner type",
+                    ));
+                }
 
-    let spec = match modifier_kind {
-        Some(FieldModifierKind::Nested) => ParsedFieldSpec::Nested {
-            marker: mode_modifier
-                .expect("nested modifier should carry its source ident")
-                .ident,
+                ParsedFieldSpec::Newtype {
+                    marker: modifier.ident,
+                    field_validators: all_field_validators,
+                }
+            },
         },
-        Some(FieldModifierKind::Newtype) => ParsedFieldSpec::Newtype {
-            marker: mode_modifier
-                .expect("newtype modifier should carry its source ident")
-                .ident,
-            field_validators: all_field_validators,
+        None if !has_field_validators && !has_element_validators => {
+            return Ok(NormalizedFieldSpec::Unannotated);
         },
         None => ParsedFieldSpec::Regular {
             field_validators: all_field_validators,
             element_validators: all_element_validators,
         },
-        Some(FieldModifierKind::Skip) => unreachable!("skip returned before spec construction"),
     };
 
     Ok(NormalizedFieldSpec::Participating(spec))

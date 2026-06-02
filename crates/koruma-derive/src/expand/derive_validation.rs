@@ -1,8 +1,8 @@
 use crate::expand::derive_shared::validator_builder_expr;
 use crate::expand::plan::{
-    FieldPlan, PlannedElementValidation, PlannedNestedValidation, PlannedNewtypeValidation,
-    PlannedRegularValidation, PlannedValidationOperation, PlannedValidator, TargetBorrow,
-    ValidationPlan, ValidationRenderPlan, ValidationTarget,
+    FieldPlan, PlannedElementValidation, PlannedFieldBinding, PlannedNestedValidation,
+    PlannedNewtypeValidation, PlannedRegularValidation, PlannedValidationOperation,
+    PlannedValidator, TargetBorrow, ValidationPlan, ValidationRenderPlan, ValidationTarget,
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
@@ -241,45 +241,66 @@ fn render_regular_required_validation(
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_member = &field_plan.source.member;
-    let field_validators = &operation.field_validators;
-    let full_type_checks = render_field_validator_checks(
-        field_plan,
-        &field_validators.full_type_validators,
-        quote! { self.#field_member },
-        koruma,
-    );
-    let unwrapped_checks = render_field_validator_checks(
-        field_plan,
-        &field_validators.unwrapped_validators,
-        quote! { __field_value },
-        koruma,
-    );
     let element_validation = operation
         .element_validators
         .as_ref()
         .map(|element| render_element_validation(field_plan, element, koruma))
         .unwrap_or_else(|| quote! {});
 
-    match (
-        field_validators.has_full_type_validators(),
-        field_validators.has_unwrapped_validators(),
-    ) {
-        (true, true) => quote! {
+    match operation.field_validators.binding() {
+        PlannedFieldBinding::FullAndUnwrapped {
+            full_type_validators,
+            unwrapped_validators,
+        } => {
+            let full_type_checks = render_field_validator_checks(
+                field_plan,
+                &full_type_validators,
+                quote! { self.#field_member },
+                koruma,
+            );
+            let unwrapped_checks = render_field_validator_checks(
+                field_plan,
+                &unwrapped_validators,
+                quote! { __field_value },
+                koruma,
+            );
+            quote! {
             #(#full_type_checks)*
             let __field_value = &self.#field_member;
             #(#unwrapped_checks)*
             #element_validation
+            }
         },
-        (true, false) => quote! {
+        PlannedFieldBinding::FullOnly {
+            full_type_validators,
+        } => {
+            let full_type_checks = render_field_validator_checks(
+                field_plan,
+                &full_type_validators,
+                quote! { self.#field_member },
+                koruma,
+            );
+            quote! {
             #(#full_type_checks)*
             #element_validation
+            }
         },
-        (false, true) => quote! {
+        PlannedFieldBinding::UnwrappedOnly {
+            unwrapped_validators,
+        } => {
+            let unwrapped_checks = render_field_validator_checks(
+                field_plan,
+                &unwrapped_validators,
+                quote! { __field_value },
+                koruma,
+            );
+            quote! {
             let __field_value = &self.#field_member;
             #(#unwrapped_checks)*
             #element_validation
+            }
         },
-        (false, false) => element_validation,
+        PlannedFieldBinding::NoValidators => element_validation,
     }
 }
 
@@ -289,47 +310,68 @@ fn render_regular_optional_validation(
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_member = &field_plan.source.member;
-    let field_validators = &operation.field_validators;
-    let full_type_checks = render_field_validator_checks(
-        field_plan,
-        &field_validators.full_type_validators,
-        quote! { self.#field_member },
-        koruma,
-    );
-    let unwrapped_checks = render_field_validator_checks(
-        field_plan,
-        &field_validators.unwrapped_validators,
-        quote! { __field_value },
-        koruma,
-    );
     let element_validation = operation
         .element_validators
         .as_ref()
         .map(|element| render_element_validation(field_plan, element, koruma))
         .unwrap_or_else(|| quote! {});
 
-    match (
-        field_validators.has_full_type_validators(),
-        field_validators.has_unwrapped_validators(),
-    ) {
-        (true, true) => quote! {
+    match operation.field_validators.binding() {
+        PlannedFieldBinding::FullAndUnwrapped {
+            full_type_validators,
+            unwrapped_validators,
+        } => {
+            let full_type_checks = render_field_validator_checks(
+                field_plan,
+                &full_type_validators,
+                quote! { self.#field_member },
+                koruma,
+            );
+            let unwrapped_checks = render_field_validator_checks(
+                field_plan,
+                &unwrapped_validators,
+                quote! { __field_value },
+                koruma,
+            );
+            quote! {
             #(#full_type_checks)*
             if let Some(ref __field_value) = self.#field_member {
                 #(#unwrapped_checks)*
             }
             #element_validation
+            }
         },
-        (true, false) => quote! {
+        PlannedFieldBinding::FullOnly {
+            full_type_validators,
+        } => {
+            let full_type_checks = render_field_validator_checks(
+                field_plan,
+                &full_type_validators,
+                quote! { self.#field_member },
+                koruma,
+            );
+            quote! {
             #(#full_type_checks)*
             #element_validation
+            }
         },
-        (false, true) => quote! {
+        PlannedFieldBinding::UnwrappedOnly {
+            unwrapped_validators,
+        } => {
+            let unwrapped_checks = render_field_validator_checks(
+                field_plan,
+                &unwrapped_validators,
+                quote! { __field_value },
+                koruma,
+            );
+            quote! {
             if let Some(ref __field_value) = self.#field_member {
                 #(#unwrapped_checks)*
             }
             #element_validation
+            }
         },
-        (false, false) => element_validation,
+        PlannedFieldBinding::NoValidators => element_validation,
     }
 }
 

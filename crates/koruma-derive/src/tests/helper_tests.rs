@@ -1129,39 +1129,42 @@ fn test_validation_plan_exposes_field_error_render_plan() {
     let layout = plan.field_error_render_plan();
     assert_eq!(layout.fields.len(), 6);
 
-    assert_eq!(layout.fields[0].field.name.to_string(), "raw");
+    assert_eq!(layout.fields[0].field().name.to_string(), "raw");
     assert_eq!(
-        layout.fields[0].shape,
+        layout.fields[0].shape(),
         FieldErrorShape::NewtypeInnerRequired
     );
 
-    assert_eq!(layout.fields[1].field.name.to_string(), "wrapper");
+    assert_eq!(layout.fields[1].field().name.to_string(), "wrapper");
     assert_eq!(
-        layout.fields[1].shape,
+        layout.fields[1].shape(),
         FieldErrorShape::NewtypeInnerOptional
     );
 
-    assert_eq!(layout.fields[2].field.name.to_string(), "checked");
+    assert_eq!(layout.fields[2].field().name.to_string(), "checked");
     assert_eq!(
-        layout.fields[2].shape,
+        layout.fields[2].shape(),
         FieldErrorShape::NewtypeWithValidatorsRequired
     );
-    assert_eq!(layout.fields[2].field_validators.len(), 1);
+    assert_eq!(layout.fields[2].field_validators().len(), 1);
 
-    assert_eq!(layout.fields[3].field.name.to_string(), "name");
-    assert_eq!(layout.fields[3].shape, FieldErrorShape::RegularFieldOnly);
+    assert_eq!(layout.fields[3].field().name.to_string(), "name");
+    assert_eq!(layout.fields[3].shape(), FieldErrorShape::RegularFieldOnly);
 
-    assert_eq!(layout.fields[4].field.name.to_string(), "tags");
-    assert_eq!(layout.fields[4].shape, FieldErrorShape::RegularElementOnly);
-    assert_eq!(layout.fields[4].element_validators.len(), 1);
-
-    assert_eq!(layout.fields[5].field.name.to_string(), "values");
+    assert_eq!(layout.fields[4].field().name.to_string(), "tags");
     assert_eq!(
-        layout.fields[5].shape,
+        layout.fields[4].shape(),
+        FieldErrorShape::RegularElementOnly
+    );
+    assert_eq!(layout.fields[4].element_validators().len(), 1);
+
+    assert_eq!(layout.fields[5].field().name.to_string(), "values");
+    assert_eq!(
+        layout.fields[5].shape(),
         FieldErrorShape::RegularFieldAndElement
     );
-    assert_eq!(layout.fields[5].field_validators.len(), 1);
-    assert_eq!(layout.fields[5].element_validators.len(), 1);
+    assert_eq!(layout.fields[5].field_validators().len(), 1);
+    assert_eq!(layout.fields[5].element_validators().len(), 1);
 }
 
 #[test]

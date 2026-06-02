@@ -12,7 +12,7 @@ use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned};
 use super::codegen::{Cardinality, EachCollection, classify_each_collection};
 use super::collect_field_infos;
 use super::error_bag::ErrorBag;
-use super::names::{GeneratedDeriveApi, GeneratedNames, validate_validator_uses, validator_names};
+use super::names::{GeneratedDeriveApi, GeneratedNames, ValidatorNamePlan, plan_validator_names};
 
 #[derive(Clone, Debug)]
 pub(crate) struct ValidationPlan {
@@ -315,11 +315,34 @@ pub(crate) struct FieldErrorRenderPlan<'a> {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct PlannedFieldError<'a> {
-    pub field: &'a FieldPlan,
-    pub shape: FieldErrorShape,
-    pub field_validators: Vec<&'a PlannedValidator>,
-    pub element_validators: Vec<&'a PlannedValidator>,
+pub(crate) enum PlannedFieldError<'a> {
+    NewtypeInnerRequired {
+        field: &'a FieldPlan,
+    },
+    NewtypeInnerOptional {
+        field: &'a FieldPlan,
+    },
+    NewtypeWithValidatorsRequired {
+        field: &'a FieldPlan,
+        field_validators: Vec<&'a PlannedValidator>,
+    },
+    NewtypeWithValidatorsOptional {
+        field: &'a FieldPlan,
+        field_validators: Vec<&'a PlannedValidator>,
+    },
+    RegularFieldOnly {
+        field: &'a FieldPlan,
+        field_validators: Vec<&'a PlannedValidator>,
+    },
+    RegularElementOnly {
+        field: &'a FieldPlan,
+        element_validators: Vec<&'a PlannedValidator>,
+    },
+    RegularFieldAndElement {
+        field: &'a FieldPlan,
+        field_validators: Vec<&'a PlannedValidator>,
+        element_validators: Vec<&'a PlannedValidator>,
+    },
 }
 
 impl<'a> PlannedFieldError<'a> {
@@ -328,44 +351,105 @@ impl<'a> PlannedFieldError<'a> {
             return None;
         }
 
-        let field_validators: Vec<_> = field.field_validators().iter().collect();
-        let element_validators: Vec<_> = field.element_validators().iter().collect();
-        let shape = match field.error_storage() {
+        match field.error_storage() {
             ErrorStorage::NewtypeInner {
                 cardinality: Cardinality::Required,
-            } => FieldErrorShape::NewtypeInnerRequired,
+            } => Some(Self::NewtypeInnerRequired { field }),
             ErrorStorage::NewtypeInner {
                 cardinality: Cardinality::Optional,
-            } => FieldErrorShape::NewtypeInnerOptional,
+            } => Some(Self::NewtypeInnerOptional { field }),
             ErrorStorage::NewtypeWithValidators {
                 cardinality: Cardinality::Required,
-            } => FieldErrorShape::NewtypeWithValidatorsRequired,
+            } => Some(Self::NewtypeWithValidatorsRequired {
+                field,
+                field_validators: field.field_validators().iter().collect(),
+            }),
             ErrorStorage::NewtypeWithValidators {
                 cardinality: Cardinality::Optional,
-            } => FieldErrorShape::NewtypeWithValidatorsOptional,
-            ErrorStorage::RegularEmpty => FieldErrorShape::RegularEmpty,
-            ErrorStorage::RegularFieldValidators => FieldErrorShape::RegularFieldOnly,
-            ErrorStorage::RegularElementValidators => FieldErrorShape::RegularElementOnly,
-            ErrorStorage::RegularFieldAndElementValidators => {
-                FieldErrorShape::RegularFieldAndElement
+            } => Some(Self::NewtypeWithValidatorsOptional {
+                field,
+                field_validators: field.field_validators().iter().collect(),
+            }),
+            ErrorStorage::RegularEmpty => None,
+            ErrorStorage::RegularFieldValidators => Some(Self::RegularFieldOnly {
+                field,
+                field_validators: field.field_validators().iter().collect(),
+            }),
+            ErrorStorage::RegularElementValidators => Some(Self::RegularElementOnly {
+                field,
+                element_validators: field.element_validators().iter().collect(),
+            }),
+            ErrorStorage::RegularFieldAndElementValidators => Some(Self::RegularFieldAndElement {
+                field,
+                field_validators: field.field_validators().iter().collect(),
+                element_validators: field.element_validators().iter().collect(),
+            }),
+            ErrorStorage::Nested { .. } => None,
+        }
+    }
+
+    pub(crate) fn field(&self) -> &'a FieldPlan {
+        match self {
+            Self::NewtypeInnerRequired { field }
+            | Self::NewtypeInnerOptional { field }
+            | Self::NewtypeWithValidatorsRequired { field, .. }
+            | Self::NewtypeWithValidatorsOptional { field, .. }
+            | Self::RegularFieldOnly { field, .. }
+            | Self::RegularElementOnly { field, .. }
+            | Self::RegularFieldAndElement { field, .. } => field,
+        }
+    }
+
+    pub(crate) fn shape(&self) -> FieldErrorShape {
+        match self {
+            Self::NewtypeInnerRequired { .. } => FieldErrorShape::NewtypeInnerRequired,
+            Self::NewtypeInnerOptional { .. } => FieldErrorShape::NewtypeInnerOptional,
+            Self::NewtypeWithValidatorsRequired { .. } => {
+                FieldErrorShape::NewtypeWithValidatorsRequired
             },
-            ErrorStorage::Nested { .. } => return None,
-        };
-
-        Some(Self {
-            field,
-            shape,
-            field_validators,
-            element_validators,
-        })
+            Self::NewtypeWithValidatorsOptional { .. } => {
+                FieldErrorShape::NewtypeWithValidatorsOptional
+            },
+            Self::RegularFieldOnly { .. } => FieldErrorShape::RegularFieldOnly,
+            Self::RegularElementOnly { .. } => FieldErrorShape::RegularElementOnly,
+            Self::RegularFieldAndElement { .. } => FieldErrorShape::RegularFieldAndElement,
+        }
     }
 
-    pub(crate) fn has_field_validators(&self) -> bool {
-        self.shape.has_field_validators()
+    pub(crate) fn field_validators(&self) -> &[&'a PlannedValidator] {
+        match self {
+            Self::NewtypeWithValidatorsRequired {
+                field_validators, ..
+            }
+            | Self::NewtypeWithValidatorsOptional {
+                field_validators, ..
+            }
+            | Self::RegularFieldOnly {
+                field_validators, ..
+            }
+            | Self::RegularFieldAndElement {
+                field_validators, ..
+            } => field_validators,
+            Self::NewtypeInnerRequired { .. }
+            | Self::NewtypeInnerOptional { .. }
+            | Self::RegularElementOnly { .. } => &[],
+        }
     }
 
-    pub(crate) fn has_element_validators(&self) -> bool {
-        self.shape.has_element_validators()
+    pub(crate) fn element_validators(&self) -> &[&'a PlannedValidator] {
+        match self {
+            Self::RegularElementOnly {
+                element_validators, ..
+            }
+            | Self::RegularFieldAndElement {
+                element_validators, ..
+            } => element_validators,
+            Self::NewtypeInnerRequired { .. }
+            | Self::NewtypeInnerOptional { .. }
+            | Self::NewtypeWithValidatorsRequired { .. }
+            | Self::NewtypeWithValidatorsOptional { .. }
+            | Self::RegularFieldOnly { .. } => &[],
+        }
     }
 }
 
@@ -375,7 +459,6 @@ pub(crate) enum FieldErrorShape {
     NewtypeInnerOptional,
     NewtypeWithValidatorsRequired,
     NewtypeWithValidatorsOptional,
-    RegularEmpty,
     RegularFieldOnly,
     RegularElementOnly,
     RegularFieldAndElement,
@@ -476,6 +559,40 @@ impl<'a> PlannedFieldValidatorGroups<'a> {
     pub(crate) fn has_any(&self) -> bool {
         self.has_full_type_validators() || self.has_unwrapped_validators()
     }
+
+    pub(crate) fn binding(&self) -> PlannedFieldBinding<'a> {
+        match (
+            self.full_type_validators.is_empty(),
+            self.unwrapped_validators.is_empty(),
+        ) {
+            (true, true) => PlannedFieldBinding::NoValidators,
+            (false, true) => PlannedFieldBinding::FullOnly {
+                full_type_validators: self.full_type_validators.clone(),
+            },
+            (true, false) => PlannedFieldBinding::UnwrappedOnly {
+                unwrapped_validators: self.unwrapped_validators.clone(),
+            },
+            (false, false) => PlannedFieldBinding::FullAndUnwrapped {
+                full_type_validators: self.full_type_validators.clone(),
+                unwrapped_validators: self.unwrapped_validators.clone(),
+            },
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum PlannedFieldBinding<'a> {
+    NoValidators,
+    FullOnly {
+        full_type_validators: Vec<&'a PlannedValidator>,
+    },
+    UnwrappedOnly {
+        unwrapped_validators: Vec<&'a PlannedValidator>,
+    },
+    FullAndUnwrapped {
+        full_type_validators: Vec<&'a PlannedValidator>,
+        unwrapped_validators: Vec<&'a PlannedValidator>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -554,20 +671,25 @@ impl FieldPlan {
             None
         };
 
-        errors.push_result(validate_validator_uses(
-            field.field_validators(),
-            known_field_names,
-        ));
-        errors.push_result(validate_validator_uses(
-            field.element_validators(),
-            known_field_names,
-        ));
+        let field_name_plans = errors
+            .push_result(plan_validator_names(
+                field.field_validators(),
+                known_field_names,
+            ))
+            .unwrap_or_default();
+        let element_name_plans = errors
+            .push_result(plan_validator_names(
+                field.element_validators(),
+                known_field_names,
+            ))
+            .unwrap_or_default();
         errors.finish()?;
 
         let target_context = FieldTargetContext::new(field.ty(), each_collection.as_ref());
 
         let field_validators = plan_validators(
             field.field_validators(),
+            &field_name_plans,
             field,
             ValidationTargetContext::Field(target_context.field()),
             known_field_names,
@@ -576,6 +698,7 @@ impl FieldPlan {
         let element_validators = if let Some(collection) = target_context.collection() {
             plan_validators(
                 field.element_validators(),
+                &element_name_plans,
                 field,
                 ValidationTargetContext::Element(collection.element()),
                 known_field_names,
@@ -825,6 +948,7 @@ impl CollectionShape {
 pub(crate) struct PlannedValidator {
     pub attr: ValidatorAttr,
     pub label: Option<ValidatorLabel>,
+    pub doc_name: String,
     pub target: ValidationTarget,
     pub resolved_type_arg: PlannedValidatorTypeArg,
     pub validator_type: PlannedValidatorType,
@@ -836,6 +960,7 @@ pub(crate) struct PlannedValidator {
 
 fn plan_validators(
     validators: &[ParsedValidatorUse],
+    name_plans: &[ValidatorNamePlan],
     field: &FieldInfo,
     target_context: ValidationTargetContext<'_>,
     known_field_names: &[Ident],
@@ -843,9 +968,17 @@ fn plan_validators(
     let mut planned = Vec::new();
     let mut errors = ErrorBag::new();
 
-    for validator in validators {
+    if validators.len() != name_plans.len() {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "internal error: validator name plan count did not match validator count",
+        ));
+    }
+
+    for (validator, name_plan) in validators.iter().zip(name_plans) {
         if let Some(validator) = errors.push_result(PlannedValidator::build(
             validator,
+            name_plan,
             field,
             target_context,
             known_field_names,
@@ -860,14 +993,12 @@ fn plan_validators(
 
 impl PlannedValidator {
     pub(crate) fn doc_name(&self) -> String {
-        self.label
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_else(|| self.attr.path_name())
+        self.doc_name.clone()
     }
 
     fn build(
         validator_use: &ParsedValidatorUse,
+        name_plan: &ValidatorNamePlan,
         field: &FieldInfo,
         target_context: ValidationTargetContext<'_>,
         known_field_names: &[Ident],
@@ -894,23 +1025,18 @@ impl PlannedValidator {
         let builder_type =
             PlannedValidatorType::new(validator.path().clone(), builder_type_arg.as_ref());
         let setter_calls = planned_setter_calls(validator.setter_calls(), known_field_names)?;
-        let siblings = if target_context.is_element() {
-            field.element_validators()
-        } else {
-            field.field_validators()
-        };
-        let generated_names = validator_names(validator_use, siblings, known_field_names)?;
 
         Ok(Self {
             attr: validator.clone(),
             label: validator_use.label().cloned(),
+            doc_name: name_plan.doc_name.clone(),
             target,
             resolved_type_arg,
             validator_type: validator_type.clone(),
             builder_type,
             setter_calls,
-            field_ident: generated_names.field_ident,
-            variant_ident: generated_names.variant_ident,
+            field_ident: name_plan.field_ident.clone(),
+            variant_ident: name_plan.variant_ident.clone(),
         })
     }
 }

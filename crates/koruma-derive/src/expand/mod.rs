@@ -39,8 +39,6 @@ use self::error_bag::ErrorBag;
 pub(crate) use codegen::classify_each_collection;
 #[cfg(test)]
 pub(crate) use codegen::effective_validation_type;
-#[allow(unused_imports)]
-pub(crate) use names::validator_names;
 
 // Re-export parsing types from koruma-derive-core
 #[cfg(feature = "internal-showcase")]

@@ -1,5 +1,5 @@
 use crate::expand::codegen::{helper_generics_for_usages, ref_enum_generics_for_usages};
-use crate::expand::plan::{PlannedValidator, ValidationPlan};
+use crate::expand::plan::{FieldErrorShape, PlannedValidator, ValidationPlan};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Generics, Ident, Type};
@@ -7,6 +7,54 @@ use syn::{Generics, Ident, Type};
 struct ValidatorGroupRenderPlan<'a> {
     enum_name: &'a Ident,
     validators: &'a [&'a PlannedValidator],
+}
+
+#[derive(Clone, Copy)]
+enum FieldErrorRenderShape {
+    NewtypeInner {
+        optional: bool,
+        deref: bool,
+    },
+    NewtypeWithValidators {
+        optional: bool,
+    },
+    Regular {
+        has_field_validators: bool,
+        has_element_validators: bool,
+    },
+}
+
+impl From<FieldErrorShape> for FieldErrorRenderShape {
+    fn from(shape: FieldErrorShape) -> Self {
+        match shape {
+            FieldErrorShape::NewtypeInnerRequired => Self::NewtypeInner {
+                optional: false,
+                deref: true,
+            },
+            FieldErrorShape::NewtypeInnerOptional => Self::NewtypeInner {
+                optional: true,
+                deref: false,
+            },
+            FieldErrorShape::NewtypeWithValidatorsRequired => {
+                Self::NewtypeWithValidators { optional: false }
+            },
+            FieldErrorShape::NewtypeWithValidatorsOptional => {
+                Self::NewtypeWithValidators { optional: true }
+            },
+            FieldErrorShape::RegularFieldOnly => Self::Regular {
+                has_field_validators: true,
+                has_element_validators: false,
+            },
+            FieldErrorShape::RegularElementOnly => Self::Regular {
+                has_field_validators: false,
+                has_element_validators: true,
+            },
+            FieldErrorShape::RegularFieldAndElement => Self::Regular {
+                has_field_validators: true,
+                has_element_validators: true,
+            },
+        }
+    }
 }
 
 impl<'a> ValidatorGroupRenderPlan<'a> {
@@ -108,95 +156,103 @@ pub(crate) fn render_field_error_structs(
         .fields
         .iter()
         .map(|field_error| {
-            let field_plan = field_error.field;
+            let field_plan = field_error.field();
             let field_name = &field_plan.name;
             let field_error_struct_name = &field_plan.generated_names.field_error_struct;
+            let render_shape = FieldErrorRenderShape::from(field_error.shape());
 
-            if field_error.shape.is_newtype() {
-                let has_field_validators = field_error.has_field_validators();
+            match render_shape {
+                FieldErrorRenderShape::NewtypeInner {
+                    optional: field_is_optional,
+                    deref,
+                } => {
                 let inner_ty = field_plan.inner_type();
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
 
-                if !has_field_validators {
-                    let Some(field_is_optional) = field_error.shape.newtype_inner_optional() else {
-                        return quote! {};
-                    };
-                    let deref = field_error.shape.newtype_inner_deref();
-                    let helper_usages: Vec<Type> =
-                        vec![syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }];
-                    let helper_generics = helper_generics_for_usages(generics, &helper_usages);
-                    let helper_definition = &helper_generics.definition;
-                    let helper_impl_generics = &helper_generics.impl_generics;
-                    let helper_ty_generics = &helper_generics.ty_generics;
-                    let helper_where_clause = &helper_generics.where_clause;
-                    let inner_field_ty = if field_is_optional {
-                        quote! { Option<<#inner_ty as #koruma::ValidateExt>::Error> }
-                    } else {
-                        quote! { <#inner_ty as #koruma::ValidateExt>::Error }
-                    };
-                    let inner_getter = if field_is_optional {
-                        quote! {
-                            #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`, if any.")]
-                            pub fn inner(&self) -> Option<&<#inner_ty as #koruma::ValidateExt>::Error> {
-                                self.inner.as_ref()
-                            }
+                let helper_usages: Vec<Type> =
+                    vec![syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error }];
+                let helper_generics = helper_generics_for_usages(generics, &helper_usages);
+                let helper_definition = &helper_generics.definition;
+                let helper_impl_generics = &helper_generics.impl_generics;
+                let helper_ty_generics = &helper_generics.ty_generics;
+                let helper_where_clause = &helper_generics.where_clause;
+                let inner_field_ty = if field_is_optional {
+                    quote! { Option<<#inner_ty as #koruma::ValidateExt>::Error> }
+                } else {
+                    quote! { <#inner_ty as #koruma::ValidateExt>::Error }
+                };
+                let inner_getter = if field_is_optional {
+                    quote! {
+                        #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`, if any.")]
+                        pub fn inner(&self) -> Option<&<#inner_ty as #koruma::ValidateExt>::Error> {
+                            self.inner.as_ref()
                         }
-                    } else {
-                        quote! {
-                            #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
-                            pub fn inner(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
+                    }
+                } else {
+                    quote! {
+                        #[doc = concat!("Returns the inner validation error for `", #field_name_str, "`.")]
+                        pub fn inner(&self) -> &<#inner_ty as #koruma::ValidateExt>::Error {
+                            &self.inner
+                        }
+                    }
+                };
+                let is_empty_check = if field_is_optional {
+                    quote! {
+                        self.inner.as_ref().map_or(true, |inner| inner.is_empty())
+                    }
+                } else {
+                    quote! { self.inner.is_empty() }
+                };
+                let deref_impl = if !deref {
+                    quote! {}
+                } else {
+                    quote! {
+                        impl #helper_impl_generics std::ops::Deref for #field_error_struct_name #helper_ty_generics #helper_where_clause {
+                            type Target = <#inner_ty as #koruma::ValidateExt>::Error;
+
+                            fn deref(&self) -> &Self::Target {
                                 &self.inner
                             }
                         }
-                    };
-                    let is_empty_check = if field_is_optional {
-                        quote! {
-                            self.inner.as_ref().map_or(true, |inner| inner.is_empty())
-                        }
-                    } else {
-                        quote! { self.inner.is_empty() }
-                    };
-                    let deref_impl = if !deref {
-                        quote! {}
-                    } else {
-                        quote! {
-                            impl #helper_impl_generics std::ops::Deref for #field_error_struct_name #helper_ty_generics #helper_where_clause {
-                                type Target = <#inner_ty as #koruma::ValidateExt>::Error;
+                    }
+                };
 
-                                fn deref(&self) -> &Self::Target {
-                                    &self.inner
-                                }
-                            }
-                        }
-                    };
+                quote! {
+                    #[doc = concat!("Validation errors for the `", #field_name_str, "` newtype field of [`", #struct_name_str, "`].")]
+                    #[derive(Debug, Default)]
+                    pub struct #field_error_struct_name #helper_definition {
+                        inner: #inner_field_ty,
+                    }
 
-                    return quote! {
-                        #[doc = concat!("Validation errors for the `", #field_name_str, "` newtype field of [`", #struct_name_str, "`].")]
-                        #[derive(Debug, Default)]
-                        pub struct #field_error_struct_name #helper_definition {
-                            inner: #inner_field_ty,
+                    impl #helper_impl_generics #field_error_struct_name #helper_ty_generics #helper_where_clause {
+                        #inner_getter
+
+                        pub fn is_empty(&self) -> bool {
+                            #is_empty_check
                         }
 
-                        impl #helper_impl_generics #field_error_struct_name #helper_ty_generics #helper_where_clause {
-                            #inner_getter
-
-                            pub fn is_empty(&self) -> bool {
-                                #is_empty_check
-                            }
-
-                            pub fn has_errors(&self) -> bool {
-                                !self.is_empty()
-                            }
+                        pub fn has_errors(&self) -> bool {
+                            !self.is_empty()
                         }
+                    }
 
-                        #deref_impl
-                    };
+                    #deref_impl
                 }
+            },
+
+                FieldErrorRenderShape::NewtypeWithValidators {
+                    optional: field_is_optional,
+                } => {
+                let inner_ty = field_plan.inner_type();
+                let field_name_str = field_name.to_string();
+                let struct_name_str = struct_name.to_string();
 
                 let enum_name = &field_plan.generated_names.field_validator_ref_enum;
-                let field_group =
-                    ValidatorGroupRenderPlan::new(enum_name, &field_error.field_validators);
+                let field_group = ValidatorGroupRenderPlan::new(
+                    enum_name,
+                    field_error.field_validators(),
+                );
                 let validators_list = field_group.validator_names_list();
                 let mut helper_usages = field_group.validator_types();
                 helper_usages
@@ -206,9 +262,6 @@ pub(crate) fn render_field_error_structs(
                 let helper_impl_generics = &helper_generics.impl_generics;
                 let helper_ty_generics = &helper_generics.ty_generics;
                 let helper_where_clause = &helper_generics.where_clause;
-                let Some(field_is_optional) = field_error.shape.newtype_inner_optional() else {
-                    return quote! {};
-                };
 
                 let field_validator_fields = field_group.storage_fields();
                 let field_validator_getters = field_group.getters();
@@ -263,7 +316,7 @@ pub(crate) fn render_field_error_structs(
                     quote! { self.inner.is_empty() }
                 };
 
-                return quote! {
+                quote! {
                     #[doc = concat!("Validators for the `", #field_name_str, "` field of [`", #struct_name_str, "`]: [`", #validators_list, "`] (plus inner validation).")]
                     #[derive(Clone, Copy, Debug)]
                     #[allow(dead_code)]
@@ -302,17 +355,17 @@ pub(crate) fn render_field_error_structs(
                             !self.is_empty()
                         }
                     }
-                };
-            }
+                }
+            },
 
-            if field_error.shape.is_newtype() {
-                return quote! {};
-            }
-            let has_field_validators = field_error.has_field_validators();
-            let has_element_validators = field_error.has_element_validators();
+                FieldErrorRenderShape::Regular {
+                    has_field_validators,
+                    has_element_validators,
+                } => {
 
             let enum_name = &field_plan.generated_names.field_validator_ref_enum;
-            let field_group = ValidatorGroupRenderPlan::new(enum_name, &field_error.field_validators);
+            let field_group =
+                ValidatorGroupRenderPlan::new(enum_name, field_error.field_validators());
             let field_validator_fields = field_group.storage_fields();
             let field_validator_getters = field_group.getters();
             let field_is_empty_checks = field_group.is_empty_checks();
@@ -320,15 +373,15 @@ pub(crate) fn render_field_error_structs(
             let element_error_struct_name = &field_plan.generated_names.element_error_struct;
             let element_enum_name = &field_plan.generated_names.element_validator_ref_enum;
             let element_group =
-                ValidatorGroupRenderPlan::new(element_enum_name, &field_error.element_validators);
+                ValidatorGroupRenderPlan::new(element_enum_name, field_error.element_validators());
             let element_validator_usages = element_group.validator_types();
-            let element_helper_generics = has_element_validators
-                .then(|| helper_generics_for_usages(generics, &element_validator_usages));
-            let element_error_path = element_helper_generics
-                .as_ref()
-                .map(|helper| helper.type_path(element_error_struct_name));
+            let element_helper = has_element_validators.then(|| {
+                let helper = helper_generics_for_usages(generics, &element_validator_usages);
+                let error_path = helper.type_path(element_error_struct_name);
+                (helper, error_path)
+            });
             let mut field_error_usages = field_validator_usages.clone();
-            if let Some(element_error_path) = &element_error_path {
+            if let Some((_, element_error_path)) = &element_helper {
                 field_error_usages.push(syn::parse_quote! { Vec<(usize, #element_error_path)> });
             }
             let field_error_helper_generics =
@@ -338,10 +391,7 @@ pub(crate) fn render_field_error_structs(
             let field_error_ty_generics = &field_error_helper_generics.ty_generics;
             let field_error_where_clause = &field_error_helper_generics.where_clause;
 
-            let element_error_struct = if has_element_validators {
-                let Some(element_helper_generics) = element_helper_generics.as_ref() else {
-                    return quote! {};
-                };
+            let element_error_struct = if let Some((element_helper_generics, _)) = &element_helper {
                 let element_definition = &element_helper_generics.definition;
                 let element_impl_generics = &element_helper_generics.impl_generics;
                 let element_ty_generics = &element_helper_generics.ty_generics;
@@ -400,10 +450,7 @@ pub(crate) fn render_field_error_structs(
                 quote! {}
             };
 
-            let element_errors_getter = if has_element_validators {
-                let Some(element_error_path) = element_error_path.as_ref() else {
-                    return quote! {};
-                };
+            let element_errors_getter = if let Some((_, element_error_path)) = &element_helper {
                 let field_name_str = field_name.to_string();
                 let struct_name_str = struct_name.to_string();
                 quote! {
@@ -491,25 +538,23 @@ pub(crate) fn render_field_error_structs(
                 }
             };
 
-            let struct_fields = if has_field_validators && has_element_validators {
-                let Some(element_error_path) = element_error_path.as_ref() else {
-                    return quote! {};
-                };
-                quote! {
-                    #(#field_validator_fields,)*
-                    element_errors: Vec<(usize, #element_error_path)>
-                }
-            } else if has_element_validators {
-                let Some(element_error_path) = element_error_path.as_ref() else {
-                    return quote! {};
-                };
-                quote! {
-                    element_errors: Vec<(usize, #element_error_path)>
-                }
-            } else {
-                quote! {
-                    #(#field_validator_fields),*
-                }
+            let struct_fields = match (has_field_validators, &element_helper) {
+                (true, Some((_, element_error_path))) => {
+                    quote! {
+                        #(#field_validator_fields,)*
+                        element_errors: Vec<(usize, #element_error_path)>
+                    }
+                },
+                (false, Some((_, element_error_path))) => {
+                    quote! {
+                        element_errors: Vec<(usize, #element_error_path)>
+                    }
+                },
+                (_, None) => {
+                    quote! {
+                        #(#field_validator_fields),*
+                    }
+                },
             };
 
             quote! {
@@ -538,6 +583,8 @@ pub(crate) fn render_field_error_structs(
                         !self.is_empty()
                     }
                 }
+            }
+                },
             }
         })
         .collect()

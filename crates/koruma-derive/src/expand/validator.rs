@@ -280,9 +280,12 @@ impl ValidatorBuilderPlan {
         let direct_methods = direct_method_plans(&slots);
         let capture_policy = validator_spec.value_spec().capture();
         let value_slot_index = validator_spec.value_index();
-        let value_slot = slots
-            .get(value_slot_index)
-            .expect("validator parser value index should correspond to a builder slot");
+        let Some(value_slot) = slots.get(value_slot_index) else {
+            return Err(syn::Error::new_spanned(
+                input,
+                "internal error: validator value field did not produce a builder slot",
+            ));
+        };
 
         if capture_policy == CapturePolicy::Skip && option_inner_type(value_slot.ty()).is_none() {
             return Err(syn::Error::new_spanned(
@@ -399,7 +402,7 @@ impl ValidatorBuilderPlan {
             .iter()
             .map(|method| {
                 (
-                    method.method.to_string(),
+                    method.setter.method.to_string(),
                     method.maybe_method.as_ref().map(ToString::to_string),
                 )
             })
@@ -413,23 +416,21 @@ impl ValidatorBuilderPlan {
 }
 
 struct DirectBuilderMethodPlan {
-    slot_index: usize,
-    method: Ident,
+    setter: OwnedSetterRenderPlan,
     maybe_method: Option<Ident>,
 }
 
 fn direct_method_plans(slots: &[BuilderSlot]) -> Vec<DirectBuilderMethodPlan> {
     slots
         .iter()
-        .enumerate()
-        .filter_map(|(slot_index, slot)| {
+        .filter_map(|slot| {
             let parts = slot.setter_render_parts()?;
             let maybe_method = parts
                 .maybe_inner_ty
                 .map(|_| format_ident!("maybe_{}", parts.method));
+            let setter = OwnedSetterRenderPlan::from(parts);
             Some(DirectBuilderMethodPlan {
-                slot_index,
-                method: parts.method.clone(),
+                setter,
                 maybe_method,
             })
         })
@@ -539,6 +540,26 @@ struct SetterRenderParts<'a> {
     signature: &'a SetterSignature,
     required: bool,
     maybe_inner_ty: Option<&'a Type>,
+}
+
+struct OwnedSetterRenderPlan {
+    ident: Ident,
+    method: Ident,
+    signature: SetterSignature,
+    required: bool,
+    maybe_inner_ty: Option<Type>,
+}
+
+impl From<SetterRenderParts<'_>> for OwnedSetterRenderPlan {
+    fn from(parts: SetterRenderParts<'_>) -> Self {
+        Self {
+            ident: parts.ident.clone(),
+            method: parts.method.clone(),
+            signature: parts.signature.clone(),
+            required: parts.required,
+            maybe_inner_ty: parts.maybe_inner_ty.cloned(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -1417,17 +1438,15 @@ fn render_direct_builder_method(
     plan: &ValidatorBuilderPlan,
     direct_method: &DirectBuilderMethodPlan,
 ) -> TokenStream2 {
-    let slot = plan.slots()[direct_method.slot_index]
-        .setter_render_parts()
-        .expect("direct method plan should reference a setter slot");
-    let method = &direct_method.method;
-    let arg_ty = setter_arg_ty(slot.signature);
+    let slot = &direct_method.setter;
+    let method = &slot.method;
+    let arg_ty = setter_arg_ty(&slot.signature);
     let module_name = &plan.module_name;
     let required_slots = plan.required_slots();
     let state_args: Vec<_> = required_slots
         .iter()
         .map(|required| {
-            if required.ident() == slot.ident {
+            if required.ident() == &slot.ident {
                 quote! { #module_name::Set }
             } else {
                 quote! { #module_name::Empty }
@@ -1445,9 +1464,10 @@ fn render_direct_builder_method(
     };
     let method_name_str = method.to_string();
 
-    let maybe_method = if let (Some(inner_ty), Some(maybe_method)) =
-        (slot.maybe_inner_ty, direct_method.maybe_method.as_ref())
-    {
+    let maybe_method = if let (Some(inner_ty), Some(maybe_method)) = (
+        slot.maybe_inner_ty.as_ref(),
+        direct_method.maybe_method.as_ref(),
+    ) {
         let maybe_method_name_str = maybe_method.to_string();
         Some(quote! {
             #[doc = concat!(

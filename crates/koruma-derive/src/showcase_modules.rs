@@ -26,8 +26,8 @@ impl Parse for ShowcaseModuleList {
 }
 
 #[cfg(feature = "internal-showcase")]
-fn parse_modules(input: proc_macro::TokenStream) -> Result<Vec<Ident>> {
-    let list: ShowcaseModuleList = syn::parse(input)?;
+fn parse_modules(input: TokenStream2) -> Result<Vec<Ident>> {
+    let list: ShowcaseModuleList = syn::parse2(input)?;
 
     if list.modules.is_empty() {
         return Err(Error::new(
@@ -107,11 +107,11 @@ fn expand_showcase_module_enum(modules: &[Ident]) -> Result<TokenStream2> {
 }
 
 #[cfg(feature = "internal-showcase")]
-pub fn expand_showcase_modules_macro(input: proc_macro::TokenStream) -> Result<TokenStream2> {
+pub fn expand_showcase_modules_macro(input: TokenStream2) -> Result<TokenStream2> {
     expand_showcase_modules(&parse_modules(input)?)
 }
 
 #[cfg(feature = "internal-showcase")]
-pub fn expand_showcase_module_enum_macro(input: proc_macro::TokenStream) -> Result<TokenStream2> {
+pub fn expand_showcase_module_enum_macro(input: TokenStream2) -> Result<TokenStream2> {
     expand_showcase_module_enum(&parse_modules(input)?)
 }

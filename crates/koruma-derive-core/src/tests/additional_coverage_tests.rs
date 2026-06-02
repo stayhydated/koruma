@@ -1,9 +1,11 @@
 use crate::{
-    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, KnownTypeShape, ParsedDataField,
-    StructKorumaAttr, StructKorumaItem, StructMode, ValidatorAttr, ValidatorTargetSelector,
-    contains_infer_type, expr_as_simple_ident, first_generic_arg, option_inner_type, parse_field,
-    parse_struct_options, parse_validator_struct, substitute_infer_type,
-    substitute_infer_type_from_source, type_to_ident, vec_inner_type,
+    DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, FieldModifierKind, KnownTypeShape,
+    NewtypeConstructor, ParsedDataField, RegularConstructor, SetterDefault, SetterPresence,
+    StructKorumaAttr, StructKorumaItem, StructMode, ValidatorAttr, ValidatorFieldRole,
+    ValidatorLabel, ValidatorTargetSelector, contains_infer_type, expr_as_simple_ident,
+    first_generic_arg, option_inner_type, parse_field, parse_struct_options,
+    parse_validator_struct, substitute_infer_type, substitute_infer_type_from_source,
+    type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -650,6 +652,663 @@ fn utility_functions_cover_remaining_line_paths() {
 }
 
 #[test]
+fn infer_substitution_covers_syntax_only_type_shapes() {
+    let infer_target: syn::Type = syn::parse_quote!(usize);
+
+    let grouped = syn::Type::Group(syn::TypeGroup {
+        group_token: Default::default(),
+        elem: Box::new(syn::parse_quote!(Option<_>)),
+    });
+    let grouped_substituted = substitute_infer_type(&grouped, &infer_target);
+    assert_eq!(
+        quote::quote!(#grouped_substituted).to_string(),
+        "Option < usize >"
+    );
+
+    let impl_trait: syn::Type = syn::parse_quote!(impl Iterator<Item = _>);
+    let substituted = substitute_infer_type(&impl_trait, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "impl Iterator < Item = usize >"
+    );
+
+    let paren: syn::Type = syn::parse_quote!((Option<_>));
+    let substituted = substitute_infer_type(&paren, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "(Option < usize >)"
+    );
+
+    let ptr: syn::Type = syn::parse_quote!(*const _);
+    let substituted = substitute_infer_type(&ptr, &infer_target);
+    assert_eq!(quote::quote!(#substituted).to_string(), "* const usize");
+
+    let slice: syn::Type = syn::parse_quote!([_]);
+    let substituted = substitute_infer_type(&slice, &infer_target);
+    assert_eq!(quote::quote!(#substituted).to_string(), "[usize]");
+
+    let trait_object: syn::Type = syn::parse_quote!(dyn Iterator<Item = _>);
+    let substituted = substitute_infer_type(&trait_object, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "dyn Iterator < Item = usize >"
+    );
+}
+
+#[test]
+fn source_infer_substitution_covers_structural_and_fallback_shapes() {
+    let grouped = syn::Type::Group(syn::TypeGroup {
+        group_token: Default::default(),
+        elem: Box::new(syn::parse_quote!(_)),
+    });
+    let source_group = syn::Type::Group(syn::TypeGroup {
+        group_token: Default::default(),
+        elem: Box::new(syn::parse_quote!(String)),
+    });
+    let substituted = substitute_infer_type_from_source(&grouped, &source_group)
+        .expect("group source should be used");
+    assert_eq!(quote::quote!(#substituted).to_string(), "String");
+
+    let explicit: syn::Type = syn::parse_quote!(impl Iterator<Item = _>);
+    let source: syn::Type = syn::parse_quote!(impl Iterator<Item = u8>);
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("impl trait bounds should infer from matching source bounds");
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "impl Iterator < Item = u8 >"
+    );
+
+    let explicit: syn::Type = syn::parse_quote!((_));
+    let source: syn::Type = syn::parse_quote!((bool));
+    let substituted =
+        substitute_infer_type_from_source(&explicit, &source).expect("paren source should be used");
+    assert_eq!(quote::quote!(#substituted).to_string(), "(bool)");
+
+    let explicit: syn::Type = syn::parse_quote!(*const _);
+    let source: syn::Type = syn::parse_quote!(*const str);
+    let substituted =
+        substitute_infer_type_from_source(&explicit, &source).expect("ptr source should be used");
+    assert_eq!(quote::quote!(#substituted).to_string(), "* const str");
+
+    let explicit: syn::Type = syn::parse_quote!([_]);
+    let source: syn::Type = syn::parse_quote!([char]);
+    let substituted =
+        substitute_infer_type_from_source(&explicit, &source).expect("slice source should be used");
+    assert_eq!(quote::quote!(#substituted).to_string(), "[char]");
+
+    let explicit: syn::Type = syn::parse_quote!(fn(_) -> _);
+    let source: syn::Type = syn::parse_quote!(fn(u8));
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("fallback source should be used for missing return type");
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "fn (u8) -> fn (u8)"
+    );
+
+    let explicit: syn::Type = syn::parse_quote!((_, _));
+    let source: syn::Type = syn::parse_quote!(String);
+    assert!(substitute_infer_type_from_source(&explicit, &source).is_none());
+
+    let concrete: syn::Type = syn::parse_quote!(Result<String, Error>);
+    let source: syn::Type = syn::parse_quote!(u8);
+    let substituted = substitute_infer_type_from_source(&concrete, &source)
+        .expect("concrete type should not require source inference");
+    assert_eq!(substituted, concrete);
+}
+
+#[test]
+fn source_infer_substitution_handles_path_associated_items_and_constraints() {
+    let explicit: syn::Type = syn::parse_quote!(Parser<Output<_> = _, Item: Into<_>>);
+    let source: syn::Type = syn::parse_quote!(Parser<Output<String> = bool, Item: Into<u8>>);
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("associated generic items should infer from matching source arguments");
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "Parser < Output < String > = bool , Item : Into < Parser < Output < String > = bool , Item : Into < u8 > > > >"
+    );
+}
+
+#[test]
+fn infer_substitution_covers_qself_parenthesized_args_and_clone_fallbacks() {
+    let infer_target: syn::Type = syn::parse_quote!(usize);
+
+    let qself: syn::Type = syn::parse_quote!(<_ as Trait>::Assoc);
+    let substituted = substitute_infer_type(&qself, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "< usize as Trait > :: Assoc"
+    );
+
+    let mut inputs = syn::punctuated::Punctuated::new();
+    inputs.push(syn::parse_quote!(_));
+    let output: syn::ReturnType = syn::parse_quote!(-> _);
+    let mut path: syn::Path = syn::parse_quote!(FnOnce);
+    path.segments.last_mut().expect("segment").arguments =
+        syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
+            paren_token: Default::default(),
+            inputs,
+            output,
+        });
+    let parenthesized_path = syn::Type::Path(syn::TypePath { qself: None, path });
+
+    let substituted = substitute_infer_type(&parenthesized_path, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "FnOnce (usize) -> usize"
+    );
+
+    let associated: syn::Type = syn::parse_quote!(Parser<Output<_> = _, Item: Into<_>>);
+    let substituted = substitute_infer_type(&associated, &infer_target);
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "Parser < Output < usize > = usize , Item : Into < usize > >"
+    );
+
+    let never: syn::Type = syn::parse_quote!(!);
+    let unchanged = substitute_infer_type(&never, &infer_target);
+    assert_eq!(unchanged, never);
+}
+
+#[test]
+fn source_infer_substitution_covers_fallback_sources_and_qself() {
+    for (explicit, source, expected) in [
+        (
+            syn::parse_quote!([_; 2]),
+            syn::parse_quote!(String),
+            "[String ; 2]",
+        ),
+        (
+            syn::parse_quote!(fn(_) -> _),
+            syn::parse_quote!(String),
+            "fn (String) -> String",
+        ),
+        (
+            syn::Type::Group(syn::TypeGroup {
+                group_token: Default::default(),
+                elem: Box::new(syn::parse_quote!(_)),
+            }),
+            syn::parse_quote!(String),
+            "String",
+        ),
+        (
+            syn::parse_quote!((_)),
+            syn::parse_quote!(String),
+            "(String)",
+        ),
+        (
+            syn::parse_quote!(*const _),
+            syn::parse_quote!(String),
+            "* const String",
+        ),
+        (syn::parse_quote!(&_), syn::parse_quote!(String), "& String"),
+        (
+            syn::parse_quote!([_]),
+            syn::parse_quote!(String),
+            "[String]",
+        ),
+        (
+            syn::parse_quote!(<_ as Trait>::Assoc),
+            syn::parse_quote!(String),
+            "< String as Trait > :: Assoc",
+        ),
+    ] {
+        let substituted = substitute_infer_type_from_source(&explicit, &source)
+            .expect("fallback source inference should succeed");
+        assert_eq!(quote::quote!(#substituted).to_string(), expected);
+    }
+
+    let verbatim = syn::Type::Verbatim(quote::quote!(Custom<_>));
+    let source: syn::Type = syn::parse_quote!(String);
+    let substituted = substitute_infer_type_from_source(&verbatim, &source)
+        .expect("verbatim types do not expose infer structure");
+    assert_eq!(substituted, verbatim);
+}
+
+#[test]
+fn source_infer_substitution_covers_parenthesized_path_arguments() {
+    fn fn_once_type(input: syn::Type, output: syn::ReturnType) -> syn::Type {
+        let mut inputs = syn::punctuated::Punctuated::new();
+        inputs.push(input);
+        let mut path: syn::Path = syn::parse_quote!(FnOnce);
+        path.segments.last_mut().expect("segment").arguments =
+            syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
+                paren_token: Default::default(),
+                inputs,
+                output,
+            });
+        syn::Type::Path(syn::TypePath { qself: None, path })
+    }
+
+    let explicit = fn_once_type(syn::parse_quote!(_), syn::parse_quote!(-> _));
+    let source = fn_once_type(syn::parse_quote!(u8), syn::parse_quote!(-> bool));
+    assert!(contains_infer_type(&explicit));
+
+    let substituted = substitute_infer_type_from_source(&explicit, &source)
+        .expect("parenthesized path arguments should infer structurally");
+    assert_eq!(
+        quote::quote!(#substituted).to_string(),
+        "FnOnce (u8) -> bool"
+    );
+}
+
+#[test]
+fn infer_detection_covers_remaining_generic_argument_and_return_paths() {
+    let assoc_without_infer: syn::Type = syn::parse_quote!(Parser<Output<String> = bool>);
+    assert!(!contains_infer_type(&assoc_without_infer));
+
+    let constraint_with_infer: syn::Type = syn::parse_quote!(Parser<Item: Into<_>>);
+    assert!(contains_infer_type(&constraint_with_infer));
+
+    let lifetime_bound: syn::Type = syn::parse_quote!(impl Clone + 'static);
+    assert!(!contains_infer_type(&lifetime_bound));
+
+    let bare_fn_default_return: syn::Type = syn::parse_quote!(fn(u8));
+    assert!(!contains_infer_type(&bare_fn_default_return));
+
+    let infer: syn::Type = syn::parse_quote!(_);
+    assert!(contains_infer_type(&infer));
+
+    let first_arg: syn::Type = syn::parse_quote!(Vec<String>);
+    let first = first_generic_arg(&first_arg).expect("expected first type arg");
+    assert_eq!(quote::quote!(#first).to_string(), "String");
+
+    let lifetime_only: syn::Type = syn::parse_quote!(Borrowed<'a>);
+    assert!(first_generic_arg(&lifetime_only).is_none());
+}
+
+#[test]
+fn infer_detection_and_known_type_shape_cover_public_accessors() {
+    let grouped = syn::Type::Group(syn::TypeGroup {
+        group_token: Default::default(),
+        elem: Box::new(syn::parse_quote!(_)),
+    });
+    assert!(contains_infer_type(&grouped));
+
+    for ty in [
+        syn::parse_quote!(impl Iterator<Item = _>),
+        syn::parse_quote!(*const _),
+        syn::parse_quote!([_]),
+        syn::parse_quote!(dyn Iterator<Item = _>),
+        syn::parse_quote!(Parser<Output<_> = _, Item: Into<_>>),
+    ] {
+        assert!(
+            contains_infer_type(&ty),
+            "expected infer marker in {}",
+            quote::quote!(#ty)
+        );
+    }
+
+    let option: syn::Type = syn::parse_quote!(Option<String>);
+    let option_shape = KnownTypeShape::of(&option);
+    assert_eq!(
+        option_shape.recognized_name().map(ToString::to_string),
+        Some("Option".to_owned())
+    );
+    let _ = option_shape.span();
+
+    let slice: syn::Type = syn::parse_quote!([u8]);
+    let slice_shape = KnownTypeShape::of(&slice);
+    assert!(slice_shape.recognized_name().is_none());
+    let _ = slice_shape.span();
+
+    let other: syn::Type = syn::parse_quote!(Result<String, Error>);
+    let other_shape = KnownTypeShape::of(&other);
+    assert!(other_shape.recognized_name().is_none());
+    let _ = other_shape.span();
+}
+
+#[test]
+fn parsed_data_field_accessors_and_labels_cover_helpers() {
+    let label = ValidatorLabel::new(quote::format_ident!("valid_label"))
+        .expect("lower-snake label should be accepted");
+    assert_eq!(label.ident().to_string(), "valid_label");
+
+    let validator: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0));
+    let unlabeled = crate::ParsedValidatorUse::unlabeled(validator.clone());
+    assert!(unlabeled.label().is_none());
+    assert!(unlabeled.label_span().is_none());
+
+    let labeled = crate::ParsedValidatorUse::labeled(quote::format_ident!("range"), validator)
+        .expect("valid label should parse");
+    assert_eq!(
+        labeled.label().map(ToString::to_string),
+        Some("range".to_owned())
+    );
+    assert!(labeled.label_span().is_some());
+
+    let attr: DataFieldKorumaAttr =
+        syn::parse_quote!(full(RequiredValidation), each(unwrapped(ItemValidation)));
+    let DataFieldKorumaItem::FieldValidation(field_spec) = &attr.items()[0] else {
+        panic!("expected field validation item");
+    };
+    assert!(field_spec.validator().target().marker_span().is_some());
+    assert!(field_spec.validator().target().is_full());
+
+    let DataFieldKorumaItem::ElementValidation(element_spec) = &attr.items()[1] else {
+        panic!("expected element validation item");
+    };
+    assert_eq!(element_spec.marker().to_string(), "each");
+    assert!(
+        element_spec.validators()[0]
+            .target()
+            .marker_span()
+            .is_some()
+    );
+    assert!(!element_spec.validators()[0].target().is_full());
+
+    let skip_attr: DataFieldKorumaAttr = syn::parse_quote!(skip);
+    assert!(skip_attr.is_skip());
+    assert_eq!(
+        skip_attr.items()[0].modifier(),
+        Some(FieldModifierKind::Skip)
+    );
+
+    let nested_attr: DataFieldKorumaAttr = syn::parse_quote!(nested);
+    assert!(nested_attr.is_nested());
+    assert_eq!(
+        nested_attr.items()[0].modifier(),
+        Some(FieldModifierKind::Nested)
+    );
+
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(skip)]
+        skipped: String
+    };
+    let skipped = parse_field(&field, 3).expect("expected skip field to parse");
+    assert_eq!(skipped.source().name().to_string(), "skipped");
+    assert!(skipped.participating().is_none());
+
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(RangeValidation)]
+        value: i32
+    };
+    let parsed = parse_field(&field, 4).expect("expected field to parse");
+    assert_eq!(parsed.source().index(), 4);
+    let participating = parsed.participating().expect("field should participate");
+    assert_eq!(participating.source().name().to_string(), "value");
+    assert_eq!(participating.index(), 4);
+}
+
+#[test]
+fn data_field_parser_reports_target_and_each_edge_cases() {
+    for (source, expected) in [
+        ("full()", "must contain exactly one validator"),
+        ("unwrapped()", "must contain exactly one validator"),
+        (
+            "full(RequiredValidation, OtherValidation)",
+            "accepts exactly one validator",
+        ),
+        ("full", "reserved koruma target selector"),
+        ("each", "`each` is only valid as `each(...)`"),
+        ("each()", "`each(...)` must contain at least one validator"),
+        (
+            "skip(RangeValidation)",
+            "`skip(...)` is not valid in a derive data field",
+        ),
+    ] {
+        let err = match syn::parse_str::<DataFieldKorumaAttr>(source) {
+            Ok(_) => panic!("expected `{source}` to fail"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}` for `{source}`, got: {err}",
+        );
+    }
+
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(skip, RequiredValidation)]
+        skipped: String
+    };
+    let err = parse_field(&field, 0).expect_err("skip plus validator should fail");
+    assert!(
+        err.to_string()
+            .contains("fields marked `#[koruma(skip)]` cannot also use validators"),
+        "unexpected error: {err}",
+    );
+
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(nested, RequiredValidation)]
+        nested: String
+    };
+    let err = parse_field(&field, 0).expect_err("nested plus validator should fail");
+    assert!(
+        err.to_string()
+            .contains("fields marked `#[koruma(nested)]` cannot also use validators"),
+        "unexpected error: {err}",
+    );
+}
+
+#[test]
+fn struct_options_cover_constructor_combinations_and_errors() {
+    let regular_try_new: crate::StructOptions =
+        syn::parse_str("try_new").expect("regular try_new should parse");
+    let StructMode::Regular { constructor } = regular_try_new.mode() else {
+        panic!("expected regular mode");
+    };
+    assert!(constructor.try_new());
+    assert!(matches!(constructor, RegularConstructor::TryNew));
+
+    let newtype_try_new: crate::StructOptions =
+        syn::parse_str("try_new, newtype").expect("newtype try_new should parse");
+    let StructMode::Newtype {
+        constructor,
+        marker,
+    } = newtype_try_new.mode()
+    else {
+        panic!("expected newtype mode");
+    };
+    assert_eq!(marker.value.to_string(), "newtype");
+    assert!(constructor.try_new());
+    assert!(!constructor.try_from());
+    assert!(matches!(constructor, NewtypeConstructor::TryNew));
+
+    let newtype_try_from: crate::StructOptions =
+        syn::parse_str("newtype(try_from)").expect("newtype try_from should parse");
+    let StructMode::Newtype { constructor, .. } = newtype_try_from.mode() else {
+        panic!("expected newtype mode");
+    };
+    assert!(!constructor.try_new());
+    assert!(constructor.try_from());
+    assert!(matches!(constructor, NewtypeConstructor::TryFrom));
+
+    let newtype_both: crate::StructOptions =
+        syn::parse_str("try_new, newtype(try_from)").expect("combined newtype should parse");
+    let StructMode::Newtype { constructor, .. } = newtype_both.mode() else {
+        panic!("expected newtype mode");
+    };
+    assert!(constructor.try_new());
+    assert!(constructor.try_from());
+    assert!(matches!(constructor, NewtypeConstructor::TryNewAndTryFrom));
+
+    for (source, expected) in [
+        (
+            "newtype(try_from, try_from)",
+            "duplicate `newtype(try_from)` option",
+        ),
+        ("newtype(default)", "unknown newtype option"),
+        ("try_new()", "only valid as a bare struct-level"),
+        ("try_new::path", "only valid as a bare struct-level"),
+        ("newtype::path", "reserved koruma struct option"),
+        ("skip", "not valid in a derive struct"),
+        ("unknown", "unknown struct-level koruma option"),
+        (
+            "try_new, try_new",
+            "duplicate struct-level koruma option `try_new`",
+        ),
+        (
+            "newtype, newtype",
+            "duplicate struct-level koruma option `newtype`",
+        ),
+    ] {
+        let err = match syn::parse_str::<crate::StructOptions>(source) {
+            Ok(_) => panic!("expected `{source}` to fail"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}` for `{source}`, got: {err}",
+        );
+    }
+}
+
+#[test]
+fn validator_struct_parser_covers_setter_merge_paths_and_accessors() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        struct Validator {
+            #[koruma(setter(into))]
+            title: String,
+            #[koruma(setter(required))]
+            count: usize,
+            #[koruma(setter(default = 42))]
+            limit: usize,
+            #[koruma(value(capture = skip,))]
+            actual: Option<String>,
+        }
+    };
+    let spec = parse_validator_struct(&input).expect("expected validator struct to parse");
+    assert_eq!(spec.value_index(), 3);
+    assert_eq!(spec.value_spec().capture(), crate::CapturePolicy::Skip);
+
+    let title = &spec.fields()[0];
+    assert_eq!(title.name().to_string(), "title");
+    let title_ty = title.ty();
+    assert_eq!(quote::quote!(#title_ty).to_string(), "String");
+    let ValidatorFieldRole::Setter(title_setter) = title.role() else {
+        panic!("expected setter role");
+    };
+    assert_eq!(title_setter.method().to_string(), "title");
+    assert!(title_setter.input().accepts_into());
+    assert!(matches!(title_setter.presence(), SetterPresence::Optional));
+
+    let count = &spec.fields()[1];
+    let ValidatorFieldRole::Setter(count_setter) = count.role() else {
+        panic!("expected setter role");
+    };
+    assert!(matches!(count_setter.presence(), SetterPresence::Required));
+
+    let limit = &spec.fields()[2];
+    let ValidatorFieldRole::Setter(limit_setter) = limit.role() else {
+        panic!("expected setter role");
+    };
+    let SetterPresence::Defaulted(SetterDefault::Expr(expr)) = limit_setter.presence() else {
+        panic!("expected expression default");
+    };
+    assert_eq!(quote::quote!(#expr).to_string(), "42");
+
+    for (input, expected) in [
+        (
+            syn::parse_quote! {
+                struct Bad {
+                    #[koruma(setter(into), setter(into))]
+                    title: String,
+                    #[koruma(value)]
+                    actual: Option<String>,
+                }
+            },
+            "duplicate `setter(into)` option",
+        ),
+        (
+            syn::parse_quote! {
+                struct Bad {
+                    #[koruma(setter(name = first), setter(name = second))]
+                    title: String,
+                    #[koruma(value)]
+                    actual: Option<String>,
+                }
+            },
+            "duplicate `setter(name = ...)` option",
+        ),
+        (
+            syn::parse_quote! {
+                struct Bad {
+                    #[koruma(setter(required), setter(required))]
+                    title: String,
+                    #[koruma(value)]
+                    actual: Option<String>,
+                }
+            },
+            "duplicate `setter(required)` option",
+        ),
+        (
+            syn::parse_quote! {
+                struct Bad {
+                    #[koruma(setter(default), setter(default = 1))]
+                    title: String,
+                    #[koruma(value)]
+                    actual: Option<String>,
+                }
+            },
+            "duplicate `setter(default)` option",
+        ),
+    ] {
+        let err = parse_validator_struct(&input).expect_err("expected duplicate merge error");
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}`, got: {err}",
+        );
+    }
+}
+
+#[test]
+fn validator_struct_value_and_setter_parser_errors_cover_remaining_branches() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        struct Bad {
+            #[koruma(value(capture = skip, extra))]
+            actual: Option<String>,
+        }
+    };
+    let err = parse_validator_struct(&input).expect_err("extra value option should fail");
+    assert!(
+        err.to_string()
+            .contains("unexpected extra tokens in `value(...)`"),
+        "unexpected error: {err}",
+    );
+
+    let input: syn::ItemStruct = syn::parse_quote! {
+        struct Bad {
+            #[koruma(setter(into, into))]
+            title: String,
+            #[koruma(value)]
+            actual: Option<String>,
+        }
+    };
+    let err = parse_validator_struct(&input).expect_err("duplicate parser option should fail");
+    assert!(
+        err.to_string().contains("duplicate `setter(into)` option"),
+        "unexpected error: {err}",
+    );
+}
+
+#[test]
+fn validator_attr_parsing_covers_grouped_calls_and_accessors() {
+    let grouped: ValidatorAttr = syn::parse_str("(RangeValidation::<i32>::min(0).max(10))")
+        .expect("grouped validator chains should parse");
+    assert_eq!(grouped.path_name(), "RangeValidation");
+    assert_eq!(grouped.path().segments.len(), 1);
+    let explicit_type = grouped.explicit_type().expect("expected explicit type");
+    assert_eq!(quote::quote!(#explicit_type).to_string(), "i32");
+    let first_arg = grouped.setter_calls()[0].args()[0].as_expr();
+    assert_eq!(quote::quote!(#first_arg).to_string(), "0");
+
+    let direct_call: ValidatorAttr =
+        syn::parse_str("(RangeValidation::min)(0)").expect("grouped call path should parse");
+    assert_eq!(direct_call.setter_calls()[0].method().to_string(), "min");
+
+    for source in ["", "make().min(1)", "(make())(1)"] {
+        let err = match syn::parse_str::<ValidatorAttr>(source) {
+            Ok(_) => panic!("expected `{source}` to fail"),
+            Err(err) => err,
+        };
+        assert!(
+            err.to_string()
+                .contains("validator syntax requires a direct validator chain"),
+            "unexpected error for `{source}`: {err}",
+        );
+    }
+}
+
+#[test]
 fn struct_options_reject_repeated_attrs() {
     let duplicate_newtype: syn::ItemStruct = syn::parse_quote! {
         #[koruma(newtype)]
@@ -767,6 +1426,38 @@ fn showcase_attr_errors_are_reported() {
         .expect("showcase attr with module should be present");
     assert_eq!(parsed.input_type, ShowcaseInputType::Numeric);
     assert_eq!(parsed.module, Some(ShowcaseModule::Format));
+
+    for (module_name, expected_module) in [
+        ("string", ShowcaseModule::String),
+        ("numeric", ShowcaseModule::Numeric),
+        ("collection", ShowcaseModule::Collection),
+        ("general", ShowcaseModule::General),
+    ] {
+        let attr: ShowcaseAttr = syn::parse_str(&format!(
+            r#"name = "N", description = "D", create = |input: &str| input, input_type = Text, module = "{module_name}""#
+        ))
+        .expect("showcase module should parse");
+        assert_eq!(attr.input_type, ShowcaseInputType::Text);
+        assert_eq!(attr.module, Some(expected_module));
+    }
+
+    for (source, expected) in [
+        (
+            r#"description = "d", create = |input: &str| input, input_type = Text"#,
+            "showcase requires `name` attribute",
+        ),
+        (
+            r#"name = "n", description = "d", input_type = Text"#,
+            "showcase requires `create` attribute",
+        ),
+    ] {
+        let err = syn::parse_str::<ShowcaseAttr>(source)
+            .expect_err("expected missing showcase field error");
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}`, got: {err}",
+        );
+    }
 
     let invalid_input: syn::ItemStruct = syn::parse_quote! {
         #[showcase(name = "N", description = "D", create = |input: &str| input, input_type = Text, modul = "oops")]

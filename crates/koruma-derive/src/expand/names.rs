@@ -352,3 +352,121 @@ fn validator_syntax(validator: &ValidatorAttr) -> String {
 
     syntax
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::generated_api::{GeneratedApiNameKind, RegisteredApiName};
+    use super::*;
+
+    #[test]
+    fn generated_name_kind_labels_cover_every_registered_kind() {
+        for (kind, expected) in [
+            (GeneratedApiNameKind::MainErrorStruct, "main error struct"),
+            (GeneratedApiNameKind::FieldErrorStruct, "field error struct"),
+            (
+                GeneratedApiNameKind::FieldValidatorRefEnum,
+                "field validator enum",
+            ),
+            (
+                GeneratedApiNameKind::ElementErrorStruct,
+                "element error struct",
+            ),
+            (
+                GeneratedApiNameKind::ElementValidatorRefEnum,
+                "element validator enum",
+            ),
+            (GeneratedApiNameKind::ValidatorGetter, "validator getter"),
+            (
+                GeneratedApiNameKind::ValidatorVariant,
+                "validator enum variant",
+            ),
+            (GeneratedApiNameKind::ExistingField, "input field"),
+            (GeneratedApiNameKind::BuilderType, "builder type"),
+            (GeneratedApiNameKind::BuilderModule, "builder module"),
+            (GeneratedApiNameKind::BuilderMethod, "builder method"),
+            (
+                GeneratedApiNameKind::OptionalBuilderMethod,
+                "optional builder method",
+            ),
+            (
+                GeneratedApiNameKind::ReservedBuilderMethod,
+                "reserved builder method",
+            ),
+            (GeneratedApiNameKind::UserGeneric, "user generic"),
+            (
+                GeneratedApiNameKind::RequiredStateGeneric,
+                "required state generic",
+            ),
+        ] {
+            assert_eq!(generated_name_kind_label(kind), expected);
+        }
+    }
+
+    #[test]
+    fn validator_syntax_renders_type_arguments_and_direct_setters() {
+        let plain: ValidatorAttr = syn::parse_quote!(RequiredValidation);
+        assert_eq!(validator_syntax(&plain), "RequiredValidation");
+
+        let inferred: ValidatorAttr = syn::parse_quote!(RangeValidation::<_>::min(0).max(10));
+        assert_eq!(
+            validator_syntax(&inferred),
+            "RangeValidation::<_>::min(0).max(10)"
+        );
+
+        let explicit: ValidatorAttr =
+            syn::parse_quote!(validators::RangeValidation::<Option<i32>>::min(0));
+        assert_eq!(
+            validator_syntax(&explicit),
+            "validators::RangeValidation::<Option < i32 >>::min(0)"
+        );
+    }
+
+    #[test]
+    fn validator_collision_messages_cover_labeled_unlabeled_and_field_collisions() {
+        let existing_field = RegisteredApiName {
+            kind: GeneratedApiNameKind::ExistingField,
+            ident: quote::format_ident!("value"),
+        };
+        let labeled = ValidatorNameCollisionContext {
+            field_name: "value".to_owned(),
+            variant_name: "Value".to_owned(),
+            validator_path_name: "demo::ValueValidation".to_owned(),
+            suggested_label: "min_value_validation".to_owned(),
+            validator_syntax: "demo::ValueValidation".to_owned(),
+            has_label: true,
+        };
+        assert!(
+            validator_collision_message(&labeled, &existing_field)
+                .contains("conflicts with a generated field name")
+        );
+
+        let existing_getter = RegisteredApiName {
+            kind: GeneratedApiNameKind::ValidatorGetter,
+            ident: quote::format_ident!("value"),
+        };
+        assert!(
+            validator_collision_message(&labeled, &existing_getter)
+                .contains("collides with another validator getter")
+        );
+
+        let unlabeled = ValidatorNameCollisionContext {
+            has_label: false,
+            ..labeled
+        };
+        assert!(
+            validator_collision_message(&unlabeled, &existing_getter)
+                .contains("add explicit validator labels")
+        );
+    }
+
+    #[test]
+    fn unlabeled_reserved_generated_error_names_are_rejected() {
+        let reserved_validator = ParsedValidatorUse::unlabeled(syn::parse_quote!(All));
+        let err = plan_validator_names(&[reserved_validator], &[])
+            .expect_err("unlabeled validator generating `all` should be rejected");
+        assert!(
+            err.to_string()
+                .contains("reserved by generated Koruma error APIs")
+        );
+    }
+}

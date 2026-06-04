@@ -20,8 +20,6 @@ impl SiteLanguage {
 
 #[derive(Clone, Copy, Debug, EsFluent)]
 pub(crate) enum SiteChromeMessage {
-    BrandKicker,
-    SiteName,
     NavHome,
     NavDemos,
     NavDocs,

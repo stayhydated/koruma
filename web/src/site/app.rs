@@ -15,6 +15,7 @@ pub fn App() -> Element {
         stayhydated_dioxus::SharedStyles {}
         document::Stylesheet { href: stylesheet_href }
         document::Stylesheet { href: components_theme_href }
+        stayhydated_dioxus::ShaderBackground {}
         DioxusAssetI18nProvider {
             modules: dioxus_i18n_asset_modules(),
             initial_language: SiteLanguage::default().lang(),

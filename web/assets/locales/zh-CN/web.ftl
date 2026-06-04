@@ -118,13 +118,11 @@ sales_form_message-ValidSampleAction = 有效示例
 
 ## SiteChromeMessage
 
-site_chrome_message-BrandKicker = Rust 验证
 site_chrome_message-LocaleLabel = 语言
 site_chrome_message-NavDemos = 演示
 site_chrome_message-NavDocs = 手册
 site_chrome_message-NavHome = 首页
 site_chrome_message-NavSource = 源码
-site_chrome_message-SiteName = koruma
 
 ## SiteFooterMessage
 

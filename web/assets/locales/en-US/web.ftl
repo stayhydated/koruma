@@ -118,13 +118,11 @@ sales_form_message-ValidSampleAction = Valid sample
 
 ## SiteChromeMessage
 
-site_chrome_message-BrandKicker = Rust validation
 site_chrome_message-LocaleLabel = Language
 site_chrome_message-NavDemos = Demos
 site_chrome_message-NavDocs = Book
 site_chrome_message-NavHome = Home
 site_chrome_message-NavSource = Source
-site_chrome_message-SiteName = koruma
 
 ## SiteFooterMessage
 

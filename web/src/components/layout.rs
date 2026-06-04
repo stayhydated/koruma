@@ -1,9 +1,7 @@
-use crate::components::{
-    LanguageSelect, ProjectOption, ProjectSelect, stayhydated_project_options,
-};
+use crate::components::{LanguageSelect, ProjectSelect, stayhydated_project_options};
 use crate::site::constants::{
     KORUMA_COLLECTION_CRATES_URL, KORUMA_COLLECTION_CROWDIN_URL, KORUMA_CRATES_URL,
-    KORUMA_GITHUB_URL, PROJECT_FLUENT_URL,
+    PROJECT_FLUENT_URL,
 };
 use crate::site::i18n::{ContributeMessage, SiteChromeMessage, SiteFooterMessage, SiteLanguage};
 use crate::site::routing::PageKind;
@@ -22,8 +20,6 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
         },
     };
 
-    let brand_kicker = i18n.localize_message(&SiteChromeMessage::BrandKicker);
-    let site_name = i18n.localize_message(&SiteChromeMessage::SiteName);
     let nav_home = i18n.localize_message(&SiteChromeMessage::NavHome);
     let nav_demos = i18n.localize_message(&SiteChromeMessage::NavDemos);
     let nav_docs = i18n.localize_message(&SiteChromeMessage::NavDocs);
@@ -38,13 +34,8 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
     rsx! {
         header { class: "page-header",
             ProjectSelect {
-                selected: ProjectOption::builder()
-                    .id(ProjectId::Koruma)
-                    .mark("K")
-                    .name(site_name)
-                    .description(brand_kicker)
-                    .href(crate::site::routing::page_href(PageKind::Home).into_string())
-                    .build(),
+                selected: ProjectId::Koruma
+                    .option_with_href(crate::site::routing::page_href(PageKind::Home).into_string()),
                 projects: stayhydated_project_options(),
                 label: "Project selector".to_string(),
             }
@@ -75,7 +66,7 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
                     }
                     a {
                         class: "header-nav-item",
-                        href: KORUMA_GITHUB_URL,
+                        href: ProjectId::Koruma.source_href(),
                         target: "_blank",
                         rel: "noreferrer",
                         "{nav_source}"
@@ -194,7 +185,7 @@ pub(crate) fn ContributePanel() -> Element {
                     "{body_github}"
                     " "
                     a {
-                        href: KORUMA_GITHUB_URL,
+                        href: ProjectId::Koruma.source_href(),
                         target: "_blank",
                         rel: "noreferrer",
                         "GitHub"

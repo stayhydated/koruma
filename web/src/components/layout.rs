@@ -8,12 +8,12 @@ use crate::site::constants::{
 use crate::site::i18n::{ContributeMessage, SiteChromeMessage, SiteFooterMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::use_asset_i18n;
+use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::ProjectId;
 
 #[component]
 pub(crate) fn PageHeader(current_page: PageKind) -> Element {
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -89,7 +89,7 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
 
 #[component]
 fn LocaleSwitcher() -> Element {
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -127,7 +127,7 @@ fn LocaleSwitcher() -> Element {
 #[component]
 pub(crate) fn ContributePanel() -> Element {
     let reveal_style = crate::components::use_reveal_style(370, 16.0);
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -208,7 +208,7 @@ pub(crate) fn ContributePanel() -> Element {
 
 #[component]
 pub(crate) fn FooterPanel() -> Element {
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {

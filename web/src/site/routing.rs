@@ -2,7 +2,7 @@ use crate::pages;
 use crate::site::i18n::PageMetadataMessage;
 use dioxus::cli_config;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_asset_i18n};
+use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
 use stayhydated_site::routing::{BaseHref, BasePath, Href, OutputDir, RoutePath};
 use std::path::Path;
 
@@ -183,7 +183,7 @@ fn page_from_segments(segments: &[&str]) -> PageKind {
 }
 
 fn route_element(route: SiteRoute) -> Element {
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {

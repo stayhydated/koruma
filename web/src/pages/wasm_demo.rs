@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
 use es_fluent::registry::{StaticFluentDomain, StaticFluentEntryId};
 use es_fluent::{FluentArgs, FluentLocalizer as _};
-use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_asset_i18n};
+use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
 use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
 use stayhydated_dioxus::{TabContent, TabList, TabTrigger, Tabs, TabsOrientation};
@@ -58,7 +58,7 @@ impl ValidatorState {
 
 #[component]
 pub(crate) fn CollectionDioxusPage() -> Element {
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -86,7 +86,7 @@ pub(crate) fn CollectionDioxusPage() -> Element {
 fn CollectionDioxusShowcase() -> Element {
     let title_style = crate::components::use_reveal_style(0, 24.0);
     let showcase_style = crate::components::use_reveal_style(90, 18.0);
-    let i18n = match use_asset_i18n() {
+    let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {

@@ -1364,7 +1364,7 @@ fn render_capture_value_ref_impl(
         builder_generics
             .make_where_clause()
             .predicates
-            .push(parse_quote!(#inner_type: ::std::clone::Clone));
+            .push(parse_quote!(#inner_type: #koruma::__private::CapturedInputCanBeCloned));
     }
     let builder_ty = plan.builder_type_path_with_states(&builder_state_args);
 

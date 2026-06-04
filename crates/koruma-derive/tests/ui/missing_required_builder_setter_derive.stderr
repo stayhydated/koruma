@@ -1,0 +1,46 @@
+error[E0277]: the trait bound `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>: koruma::__private::BuildValidator` is not satisfied
+  --> tests/ui/missing_required_builder_setter_derive.rs:21:14
+   |
+19 | #[derive(Koruma)]
+   |          ------ required by a bound introduced by this call
+20 | struct Item {
+21 |     #[koruma(RequiredSetterValidation)]
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `koruma::__private::BuildValidator` is not implemented for `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>`
+  --> tests/ui/missing_required_builder_setter_derive.rs:4:1
+   |
+ 4 | #[validator]
+   | ^^^^^^^^^^^^
+help: the trait `koruma::__private::BuildValidator` is implemented for `RequiredSetterValidationBuilder<Set, Set>`
+  --> tests/ui/missing_required_builder_setter_derive.rs:4:1
+   |
+ 4 | #[validator]
+   | ^^^^^^^^^^^^
+note: required by a bound in `koruma::__private::assert_validator_ready`
+  --> $WORKSPACE/crates/koruma-core/src/lib.rs
+   |
+   |     pub fn assert_validator_ready<Builder, Target, Validator>(_: &Builder)
+   |            ---------------------- required by a bound in this function
+...
+   |         <Builder as CaptureValueRef<Target>>::Output: BuildValidator<Validator = Validator>,
+   |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_validator_ready`
+   = note: this error originates in the attribute macro `validator` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>: koruma::__private::BuildValidator` is not satisfied
+  --> tests/ui/missing_required_builder_setter_derive.rs:19:10
+   |
+19 | #[derive(Koruma)]
+   |          ^^^^^^ unsatisfied trait bound
+   |
+help: the trait `koruma::__private::BuildValidator` is not implemented for `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>`
+  --> tests/ui/missing_required_builder_setter_derive.rs:4:1
+   |
+ 4 | #[validator]
+   | ^^^^^^^^^^^^
+help: the trait `koruma::__private::BuildValidator` is implemented for `RequiredSetterValidationBuilder<Set, Set>`
+  --> tests/ui/missing_required_builder_setter_derive.rs:4:1
+   |
+ 4 | #[validator]
+   | ^^^^^^^^^^^^
+   = note: this error originates in the derive macro `Koruma` which comes from the expansion of the attribute macro `validator` (in Nightly builds, run with -Z macro-backtrace for more info)

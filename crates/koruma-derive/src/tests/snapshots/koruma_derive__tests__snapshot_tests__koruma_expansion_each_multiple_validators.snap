@@ -115,29 +115,45 @@ impl Order {
                 even_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    RangeValidation::min(0).max(100),
-                    __item_value,
-                ),
-            );
-            if !<RangeValidation as ::renamed_koruma::Validate<
-                i32,
-            >>::validate(&validator, __item_value) {
-                element_error.range_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = RangeValidation::min(0).max(100);
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    i32,
+                    RangeValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<RangeValidation as ::renamed_koruma::Validate<
+                    i32,
+                >>::validate(&validator, __item_value) {
+                    element_error.range_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    EvenValidation::__koruma_builder(),
-                    __item_value,
-                ),
-            );
-            if !<EvenValidation as ::renamed_koruma::Validate<
-                i32,
-            >>::validate(&validator, __item_value) {
-                element_error.even_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = EvenValidation::__koruma_builder();
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    i32,
+                    EvenValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<EvenValidation as ::renamed_koruma::Validate<
+                    i32,
+                >>::validate(&validator, __item_value) {
+                    element_error.even_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.values.element_errors.push((idx, element_error));
@@ -153,3 +169,4 @@ impl ::renamed_koruma::ValidateExt for Order {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Order {}

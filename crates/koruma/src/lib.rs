@@ -10,7 +10,14 @@ pub use koruma_derive::KorumaAllFluent;
 
 #[doc(hidden)]
 pub mod __private {
-    pub use koruma_core::__private::{BuildValidator, CaptureValueRef};
+    pub use koruma_core::__private::{
+        BuildValidator, CaptureValueRef, CapturedInputCanBeCloned, KorumaAllDisplayRequiresKoruma,
+        KorumaAllFluentRequiresKoruma, KorumaWasDerived, assert_display, assert_newtype_validation,
+        assert_validate_ext, assert_validator_ready,
+    };
+
+    #[cfg(feature = "fluent")]
+    pub use koruma_core::__private::assert_fluent_message;
 }
 
 #[doc(hidden)]

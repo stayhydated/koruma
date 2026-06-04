@@ -135,34 +135,54 @@ impl OrderWithLenCheck {
         };
         let mut has_error = false;
         let __field_value = &self.scores;
-        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                VecLenValidation::min(1).max(10),
-                __field_value,
-            ),
-        );
-        if !<VecLenValidation<
-            i32,
-        > as ::renamed_koruma::Validate<Vec<i32>>>::validate(&validator, __field_value) {
-            error.scores.vec_len_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = VecLenValidation::min(1).max(10);
+            ::renamed_koruma::__private::assert_validator_ready::<
+                _,
+                Vec<i32>,
+                VecLenValidation<i32>,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<VecLenValidation<
+                i32,
+            > as ::renamed_koruma::Validate<
+                Vec<i32>,
+            >>::validate(&validator, __field_value) {
+                error.scores.vec_len_validation = Some(validator);
+                has_error = true;
+            }
         }
         for (idx, __item_value) in self.scores.iter().enumerate() {
             let mut element_error = OrderWithLenCheckScoresElementKorumaValidationError {
                 range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    RangeValidation::<i32>::min(0).max(100),
-                    __item_value,
-                ),
-            );
-            if !<RangeValidation<
-                i32,
-            > as ::renamed_koruma::Validate<i32>>::validate(&validator, __item_value) {
-                element_error.range_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = RangeValidation::<i32>::min(0).max(100);
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    i32,
+                    RangeValidation<i32>,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<RangeValidation<
+                    i32,
+                > as ::renamed_koruma::Validate<
+                    i32,
+                >>::validate(&validator, __item_value) {
+                    element_error.range_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.scores.element_errors.push((idx, element_error));
@@ -178,3 +198,4 @@ impl ::renamed_koruma::ValidateExt for OrderWithLenCheck {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for OrderWithLenCheck {}

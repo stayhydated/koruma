@@ -141,7 +141,7 @@ for GenericRangeValidationBuilder<
     __KorumaActualState,
 >
 where
-    T: ::std::clone::Clone,
+    T: ::renamed_koruma::__private::CapturedInputCanBeCloned,
     GenericRangeValidationBuilder<
         T,
         __KorumaMinState,

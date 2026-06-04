@@ -113,19 +113,27 @@ impl OptionalScores {
             };
             let mut element_has_error = false;
             if let Some(__item_value) = item {
-                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                        GenericRangeValidation::<i32>::min(0).max(10),
-                        __item_value,
-                    ),
-                );
-                if !<GenericRangeValidation<
-                    i32,
-                > as ::renamed_koruma::Validate<
-                    i32,
-                >>::validate(&validator, __item_value) {
-                    element_error.generic_range_validation = Some(validator);
-                    element_has_error = true;
+                {
+                    let __koruma_builder = GenericRangeValidation::<i32>::min(0).max(10);
+                    ::renamed_koruma::__private::assert_validator_ready::<
+                        _,
+                        i32,
+                        GenericRangeValidation<i32>,
+                    >(&__koruma_builder);
+                    let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                        ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                            __koruma_builder,
+                            __item_value,
+                        ),
+                    );
+                    if !<GenericRangeValidation<
+                        i32,
+                    > as ::renamed_koruma::Validate<
+                        i32,
+                    >>::validate(&validator, __item_value) {
+                        element_error.generic_range_validation = Some(validator);
+                        element_has_error = true;
+                    }
                 }
             }
             if element_has_error {
@@ -142,3 +150,4 @@ impl ::renamed_koruma::ValidateExt for OptionalScores {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for OptionalScores {}

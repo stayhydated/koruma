@@ -106,17 +106,28 @@ impl Order {
                 generic_range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    GenericRangeValidation::<f64>::min(0.0).max(100.0),
-                    __item_value,
-                ),
-            );
-            if !<GenericRangeValidation<
-                f64,
-            > as ::renamed_koruma::Validate<f64>>::validate(&validator, __item_value) {
-                element_error.generic_range_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = GenericRangeValidation::<f64>::min(0.0)
+                    .max(100.0);
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    f64,
+                    GenericRangeValidation<f64>,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<GenericRangeValidation<
+                    f64,
+                > as ::renamed_koruma::Validate<
+                    f64,
+                >>::validate(&validator, __item_value) {
+                    element_error.generic_range_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.scores.element_errors.push((idx, element_error));
@@ -132,3 +143,4 @@ impl ::renamed_koruma::ValidateExt for Order {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Order {}

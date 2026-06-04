@@ -28,9 +28,12 @@ quote = { workspace = true }
 syn = { features = [ "full", "extra-traits", "visit" ], workspace = true }
 
 [dev-dependencies]
+es-fluent = { workspace = true }
 insta = { workspace = true }
 prettyplease = { workspace = true }
-renamed-koruma = { default-features = false, package = "koruma", path = "../koruma" }
+renamed-koruma = { default-features = false, features = [
+  "fluent",
+], package = "koruma", path = "../koruma" }
 trybuild = { workspace = true }
 
 [package.metadata.docs.rs]

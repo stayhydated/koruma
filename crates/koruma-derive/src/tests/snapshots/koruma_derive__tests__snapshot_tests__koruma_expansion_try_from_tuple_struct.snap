@@ -84,17 +84,25 @@ impl Email {
         };
         let mut has_error = false;
         let __field_value = &self.0;
-        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                NonEmptyStringValidation::__koruma_builder(),
-                __field_value,
-            ),
-        );
-        if !<NonEmptyStringValidation as ::renamed_koruma::Validate<
-            String,
-        >>::validate(&validator, __field_value) {
-            error._0.non_empty_string_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = NonEmptyStringValidation::__koruma_builder();
+            ::renamed_koruma::__private::assert_validator_ready::<
+                _,
+                String,
+                NonEmptyStringValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<NonEmptyStringValidation as ::renamed_koruma::Validate<
+                String,
+            >>::validate(&validator, __field_value) {
+                error._0.non_empty_string_validation = Some(validator);
+                has_error = true;
+            }
         }
         if has_error { Err(error) } else { Ok(()) }
     }
@@ -105,6 +113,7 @@ impl ::renamed_koruma::ValidateExt for Email {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Email {}
 impl ::renamed_koruma::NewtypeValidation for Email {}
 impl TryFrom<String> for Email {
     type Error = EmailKorumaValidationError;

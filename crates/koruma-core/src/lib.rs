@@ -25,6 +25,25 @@ pub trait ValidationError {
 
 #[doc(hidden)]
 pub mod __private {
+    /// Hidden marker implemented by `#[derive(Koruma)]` for the source type.
+    ///
+    /// Companion derives use this through marker supertraits so deriving only
+    /// `KorumaAllDisplay` or `KorumaAllFluent` produces a direct trait error
+    /// instead of only missing generated-type errors.
+    pub trait KorumaWasDerived {}
+
+    /// Hidden marker implemented by `#[derive(KorumaAllDisplay)]`.
+    pub trait KorumaAllDisplayRequiresKoruma: KorumaWasDerived {}
+
+    /// Hidden marker implemented by `#[derive(KorumaAllFluent)]`.
+    pub trait KorumaAllFluentRequiresKoruma: KorumaWasDerived {}
+
+    /// Hidden helper trait used in generated capture impls for validators that
+    /// store a clone of the validated input.
+    pub trait CapturedInputCanBeCloned: Clone {}
+
+    impl<T: Clone> CapturedInputCanBeCloned for T {}
+
     /// Hidden trait used by generated validation code to turn a ready validator
     /// builder into its validator instance.
     pub trait BuildValidator {
@@ -44,6 +63,44 @@ pub mod __private {
         type Output: BuildValidator;
 
         fn capture_value_ref(self, value: &T) -> Self::Output;
+    }
+
+    /// Hidden type assertion used by generated validation checks.
+    pub fn assert_validator_ready<Builder, Target, Validator>(_: &Builder)
+    where
+        Builder: CaptureValueRef<Target>,
+        <Builder as CaptureValueRef<Target>>::Output: BuildValidator<Validator = Validator>,
+        Validator: super::Validate<Target>,
+    {
+    }
+
+    /// Hidden type assertion used by generated nested field checks.
+    pub fn assert_validate_ext<T>()
+    where
+        T: super::ValidateExt,
+    {
+    }
+
+    /// Hidden type assertion used by generated newtype field checks.
+    pub fn assert_newtype_validation<T>()
+    where
+        T: super::NewtypeValidation,
+    {
+    }
+
+    /// Hidden type assertion used by generated Display companion derives.
+    pub fn assert_display<T>()
+    where
+        T: ::std::fmt::Display,
+    {
+    }
+
+    /// Hidden type assertion used by generated Fluent companion derives.
+    #[cfg(feature = "fluent")]
+    pub fn assert_fluent_message<T>()
+    where
+        T: ::es_fluent::FluentMessage,
+    {
     }
 }
 

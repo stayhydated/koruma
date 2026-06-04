@@ -86,7 +86,7 @@ impl<
 > ::renamed_koruma::__private::CaptureValueRef<i32>
 for DirectValueValidationBuilder<__KorumaMinState, __KorumaActualState>
 where
-    i32: ::std::clone::Clone,
+    i32: ::renamed_koruma::__private::CapturedInputCanBeCloned,
     DirectValueValidationBuilder<
         __KorumaMinState,
         direct_value_validation_builder::Set,

@@ -22,6 +22,7 @@ help: the trait `koruma::__private::CaptureValueRef<NonClone>` is implemented fo
    |
  7 | #[validator]
    | ^^^^^^^^^^^^
+   = note: required for `NonClone` to implement `koruma::__private::CapturedInputCanBeCloned`
 note: required for `NonCloneValidationBuilder<non_clone_validation_builder::Empty>` to implement `koruma::__private::CaptureValueRef<NonClone>`
   --> tests/ui/non_clone_capture.rs:7:1
    |
@@ -33,3 +34,24 @@ help: consider annotating `NonClone` with `#[derive(Clone)]`
  5 + #[derive(Clone)]
  6 | struct NonClone;
    |
+
+error[E0277]: the trait bound `NonClone: koruma::__private::CapturedInputCanBeCloned` is not satisfied
+  --> tests/ui/non_clone_capture.rs:22:14
+   |
+20 | #[derive(Koruma)]
+   |          ------ required by a bound introduced by this call
+21 | struct Demo {
+22 |     #[koruma(NonCloneValidation)]
+   |              ^^^^^^^^^^^^^^^^^^ the trait `koruma::__private::CapturedInputCanBeCloned` is not implemented for `NonClone`
+   |
+   = note: required for `NonClone` to implement `koruma::__private::CapturedInputCanBeCloned`
+note: required for `NonCloneValidationBuilder<non_clone_validation_builder::Empty>` to implement `koruma::__private::CaptureValueRef<NonClone>`
+  --> tests/ui/non_clone_capture.rs:7:1
+   |
+ 7 | #[validator]
+   | ^^^^^^^^^^^^
+   = note: this error originates in the attribute macro `validator` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider borrowing here
+   |
+22 |     #[koruma(&NonCloneValidation)]
+   |              +

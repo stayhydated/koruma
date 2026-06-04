@@ -108,19 +108,27 @@ impl LabeledTags {
                 tag_prefix: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    PrefixValidation::<String>::prefix("tag:"),
-                    __item_value,
-                ),
-            );
-            if !<PrefixValidation<
-                String,
-            > as ::renamed_koruma::Validate<
-                String,
-            >>::validate(&validator, __item_value) {
-                element_error.tag_prefix = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = PrefixValidation::<String>::prefix("tag:");
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    String,
+                    PrefixValidation<String>,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<PrefixValidation<
+                    String,
+                > as ::renamed_koruma::Validate<
+                    String,
+                >>::validate(&validator, __item_value) {
+                    element_error.tag_prefix = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.tags.element_errors.push((idx, element_error));
@@ -136,3 +144,4 @@ impl ::renamed_koruma::ValidateExt for LabeledTags {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for LabeledTags {}

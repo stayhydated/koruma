@@ -6,6 +6,7 @@ use koruma_derive_core::{
     expr_as_simple_ident, option_inner_type, parse_struct_options,
     substitute_infer_type_from_source,
 };
+use proc_macro2::Span;
 use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned};
 
@@ -651,6 +652,7 @@ pub(crate) struct FieldSource {
     pub member: Member,
     pub ty: Type,
     pub index: usize,
+    pub marker_span: Option<Span>,
 }
 
 #[derive(Clone, Debug)]
@@ -748,6 +750,7 @@ impl FieldPlan {
                 member: field.member().clone(),
                 ty: field.ty().clone(),
                 index: field.index(),
+                marker_span: field.marker_span(),
             },
             generated_names,
             shape,
@@ -951,6 +954,7 @@ impl CollectionShape {
 pub(crate) struct PlannedValidator {
     pub attr: ValidatorAttr,
     pub label: Option<ValidatorLabel>,
+    pub source_span: Span,
     pub doc_name: String,
     pub target: ValidationTarget,
     pub resolved_type_arg: PlannedValidatorTypeArg,
@@ -1032,6 +1036,7 @@ impl PlannedValidator {
         Ok(Self {
             attr: validator.clone(),
             label: validator_use.label().cloned(),
+            source_span: validator_use.source_span(),
             doc_name: name_plan.doc_name.clone(),
             target,
             resolved_type_arg,

@@ -136,6 +136,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
             }
         }
 
+        impl #impl_generics #koruma::__private::KorumaWasDerived for #struct_name #ty_generics #where_clause {}
+
         #newtype_marker_impl
 
         #try_from_impl

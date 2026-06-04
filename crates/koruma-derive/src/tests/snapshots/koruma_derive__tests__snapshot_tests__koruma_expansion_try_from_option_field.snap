@@ -106,19 +106,32 @@ impl OptionalWrapper {
             },
         };
         let mut has_error = false;
-        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                RequiredValidation::<Option<InnerValue>>::__koruma_builder(),
-                &self.inner,
-            ),
-        );
-        if !<RequiredValidation<
-            Option<InnerValue>,
-        > as ::renamed_koruma::Validate<
-            Option<InnerValue>,
-        >>::validate(&validator, &self.inner) {
-            error.inner.required_validation = Some(validator);
-            has_error = true;
+        {
+            ::renamed_koruma::__private::assert_newtype_validation::<InnerValue>();
+        }
+        {
+            let __koruma_builder = RequiredValidation::<
+                Option<InnerValue>,
+            >::__koruma_builder();
+            ::renamed_koruma::__private::assert_validator_ready::<
+                _,
+                Option<InnerValue>,
+                RequiredValidation<Option<InnerValue>>,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    &self.inner,
+                ),
+            );
+            if !<RequiredValidation<
+                Option<InnerValue>,
+            > as ::renamed_koruma::Validate<
+                Option<InnerValue>,
+            >>::validate(&validator, &self.inner) {
+                error.inner.required_validation = Some(validator);
+                has_error = true;
+            }
         }
         if let Some(ref __newtype_value) = self.inner {
             if let Err(newtype_err) = __newtype_value.validate() {
@@ -135,6 +148,7 @@ impl ::renamed_koruma::ValidateExt for OptionalWrapper {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for OptionalWrapper {}
 impl ::renamed_koruma::NewtypeValidation for OptionalWrapper {}
 impl TryFrom<Option<InnerValue>> for OptionalWrapper {
     type Error = OptionalWrapperKorumaValidationError;

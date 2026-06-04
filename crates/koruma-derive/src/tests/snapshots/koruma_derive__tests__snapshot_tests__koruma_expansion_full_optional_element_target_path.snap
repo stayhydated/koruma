@@ -116,17 +116,29 @@ impl OptionalElementPresence {
                 required_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    RequiredValidation::<Option<i32>>::__koruma_builder(),
-                    item,
-                ),
-            );
-            if !<RequiredValidation<
-                Option<i32>,
-            > as ::renamed_koruma::Validate<Option<i32>>>::validate(&validator, item) {
-                element_error.required_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = RequiredValidation::<
+                    Option<i32>,
+                >::__koruma_builder();
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    Option<i32>,
+                    RequiredValidation<Option<i32>>,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        item,
+                    ),
+                );
+                if !<RequiredValidation<
+                    Option<i32>,
+                > as ::renamed_koruma::Validate<
+                    Option<i32>,
+                >>::validate(&validator, item) {
+                    element_error.required_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if let Some(__item_value) = item {}
             if element_has_error {
@@ -143,3 +155,4 @@ impl ::renamed_koruma::ValidateExt for OptionalElementPresence {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for OptionalElementPresence {}

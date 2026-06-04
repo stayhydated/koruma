@@ -106,17 +106,27 @@ impl Scores {
                 range_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    RangeValidation::<i32>::min(0).max(100),
-                    __item_value,
-                ),
-            );
-            if !<RangeValidation<
-                i32,
-            > as ::renamed_koruma::Validate<i32>>::validate(&validator, __item_value) {
-                element_error.range_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = RangeValidation::<i32>::min(0).max(100);
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    i32,
+                    RangeValidation<i32>,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<RangeValidation<
+                    i32,
+                > as ::renamed_koruma::Validate<
+                    i32,
+                >>::validate(&validator, __item_value) {
+                    element_error.range_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.values.element_errors.push((idx, element_error));
@@ -132,3 +142,4 @@ impl ::renamed_koruma::ValidateExt for Scores {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Scores {}

@@ -1,0 +1,32 @@
+error[E0425]: cannot find type `ItemValueKorumaValidatorRef` in this scope
+  --> tests/ui/display_without_koruma.rs:24:10
+   |
+24 | #[derive(KorumaAllDisplay)]
+   |          ^^^^^^^^^^^^^^^^ not found in this scope
+   |
+   = note: this error originates in the derive macro `KorumaAllDisplay` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Item: koruma::__private::KorumaWasDerived` is not satisfied
+  --> tests/ui/display_without_koruma.rs:25:8
+   |
+25 | struct Item {
+   |        ^^^^ unsatisfied trait bound
+   |
+help: the trait `koruma::__private::KorumaWasDerived` is not implemented for `Item`
+  --> tests/ui/display_without_koruma.rs:25:1
+   |
+25 | struct Item {
+   | ^^^^^^^^^^^
+note: required by a bound in `koruma::__private::KorumaAllDisplayRequiresKoruma`
+  --> $WORKSPACE/crates/koruma-core/src/lib.rs
+   |
+   |     pub trait KorumaAllDisplayRequiresKoruma: KorumaWasDerived {}
+   |                                               ^^^^^^^^^^^^^^^^ required by this bound in `KorumaAllDisplayRequiresKoruma`
+
+error[E0433]: cannot find type `ItemValueKorumaValidatorRef` in this scope
+  --> tests/ui/display_without_koruma.rs:24:10
+   |
+24 | #[derive(KorumaAllDisplay)]
+   |          ^^^^^^^^^^^^^^^^ use of undeclared type `ItemValueKorumaValidatorRef`
+   |
+   = note: this error originates in the derive macro `KorumaAllDisplay` (in Nightly builds, run with -Z macro-backtrace for more info)

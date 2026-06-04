@@ -222,34 +222,50 @@ impl ComplexItem {
         };
         let mut has_error = false;
         let __field_value = &self.age;
-        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                RangeValidation::min(0).max(100),
-                __field_value,
-            ),
-        );
-        if !<RangeValidation as ::renamed_koruma::Validate<
-            i32,
-        >>::validate(&validator, __field_value) {
-            error.age.range_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = RangeValidation::min(0).max(100);
+            ::renamed_koruma::__private::assert_validator_ready::<
+                _,
+                i32,
+                RangeValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<RangeValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.age.range_validation = Some(validator);
+                has_error = true;
+            }
         }
         for (idx, __item_value) in self.tags.iter().enumerate() {
             let mut element_error = ComplexItemTagsElementKorumaValidationError {
                 length_validation: None,
             };
             let mut element_has_error = false;
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                    LengthValidation::min(1).max(50),
-                    __item_value,
-                ),
-            );
-            if !<LengthValidation as ::renamed_koruma::Validate<
-                String,
-            >>::validate(&validator, __item_value) {
-                element_error.length_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = LengthValidation::min(1).max(50);
+                ::renamed_koruma::__private::assert_validator_ready::<
+                    _,
+                    String,
+                    LengthValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<LengthValidation as ::renamed_koruma::Validate<
+                    String,
+                >>::validate(&validator, __item_value) {
+                    element_error.length_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.tags.element_errors.push((idx, element_error));
@@ -257,29 +273,45 @@ impl ComplexItem {
             }
         }
         let __field_value = &self.rating;
-        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                RangeValidation::min(0).max(10),
-                __field_value,
-            ),
-        );
-        if !<RangeValidation as ::renamed_koruma::Validate<
-            i32,
-        >>::validate(&validator, __field_value) {
-            error.rating.range_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = RangeValidation::min(0).max(10);
+            ::renamed_koruma::__private::assert_validator_ready::<
+                _,
+                i32,
+                RangeValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<RangeValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.rating.range_validation = Some(validator);
+                has_error = true;
+            }
         }
-        let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-            ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
-                EvenValidation::__koruma_builder(),
-                __field_value,
-            ),
-        );
-        if !<EvenValidation as ::renamed_koruma::Validate<
-            i32,
-        >>::validate(&validator, __field_value) {
-            error.rating.even_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = EvenValidation::__koruma_builder();
+            ::renamed_koruma::__private::assert_validator_ready::<
+                _,
+                i32,
+                EvenValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<EvenValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.rating.even_validation = Some(validator);
+                has_error = true;
+            }
         }
         if has_error { Err(error) } else { Ok(()) }
     }
@@ -290,3 +322,4 @@ impl ::renamed_koruma::ValidateExt for ComplexItem {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for ComplexItem {}

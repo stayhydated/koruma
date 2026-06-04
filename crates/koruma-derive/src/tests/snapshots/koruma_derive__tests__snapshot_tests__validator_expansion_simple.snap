@@ -121,7 +121,7 @@ impl<
 > ::renamed_koruma::__private::CaptureValueRef<i32>
 for NumberRangeValidationBuilder<__KorumaMinState, __KorumaMaxState, __KorumaActualState>
 where
-    i32: ::std::clone::Clone,
+    i32: ::renamed_koruma::__private::CapturedInputCanBeCloned,
     NumberRangeValidationBuilder<
         __KorumaMinState,
         __KorumaMaxState,

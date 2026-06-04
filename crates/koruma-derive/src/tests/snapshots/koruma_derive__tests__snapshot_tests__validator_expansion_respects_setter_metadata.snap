@@ -245,7 +245,7 @@ for SetterMetadataValidationBuilder<
     __KorumaActualState,
 >
 where
-    T: ::std::clone::Clone,
+    T: ::renamed_koruma::__private::CapturedInputCanBeCloned,
     SetterMetadataValidationBuilder<
         T,
         __KorumaTitleState,

@@ -5,7 +5,7 @@ use crate::expand::plan::{
     PlannedValidator, TargetBorrow, ValidationPlan, ValidationRenderPlan, ValidationTarget,
 };
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use quote::{quote, quote_spanned};
 use syn::Ident;
 
 pub(crate) struct ValidationCheck<'a> {
@@ -45,18 +45,29 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
         },
     };
 
-    quote! {
-        let validator = #koruma::__private::BuildValidator::build_validator(
-            #koruma::__private::CaptureValueRef::capture_value_ref(
-                #builder_expr,
+    let source_span = validator.source_span;
+
+    quote_spanned! {source_span=>
+        {
+            let __koruma_builder = #builder_expr;
+            #koruma::__private::assert_validator_ready::<
+                _,
+                #validation_target_ty,
+                #validator_ty,
+            >(&__koruma_builder);
+
+            let validator = #koruma::__private::BuildValidator::build_validator(
+                #koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    #target_ref,
+                )
+            );
+            if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
+                &validator,
                 #target_ref,
-            )
-        );
-        if !<#validator_ty as #koruma::Validate<#validation_target_ty>>::validate(
-            &validator,
-            #target_ref,
-        ) {
-            #error_assignment
+            ) {
+                #error_assignment
+            }
         }
     }
 }
@@ -88,10 +99,10 @@ fn render_validation_operation(
 ) -> TokenStream2 {
     match operation {
         PlannedValidationOperation::NestedRequired(operation) => {
-            render_nested_required_validation(operation)
+            render_nested_required_validation(operation, koruma)
         },
         PlannedValidationOperation::NestedOptional(operation) => {
-            render_nested_optional_validation(operation)
+            render_nested_optional_validation(operation, koruma)
         },
         PlannedValidationOperation::NewtypeRequired(operation) => {
             render_newtype_required_validation(operation, koruma)
@@ -108,13 +119,44 @@ fn render_validation_operation(
     }
 }
 
-fn render_nested_required_validation(operation: &PlannedNestedValidation<'_>) -> TokenStream2 {
+fn render_nested_assertion(field_plan: &FieldPlan, koruma: &TokenStream2) -> TokenStream2 {
+    let span = field_plan
+        .source
+        .marker_span
+        .unwrap_or_else(|| field_plan.name.span());
+    let inner_ty = field_plan.inner_type();
+    quote_spanned! {span=>
+        {
+            #koruma::__private::assert_validate_ext::<#inner_ty>();
+        }
+    }
+}
+
+fn render_newtype_assertion(field_plan: &FieldPlan, koruma: &TokenStream2) -> TokenStream2 {
+    let span = field_plan
+        .source
+        .marker_span
+        .unwrap_or_else(|| field_plan.name.span());
+    let inner_ty = field_plan.inner_type();
+    quote_spanned! {span=>
+        {
+            #koruma::__private::assert_newtype_validation::<#inner_ty>();
+        }
+    }
+}
+
+fn render_nested_required_validation(
+    operation: &PlannedNestedValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
+    let nested_assertion = render_nested_assertion(field_plan, koruma);
 
     if operation.direct_storage {
         quote! {
+            #nested_assertion
             if let Err(nested_err) = self.#field_member.validate() {
                 error.#field_name = nested_err;
                 has_error = true;
@@ -122,6 +164,7 @@ fn render_nested_required_validation(operation: &PlannedNestedValidation<'_>) ->
         }
     } else {
         quote! {
+            #nested_assertion
             if let Err(nested_err) = self.#field_member.validate() {
                 error.#field_name = Some(nested_err);
                 has_error = true;
@@ -130,12 +173,17 @@ fn render_nested_required_validation(operation: &PlannedNestedValidation<'_>) ->
     }
 }
 
-fn render_nested_optional_validation(operation: &PlannedNestedValidation<'_>) -> TokenStream2 {
+fn render_nested_optional_validation(
+    operation: &PlannedNestedValidation<'_>,
+    koruma: &TokenStream2,
+) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
+    let nested_assertion = render_nested_assertion(field_plan, koruma);
 
     quote! {
+        #nested_assertion
         if let Some(ref __nested_value) = self.#field_member {
             if let Err(nested_err) = __nested_value.validate() {
                 error.#field_name = Some(nested_err);
@@ -153,6 +201,7 @@ fn render_newtype_required_validation(
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
     let set_inner_error = quote! { error.#field_name.inner = newtype_err; };
+    let newtype_assertion = render_newtype_assertion(field_plan, koruma);
 
     if operation.field_validators.has_any() {
         let full_type_checks = render_field_validator_checks(
@@ -176,6 +225,7 @@ fn render_newtype_required_validation(
         };
 
         return quote! {
+            #newtype_assertion
             #(#full_type_checks)*
             let __newtype_value = &self.#field_member;
             #inner_validation
@@ -183,6 +233,7 @@ fn render_newtype_required_validation(
     }
 
     quote! {
+        #newtype_assertion
         if let Err(newtype_err) = self.#field_member.validate() {
             #set_inner_error
             has_error = true;
@@ -198,6 +249,7 @@ fn render_newtype_optional_validation(
     let field_name = &field_plan.name;
     let field_member = &field_plan.source.member;
     let set_inner_error = quote! { error.#field_name.inner = Some(newtype_err); };
+    let newtype_assertion = render_newtype_assertion(field_plan, koruma);
 
     if operation.field_validators.has_any() {
         let full_type_checks = render_field_validator_checks(
@@ -214,6 +266,7 @@ fn render_newtype_optional_validation(
         );
 
         return quote! {
+            #newtype_assertion
             #(#full_type_checks)*
             if let Some(ref __newtype_value) = self.#field_member {
                 #(#unwrapped_checks)*
@@ -226,6 +279,7 @@ fn render_newtype_optional_validation(
     }
 
     quote! {
+        #newtype_assertion
         if let Some(ref __newtype_value) = self.#field_member {
             if let Err(newtype_err) = __newtype_value.validate() {
                 #set_inner_error

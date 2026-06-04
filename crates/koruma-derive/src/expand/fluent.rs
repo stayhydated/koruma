@@ -1,6 +1,6 @@
 use koruma_derive_core::is_option_type;
 use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use quote::{quote, quote_spanned};
 
 use crate::expand::codegen::{helper_generics_for_usages, ref_enum_generics_for_usages};
 use crate::expand::derive_shared::field_error_type;
@@ -42,10 +42,18 @@ fn main_error_storage_type(
 /// Each variant delegates to its inner validator's `FluentMessage` implementation.
 #[cfg(feature = "fluent")]
 pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
+    let struct_name = &input.ident;
     let generics = &input.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let koruma = koruma_crate_path();
 
     let plan = ValidationPlan::build(&input, "KorumaAllFluent")?;
+    let requires_koruma_impl = quote! {
+        impl #impl_generics #koruma::__private::KorumaAllFluentRequiresKoruma
+            for #struct_name #ty_generics #where_clause
+        {
+        }
+    };
 
     // Generate FluentMessage impls for each field's validator enum
     let fluent_impls: Vec<TokenStream2> = plan
@@ -59,10 +67,28 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .iter()
                 .map(|planned| planned.validator_type.as_type())
                 .collect();
+            let mut fluent_assertions: Vec<TokenStream2> = field_plan
+                .field_validators()
+                .iter()
+                .map(|planned| {
+                    let span = planned.source_span;
+                    let validator_ty = planned.validator_type.as_type();
+                    quote_spanned! {span=>
+                        #koruma::__private::assert_fluent_message::<#validator_ty>();
+                    }
+                })
+                .collect();
             if field_plan.is_newtype() {
                 let inner_ty = field_plan.inner_type();
                 helper_usages
                     .push(syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error });
+                let span = field_plan
+                    .source
+                    .marker_span
+                    .unwrap_or_else(|| field_plan.name.span());
+                fluent_assertions.push(quote_spanned! {span=>
+                    #koruma::__private::assert_fluent_message::<<#inner_ty as #koruma::ValidateExt>::Error>();
+                });
             }
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
             let mut fluent_generics = helper_generics.definition.clone();
@@ -104,6 +130,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                             Option<&::es_fluent::FluentArgs<'a>>,
                         ) -> String,
                     ) -> String {
+                        #(#fluent_assertions)*
+
                         match self {
                             #(#match_arms,)*
                             #inner_arm
@@ -125,6 +153,17 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .element_validators()
                 .iter()
                 .map(|planned| planned.validator_type.as_type())
+                .collect();
+            let fluent_assertions: Vec<TokenStream2> = field_plan
+                .element_validators()
+                .iter()
+                .map(|planned| {
+                    let span = planned.source_span;
+                    let validator_ty = planned.validator_type.as_type();
+                    quote_spanned! {span=>
+                        #koruma::__private::assert_fluent_message::<#validator_ty>();
+                    }
+                })
                 .collect();
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
             let mut fluent_generics = helper_generics.definition.clone();
@@ -155,6 +194,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                             Option<&::es_fluent::FluentArgs<'a>>,
                         ) -> String,
                     ) -> String {
+                        #(#fluent_assertions)*
+
                         match self {
                             #(#match_arms),*
                         }
@@ -177,10 +218,28 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 .iter()
                 .map(|planned| planned.validator_type.as_type())
                 .collect();
+            let mut fluent_assertions: Vec<TokenStream2> = field_plan
+                .field_validators()
+                .iter()
+                .map(|planned| {
+                    let span = planned.source_span;
+                    let validator_ty = planned.validator_type.as_type();
+                    quote_spanned! {span=>
+                        #koruma::__private::assert_fluent_message::<#validator_ty>();
+                    }
+                })
+                .collect();
             if field_plan.is_newtype() {
                 let inner_ty = field_plan.inner_type();
                 helper_usages
                     .push(syn::parse_quote! { <#inner_ty as #koruma::ValidateExt>::Error });
+                let span = field_plan
+                    .source
+                    .marker_span
+                    .unwrap_or_else(|| field_plan.name.span());
+                fluent_assertions.push(quote_spanned! {span=>
+                    #koruma::__private::assert_fluent_message::<<#inner_ty as #koruma::ValidateExt>::Error>();
+                });
             }
             let helper_generics = helper_generics_for_usages(generics, &helper_usages);
             let mut fluent_generics = helper_generics.definition.clone();
@@ -239,6 +298,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                             Option<&::es_fluent::FluentArgs<'a>>,
                         ) -> String,
                     ) -> String {
+                        #(#fluent_assertions)*
                         #fluent_message_import
 
                         let mut messages = Vec::new();
@@ -259,6 +319,15 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             .fields
             .iter()
             .map(|field| main_error_storage_type(field, generics, &koruma))
+            .collect();
+        let main_error_assertions: Vec<TokenStream2> = main_error_usages
+            .iter()
+            .map(|usage| {
+                let span = struct_name.span();
+                quote_spanned! {span=>
+                    #koruma::__private::assert_fluent_message::<#usage>();
+                }
+            })
             .collect();
         let main_error_generics = helper_generics_for_usages(generics, &main_error_usages);
         let mut main_error_fluent_generics = main_error_generics.definition.clone();
@@ -308,7 +377,9 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                         ::es_fluent::registry::StaticFluentEntryId,
                         Option<&::es_fluent::FluentArgs<'a>>,
                     ) -> String,
-                ) -> String {
+                    ) -> String {
+                    #(#main_error_assertions)*
+
                     let mut messages = Vec::new();
                     #(#main_error_pushes)*
                     messages.join("\n")
@@ -318,6 +389,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
     };
 
     Ok(quote! {
+        #requires_koruma_impl
         #(#fluent_impls)*
         #(#element_fluent_impls)*
         #(#error_struct_impls)*

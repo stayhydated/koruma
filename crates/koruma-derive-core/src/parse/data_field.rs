@@ -784,6 +784,15 @@ impl FieldInfo {
         matches!(self.validation, ParsedFieldSpec::Newtype { .. })
     }
 
+    pub fn marker_span(&self) -> Option<proc_macro2::Span> {
+        match &self.validation {
+            ParsedFieldSpec::Nested { marker } | ParsedFieldSpec::Newtype { marker, .. } => {
+                Some(marker.span())
+            },
+            ParsedFieldSpec::Regular { .. } => None,
+        }
+    }
+
     /// Returns an iterator over all validator names on this field.
     pub fn validator_names(&self) -> impl Iterator<Item = &Ident> {
         self.field_validators()

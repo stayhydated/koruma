@@ -17,11 +17,19 @@ pub fn mark_generated_route_cache(public_dir: impl AsRef<Path>) -> std::io::Resu
     site::routing::mark_generated_route_cache(public_dir.as_ref())
 }
 
+pub fn route_cache() -> stayhydated_site::RouteCacheHooks {
+    stayhydated_site::RouteCacheHooks::new(
+        |public_dir| cleanup_generated_route_cache(public_dir),
+        |public_dir| mark_generated_route_cache(public_dir),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use crate::site::i18n::SiteLanguage;
-    use crate::site::routing::{PageKind, page_href, site_route_from_path_with_base_path};
-    use es_fluent_manager_dioxus::ManagedI18n;
+    use crate::site::routing::{
+        PageKind, SiteRoute, page_href, site_route_from_path, site_route_from_path_with_base_path,
+    };
     use std::fs;
 
     #[test]
@@ -39,19 +47,19 @@ mod tests {
     fn parses_site_routes_with_base_path() {
         assert_eq!(
             site_route_from_path_with_base_path("/koruma/demos/", Some("koruma")),
-            PageKind::Demos
+            SiteRoute::new(PageKind::Demos)
         );
         assert_eq!(
             site_route_from_path_with_base_path("/koruma/demos/koruma-collection/", Some("koruma")),
-            PageKind::CollectionDioxus
+            SiteRoute::new(PageKind::CollectionDioxus)
         );
         assert_eq!(
             site_route_from_path_with_base_path("/koruma/demos/sales-form/", Some("koruma")),
-            PageKind::SalesForm
+            SiteRoute::new(PageKind::SalesForm)
         );
         assert_eq!(
-            site_route_from_path_with_base_path("/unknown", None),
-            PageKind::Home
+            site_route_from_path("/unknown"),
+            SiteRoute::new(PageKind::Home)
         );
     }
 
@@ -83,10 +91,13 @@ mod tests {
 
         let selected = SiteLanguage::default().lang();
         let selected = selected.clone();
-        let init = ManagedI18n::new_with_discovered_modules(selected);
+        let init = es_fluent_manager_dioxus::ssr::SsrI18nRuntime::new(
+            crate::site::i18n::dioxus_i18n_asset_modules(),
+        )
+        .request_blocking(selected);
         match init {
-            Ok(_) => println!("managed init ok"),
-            Err(error) => panic!("managed init failed: {error}"),
+            Ok(_) => println!("asset i18n init ok"),
+            Err(error) => panic!("asset i18n init failed: {error}"),
         }
     }
 

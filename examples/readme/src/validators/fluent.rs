@@ -9,7 +9,7 @@ pub struct IsEvenNumberValidation<
     T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
 > {
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
 
@@ -42,7 +42,7 @@ impl Validate<String> for NonEmptyStringValidation {
 #[derive(Clone, Debug, EsFluent)]
 pub struct PositiveNumberValidation<T: Clone + Copy + std::fmt::Display + PartialOrd + Default> {
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
 
@@ -60,7 +60,7 @@ pub struct Only67Validation<
     T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
 > {
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
 

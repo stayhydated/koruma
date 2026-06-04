@@ -2,7 +2,7 @@ use crate::components::{ContributePanel, FeatureCard, FooterPanel, PageHeader, P
 use crate::site::i18n::HomeMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::use_i18n;
+use es_fluent_manager_dioxus::use_asset_i18n;
 
 #[component]
 pub(crate) fn HomePage() -> Element {
@@ -11,7 +11,7 @@ pub(crate) fn HomePage() -> Element {
     let first_card_style = crate::components::use_reveal_style(160, 16.0);
     let second_card_style = crate::components::use_reveal_style(230, 16.0);
     let third_card_style = crate::components::use_reveal_style(300, 16.0);
-    let i18n = match use_i18n() {
+    let i18n = match use_asset_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -69,7 +69,7 @@ pub(crate) fn HomePage() -> Element {
             PageHeader { current_page: PageKind::Home }
             main { class: "stack",
                 section { class: "hero motion-reveal",
-                    style: hero_style,
+                    style: hero_style.as_str(),
                     div { class: "hero-copy",
                         div { class: "eyebrow", "{eyebrow}" }
                         h1 { "{title}" }
@@ -77,7 +77,7 @@ pub(crate) fn HomePage() -> Element {
                         div { class: "hero-actions",
                             a {
                                 class: "button-link primary",
-                                href: crate::site::routing::book_href(),
+                                href: crate::site::routing::book_href().as_str(),
                                 "{primary_action}"
                             }
                             PageLink {
@@ -107,7 +107,7 @@ pub(crate) fn HomePage() -> Element {
                 }
 
                 section { class: "section-band motion-reveal",
-                    style: surface_style,
+                    style: surface_style.as_str(),
                     div { class: "section-heading",
                         span { class: "panel-label", "{surface_panel_label}" }
                         h2 { "{surface_title}" }

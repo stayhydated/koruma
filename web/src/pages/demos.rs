@@ -2,12 +2,12 @@ use crate::components::{FooterPanel, PageCardLink, PageHeader};
 use crate::site::i18n::DemosPageMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::use_i18n;
+use es_fluent_manager_dioxus::use_asset_i18n;
 
 #[component]
 pub(crate) fn DemosPage() -> Element {
     let demos_style = crate::components::use_reveal_style(0, 24.0);
-    let i18n = match use_i18n() {
+    let i18n = match use_asset_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -43,7 +43,7 @@ pub(crate) fn DemosPage() -> Element {
             PageHeader { current_page: PageKind::Demos }
             main { class: "stack",
                 section { class: "grid columns-2 motion-reveal",
-                    style: demos_style,
+                    style: demos_style.as_str(),
                     PageCardLink {
                         page: PageKind::CollectionDioxus,
                         label: dioxus_label,

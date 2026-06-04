@@ -7,7 +7,7 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
-es-fluent = { features = [ "derive" ], workspace = true }
+es-fluent = { workspace = true }
 es-fluent-lang = { workspace = true }
 strum = { features = [ "derive" ], workspace = true }
 

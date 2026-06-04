@@ -176,11 +176,12 @@ mod tests {
             {
                 assert!(!validator.fluent_string().is_empty());
 
-                let mut localize = |namespace: &str,
-                                    id: &str,
-                                    _args: Option<
-                    &std::collections::HashMap<&str, es_fluent::FluentValue<'_>>,
-                >| { format!("{namespace}:{id}") };
+                let mut localize =
+                    |domain: es_fluent::registry::StaticFluentDomain,
+                     id: es_fluent::registry::StaticFluentEntryId,
+                     _args: Option<&es_fluent::FluentArgs<'_>>| {
+                        format!("{}:{}", domain.as_str(), id.as_str())
+                    };
                 assert!(validator.fluent_string_with(&mut localize).contains(':'));
             }
         }

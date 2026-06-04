@@ -244,12 +244,34 @@ if let Err(errors) = item.validate() {
 `all()` borrows the stored failed validators, so inspection does not require
 validator types to implement `Clone`.
 
+### Generated Validation Surface For UI Code
+
+Derived error structs expose stable borrowed accessors intended for UI
+generators:
+
+- `errors.field()` returns the generated field error container.
+- `errors.field().validator_name()` returns `Option<&Validator>` for a direct
+  field validator.
+- `errors.field().element_errors()` returns indexed element errors for
+  `each(...)` validation.
+- nested fields use the nested type's generated error container, and newtype
+  validation exposes the inner field error through the generated newtype error.
+- `errors.field().all()` returns borrowed `*ValidatorRef<'_>` enum values for
+  that field, while `errors.all()` returns borrowed top-level validator refs
+  when `KorumaAllDisplay` or `KorumaAllFluent` is derived.
+
+For display-based UI, derive `KorumaAllDisplay` and make every stored validator
+implement `Display`. For localized UI, derive `KorumaAllFluent` and make every
+stored validator implement `es_fluent::FluentMessage`, usually with
+`#[derive(es_fluent::EsFluent)]`. Both paths preserve borrowed validator refs,
+so generated UIs can render errors without cloning validator state.
+
 ### 4. Iterate failed validators with localized messages (`KorumaAllFluent`)
 
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
-es-fluent = { version = "*", features = ["derive"] }
+es-fluent = "0.16"
 ```
 
 This setup assumes:
@@ -274,7 +296,7 @@ pub struct IsEvenNumberValidation<
     T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
 > {
     #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
 

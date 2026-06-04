@@ -7,7 +7,7 @@ use dioxus_free_icons::{
     icons::ld_icons::{LdClipboardCheck, LdRotateCcw, LdSend, LdTriangleAlert},
 };
 use dioxus_primitives::label::Label;
-use es_fluent_manager_dioxus::use_i18n;
+use es_fluent_manager_dioxus::use_asset_i18n;
 use koruma::{Koruma, KorumaAllDisplay};
 use koruma_collection::{collection, format, general, numeric};
 
@@ -218,7 +218,7 @@ impl FieldStatus {
 
 #[component]
 pub(crate) fn SalesFormPage() -> Element {
-    let i18n = match use_i18n() {
+    let i18n = match use_asset_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -265,7 +265,7 @@ pub(crate) fn SalesFormPage() -> Element {
             PageHeader { current_page: PageKind::SalesForm }
             main { class: "stack",
                 section { class: "page-title-band motion-reveal",
-                    style: title_style,
+                    style: title_style.as_str(),
                     span { class: "panel-label",
                         "{i18n.localize_message(&SalesFormMessage::PanelLabel)}"
                     }
@@ -273,7 +273,7 @@ pub(crate) fn SalesFormPage() -> Element {
                     p { "{i18n.localize_message(&SalesFormMessage::IntroBody)}" }
                 }
                 section { class: "sales-demo-shell motion-reveal",
-                    style: demo_style,
+                    style: demo_style.as_str(),
                     div { class: "sales-form-panel",
                         div { class: "sales-action-row",
                             button {

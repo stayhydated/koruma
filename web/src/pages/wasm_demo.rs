@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use dioxus::events::FormData;
 use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
-use es_fluent::{FluentLocalizer as _, FluentValue};
-use es_fluent_manager_dioxus::{DioxusI18n, use_i18n};
+use es_fluent::registry::{StaticFluentDomain, StaticFluentEntryId};
+use es_fluent::{FluentArgs, FluentLocalizer as _};
+use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_asset_i18n};
 use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
-use stayhydated_dioxus::{TabContent, TabList, TabTrigger, Tabs};
+use stayhydated_dioxus::{TabContent, TabList, TabTrigger, Tabs, TabsOrientation};
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::site::i18n::DioxusShowcaseMessage;
@@ -45,7 +46,7 @@ impl ValidatorState {
         }
     }
 
-    fn message_heading(self, i18n: &DioxusI18n) -> String {
+    fn message_heading(self, i18n: &DioxusAssetI18nHandle) -> String {
         match self {
             Self::Valid | Self::Invalid => {
                 i18n.localize_message(&DioxusShowcaseMessage::MessageHeadingResult)
@@ -57,7 +58,7 @@ impl ValidatorState {
 
 #[component]
 pub(crate) fn CollectionDioxusPage() -> Element {
-    let i18n = match use_i18n() {
+    let i18n = match use_asset_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -85,7 +86,7 @@ pub(crate) fn CollectionDioxusPage() -> Element {
 fn CollectionDioxusShowcase() -> Element {
     let title_style = crate::components::use_reveal_style(0, 24.0);
     let showcase_style = crate::components::use_reveal_style(90, 18.0);
-    let i18n = match use_i18n() {
+    let i18n = match use_asset_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -126,16 +127,16 @@ fn CollectionDioxusShowcase() -> Element {
             PageHeader { current_page: PageKind::CollectionDioxus }
             main { class: "stack",
                 section { class: "page-title-band motion-reveal",
-                    style: title_style,
+                    style: title_style.as_str(),
                     span { class: "panel-label", "{panel_label}" }
                     h1 { "{page_title}" }
                     p { "{page_intro_body}" }
                 }
                 section { class: "section-band motion-reveal",
-                    style: showcase_style,
+                    style: showcase_style.as_str(),
                     Tabs {
                         default_value: default_module.to_string(),
-                        horizontal: true,
+                        orientation: TabsOrientation::Horizontal,
                         TabList {
                                 for (index, module) in available_modules.iter().enumerate() {
                                     TabTrigger {
@@ -166,21 +167,25 @@ fn CollectionDioxusShowcase() -> Element {
                                                 Ok(_) => ValidatorState::Invalid,
                                                 Err(_) => ValidatorState::Error,
                                             };
-                                            let mut localize =
-                                                |domain: &str, id: &str, args: Option<&HashMap<&str, FluentValue<'_>>>| {
-                                                    localize_with_args(&i18n, domain, id, args)
-                                                };
                                             let message_heading = current_state.message_heading(&i18n);
                                             let (display_msg, fluent_msg, error_msg) =
                                                 match current_validator {
                                                     Ok(v) if v.is_valid() => (
                                                         v.display_string(),
-                                                        v.fluent_string_with(&mut localize),
+                                                        v.fluent_string_with(&mut |domain, id, args| {
+                                                            localize_with_args(
+                                                                &i18n, domain, id, args,
+                                                            )
+                                                        }),
                                                         None,
                                                     ),
                                                     Ok(v) => (
                                                         v.display_string(),
-                                                        v.fluent_string_with(&mut localize),
+                                                        v.fluent_string_with(&mut |domain, id, args| {
+                                                            localize_with_args(
+                                                                &i18n, domain, id, args,
+                                                            )
+                                                        }),
                                                         None,
                                                     ),
                                                     Err(error) => (
@@ -277,13 +282,13 @@ fn validator_row(
 }
 
 fn localize_with_args<'a>(
-    i18n: &DioxusI18n,
-    domain: &str,
-    id: &str,
-    args: Option<&HashMap<&str, FluentValue<'a>>>,
+    i18n: &DioxusAssetI18nHandle,
+    domain: StaticFluentDomain,
+    id: StaticFluentEntryId,
+    args: Option<&FluentArgs<'a>>,
 ) -> String {
-    i18n.localize_in_domain(domain, id, args)
-        .unwrap_or(id.to_string())
+    i18n.localize_in_domain(domain.as_str(), id.as_str(), args.map(FluentArgs::as_raw))
+        .unwrap_or_else(|| id.as_str().to_string())
 }
 fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<ValidatorModule> {
     ValidatorModule::ALL
@@ -297,7 +302,7 @@ fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<Valid
         .collect()
 }
 
-fn module_name(module: ValidatorModule, i18n: &DioxusI18n) -> String {
+fn module_name(module: ValidatorModule, i18n: &DioxusAssetI18nHandle) -> String {
     match module {
         ValidatorModule::String => i18n.localize_message(&DioxusShowcaseMessage::ModuleString),
         ValidatorModule::Format => i18n.localize_message(&DioxusShowcaseMessage::ModuleFormat),

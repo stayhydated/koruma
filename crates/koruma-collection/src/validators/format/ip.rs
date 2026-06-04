@@ -3,7 +3,7 @@ use koruma::{Validate, validator};
 /// The type of IP address to validate
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluentChoice))]
-#[cfg_attr(feature = "fluent", fluent_choice(serialize_all = "snake_case"))]
+#[cfg_attr(feature = "fluent", fluent_choice(rename_all = "snake_case"))]
 pub enum IpKind {
     Any,
     V4,
@@ -53,7 +53,7 @@ impl std::fmt::Display for IpKind {
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct IpValidation<T: AsRef<str>> {
     /// The type of IP address to validate
-    #[cfg_attr(feature = "fluent", fluent(choice))]
+    #[cfg_attr(feature = "fluent", fluent(selector))]
     pub kind: IpKind,
     /// The string being validated.
     #[koruma(value(capture = skip))]

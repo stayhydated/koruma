@@ -86,9 +86,9 @@ pub mod showcase {
     /// Localizer callback used by showcased validators to render Fluent messages.
     #[cfg(feature = "fluent")]
     pub type FluentLocalizer<'localizer> = dyn for<'a> FnMut(
-            &str,
-            &str,
-            Option<&std::collections::HashMap<&str, ::es_fluent::FluentValue<'a>>>,
+            ::es_fluent::registry::StaticFluentDomain,
+            ::es_fluent::registry::StaticFluentEntryId,
+            Option<&::es_fluent::FluentArgs<'a>>,
         ) -> String
         + 'localizer;
 
@@ -117,7 +117,7 @@ pub mod showcase {
 
         #[cfg(feature = "fluent")]
         fn fluent_string(&self) -> String {
-            self.fluent_string_with(&mut |_, id, _| id.to_string())
+            self.fluent_string_with(&mut |_, id, _| id.as_str().to_string())
         }
 
         #[cfg(not(feature = "fluent"))]

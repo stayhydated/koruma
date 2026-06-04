@@ -2,7 +2,8 @@ use crate::pages;
 use crate::site::i18n::PageMetadataMessage;
 use dioxus::cli_config;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::{DioxusI18n, use_i18n};
+use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_asset_i18n};
+use stayhydated_site::routing::{BaseHref, BasePath, Href, OutputDir, RoutePath};
 use std::path::Path;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,7 +24,7 @@ impl PageKind {
         ]
     }
 
-    pub(crate) fn route(self) -> &'static str {
+    fn route(self) -> &'static str {
         match self {
             Self::Home => "",
             Self::Demos => "demos",
@@ -32,20 +33,11 @@ impl PageKind {
         }
     }
 
-    pub(crate) fn path(self) -> String {
-        let route = self.route();
-        if route.is_empty() {
-            "/".to_string()
-        } else {
-            format!("/{route}/")
-        }
+    pub(crate) fn path(self) -> RoutePath {
+        RoutePath::new(self.route())
     }
 
-    pub(crate) fn output_dir(self) -> &'static str {
-        self.route()
-    }
-
-    pub(crate) fn title_i18n(self, i18n: &DioxusI18n) -> String {
+    fn title_i18n(self, i18n: &DioxusAssetI18nHandle) -> String {
         match self {
             Self::Home => i18n.localize_message(&PageMetadataMessage::HomeTitle),
             Self::Demos => i18n.localize_message(&PageMetadataMessage::DemosTitle),
@@ -54,7 +46,7 @@ impl PageKind {
         }
     }
 
-    pub(crate) fn description_i18n(self, i18n: &DioxusI18n) -> String {
+    fn description_i18n(self, i18n: &DioxusAssetI18nHandle) -> String {
         match self {
             Self::Home => i18n.localize_message(&PageMetadataMessage::HomeDescription),
             Self::Demos => i18n.localize_message(&PageMetadataMessage::DemosDescription),
@@ -68,7 +60,30 @@ impl PageKind {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Routable)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct SiteRoute {
+    pub(crate) page: PageKind,
+}
+
+impl SiteRoute {
+    pub(crate) const fn new(page: PageKind) -> Self {
+        Self { page }
+    }
+
+    pub(crate) fn output_dir(self) -> OutputDir {
+        self.page.path().to_output_dir()
+    }
+
+    pub(crate) fn path(self) -> Href {
+        stayhydated_site::routing::href(&BaseHref::root(), &self.page.path())
+    }
+}
+
+pub(crate) fn all_routes() -> Vec<SiteRoute> {
+    PageKind::all().into_iter().map(SiteRoute::new).collect()
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Routable)]
 #[rustfmt::skip]
 pub(crate) enum AppRoute {
     #[route("/", HomeRoute)]
@@ -90,17 +105,18 @@ pub(crate) fn app_route(page: PageKind) -> AppRoute {
     }
 }
 
-pub(crate) fn app_base_href() -> String {
+pub(crate) fn app_base_href() -> BaseHref {
     let base_path = cli_config::base_path();
-    stayhydated_site::routing::base_href(base_path.as_deref())
+    let base_path = base_path.as_deref().map(BasePath::new);
+    stayhydated_site::routing::base_href(base_path.as_ref())
 }
 
-pub(crate) fn page_href(page: PageKind) -> String {
-    stayhydated_site::routing::href(&app_base_href(), page.route())
+pub(crate) fn page_href(page: PageKind) -> Href {
+    stayhydated_site::routing::href(&app_base_href(), &page.path())
 }
 
-pub(crate) fn book_href() -> String {
-    stayhydated_site::routing::href(&app_base_href(), "book")
+pub(crate) fn book_href() -> Href {
+    stayhydated_site::routing::href(&app_base_href(), &RoutePath::new("book"))
 }
 
 const GENERATED_ROUTE_CACHE_MARKER: &str = ".koruma-generated-route-cache";
@@ -114,12 +130,18 @@ pub(crate) fn mark_generated_route_cache(public_dir: &Path) -> std::io::Result<(
 }
 
 pub(crate) fn cleanup_generated_route_cache(public_dir: &Path) -> std::io::Result<()> {
-    let generated_top_level_dirs = PageKind::all().into_iter().filter_map(|page| {
-        page.output_dir()
-            .split('/')
-            .next()
-            .filter(|segment| !segment.is_empty())
-    });
+    let generated_top_level_dirs = all_routes()
+        .into_iter()
+        .filter_map(|route| {
+            route
+                .output_dir()
+                .as_str()
+                .split('/')
+                .next()
+                .filter(|segment| !segment.is_empty())
+                .map(str::to_string)
+        })
+        .collect::<Vec<_>>();
 
     stayhydated_site::route_cache::cleanup_generated_route_cache(
         public_dir,
@@ -130,14 +152,23 @@ pub(crate) fn cleanup_generated_route_cache(public_dir: &Path) -> std::io::Resul
 }
 
 #[cfg(test)]
-pub(crate) fn site_route_from_path_with_base_path(path: &str, base_path: Option<&str>) -> PageKind {
+pub(crate) fn site_route_from_path(path: &str) -> SiteRoute {
+    site_route_from_path_with_base_path(path, None)
+}
+
+#[cfg(test)]
+pub(crate) fn site_route_from_path_with_base_path(
+    path: &str,
+    base_path: Option<&str>,
+) -> SiteRoute {
     let segments = normalized_path_segments(path, base_path);
-    page_from_segments(&segments)
+    SiteRoute::new(page_from_segments(&segments))
 }
 
 #[cfg(test)]
 fn normalized_path_segments<'a>(path: &'a str, base_path: Option<&str>) -> Vec<&'a str> {
-    stayhydated_site::routing::normalized_path_segments(path, base_path)
+    let base_path = base_path.map(BasePath::new);
+    stayhydated_site::routing::normalized_path_segments(path, base_path.as_ref())
 }
 
 #[cfg(test)]
@@ -151,8 +182,8 @@ fn page_from_segments(segments: &[&str]) -> PageKind {
     }
 }
 
-fn route_element(page: PageKind) -> Element {
-    let i18n = match use_i18n() {
+fn route_element(route: SiteRoute) -> Element {
+    let i18n = match use_asset_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
@@ -162,13 +193,13 @@ fn route_element(page: PageKind) -> Element {
                     content: "Failed to initialize i18n",
                 }
                 div { class: "page-shell", "Failed to initialize i18n: {error}" }
-                {pages::route_content(page)}
+                {pages::route_content(route)}
             };
         },
     };
 
-    let title = page.title_i18n(&i18n);
-    let description = page.description_i18n(&i18n);
+    let title = route.page.title_i18n(&i18n);
+    let description = route.page.description_i18n(&i18n);
 
     rsx! {
         Title { "{title}" }
@@ -176,31 +207,35 @@ fn route_element(page: PageKind) -> Element {
             name: "description",
             content: description,
         }
-        {pages::route_content(page)}
+        {pages::route_content(route)}
     }
 }
 
 #[server(endpoint = "static_routes")]
 async fn static_routes() -> Result<Vec<String>, ServerFnError> {
-    Ok(PageKind::all().into_iter().map(page_href).collect())
+    Ok(all_routes()
+        .into_iter()
+        .map(|route| page_href(route.page))
+        .map(Href::into_string)
+        .collect())
 }
 
 #[component]
 fn HomeRoute() -> Element {
-    route_element(PageKind::Home)
+    route_element(SiteRoute::new(PageKind::Home))
 }
 
 #[component]
 fn DemosRoute() -> Element {
-    route_element(PageKind::Demos)
+    route_element(SiteRoute::new(PageKind::Demos))
 }
 
 #[component]
 fn CollectionDioxusRoute() -> Element {
-    route_element(PageKind::CollectionDioxus)
+    route_element(SiteRoute::new(PageKind::CollectionDioxus))
 }
 
 #[component]
 fn SalesFormRoute() -> Element {
-    route_element(PageKind::SalesForm)
+    route_element(SiteRoute::new(PageKind::SalesForm))
 }

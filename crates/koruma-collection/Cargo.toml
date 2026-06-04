@@ -14,7 +14,7 @@ readme = "README.md"
 [dependencies]
 anyhow = { optional = true, workspace = true }
 card-validate = { optional = true, workspace = true }
-es-fluent = { features = [ "derive" ], optional = true, workspace = true }
+es-fluent = { optional = true, workspace = true }
 es-fluent-manager-embedded = { optional = true, workspace = true }
 email_address = { optional = true, workspace = true }
 koruma-derive = { optional = true, workspace = true }

@@ -1,15 +1,16 @@
 use crate::site::constants::SITE_URL;
+use stayhydated_site::routing::{Href, SiteUrl};
 
 pub(crate) fn render_sitemap() -> String {
-    let mut paths = crate::site::routing::PageKind::all()
+    let mut paths = crate::site::routing::all_routes()
         .into_iter()
-        .map(|page| page.path())
+        .map(|route| route.path())
         .collect::<Vec<_>>();
     paths.extend([
-        "/book/".to_string(),
-        "/llms.txt".to_string(),
-        "/llms-full.txt".to_string(),
+        Href::new("/book/"),
+        Href::new("/llms.txt"),
+        Href::new("/llms-full.txt"),
     ]);
 
-    stayhydated_site::sitemap::render(SITE_URL, paths)
+    stayhydated_site::sitemap::render(&SiteUrl::new(SITE_URL), paths)
 }

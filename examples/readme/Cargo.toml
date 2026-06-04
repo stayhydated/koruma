@@ -7,7 +7,7 @@ license = "Unlicense"
 publish = false
 
 [dependencies]
-es-fluent = { features = [ "derive" ], workspace = true }
+es-fluent = { workspace = true }
 es-fluent-manager-embedded = { workspace = true }
 koruma = { features = [ "derive", "fluent" ], workspace = true }
 koruma-shared-lib = { path = "../shared-lib" }

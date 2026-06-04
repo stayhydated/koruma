@@ -1,13 +1,12 @@
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
-use stayhydated_dioxus::{RouteCardLink, RouteLink};
+use stayhydated_dioxus::{LinkTarget, RouteCardLink, RouteLink};
 
 #[component]
 pub(crate) fn PageLink(page: PageKind, class: String, label: String) -> Element {
     rsx! {
         RouteLink {
-            route: crate::site::routing::app_route(page),
-            href: crate::site::routing::page_href(page),
+            target: LinkTarget::route(crate::site::routing::app_route(page)),
             class,
             label,
         }
@@ -24,8 +23,7 @@ pub(crate) fn PageCardLink(
 ) -> Element {
     rsx! {
         RouteCardLink {
-            route: crate::site::routing::app_route(page),
-            href: crate::site::routing::page_href(page),
+            target: LinkTarget::route(crate::site::routing::app_route(page)),
             label,
             title,
             body,

@@ -36,27 +36,27 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "numeric"))]
 pub struct RangeValidation<T: PartialOrd + std::fmt::Display> {
     /// Minimum allowed value (inclusive)
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
+    #[cfg_attr(feature = "fluent", fluent(value = |x: &T| x.to_string()))]
     min: T,
     /// Whether the minimum value is exclusive
     #[cfg_attr(
         feature = "fluent",
         fluent(
-            arg_name = "left_delimiter",
-            value(|x: &bool| if *x { "(" } else { "[" })
+            arg = "left_delimiter",
+            value = |x: &bool| if *x { "(" } else { "[" }
         )
     )]
     #[koruma(setter(default = false))]
     exclusive_min: bool,
     /// Maximum allowed value (inclusive)
-    #[cfg_attr(feature = "fluent", fluent(value(|x: &T| x.to_string())))]
+    #[cfg_attr(feature = "fluent", fluent(value = |x: &T| x.to_string()))]
     max: T,
     /// Whether the maximum value is exclusive
     #[cfg_attr(
         feature = "fluent",
         fluent(
-            arg_name = "right_delimiter",
-            value(|x: &bool| if *x { ")" } else { "]" })
+            arg = "right_delimiter",
+            value = |x: &bool| if *x { ")" } else { "]" }
         )
     )]
     #[koruma(setter(default = false))]

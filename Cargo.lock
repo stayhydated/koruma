@@ -3364,7 +3364,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
- "syn-cfg-attr",
  "trybuild",
 ]
 
@@ -3377,7 +3376,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
- "syn-cfg-attr",
 ]
 
 [[package]]
@@ -5313,17 +5311,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "syn-cfg-attr"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4068c75d2063c41207d83c304d69ed62179b15d4246cd5b81459678e35caa788"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]

@@ -7,7 +7,7 @@ use crate::site::i18n::{ContributeMessage, SiteChromeMessage, SiteFooterMessage,
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
-use stayhydated_dioxus::ProjectId;
+use stayhydated_dioxus::{DisplayText, Href, ProjectId};
 
 #[component]
 pub(crate) fn PageHeader(current_page: PageKind) -> Element {
@@ -35,9 +35,9 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
         header { class: "page-header",
             ProjectSelect {
                 selected: ProjectId::Koruma
-                    .option_with_href(crate::site::routing::page_href(PageKind::Home).into_string()),
+                    .option_with_href(Href::new(crate::site::routing::page_href(PageKind::Home).into_string())),
                 projects: stayhydated_project_options(),
-                label: "Project selector".to_string(),
+                label: DisplayText::new("Project selector"),
             }
             div { class: "header-cluster",
                 nav { class: "header-nav-links", "aria-label": "Primary navigation",
@@ -107,7 +107,7 @@ fn LocaleSwitcher() -> Element {
 
     rsx! {
         LanguageSelect::<SiteLanguage> {
-            label: locale_label,
+            label: DisplayText::new(locale_label),
             selected: current_language,
             options: language_options,
             on_change: on_locale_changed,

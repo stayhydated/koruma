@@ -1,4 +1,4 @@
-// Coverage for external macro wrapping of a newtype field into Option<T>.
+// Coverage for optional and required newtype field validation.
 
 use koruma::Koruma;
 

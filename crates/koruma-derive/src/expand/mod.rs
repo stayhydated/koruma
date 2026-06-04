@@ -4,7 +4,6 @@
 
 use quote::format_ident;
 use syn::{Field, Fields, Member};
-use syn_cfg_attr::AttributeHelpers;
 
 pub(crate) mod codegen;
 pub(crate) mod crate_path;
@@ -99,7 +98,11 @@ pub(crate) fn collect_field_infos(
 }
 
 fn has_explicit_koruma_skip(field: &Field) -> Result<bool, syn::Error> {
-    for attr in field.attrs.to_vec().find_attribute("koruma") {
+    for attr in field
+        .attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("koruma"))
+    {
         let parsed: DataFieldKorumaAttr = attr.parse_args()?;
         if parsed.is_skip() {
             return Ok(true);

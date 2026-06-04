@@ -34,13 +34,16 @@ mod tests {
 
     #[test]
     fn computes_links_without_cli_base_path() {
-        assert_eq!(page_href(PageKind::Home), "/");
-        assert_eq!(page_href(PageKind::Demos), "/demos/");
+        assert_eq!(page_href(PageKind::Home).as_str(), "/");
+        assert_eq!(page_href(PageKind::Demos).as_str(), "/demos/");
         assert_eq!(
-            page_href(PageKind::CollectionDioxus),
+            page_href(PageKind::CollectionDioxus).as_str(),
             "/demos/koruma-collection/"
         );
-        assert_eq!(page_href(PageKind::SalesForm), "/demos/sales-form/");
+        assert_eq!(
+            page_href(PageKind::SalesForm).as_str(),
+            "/demos/sales-form/"
+        );
     }
 
     #[test]

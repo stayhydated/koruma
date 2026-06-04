@@ -1,10 +1,9 @@
 use syn::{
-    Error, Expr, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
+    Attribute, Error, Expr, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     spanned::Spanned,
     token,
 };
-use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
 use super::SpannedValue;
 use super::diagnostics::{KorumaAttrContext, context_error, unsupported_setter_option_error};
@@ -273,7 +272,7 @@ fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
     Ok(options)
 }
 
-fn validator_field_attr(attr: &ExpandedAttr) -> Result<ValidatorFieldKorumaAttr> {
+fn validator_field_attr(attr: &Attribute) -> Result<ValidatorFieldKorumaAttr> {
     attr.parse_args::<ValidatorFieldKorumaAttr>()
 }
 
@@ -330,8 +329,11 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
         let mut setter_required_marker: Option<SpannedValue<Ident>> = None;
         let mut setter_default_marker: Option<SpannedValue<Ident>> = None;
 
-        let attrs = field.attrs.to_vec();
-        let koruma_attrs = attrs.find_attribute("koruma");
+        let koruma_attrs = field
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("koruma"))
+            .collect::<Vec<_>>();
         match koruma_attrs.as_slice() {
             [] => {},
             [_, duplicate, ..] => {

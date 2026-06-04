@@ -1,7 +1,0 @@
----
-source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
-expression: parse_struct_options_result(&input)
----
-Ok(
-    "regular::TryNew",
-)

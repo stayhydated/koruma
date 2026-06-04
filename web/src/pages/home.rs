@@ -3,6 +3,7 @@ use crate::site::i18n::HomeMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
+use stayhydated_dioxus::DisplayText;
 
 #[component]
 pub(crate) fn HomePage() -> Element {
@@ -114,21 +115,21 @@ pub(crate) fn HomePage() -> Element {
                     }
                     div { class: "feature-grid",
                         FeatureCard {
-                            label: "derive".to_string(),
-                            title: surface_card_one_title,
-                            body: surface_card_one_body,
+                            label: DisplayText::new("derive"),
+                            title: DisplayText::new(surface_card_one_title),
+                            body: DisplayText::new(surface_card_one_body),
                             style: first_card_style,
                         }
                         FeatureCard {
-                            label: "validators".to_string(),
-                            title: surface_card_two_title,
-                            body: surface_card_two_body,
+                            label: DisplayText::new("validators"),
+                            title: DisplayText::new(surface_card_two_title),
+                            body: DisplayText::new(surface_card_two_body),
                             style: second_card_style,
                         }
                         FeatureCard {
-                            label: "i18n".to_string(),
-                            title: surface_card_three_title,
-                            body: surface_card_three_body,
+                            label: DisplayText::new("i18n"),
+                            title: DisplayText::new(surface_card_three_title),
+                            body: DisplayText::new(surface_card_three_body),
                             style: third_card_style,
                         }
                     }

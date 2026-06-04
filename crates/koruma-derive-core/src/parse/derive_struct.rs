@@ -4,7 +4,6 @@ use syn::{
     spanned::Spanned,
     token,
 };
-use syn_cfg_attr::AttributeHelpers;
 
 use super::SpannedValue;
 use super::diagnostics::{KorumaAttrContext, context_error};
@@ -252,8 +251,10 @@ impl Parse for StructOptions {
 ///
 /// Returns `StructOptions::default()` if no `#[koruma(...)]` attribute is found.
 pub fn parse_struct_options(attrs: &[Attribute]) -> Result<StructOptions> {
-    let attrs = attrs.to_vec();
-    let koruma_attrs = attrs.find_attribute("koruma");
+    let koruma_attrs = attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("koruma"))
+        .collect::<Vec<_>>();
     match koruma_attrs.as_slice() {
         [] => Ok(StructOptions::default()),
         [attr] => attr.parse_args::<StructOptions>(),

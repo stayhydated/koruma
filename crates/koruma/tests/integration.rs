@@ -16,6 +16,6 @@ mod tests;
 #[cfg(test)]
 mod newtype_required_tests;
 
-#[path = "integration/external_macro_wrapping_tests.rs"]
+#[path = "integration/optional_newtype_tests.rs"]
 #[cfg(test)]
-mod external_macro_wrapping_tests;
+mod optional_newtype_tests;

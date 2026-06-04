@@ -6,7 +6,6 @@ use syn::{
     spanned::Spanned,
     token,
 };
-use syn_cfg_attr::AttributeHelpers;
 
 use super::SpannedValue;
 use super::diagnostics::{KorumaAttrContext, context_error};
@@ -809,8 +808,11 @@ impl FieldInfo {
 pub fn parse_field(field: &Field, index: usize) -> Result<ParsedDataField> {
     let source = FieldSource::from_field(field, index);
 
-    let attrs = field.attrs.to_vec();
-    let koruma_attrs = attrs.find_attribute("koruma");
+    let koruma_attrs = field
+        .attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("koruma"))
+        .collect::<Vec<_>>();
     let items = match koruma_attrs.as_slice() {
         [] => Vec::new(),
         [attr] => attr.parse_args::<DataFieldKorumaAttr>()?.into_items(),

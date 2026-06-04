@@ -68,7 +68,6 @@
 - Reused context and option diagnostics are built in `parse/diagnostics.rs`; parser modules keep
   local `syn::Error::new` calls only for shape-specific messages whose wording depends on local
   grammar state.
-- `parse_field` respects `cfg_attr` via `syn-cfg-attr` helpers.
 - Generic validator bindings use standard Rust direct validator chains (`Validator::<_>::min(...)`) for type inference and substitution.
 - Data-field validators carry a `ValidatorTargetSelector`. Bare validators and
   `unwrapped(Validator::<_>)` use the default unwrapped optional target, while

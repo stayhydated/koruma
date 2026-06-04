@@ -10,7 +10,7 @@ use koruma_derive_core::{
 };
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::{Field, Fields, GenericParam, Ident, ItemStruct, Type, Visibility, parse_quote};
+use syn::{Fields, GenericParam, Ident, ItemStruct, Type, Visibility, parse_quote};
 
 use super::generated_api::{
     GeneratedApiNameKind, GeneratedApiNamespace, RegisteredApiName, builder_method_namespace,
@@ -46,7 +46,6 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
         ));
     };
     for field in &fields.named {
-        reject_builder_attrs(field)?;
         if field.ident.as_ref() == Some(&value_field_name)
             && !matches!(field.vis, Visibility::Inherited)
         {
@@ -993,21 +992,6 @@ fn builder_api_kind_label(kind: GeneratedApiNameKind) -> &'static str {
         GeneratedApiNameKind::ValidatorGetter => "validator getter",
         GeneratedApiNameKind::ValidatorVariant => "validator enum variant",
     }
-}
-
-fn reject_builder_attrs(field: &Field) -> Result<(), syn::Error> {
-    if let Some(attr) = field
-        .attrs
-        .iter()
-        .find(|attr| attr.path().is_ident("builder"))
-    {
-        return Err(syn::Error::new_spanned(
-            attr,
-            "`#[builder(...)]` is not valid on koruma validator fields; use `#[koruma(setter(...))]` for generated setter options",
-        ));
-    }
-
-    Ok(())
 }
 
 fn generic_args(generics: &syn::Generics) -> Vec<TokenStream2> {

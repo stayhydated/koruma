@@ -27,7 +27,6 @@ anyhow = "1.0"
 bon = "3.9"
 card-validate = "2.4"
 clap = "4.5"
-derive-getters = "0.5"
 dioxus = "0.7.9"
 dioxus-free-icons = { default-features = false, features = [ "lucide" ], version = "0.10.0" }
 dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
@@ -64,7 +63,6 @@ stayhydated-site = { path = "../stayhydated/crates/stayhydated-site" }
 stayhydated-xtask = { path = "../stayhydated/crates/stayhydated-xtask" }
 strum = "0.27"
 syn = "2.0"
-syn-cfg-attr = "0.1"
 tempfile = "3"
 trybuild = "1.0"
 unic-langid = "0.9"

@@ -86,6 +86,6 @@ Import with `use koruma_collection::general;`.
   `#[koruma(full(general::RequiredValidation::<_>))]` on optional fields.
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
-`collection::NonEmptyValidation<_>` for emptiness checks. Its `capture = skip` behavior means
+`collection::NonEmptyValidation<_>` for emptiness checks. Its `skip_capture` behavior means
 `Option<NonCloneType>` fields do not require `Clone` just to report a missing-value error. Wrap it
 in `full(...)` so Koruma validates the whole `Option<T>` and can report `None` as a missing value.

@@ -536,7 +536,7 @@ fn test_parse_field_without_koruma_returns_skip() {
 fn test_validator_builder_plan_covers_setter_signatures_and_capture_policy() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct PlannedBuilderValidation {
-            #[koruma(value(capture = skip))]
+            #[koruma(skip_capture)]
             actual: Option<String>,
             #[koruma(setter(into, name = label))]
             title: String,

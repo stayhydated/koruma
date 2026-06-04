@@ -62,7 +62,7 @@ pub struct RangeValidation<T: PartialOrd + std::fmt::Display> {
     #[koruma(setter(default = false))]
     exclusive_max: bool,
     /// The value being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

@@ -52,7 +52,7 @@ Koruma keeps the failed validator instance as the typed error payload:
 `Validate<T>` returns `bool`, and derived validation stores the configured validator when validation
 fails. This preserves concrete accessor types, `all()` borrowing, `Display`, and Fluent rendering
 without introducing a second associated error type on every validator. Validators that do not
-render or expose the failing input should use `#[koruma(value(capture = skip))]` on an `Option<T>`
+render or expose the failing input should use `#[koruma(skip_capture)]` on an `Option<T>`
 value field to avoid clone requirements for non-`Clone` payloads.
 
 ## Feature flags

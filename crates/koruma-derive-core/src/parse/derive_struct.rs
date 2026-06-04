@@ -14,14 +14,14 @@ use super::keywords::KorumaKeyword;
 #[derive(Clone, Debug)]
 pub struct StructOptions {
     mode: StructMode,
+    constructors: ConstructorOptions,
 }
 
 impl Default for StructOptions {
     fn default() -> Self {
         Self {
-            mode: StructMode::Regular {
-                constructor: RegularConstructor::None,
-            },
+            mode: StructMode::Regular,
+            constructors: ConstructorOptions::default(),
         }
     }
 }
@@ -29,60 +29,32 @@ impl Default for StructOptions {
 /// Normalized struct-level derive mode.
 #[derive(Clone, Debug)]
 pub enum StructMode {
-    Regular {
-        constructor: RegularConstructor,
-    },
-    Newtype {
-        constructor: NewtypeConstructor,
-        marker: SpannedValue<Ident>,
-    },
+    Regular,
+    Newtype { marker: SpannedValue<Ident> },
 }
 
-/// Constructor integrations available on regular structs.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RegularConstructor {
-    None,
-    TryNew,
+/// Constructor integrations requested at the struct level.
+#[derive(Clone, Debug, Default)]
+pub struct ConstructorOptions {
+    try_new: Option<SpannedValue<Ident>>,
+    try_from: Option<SpannedValue<Ident>>,
 }
 
-impl RegularConstructor {
-    pub fn try_new(self) -> bool {
-        matches!(self, Self::TryNew)
-    }
-}
-
-/// Constructor integrations available on struct-level newtypes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum NewtypeConstructor {
-    None,
-    TryNew,
-    TryFrom,
-    TryNewAndTryFrom,
-}
-
-impl NewtypeConstructor {
-    fn with_try_new(self) -> Self {
-        match self {
-            Self::None => Self::TryNew,
-            Self::TryNew | Self::TryNewAndTryFrom => self,
-            Self::TryFrom => Self::TryNewAndTryFrom,
-        }
+impl ConstructorOptions {
+    pub fn try_new(&self) -> bool {
+        self.try_new.is_some()
     }
 
-    fn with_try_from(self) -> Self {
-        match self {
-            Self::None => Self::TryFrom,
-            Self::TryFrom | Self::TryNewAndTryFrom => self,
-            Self::TryNew => Self::TryNewAndTryFrom,
-        }
+    pub fn try_from(&self) -> bool {
+        self.try_from.is_some()
     }
 
-    pub fn try_new(self) -> bool {
-        matches!(self, Self::TryNew | Self::TryNewAndTryFrom)
+    pub fn try_new_marker(&self) -> Option<&SpannedValue<Ident>> {
+        self.try_new.as_ref()
     }
 
-    pub fn try_from(self) -> bool {
-        matches!(self, Self::TryFrom | Self::TryNewAndTryFrom)
+    pub fn try_from_marker(&self) -> Option<&SpannedValue<Ident>> {
+        self.try_from.as_ref()
     }
 }
 
@@ -90,39 +62,31 @@ impl StructOptions {
     pub fn mode(&self) -> &StructMode {
         &self.mode
     }
+
+    pub fn constructors(&self) -> &ConstructorOptions {
+        &self.constructors
+    }
 }
 
 /// A single typed item inside struct-level `#[koruma(...)]`.
 #[derive(Clone, Debug)]
 pub enum StructKorumaItem {
     TryNew,
-    Newtype(StructNewtypeOptions),
+    TryFrom,
+    Newtype,
 }
 
 #[derive(Clone, Debug)]
 struct StructKorumaItemSource {
     kind: StructKorumaItemSourceKind,
     marker: SpannedValue<Ident>,
-    try_from_marker: Option<SpannedValue<Ident>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum StructKorumaItemSourceKind {
     TryNew,
+    TryFrom,
     Newtype,
-}
-
-/// Options for the struct-level `newtype(...)` attribute.
-#[derive(Clone, Debug, Default)]
-pub struct StructNewtypeOptions {
-    try_from: bool,
-    try_from_marker: Option<SpannedValue<Ident>>,
-}
-
-impl StructNewtypeOptions {
-    pub fn try_from(&self) -> bool {
-        self.try_from
-    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -134,40 +98,6 @@ pub struct StructKorumaAttr {
 impl StructKorumaAttr {
     pub fn items(&self) -> &[StructKorumaItem] {
         &self.items
-    }
-}
-
-impl Parse for StructNewtypeOptions {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let mut options = StructNewtypeOptions::default();
-
-        while !input.is_empty() {
-            let ident: Ident = input.parse()?;
-            match KorumaKeyword::from_ident(&ident) {
-                Some(KorumaKeyword::TryFrom) => {
-                    if options.try_from_marker.is_some() {
-                        return Err(Error::new(
-                            ident.span(),
-                            "duplicate `newtype(try_from)` option",
-                        ));
-                    }
-                    options.try_from = true;
-                    options.try_from_marker = Some(SpannedValue::new(ident.clone(), ident.span()));
-                },
-                _ => {
-                    return Err(Error::new(
-                        ident.span(),
-                        format!("unknown newtype option: `{}`. Expected `try_from`", ident),
-                    ));
-                },
-            }
-
-            if input.peek(Token![,]) {
-                input.parse::<Token![,]>()?;
-            }
-        }
-
-        Ok(options)
     }
 }
 
@@ -192,15 +122,30 @@ impl Parse for StructKorumaAttr {
                     attr.item_sources.push(StructKorumaItemSource {
                         kind: StructKorumaItemSourceKind::TryNew,
                         marker: SpannedValue::new(ident.clone(), ident.span()),
-                        try_from_marker: None,
+                    });
+                },
+                Some(KorumaKeyword::TryFrom) => {
+                    if input.peek(token::Paren) || input.peek(Token![::]) {
+                        return Err(Error::new(
+                            ident.span(),
+                            format!(
+                                "`{ident}` is only valid as a bare struct-level `#[koruma(...)]` option; expected {}",
+                                KorumaAttrContext::Struct.accepted_items()
+                            ),
+                        ));
+                    }
+                    attr.items.push(StructKorumaItem::TryFrom);
+                    attr.item_sources.push(StructKorumaItemSource {
+                        kind: StructKorumaItemSourceKind::TryFrom,
+                        marker: SpannedValue::new(ident.clone(), ident.span()),
                     });
                 },
                 Some(KorumaKeyword::Newtype) => {
-                    let mut newtype_options = StructNewtypeOptions::default();
                     if input.peek(syn::token::Paren) {
-                        let content;
-                        syn::parenthesized!(content in input);
-                        newtype_options = content.parse()?;
+                        return Err(Error::new(
+                            ident.span(),
+                            "parenthesized `newtype` options are unsupported; use #[koruma(newtype, try_from)]",
+                        ));
                     } else if input.peek(Token![::]) {
                         return Err(Error::new(
                             ident.span(),
@@ -212,9 +157,8 @@ impl Parse for StructKorumaAttr {
                     attr.item_sources.push(StructKorumaItemSource {
                         kind: StructKorumaItemSourceKind::Newtype,
                         marker: SpannedValue::new(ident.clone(), ident.span()),
-                        try_from_marker: newtype_options.try_from_marker.clone(),
                     });
-                    attr.items.push(StructKorumaItem::Newtype(newtype_options));
+                    attr.items.push(StructKorumaItem::Newtype);
                 },
                 keyword => {
                     if matches!(
@@ -224,6 +168,7 @@ impl Parse for StructKorumaAttr {
                                 | KorumaKeyword::Nested
                                 | KorumaKeyword::Each
                                 | KorumaKeyword::Value
+                                | KorumaKeyword::SkipCapture
                                 | KorumaKeyword::Setter
                                 | KorumaKeyword::Full
                                 | KorumaKeyword::Unwrapped
@@ -234,7 +179,7 @@ impl Parse for StructKorumaAttr {
                     return Err(Error::new(
                         ident.span(),
                         format!(
-                            "unknown struct-level koruma option: `{}`. Expected `try_new` or `newtype`",
+                            "unknown struct-level koruma option: `{}`. Expected `try_new`, `try_from`, or `newtype`",
                             ident
                         ),
                     ));
@@ -268,6 +213,15 @@ impl Parse for StructOptions {
                     }
                     try_new_marker = Some(item.marker);
                 },
+                StructKorumaItemSourceKind::TryFrom => {
+                    if try_from_marker.is_some() {
+                        return Err(Error::new(
+                            item.marker.span,
+                            "duplicate struct-level koruma option `try_from`",
+                        ));
+                    }
+                    try_from_marker = Some(item.marker);
+                },
                 StructKorumaItemSourceKind::Newtype => {
                     if newtype_marker.is_some() {
                         return Err(Error::new(
@@ -276,35 +230,21 @@ impl Parse for StructOptions {
                         ));
                     }
                     newtype_marker = Some(item.marker);
-                    if let Some(marker) = item.try_from_marker {
-                        try_from_marker = Some(marker);
-                    }
                 },
             }
         }
 
         let mode = if let Some(marker) = newtype_marker {
-            let mut constructor = NewtypeConstructor::None;
-            if try_new_marker.is_some() {
-                constructor = constructor.with_try_new();
-            }
-            if try_from_marker.is_some() {
-                constructor = constructor.with_try_from();
-            }
-            StructMode::Newtype {
-                constructor,
-                marker,
-            }
+            StructMode::Newtype { marker }
         } else {
-            let constructor = if try_new_marker.is_some() {
-                RegularConstructor::TryNew
-            } else {
-                RegularConstructor::None
-            };
-            StructMode::Regular { constructor }
+            StructMode::Regular
+        };
+        let constructors = ConstructorOptions {
+            try_new: try_new_marker,
+            try_from: try_from_marker,
         };
 
-        Ok(StructOptions { mode })
+        Ok(StructOptions { mode, constructors })
     }
 }
 

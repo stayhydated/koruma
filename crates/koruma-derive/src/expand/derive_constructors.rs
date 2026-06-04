@@ -1,5 +1,4 @@
 use crate::expand::plan::ValidationPlan;
-use koruma_derive_core::StructMode;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 use syn::{Fields, Ident};
@@ -10,11 +9,7 @@ pub(crate) fn render_try_new_fn(
     struct_name_str: &str,
     main_error_path: &TokenStream2,
 ) -> TokenStream2 {
-    let has_try_new = match plan.struct_options.mode() {
-        StructMode::Regular { constructor } => constructor.try_new(),
-        StructMode::Newtype { constructor, .. } => constructor.try_new(),
-    };
-    if !has_try_new {
+    if !plan.struct_options.constructors().try_new() {
         return quote! {};
     }
 
@@ -83,30 +78,30 @@ pub(crate) fn render_try_new_fn(
 
 pub(crate) fn render_try_from_impl(
     plan: &ValidationPlan,
+    fields: &Fields,
     struct_name: &Ident,
     impl_generics: &TokenStream2,
     ty_generics: &TokenStream2,
     where_clause: &TokenStream2,
     main_error_path: &TokenStream2,
 ) -> TokenStream2 {
-    let StructMode::Newtype { constructor, .. } = plan.struct_options.mode() else {
-        return quote! {};
-    };
-    if !constructor.try_from() {
+    if !plan.struct_options.constructors().try_from() {
         return quote! {};
     }
-    let Some(field_plan) = plan.struct_newtype() else {
+    if fields.len() != 1 {
+        return quote! {};
+    }
+    let Some(field) = fields.iter().next() else {
         return quote! {};
     };
-    let inner_ty = &field_plan.source.ty;
+    let inner_ty = &field.ty;
 
-    let struct_init = match &field_plan.source.member {
-        syn::Member::Named(ident) => {
+    let struct_init = match (&field.ident, fields) {
+        (Some(ident), Fields::Named(_)) => {
             quote! { Self { #ident: value } }
         },
-        syn::Member::Unnamed(_) => {
-            quote! { Self(value) }
-        },
+        (None, Fields::Unnamed(_)) => quote! { Self(value) },
+        _ => quote! {},
     };
 
     quote! {

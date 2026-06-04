@@ -1,11 +1,10 @@
 use crate::{
     DataFieldKorumaAttr, DataFieldKorumaItem, FieldInfo, FieldModifierKind, KnownTypeShape,
-    NewtypeConstructor, ParsedDataField, RegularConstructor, SetterDefault, SetterPresence,
-    StructKorumaAttr, StructKorumaItem, StructMode, ValidatorAttr, ValidatorFieldRole,
-    ValidatorLabel, ValidatorTargetSelector, contains_infer_type, expr_as_simple_ident,
-    first_generic_arg, option_inner_type, parse_field, parse_struct_options,
-    parse_validator_struct, substitute_infer_type, substitute_infer_type_from_source,
-    type_to_ident, vec_inner_type,
+    ParsedDataField, SetterDefault, SetterPresence, StructKorumaAttr, StructKorumaItem, StructMode,
+    ValidatorAttr, ValidatorFieldRole, ValidatorLabel, ValidatorTargetSelector,
+    contains_infer_type, expr_as_simple_ident, first_generic_arg, option_inner_type, parse_field,
+    parse_struct_options, parse_validator_struct, substitute_infer_type,
+    substitute_infer_type_from_source, type_to_ident, vec_inner_type,
 };
 
 fn parse_field_info(field: &syn::Field) -> FieldInfo {
@@ -126,13 +125,11 @@ fn context_specific_koruma_attr_types_parse_normalized_items() {
         DataFieldKorumaItem::FieldValidation(_)
     ));
 
-    let struct_attr: StructKorumaAttr = syn::parse_quote!(try_new, newtype(try_from));
-    assert_eq!(struct_attr.items().len(), 2);
+    let struct_attr: StructKorumaAttr = syn::parse_quote!(try_new, newtype, try_from);
+    assert_eq!(struct_attr.items().len(), 3);
     assert!(matches!(struct_attr.items()[0], StructKorumaItem::TryNew));
-    let StructKorumaItem::Newtype(newtype_options) = &struct_attr.items()[1] else {
-        panic!("expected newtype options");
-    };
-    assert!(newtype_options.try_from());
+    assert!(matches!(struct_attr.items()[1], StructKorumaItem::Newtype));
+    assert!(matches!(struct_attr.items()[2], StructKorumaItem::TryFrom));
 }
 
 #[test]
@@ -528,14 +525,14 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     assert_eq!(newtype_each_then_field.element_validator_count(), 1);
     assert_eq!(newtype_each_then_field.field_validator_count(), 1);
 
-    let newtype_options_with_trailing_comma = struct_options_from_attrs(&syn::parse_quote! {
-        #[koruma(newtype(try_from,))]
+    let flat_try_from_options = struct_options_from_attrs(&syn::parse_quote! {
+        #[koruma(newtype, try_from,)]
         struct Demo(String);
     });
-    let StructMode::Newtype { constructor, .. } = newtype_options_with_trailing_comma.mode() else {
+    let StructMode::Newtype { .. } = flat_try_from_options.mode() else {
         panic!("expected newtype mode");
     };
-    assert!(constructor.try_from());
+    assert!(flat_try_from_options.constructors().try_from());
 
     let disallowed_builder_chain: Result<ValidatorAttr, _> =
         syn::parse_str("RangeValidation::builder()");
@@ -1043,7 +1040,7 @@ fn data_field_parser_reports_target_and_each_edge_cases() {
         ("each()", "`each(...)` must contain at least one validator"),
         (
             "skip(RangeValidation)",
-            "`skip(...)` is not valid in a derive data field",
+            "parenthesized `skip` is not valid in a derive data field",
         ),
     ] {
         let err = match syn::parse_str::<DataFieldKorumaAttr>(source) {
@@ -1083,52 +1080,58 @@ fn data_field_parser_reports_target_and_each_edge_cases() {
 fn struct_options_cover_constructor_combinations_and_errors() {
     let regular_try_new: crate::StructOptions =
         syn::parse_str("try_new").expect("regular try_new should parse");
-    let StructMode::Regular { constructor } = regular_try_new.mode() else {
+    let StructMode::Regular = regular_try_new.mode() else {
         panic!("expected regular mode");
     };
-    assert!(constructor.try_new());
-    assert!(matches!(constructor, RegularConstructor::TryNew));
+    assert!(regular_try_new.constructors().try_new());
+    assert!(!regular_try_new.constructors().try_from());
+
+    let regular_try_from: crate::StructOptions =
+        syn::parse_str("try_from").expect("regular try_from should parse");
+    let StructMode::Regular = regular_try_from.mode() else {
+        panic!("expected regular mode");
+    };
+    assert!(!regular_try_from.constructors().try_new());
+    assert!(regular_try_from.constructors().try_from());
 
     let newtype_try_new: crate::StructOptions =
         syn::parse_str("try_new, newtype").expect("newtype try_new should parse");
-    let StructMode::Newtype {
-        constructor,
-        marker,
-    } = newtype_try_new.mode()
-    else {
+    let StructMode::Newtype { marker } = newtype_try_new.mode() else {
         panic!("expected newtype mode");
     };
     assert_eq!(marker.value.to_string(), "newtype");
-    assert!(constructor.try_new());
-    assert!(!constructor.try_from());
-    assert!(matches!(constructor, NewtypeConstructor::TryNew));
+    assert!(newtype_try_new.constructors().try_new());
+    assert!(!newtype_try_new.constructors().try_from());
 
     let newtype_try_from: crate::StructOptions =
-        syn::parse_str("newtype(try_from)").expect("newtype try_from should parse");
-    let StructMode::Newtype { constructor, .. } = newtype_try_from.mode() else {
+        syn::parse_str("newtype, try_from").expect("newtype try_from should parse");
+    let StructMode::Newtype { .. } = newtype_try_from.mode() else {
         panic!("expected newtype mode");
     };
-    assert!(!constructor.try_new());
-    assert!(constructor.try_from());
-    assert!(matches!(constructor, NewtypeConstructor::TryFrom));
+    assert!(!newtype_try_from.constructors().try_new());
+    assert!(newtype_try_from.constructors().try_from());
 
     let newtype_both: crate::StructOptions =
-        syn::parse_str("try_new, newtype(try_from)").expect("combined newtype should parse");
-    let StructMode::Newtype { constructor, .. } = newtype_both.mode() else {
+        syn::parse_str("try_new, newtype, try_from").expect("combined newtype should parse");
+    let StructMode::Newtype { .. } = newtype_both.mode() else {
         panic!("expected newtype mode");
     };
-    assert!(constructor.try_new());
-    assert!(constructor.try_from());
-    assert!(matches!(constructor, NewtypeConstructor::TryNewAndTryFrom));
+    assert!(newtype_both.constructors().try_new());
+    assert!(newtype_both.constructors().try_from());
 
     for (source, expected) in [
         (
-            "newtype(try_from, try_from)",
-            "duplicate `newtype(try_from)` option",
+            "newtype()",
+            "parenthesized `newtype` options are unsupported",
         ),
-        ("newtype(default)", "unknown newtype option"),
+        (
+            "try_from, try_from",
+            "duplicate struct-level koruma option `try_from`",
+        ),
         ("try_new()", "only valid as a bare struct-level"),
+        ("try_from()", "only valid as a bare struct-level"),
         ("try_new::path", "only valid as a bare struct-level"),
+        ("try_from::path", "only valid as a bare struct-level"),
         ("newtype::path", "reserved koruma struct option"),
         ("skip", "not valid in a derive struct"),
         ("unknown", "unknown struct-level koruma option"),
@@ -1162,7 +1165,7 @@ fn validator_struct_parser_covers_setter_merge_paths_and_accessors() {
             count: usize,
             #[koruma(setter(default = 42))]
             limit: usize,
-            #[koruma(value(capture = skip,))]
+            #[koruma(skip_capture)]
             actual: Option<String>,
         }
     };
@@ -1254,14 +1257,14 @@ fn validator_struct_parser_covers_setter_merge_paths_and_accessors() {
 fn validator_struct_value_and_setter_parser_errors_cover_remaining_branches() {
     let input: syn::ItemStruct = syn::parse_quote! {
         struct Bad {
-            #[koruma(value(capture = skip, extra))]
+            #[koruma(value())]
             actual: Option<String>,
         }
     };
-    let err = parse_validator_struct(&input).expect_err("extra value option should fail");
+    let err = parse_validator_struct(&input).expect_err("parenthesized value marker should fail");
     assert!(
         err.to_string()
-            .contains("unexpected extra tokens in `value(...)`"),
+            .contains("parenthesized `value` markers are unsupported; use `skip_capture`"),
         "unexpected error: {err}",
     );
 
@@ -1323,8 +1326,8 @@ fn struct_options_reject_repeated_attrs() {
     );
 
     let duplicate_try_from: syn::ItemStruct = syn::parse_quote! {
-        #[koruma(newtype(try_from))]
-        #[koruma(newtype(try_from))]
+        #[koruma(newtype, try_from)]
+        #[koruma(newtype, try_from)]
         struct Demo(String);
     };
     assert!(
@@ -1358,9 +1361,7 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
         parse_validator_struct(&bad_input)
             .expect_err("expected empty marker error")
             .to_string()
-            .contains(
-                "validator fields must contain `value`, `value(capture = skip)`, or `setter(...)`",
-            )
+            .contains("validator fields must contain `value`, `skip_capture`, or `setter(...)`",)
     );
 }
 

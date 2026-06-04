@@ -7,7 +7,7 @@ struct NonClone;
 #[validator]
 #[derive(Debug)]
 pub struct SkipCaptureValidation {
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     actual: Option<NonClone>,
 }
 

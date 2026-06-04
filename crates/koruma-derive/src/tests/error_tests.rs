@@ -84,17 +84,14 @@ fn test_validator_error_on_duplicate_value_marker_same_field() {
     let result = expand_validator(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("has multiple `#[koruma(value)]` markers")
-    );
+    assert!(err.to_string().contains("has multiple value markers"));
 }
 
 #[test]
 fn test_validator_error_capture_skip_requires_option_value_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
-            #[koruma(value(capture = skip))]
+            #[koruma(skip_capture)]
             actual: String,
         }
     };
@@ -104,7 +101,7 @@ fn test_validator_error_capture_skip_requires_option_value_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`#[koruma(value(capture = skip))]` requires an `Option<T>` field")
+            .contains("`#[koruma(skip_capture)]` requires an `Option<T>` field")
     );
 }
 

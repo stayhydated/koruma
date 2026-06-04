@@ -168,7 +168,7 @@ pub struct LoginForm {
 }
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
-#[koruma(newtype(try_from))]
+#[koruma(newtype, try_from)]
 pub struct Only67u8(#[koruma(Only67Validation::<_>)] pub u8);
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]

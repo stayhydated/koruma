@@ -17,7 +17,7 @@
 1. Parse input with `syn`.
 1. Parse `#[koruma(...)]` metadata via `koruma-derive-core`.
 1. Build parsed field metadata plus struct-level `StructOptions`, then normalize them into a `ValidationPlan` with one ordered `FieldPlan` per participating field.
-1. Generate error structs, `all()` enums, `validate()` implementations, optional `try_new` constructors, and optional `TryFrom<Inner>` impls for `newtype(try_from)`.
+1. Generate error structs, `all()` enums, `validate()` implementations, optional `try_new` constructors, and optional `TryFrom<Inner>` impls for `try_from`.
 1. Emit token streams via `expand/*` modules.
 
 ## Modules

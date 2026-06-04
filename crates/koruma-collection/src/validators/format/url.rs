@@ -34,7 +34,7 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct UrlValidation<T: AsRef<str>> {
     /// The string being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

@@ -36,7 +36,7 @@ pub struct PrefixValidation<T: AsRef<str>> {
     #[koruma(setter(into))]
     pub prefix: String,
     /// The string being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

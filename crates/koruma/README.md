@@ -116,7 +116,7 @@ setter options are `into`, `required`, `name`, and `default`:
 pub struct PrefixValidation<T> {
     #[koruma(setter(into))]
     prefix: String,
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     actual: Option<T>,
 }
 ```
@@ -131,12 +131,12 @@ If a validator does not need to retain the failing input, you can opt out of cap
 ```rs
 #[validator]
 pub struct RequiredValidation<T> {
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     actual: Option<T>,
 }
 ```
 
-The `capture = skip` policy keeps the stored field at its default `None` during derived
+The `skip_capture` marker keeps the stored field at its default `None` during derived
 validation, which avoids clone requirements for validators whose messages do not need the original input. If your validator
 still derives traits like `Clone` or `Debug` through that field, use manual impls to avoid
 reintroducing type bounds.
@@ -354,13 +354,13 @@ if let Err(errors) = user.validate() {
 }
 ```
 
-## Newtype pattern (`#[koruma(newtype)]`, optional `try_new` / `newtype(try_from)`)
+## Newtype pattern (`#[koruma(newtype)]`, optional `try_new` / `try_from`)
 
-Use `#[koruma(newtype)]`, adding `try_new` and `newtype(try_from)` as needed, when you want:
+Use `#[koruma(newtype)]`, adding `try_new` and `try_from` as needed, when you want:
 
 - `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
-- `newtype(try_from)` - a `TryFrom<Inner>` impl for checked conversions from the inner type
+- `try_from` - a `TryFrom<Inner>` impl for checked conversions from the inner type
 
 You can layer `derive_more` traits on top for additional wrapper ergonomics (e.g., `Deref` to inner value).
 
@@ -467,9 +467,9 @@ if let Ok(username) = Username::try_new("alice".to_string()) {
 }
 ```
 
-### TryFrom integration (`#[koruma(newtype(try_from))]`)
+### TryFrom integration (`#[koruma(newtype, try_from)]`)
 
-Add `try_from` inside `newtype(...)` to generate a `TryFrom<Inner>` impl:
+Add flat `try_from` alongside `newtype` to generate a `TryFrom<Inner>` impl:
 
 ```rs
 use std::convert::TryFrom;
@@ -477,7 +477,7 @@ use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, koruma::KorumaAllFluent)]
-#[koruma(newtype(try_from))]
+#[koruma(newtype, try_from)]
 pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
 
 match Only67u8::try_from(69) {
@@ -489,3 +489,6 @@ match Only67u8::try_from(69) {
     }
 }
 ```
+
+For exactly-one-field structs that should keep the regular error surface, use
+`#[koruma(try_from)]` without `newtype`.

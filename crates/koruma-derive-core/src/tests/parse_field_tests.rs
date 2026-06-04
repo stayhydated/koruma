@@ -132,9 +132,18 @@ fn parse_field_result(field: &syn::Field) -> SnapshotParsedField {
 fn parse_struct_options_result(item: &syn::ItemStruct) -> Result<String, String> {
     match parse_struct_options(&item.attrs) {
         Ok(options) => {
+            let constructor = match (
+                options.constructors().try_new(),
+                options.constructors().try_from(),
+            ) {
+                (false, false) => "None",
+                (true, false) => "TryNew",
+                (false, true) => "TryFrom",
+                (true, true) => "TryNewAndTryFrom",
+            };
             let summary = match options.mode() {
-                StructMode::Regular { constructor } => format!("regular::{constructor:?}"),
-                StructMode::Newtype { constructor, .. } => format!("newtype::{constructor:?}"),
+                StructMode::Regular => format!("regular::{constructor}"),
+                StructMode::Newtype { .. } => format!("newtype::{constructor}"),
             };
             Ok(summary)
         },
@@ -520,7 +529,7 @@ fn test_parse_struct_options_rejects_data_field_marker() {
     let err = parse_struct_options(&input.attrs).unwrap_err();
     let message = err.to_string();
     assert!(message.contains("derive struct"));
-    assert!(message.contains("expected `try_new`, `newtype`, or `newtype(try_from)`"));
+    assert!(message.contains("expected `try_new`, `try_from`, or `newtype`"));
 }
 
 #[test]
@@ -552,12 +561,15 @@ fn test_parse_field_rejects_struct_option_try_new() {
 #[test]
 fn test_parse_field_rejects_struct_newtype_options() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(newtype(try_from))]
+        #[koruma(newtype())]
         pub name: String
     };
 
     let err = parse_field(&field, 0).expect_err("expected data-field context error");
-    assert!(err.to_string().contains("`newtype(...)` is not valid"));
+    assert!(
+        err.to_string()
+            .contains("parenthesized `newtype` is not valid")
+    );
 }
 
 #[test]
@@ -668,7 +680,7 @@ fn test_parse_validator_struct_rejects_unknown_marker() {
     let err = parse_validator_struct(&input).unwrap_err();
     let message = err.to_string();
     assert!(message.contains("validator field"));
-    assert!(message.contains("expected `value`, `value(capture = skip)`, or `setter(...)`"));
+    assert!(message.contains("expected `value`, `skip_capture`, or `setter(...)`"));
 }
 
 #[test]
@@ -705,11 +717,11 @@ fn test_parse_validator_struct_preserves_setter_metadata() {
 }
 
 #[test]
-fn test_parse_validator_struct_supports_capture_skip_policy() {
+fn test_parse_validator_struct_supports_skip_capture_policy() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
             min: i32,
-            #[koruma(value(capture = skip))]
+            #[koruma(skip_capture)]
             actual: Option<i32>,
         }
     };
@@ -746,7 +758,7 @@ fn test_parse_validator_struct_parses_typed_setter_metadata() {
             limit: Option<usize>,
             #[koruma(setter(default = 10))]
             fallback: usize,
-            #[koruma(value(capture = skip))]
+            #[koruma(skip_capture)]
             actual: Option<String>,
         }
     };
@@ -812,10 +824,10 @@ fn test_parse_validator_struct_rejects_required_default_setter() {
 }
 
 #[test]
-fn test_parse_validator_struct_rejects_duplicate_value_markers_with_capture() {
+fn test_parse_validator_struct_rejects_duplicate_value_markers_with_skip_capture() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(value(capture = skip), value)]
+            #[koruma(skip_capture, value)]
             actual: Option<i32>,
         }
     };
@@ -823,7 +835,7 @@ fn test_parse_validator_struct_rejects_duplicate_value_markers_with_capture() {
     let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("field `actual` has multiple `#[koruma(value)]` markers")
+            .contains("field `actual` has multiple value markers")
     );
 }
 
@@ -831,7 +843,7 @@ fn test_parse_validator_struct_rejects_duplicate_value_markers_with_capture() {
 fn test_parse_validator_struct_rejects_unknown_value_option() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(value(mode = skip))]
+            #[koruma(value())]
             actual: Option<i32>,
         }
     };
@@ -839,15 +851,15 @@ fn test_parse_validator_struct_rejects_unknown_value_option() {
     let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("unsupported `value(...)` option; supported option is `capture = skip`")
+            .contains("parenthesized `value` markers are unsupported; use `skip_capture`")
     );
 }
 
 #[test]
-fn test_parse_validator_struct_rejects_unknown_capture_policy() {
+fn test_parse_validator_struct_rejects_parenthesized_skip_capture() {
     let input: syn::ItemStruct = syn::parse_quote! {
         pub struct Validator {
-            #[koruma(value(capture = clone))]
+            #[koruma(skip_capture())]
             actual: Option<i32>,
         }
     };
@@ -855,7 +867,7 @@ fn test_parse_validator_struct_rejects_unknown_capture_policy() {
     let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("unsupported capture policy; supported policy is `skip`")
+            .contains("`skip_capture` is only valid as a bare validator-field")
     );
 }
 

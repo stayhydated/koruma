@@ -37,7 +37,7 @@ pub struct MatchesValidation<T: PartialEq> {
     #[cfg_attr(feature = "fluent", fluent(skip))]
     pub other: T,
     /// The value being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

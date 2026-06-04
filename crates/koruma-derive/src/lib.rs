@@ -146,7 +146,7 @@ fn validate_validator_macro_input(input: &syn::ItemStruct) -> syn::Result<()> {
 /// The macro captures validator values through a hidden borrowed builder hook.
 /// Validators that keep the default `#[koruma(value)]` behavior still clone the
 /// input into the error value; validators marked with
-/// `#[koruma(value(capture = skip))]` on an `Option<T>` value field can opt out
+/// `#[koruma(skip_capture)]` on an `Option<T>` value field can opt out
 /// when they do not need to store the validated value.
 #[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]

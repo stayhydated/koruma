@@ -25,13 +25,11 @@ impl KorumaAttrContext {
 
     pub(super) fn accepted_items(self) -> &'static str {
         match self {
-            KorumaAttrContext::Struct => "`try_new`, `newtype`, or `newtype(try_from)`",
+            KorumaAttrContext::Struct => "`try_new`, `try_from`, or `newtype`",
             KorumaAttrContext::DataField => {
                 "`skip`, `nested`, `newtype`, validators, or `each(...)`"
             },
-            KorumaAttrContext::ValidatorField => {
-                "`value`, `value(capture = skip)`, or `setter(...)`"
-            },
+            KorumaAttrContext::ValidatorField => "`value`, `skip_capture`, or `setter(...)`",
             KorumaAttrContext::Showcase => {
                 "`name`, `description`, `create`, `input_type`, or `module`"
             },
@@ -57,19 +55,5 @@ pub(super) fn unsupported_setter_option_error(option: &Ident) -> Error {
         format!(
             "unsupported `#[koruma(setter({option}))]` option; supported options are `into`, `required`, `name`, and `default`"
         ),
-    )
-}
-
-pub(super) fn unsupported_value_option_error(option: &Ident) -> Error {
-    Error::new(
-        option.span(),
-        "unsupported `value(...)` option; supported option is `capture = skip`",
-    )
-}
-
-pub(super) fn unsupported_capture_policy_error(policy: &Ident) -> Error {
-    Error::new(
-        policy.span(),
-        "unsupported capture policy; supported policy is `skip`",
     )
 }

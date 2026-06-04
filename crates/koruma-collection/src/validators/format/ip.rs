@@ -56,7 +56,7 @@ pub struct IpValidation<T: AsRef<str>> {
     #[cfg_attr(feature = "fluent", fluent(selector))]
     pub kind: IpKind,
     /// The string being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

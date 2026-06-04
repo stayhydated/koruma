@@ -30,15 +30,18 @@ impl ValidationPlan {
         let field_infos = collect_field_infos(fields, Some(&struct_options))?;
         let total_fields = fields.len();
 
-        if let StructMode::Newtype { constructor, .. } = struct_options.mode()
-            && total_fields != 1
-        {
-            let message = if constructor.try_from() {
-                format!("newtype(try_from) requires exactly one field, found {total_fields}")
-            } else {
-                format!("newtype structs must have exactly one field, found {total_fields}")
-            };
-            return Err(syn::Error::new_spanned(input, message));
+        if matches!(struct_options.mode(), StructMode::Newtype { .. }) && total_fields != 1 {
+            return Err(syn::Error::new_spanned(
+                input,
+                format!("newtype structs must have exactly one field, found {total_fields}"),
+            ));
+        }
+
+        if struct_options.constructors().try_from() && total_fields != 1 {
+            return Err(syn::Error::new_spanned(
+                input,
+                "try_from requires exactly one field; use try_new for multi-field constructors",
+            ));
         }
 
         let known_field_names: Vec<Ident> = fields
@@ -70,7 +73,7 @@ impl ValidationPlan {
                 }
                 StructPlan::Newtype { field_index: 0 }
             },
-            StructMode::Regular { .. } => match fields {
+            StructMode::Regular => match fields {
                 Fields::Named(_) => StructPlan::Record,
                 Fields::Unnamed(_) => StructPlan::Tuple,
                 Fields::Unit => StructPlan::Unit,

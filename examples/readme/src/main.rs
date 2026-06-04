@@ -366,9 +366,9 @@ pub fn main() {
     }
 
     // =========================================================================
-    // TryFrom integration (newtype(try_from))
+    // TryFrom integration (newtype, try_from)
     // =========================================================================
-    println!("TryFrom Integration (#[koruma(newtype(try_from))]) \n");
+    println!("TryFrom Integration (#[koruma(newtype, try_from)]) \n");
 
     match Only67u8::try_from(69) {
         Ok(n) => println!("  - Only67u8::try_from(69) unexpectedly passed: {}!", n.0),

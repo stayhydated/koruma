@@ -1,6 +1,5 @@
 use syn::Ident;
 
-syn::custom_keyword!(capture);
 syn::custom_keyword!(default);
 syn::custom_keyword!(each);
 syn::custom_keyword!(full);
@@ -11,6 +10,7 @@ syn::custom_keyword!(newtype);
 syn::custom_keyword!(required);
 syn::custom_keyword!(setter);
 syn::custom_keyword!(skip);
+syn::custom_keyword!(skip_capture);
 syn::custom_keyword!(try_from);
 syn::custom_keyword!(try_new);
 syn::custom_keyword!(unwrapped);
@@ -19,7 +19,6 @@ syn::custom_keyword!(value);
 /// Reserved Koruma attribute words shared across context-specific parsers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum KorumaKeyword {
-    Capture,
     Default,
     Each,
     Full,
@@ -30,6 +29,7 @@ pub(super) enum KorumaKeyword {
     Required,
     Setter,
     Skip,
+    SkipCapture,
     TryFrom,
     TryNew,
     Unwrapped,
@@ -39,7 +39,6 @@ pub(super) enum KorumaKeyword {
 impl KorumaKeyword {
     pub(super) fn from_ident(ident: &Ident) -> Option<Self> {
         match ident.to_string().as_str() {
-            "capture" => Some(Self::Capture),
             "default" => Some(Self::Default),
             "each" => Some(Self::Each),
             "full" => Some(Self::Full),
@@ -50,6 +49,7 @@ impl KorumaKeyword {
             "required" => Some(Self::Required),
             "setter" => Some(Self::Setter),
             "skip" => Some(Self::Skip),
+            "skip_capture" => Some(Self::SkipCapture),
             "try_from" => Some(Self::TryFrom),
             "try_new" => Some(Self::TryNew),
             "unwrapped" => Some(Self::Unwrapped),

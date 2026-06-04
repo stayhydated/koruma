@@ -136,7 +136,7 @@ impl fmt::Display for StringLengthValidation {
 
 Keep `#[koruma(value)]` fields private and use the generated getter when
 external code needs the captured input. For validators that do not need to store
-the failing input, use `#[koruma(value(capture = skip))]` on an `Option<T>` value
+the failing input, use `#[koruma(skip_capture)]` on an `Option<T>` value
 field so derived validation does not clone the original value. Built-in
 collection, string, format, and numeric validators that do not render the
 failing input use this pattern internally.
@@ -185,4 +185,4 @@ Common patterns:
 - Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree. Handwritten `ValidateExt` integrations must use an associated error type implementing `ValidationError + Default`.
 - Use `#[koruma(newtype)]` for transparent error access through newtype wrappers.
 - Add `#[koruma(try_new, newtype)]` to generate a checked `try_new` constructor.
-- Add `#[koruma(newtype(try_from))]` to generate `TryFrom<Inner>` for checked conversions.
+- Add `#[koruma(try_from)]` on any exactly-one-field struct to generate checked `TryFrom<Inner>` conversions; combine it with `newtype` only when you also want transparent newtype error access.

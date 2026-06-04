@@ -34,15 +34,14 @@ mod tests;
 
 // Re-export parsing types
 pub use parse::{
-    BuilderMethodCall, CapturePolicy, DataFieldKorumaAttr, DataFieldKorumaItem,
+    BuilderMethodCall, CapturePolicy, ConstructorOptions, DataFieldKorumaAttr, DataFieldKorumaItem,
     ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldSource,
-    FieldValidationSpec, KorumaAttrContext, NewtypeConstructor, ParsedDataField, ParsedFieldSpec,
-    ParsedValidatorUse, RegularConstructor, SetterDefault, SetterInputPolicy, SetterPresence,
-    SpannedValue, StructKorumaAttr, StructKorumaItem, StructMode, StructNewtypeOptions,
-    StructOptions, ValidatorAttr, ValidatorFieldKorumaItem, ValidatorFieldRole, ValidatorFieldSpec,
-    ValidatorLabel, ValidatorPath, ValidatorSetterArg, ValidatorSetterSpec, ValidatorStructSpec,
-    ValidatorTargetSelector, ValidatorTypeArg, ValidatorValueSpec, parse_field,
-    parse_struct_options, parse_validator_struct,
+    FieldValidationSpec, KorumaAttrContext, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse,
+    SetterDefault, SetterInputPolicy, SetterPresence, SpannedValue, StructKorumaAttr,
+    StructKorumaItem, StructMode, StructOptions, ValidatorAttr, ValidatorFieldKorumaItem,
+    ValidatorFieldRole, ValidatorFieldSpec, ValidatorLabel, ValidatorPath, ValidatorSetterArg,
+    ValidatorSetterSpec, ValidatorStructSpec, ValidatorTargetSelector, ValidatorTypeArg,
+    ValidatorValueSpec, parse_field, parse_struct_options, parse_validator_struct,
 };
 
 #[cfg(feature = "internal-showcase")]

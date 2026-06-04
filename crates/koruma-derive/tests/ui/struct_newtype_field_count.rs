@@ -5,7 +5,7 @@ use koruma_derive::Koruma;
 struct Empty;
 
 #[derive(Koruma)]
-#[koruma(newtype(try_from))]
+#[koruma(newtype, try_from)]
 struct TooMany {
     first: String,
     second: String,

@@ -285,10 +285,11 @@ fn test_validator_attr_parse_invalid_call_error() {
 #[test]
 fn test_struct_options_parse_try_new() {
     let opts: StructOptions = syn::parse_quote!(try_new);
-    let StructMode::Regular { constructor } = opts.mode() else {
+    let StructMode::Regular = opts.mode() else {
         panic!("expected regular mode");
     };
-    assert_eq!(*constructor, RegularConstructor::TryNew);
+    assert!(opts.constructors().try_new());
+    assert!(!opts.constructors().try_from());
 }
 
 #[test]

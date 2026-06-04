@@ -37,7 +37,7 @@ pub struct PatternValidation<T: AsRef<str>> {
     #[cfg_attr(feature = "fluent", fluent(skip))]
     pub pattern: regex::Regex,
     /// The string being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

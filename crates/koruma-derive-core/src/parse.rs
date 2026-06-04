@@ -18,8 +18,8 @@ pub use data_field::{
     ParsedValidatorUse, ValidatorLabel, ValidatorTargetSelector, parse_field,
 };
 pub use derive_struct::{
-    NewtypeConstructor, RegularConstructor, StructKorumaAttr, StructKorumaItem, StructMode,
-    StructNewtypeOptions, StructOptions, parse_struct_options,
+    ConstructorOptions, StructKorumaAttr, StructKorumaItem, StructMode, StructOptions,
+    parse_struct_options,
 };
 pub use diagnostics::KorumaAttrContext;
 #[cfg(feature = "internal-showcase")]

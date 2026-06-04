@@ -290,7 +290,7 @@ impl ValidatorBuilderPlan {
         if capture_policy == CapturePolicy::Skip && option_inner_type(value_slot.ty()).is_none() {
             return Err(syn::Error::new_spanned(
                 value_slot.ty(),
-                "`#[koruma(value(capture = skip))]` requires an `Option<T>` field",
+                "`#[koruma(skip_capture)]` requires an `Option<T>` field",
             ));
         }
 

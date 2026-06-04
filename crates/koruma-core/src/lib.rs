@@ -37,7 +37,7 @@ pub mod __private {
     /// validator builders according to their capture policy.
     ///
     /// Validators that capture the input clone from the borrowed value inside the
-    /// generated impl. Validators marked with `#[koruma(value(capture = skip))]` on
+    /// generated impl. Validators marked with `#[koruma(skip_capture)]` on
     /// an `Option<T>` value field can ignore the borrowed input and keep their
     /// default value instead.
     pub trait CaptureValueRef<T> {

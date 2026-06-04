@@ -57,6 +57,7 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     );
     let try_from_impl = render_try_from_impl(
         &plan,
+        fields,
         struct_name,
         &impl_generics_tokens,
         &ty_generics_tokens,

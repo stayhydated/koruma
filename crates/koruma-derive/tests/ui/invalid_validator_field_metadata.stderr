@@ -1,4 +1,4 @@
-error: `nested` is not valid in a validator field `#[koruma(...)]` attribute; expected `value`, `value(capture = skip)`, or `setter(...)`
+error: `nested` is not valid in a validator field `#[koruma(...)]` attribute; expected `value`, `skip_capture`, or `setter(...)`
  --> tests/ui/invalid_validator_field_metadata.rs:5:14
   |
 5 |     #[koruma(nested)]

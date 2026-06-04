@@ -5,10 +5,10 @@ error: newtype structs must have exactly one field, found 0
 5 | | struct Empty;
   | |_____________^
 
-error: newtype(try_from) requires exactly one field, found 2
+error: newtype structs must have exactly one field, found 2
   --> tests/ui/struct_newtype_field_count.rs:8:1
    |
- 8 | / #[koruma(newtype(try_from))]
+ 8 | / #[koruma(newtype, try_from)]
  9 | | struct TooMany {
 10 | |     first: String,
 11 | |     second: String,

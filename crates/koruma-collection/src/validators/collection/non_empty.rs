@@ -38,7 +38,7 @@ use super::HasLen;
 #[cfg_attr(feature = "fluent", fluent(namespace = "collection"))]
 pub struct NonEmptyValidation<T: HasLen> {
     /// The value being validated.
-    #[koruma(value(capture = skip))]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

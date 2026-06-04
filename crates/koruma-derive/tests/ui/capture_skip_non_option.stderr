@@ -1,4 +1,4 @@
-error: `#[koruma(value(capture = skip))]` requires an `Option<T>` field
+error: `#[koruma(skip_capture)]` requires an `Option<T>` field
   --> tests/ui/capture_skip_non_option.rs:10:13
    |
 10 |     actual: NonClone,

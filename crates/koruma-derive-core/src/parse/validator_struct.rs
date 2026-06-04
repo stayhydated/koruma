@@ -2,14 +2,12 @@ use syn::{
     Error, Expr, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
     spanned::Spanned,
+    token,
 };
 use syn_cfg_attr::{AttributeHelpers, ExpandedAttr};
 
 use super::SpannedValue;
-use super::diagnostics::{
-    KorumaAttrContext, context_error, unsupported_capture_policy_error,
-    unsupported_setter_option_error, unsupported_value_option_error,
-};
+use super::diagnostics::{KorumaAttrContext, context_error, unsupported_setter_option_error};
 use super::keywords::KorumaKeyword;
 
 /// Parsed validator-field `value` marker metadata.
@@ -169,12 +167,29 @@ impl Parse for ValidatorFieldKorumaAttr {
             let ident: Ident = input.parse()?;
             let item = match KorumaKeyword::from_ident(&ident) {
                 Some(KorumaKeyword::Value) => {
-                    let capture = if input.peek(syn::token::Paren) {
-                        parse_value_capture_policy(input)?
-                    } else {
-                        CapturePolicy::CloneInput
-                    };
-                    ValidatorFieldKorumaItem::Value(ValidatorValueSpec { capture })
+                    if input.peek(token::Paren) {
+                        return Err(Error::new(
+                            ident.span(),
+                            "parenthesized `value` markers are unsupported; use `skip_capture` to skip value capture",
+                        ));
+                    }
+                    ValidatorFieldKorumaItem::Value(ValidatorValueSpec {
+                        capture: CapturePolicy::CloneInput,
+                    })
+                },
+                Some(KorumaKeyword::SkipCapture) => {
+                    if input.peek(token::Paren) || input.peek(Token![::]) {
+                        return Err(Error::new(
+                            ident.span(),
+                            format!(
+                                "`{ident}` is only valid as a bare validator-field `#[koruma(...)]` marker; expected {}",
+                                KorumaAttrContext::ValidatorField.accepted_items()
+                            ),
+                        ));
+                    }
+                    ValidatorFieldKorumaItem::Value(ValidatorValueSpec {
+                        capture: CapturePolicy::Skip,
+                    })
                 },
                 Some(KorumaKeyword::Setter) => {
                     ValidatorFieldKorumaItem::Setter(Box::new(parse_setter_options(input)?))
@@ -256,41 +271,6 @@ fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
     }
 
     Ok(options)
-}
-
-fn parse_value_capture_policy(input: ParseStream) -> Result<CapturePolicy> {
-    let content;
-    parenthesized!(content in input);
-
-    let key: Ident = content.parse()?;
-    if !matches!(
-        KorumaKeyword::from_ident(&key),
-        Some(KorumaKeyword::Capture)
-    ) {
-        return Err(unsupported_value_option_error(&key));
-    }
-    content.parse::<Token![=]>()?;
-    let policy: Ident = content.parse()?;
-    let capture = if matches!(
-        KorumaKeyword::from_ident(&policy),
-        Some(KorumaKeyword::Skip)
-    ) {
-        CapturePolicy::Skip
-    } else {
-        return Err(unsupported_capture_policy_error(&policy));
-    };
-
-    if content.peek(Token![,]) {
-        content.parse::<Token![,]>()?;
-    }
-    if !content.is_empty() {
-        return Err(Error::new(
-            content.span(),
-            "unexpected extra tokens in `value(...)`; supported option is `capture = skip`",
-        ));
-    }
-
-    Ok(capture)
 }
 
 fn validator_field_attr(attr: &ExpandedAttr) -> Result<ValidatorFieldKorumaAttr> {
@@ -379,7 +359,7 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
                                 return Err(Error::new(
                                     marker.ident.span(),
                                     format!(
-                                        "field `{field_name}` has multiple `#[koruma(value)]` markers"
+                                        "field `{field_name}` has multiple value markers; `value` and `skip_capture` are the same validator-field role"
                                     ),
                                 ));
                             }

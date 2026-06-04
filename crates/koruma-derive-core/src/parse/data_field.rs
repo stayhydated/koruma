@@ -418,7 +418,13 @@ fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>>
     let ident: Ident = fork.parse()?;
     if matches!(
         KorumaKeyword::from_ident(&ident),
-        Some(KorumaKeyword::Value | KorumaKeyword::TryNew | KorumaKeyword::Setter)
+        Some(
+            KorumaKeyword::Value
+                | KorumaKeyword::SkipCapture
+                | KorumaKeyword::TryFrom
+                | KorumaKeyword::TryNew
+                | KorumaKeyword::Setter
+        )
     ) {
         return Err(context_error(&ident, KorumaAttrContext::DataField));
     }
@@ -434,7 +440,7 @@ fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>>
         return Err(Error::new(
             ident.span(),
             format!(
-                "`{ident}(...)` is not valid in a derive data field `#[koruma(...)]` attribute; expected {}",
+                "parenthesized `{ident}` is not valid in a derive data field `#[koruma(...)]` attribute; expected {}",
                 KorumaAttrContext::DataField.accepted_items()
             ),
         ));

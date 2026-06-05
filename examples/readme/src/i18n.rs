@@ -1,9 +1,24 @@
+use es_fluent::EsFluent;
 use std::sync::OnceLock;
+use strum::EnumIter;
 
 use es_fluent_manager_embedded as embedded_i18n;
-use koruma_shared_lib::Languages;
+use es_fluent_lang::es_fluent_language;
 
 es_fluent_manager_embedded::define_i18n_module!();
+
+#[es_fluent_language]
+#[derive(Clone, Copy, Debug, EnumIter, Eq, EsFluent, PartialEq)]
+pub enum Languages {}
+
+impl Languages {
+    pub fn next(self) -> Self {
+        use strum::IntoEnumIterator as _;
+        let all = Self::iter().collect::<Vec<_>>();
+        let current_index = all.iter().position(|&l| l == self).unwrap_or(0);
+        all[(current_index + 1) % all.len()]
+    }
+}
 
 static LOCALIZER: OnceLock<embedded_i18n::EmbeddedI18n> = OnceLock::new();
 

@@ -1,8 +1,8 @@
-use koruma_shared_lib::Languages;
 use readme::{
     Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8,
     OptionalSignupForm, SignupForm, SignupInput, User, Username, i18n,
 };
+use readme::i18n::Languages;
 use strum::IntoEnumIterator as _;
 
 pub fn main() {

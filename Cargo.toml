@@ -7,7 +7,6 @@ members = [
   "crates/koruma-derive",
   "crates/koruma-derive-core",
   "examples/readme",
-  "examples/shared-lib",
   "web",
   "xtask",
 ]

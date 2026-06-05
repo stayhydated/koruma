@@ -1,6 +1,8 @@
 pub mod i18n;
 pub mod validators;
 
+pub use i18n::Languages;
+
 use crate::{
     validators::fluent::{
         IsEvenNumberValidation, NonEmptyStringValidation, Only67Validation,
@@ -25,7 +27,7 @@ pub struct BorrowedOrder<'a> {
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedUsername<'a> {
-    #[koruma(validators::normal::StartsWithValidation::<_>::prefix("user:"))]
+    #[koruma(each(validators::normal::StartsWithValidation::<_>::prefix("user:")))]
     pub username: &'a str,
 }
 
@@ -72,7 +74,7 @@ pub struct Address {
     pub zip_code: String,
 }
 
-/// A struct with a nested Address field.
+/// A nested struct with a nested Address field.
 /// Demonstrates `#[koruma(nested)]` for Display-based error messages.
 #[derive(Koruma)]
 pub struct Customer {
@@ -102,7 +104,7 @@ pub struct AccountSettings {
     pub default_language: String,
 }
 
-/// A struct with a nested AccountSettings field.
+/// A nested struct with a nested AccountSettings field.
 /// Demonstrates `#[koruma(nested)]` for EsFluent-based error messages.
 #[derive(Koruma)]
 pub struct Account {

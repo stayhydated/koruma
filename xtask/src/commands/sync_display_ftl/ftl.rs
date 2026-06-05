@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use fluent_syntax::{ast, parser};
 
 use super::types::TemplatePart;

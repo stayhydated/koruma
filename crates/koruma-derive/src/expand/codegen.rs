@@ -1,6 +1,6 @@
 use koruma_derive_core::{KnownTypeShape, is_option_type};
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{ToTokens, quote};
+use quote::{ToTokens as _, quote};
 use std::collections::BTreeSet;
 use syn::visit::{self, Visit};
 use syn::{ExprPath, GenericParam, Generics, Ident, Lifetime, Type, TypePath, parse_quote};

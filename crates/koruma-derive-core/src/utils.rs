@@ -6,7 +6,7 @@
 use proc_macro2::Span;
 use syn::{
     AngleBracketedGenericArguments, Expr, GenericArgument, Ident, ParenthesizedGenericArguments,
-    Path, PathArguments, PathSegment, ReturnType, Type, TypeParamBound, spanned::Spanned,
+    Path, PathArguments, PathSegment, ReturnType, Type, TypeParamBound, spanned::Spanned as _,
 };
 
 /// Substitute infer placeholders (`_`) in a type with the actual inferred type.

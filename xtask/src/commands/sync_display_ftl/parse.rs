@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context as _, Result, anyhow, bail};
 use quote::ToTokens as _;
 use syn::{
     Block, Expr, ExprLit, ImplItem, ItemImpl, Lit, Macro, Member, Stmt, Type, parse::Parser as _,

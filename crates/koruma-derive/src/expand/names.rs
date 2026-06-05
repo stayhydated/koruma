@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use heck::{ToSnakeCase, ToUpperCamelCase};
+use heck::{ToSnakeCase as _, ToUpperCamelCase as _};
 use koruma_derive_core::{FieldInfo, ParsedValidatorUse, ValidatorAttr, ValidatorTypeArg};
 use quote::{ToTokens, format_ident};
 use syn::{Error, Ident, Result};

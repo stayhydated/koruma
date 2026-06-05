@@ -38,3 +38,6 @@ trybuild = { workspace = true }
 
 [package.metadata.docs.rs]
 features = [ "fluent" ]
+
+[lints]
+workspace = true

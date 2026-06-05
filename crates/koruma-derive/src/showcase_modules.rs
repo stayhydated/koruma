@@ -1,5 +1,5 @@
 #[cfg(feature = "internal-showcase")]
-use heck::ToUpperCamelCase;
+use heck::ToUpperCamelCase as _;
 #[cfg(feature = "internal-showcase")]
 use proc_macro2::{Span, TokenStream as TokenStream2};
 #[cfg(feature = "internal-showcase")]
@@ -46,7 +46,7 @@ fn module_variant_ident(module: &Ident) -> Ident {
 
 #[cfg(feature = "internal-showcase")]
 fn module_str_literal(module: &Ident) -> LitStr {
-    LitStr::new(&module.to_string().to_string(), module.span())
+    LitStr::new(&module.to_string(), module.span())
 }
 
 #[cfg(feature = "internal-showcase")]

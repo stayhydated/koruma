@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use heck::ToUpperCamelCase;
+use heck::ToUpperCamelCase as _;
 use quote::format_ident;
 use syn::{Error, Ident, Result};
 

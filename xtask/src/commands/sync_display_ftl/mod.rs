@@ -10,7 +10,7 @@ use std::{
     path::Path,
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context as _, Result, bail};
 
 use crate::cli::SyncArgs;
 use collect::{collect_display_info, collect_rs_files, collect_validator_info};

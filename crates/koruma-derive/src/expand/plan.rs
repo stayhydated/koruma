@@ -8,7 +8,7 @@ use koruma_derive_core::{
 };
 use proc_macro2::Span;
 use quote::quote;
-use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned};
+use syn::{DeriveInput, Fields, Ident, Member, Path, Type, spanned::Spanned as _};
 
 use super::codegen::{Cardinality, EachCollection, classify_each_collection};
 use super::collect_field_infos;
@@ -1040,7 +1040,7 @@ impl PlannedValidator {
             doc_name: name_plan.doc_name.clone(),
             target,
             resolved_type_arg,
-            validator_type: validator_type.clone(),
+            validator_type,
             builder_type,
             setter_calls,
             field_ident: name_plan.field_ident.clone(),

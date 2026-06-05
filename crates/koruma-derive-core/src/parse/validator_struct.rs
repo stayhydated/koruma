@@ -1,7 +1,7 @@
 use syn::{
     Attribute, Error, Expr, Fields, Ident, ItemStruct, Result, Token, Type, parenthesized,
     parse::{Parse, ParseStream},
-    spanned::Spanned,
+    spanned::Spanned as _,
     token,
 };
 

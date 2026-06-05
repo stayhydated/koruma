@@ -1,9 +1,9 @@
-use heck::{ToSnakeCase, ToUpperCamelCase};
+use heck::{ToSnakeCase as _, ToUpperCamelCase as _};
 use quote::ToTokens;
 use syn::{
     Error, Expr, GenericArgument, Ident, Path, PathArguments, Result, Type,
-    parse::{Parse, ParseStream, discouraged::Speculative},
-    spanned::Spanned,
+    parse::{Parse, ParseStream, discouraged::Speculative as _},
+    spanned::Spanned as _,
 };
 
 use super::keywords::ReservedBuilderMethod;

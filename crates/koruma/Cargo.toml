@@ -28,3 +28,6 @@ internal-showcase = [
 
 [package.metadata.docs.rs]
 features = [ "derive", "fluent" ]
+
+[lints]
+workspace = true

@@ -29,3 +29,6 @@ koruma-derive = { optional = true, workspace = true }
 
 [package.metadata.docs.rs]
 all-features = false
+
+[lints]
+workspace = true

@@ -91,7 +91,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 });
             }
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
-            let mut fluent_generics = helper_generics.definition.clone();
+            let mut fluent_generics = helper_generics.definition;
             add_fluent_message_bounds(&mut fluent_generics, &helper_usages);
             let (helper_impl_generics, helper_ty_generics, helper_where_clause) =
                 fluent_generics.split_for_impl();
@@ -166,7 +166,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 })
                 .collect();
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
-            let mut fluent_generics = helper_generics.definition.clone();
+            let mut fluent_generics = helper_generics.definition;
             add_fluent_message_bounds(&mut fluent_generics, &helper_usages);
             let (helper_impl_generics, helper_ty_generics, helper_where_clause) =
                 fluent_generics.split_for_impl();
@@ -242,7 +242,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 });
             }
             let helper_generics = helper_generics_for_usages(generics, &helper_usages);
-            let mut fluent_generics = helper_generics.definition.clone();
+            let mut fluent_generics = helper_generics.definition;
             add_fluent_message_bounds(&mut fluent_generics, &helper_usages);
             let (helper_impl_generics, helper_ty_generics, helper_where_clause) =
                 fluent_generics.split_for_impl();
@@ -330,7 +330,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             })
             .collect();
         let main_error_generics = helper_generics_for_usages(generics, &main_error_usages);
-        let mut main_error_fluent_generics = main_error_generics.definition.clone();
+        let mut main_error_fluent_generics = main_error_generics.definition;
         add_fluent_message_bounds(&mut main_error_fluent_generics, &main_error_usages);
         let (main_error_impl_generics, main_error_ty_generics, main_error_where_clause) =
             main_error_fluent_generics.split_for_impl();

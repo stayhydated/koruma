@@ -9,7 +9,7 @@ mod tests;
 use proc_macro::TokenStream;
 use proc_macro_error2::proc_macro_error;
 use proc_macro2::TokenStream as TokenStream2;
-use syn::spanned::Spanned;
+use syn::spanned::Spanned as _;
 use syn::{DeriveInput, Fields, Item};
 
 #[cfg(feature = "fluent")]

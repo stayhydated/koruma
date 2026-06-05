@@ -1,7 +1,7 @@
 use super::koruma_crate_path;
 #[cfg(feature = "internal-showcase")]
 use super::{ShowcaseInputType, ShowcaseModule};
-use heck::ToSnakeCase;
+use heck::ToSnakeCase as _;
 #[cfg(feature = "internal-showcase")]
 use koruma_derive_core::find_showcase_attr;
 use koruma_derive_core::{

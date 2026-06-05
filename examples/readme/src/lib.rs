@@ -27,7 +27,7 @@ pub struct BorrowedOrder<'a> {
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedUsername<'a> {
-    #[koruma(each(validators::normal::StartsWithValidation::<_>::prefix("user:")))]
+    #[koruma(validators::normal::StartsWithValidation::<_>::prefix("user:"))]
     pub username: &'a str,
 }
 

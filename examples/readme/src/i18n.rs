@@ -2,8 +2,8 @@ use es_fluent::EsFluent;
 use std::sync::OnceLock;
 use strum::EnumIter;
 
-use es_fluent_manager_embedded as embedded_i18n;
 use es_fluent_lang::es_fluent_language;
+use es_fluent_manager_embedded as embedded_i18n;
 
 es_fluent_manager_embedded::define_i18n_module!();
 

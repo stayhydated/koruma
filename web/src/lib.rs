@@ -94,10 +94,8 @@ mod tests {
 
         let selected = SiteLanguage::default().lang();
         let selected = selected.clone();
-        let init = es_fluent_manager_dioxus::ssr::SsrI18nRuntime::new(
-            crate::site::i18n::dioxus_i18n_asset_modules(),
-        )
-        .request_blocking(selected);
+        let init =
+            es_fluent_manager_dioxus::ssr::SsrI18nRuntime::discovered().request_blocking(selected);
         match init {
             Ok(_) => println!("asset i18n init ok"),
             Err(error) => panic!("asset i18n init failed: {error}"),

@@ -7,16 +7,15 @@ description: "Use only for user-facing guidance on applying koruma or koruma-col
 
 ## Scope Boundary
 
-Treat this skill as a hosted public-usage guide for `koruma` consumers. Use it
+Treat this skill as public, reusable guidance for `koruma` consumers. Use it
 only for user-facing application workflows: choosing `koruma` or
 `koruma-collection`, applying built-in validators, defining custom validators,
 deriving typed error accessors, rendering validation failures, and connecting
 validator messages to Fluent localization.
 
-Do not use this skill as a contributor guide for `koruma` repository internals.
-For build, test, format, lint, maintenance, release, or architecture work, read
-the repository source, `AGENTS.md`, and the relevant crate documentation
-directly.
+Do not use this skill for crate implementation design, maintenance automation,
+release work, or contributor workflows. It describes consumer application usage
+only.
 
 ## Core Workflow
 
@@ -54,7 +53,7 @@ Load only the reference needed for the task:
 
 - `references/validator-catalog.md`: built-in validator inventory, module names, feature flags, and usage notes.
 
-Prefer current public docs or source examples over memory when details matter.
+Prefer current public docs and published examples over memory when details matter.
 Prefer examples and concrete Rust snippets over prose-only guidance.
 
 ## Implementation Rules

@@ -89,7 +89,6 @@ fn LocaleSwitcher() -> Element {
         },
     };
 
-    let locale_label = i18n.localize_message(&SiteChromeMessage::LocaleLabel);
     let language_options = SiteLanguage::all()
         .map(|language| {
             let label = i18n.localize_message(&language);
@@ -107,7 +106,6 @@ fn LocaleSwitcher() -> Element {
 
     rsx! {
         LanguageSelect::<SiteLanguage> {
-            label: DisplayText::new(locale_label),
             selected: current_language,
             options: language_options,
             on_change: on_locale_changed,

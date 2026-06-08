@@ -24,7 +24,6 @@ pub(crate) enum SiteChromeMessage {
     NavDemos,
     NavDocs,
     NavSource,
-    LocaleLabel,
 }
 
 #[derive(Clone, Copy, Debug, EsFluent)]

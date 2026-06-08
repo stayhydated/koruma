@@ -3,7 +3,7 @@ use crate::site::i18n::HomeMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
-use stayhydated_dioxus::DisplayText;
+use stayhydated_dioxus::{DisplayText, SkillInstallCommand};
 
 #[component]
 pub(crate) fn HomePage() -> Element {
@@ -109,9 +109,14 @@ pub(crate) fn HomePage() -> Element {
 
                 section { class: "section-band motion-reveal",
                     style: surface_style.as_str(),
-                    div { class: "section-heading",
-                        span { class: "panel-label", "{surface_panel_label}" }
-                        h2 { "{surface_title}" }
+                    div { class: "surface-panel-header",
+                        div { class: "section-heading surface-panel-heading",
+                            span { class: "panel-label", "{surface_panel_label}" }
+                            h2 { "{surface_title}" }
+                        }
+                        div { class: "surface-install-command",
+                            SkillInstallCommand { repo: "koruma" }
+                        }
                     }
                     div { class: "feature-grid",
                         FeatureCard {

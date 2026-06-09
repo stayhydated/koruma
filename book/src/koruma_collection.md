@@ -70,7 +70,7 @@ patterns fail during construction instead of during validation.
 | `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation::<_>)]`                                        | `default`  |
 | `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>::min(0).max(100).exclusive_max(true))]` | `default`  |
 
-Primitive integers and floats implement `numeric::Numeric` out of the box. Enable the `decimal`
+Primitive integers and floats implement `numeric::Numeric` out of the box. Enable the `rust_decimal`
 feature to add `rust_decimal::Decimal`. Custom numeric-like types can opt in by implementing
 `numeric::Numeric::zero()`.
 

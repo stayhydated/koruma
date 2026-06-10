@@ -36,7 +36,7 @@ Before editing, classify the change:
    the matching `docs/ARCHITECTURE.md`.
 3. **Sync public workflow changes.** If behavior, validator inventory, feature
    flags, message shape, generated output, or recommended usage changes, update
-   the relevant example, README, book page, and `.agents/skills/*` guidance in
+   the relevant example, README, book page, and public `skills/*` guidance in
    the same change when applicable.
 4. **Validate narrowly.** Run the smallest command that proves the edited
    behavior or documentation surface is still sound.
@@ -91,20 +91,11 @@ must not include internal wording, maintainer-only language, repo-private
 assumptions, or implementation details.
 
 Do not assume root-level `skills/*` entries are auto-loaded as repo-local Codex
-skills. Use `.agents/skills/*-dev` only for repo-scoped development skills
-that add material value beyond `AGENTS.md` and the relevant
-`docs/ARCHITECTURE.md`. Each dev skill directory and its `SKILL.md` `name`
-field must use the same `-dev` suffix.
-
-There is currently no repo-local Koruma dev skill. For repository development,
-use `AGENTS.md`, the source tree, and the relevant crate architecture docs unless
-a future workflow needs a dedicated `.agents/skills/*-dev` skill.
+skills. Treat `skills/*` as public distribution sources.
 
 Update relevant in-repository skill guidance when a code change alters
 user-facing workflows, validator behavior, feature flags, generated output, i18n
-integration patterns, or recommended usage: use `skills/*` for public reusable
-guidance, and add or update `.agents/skills/*-dev` only for repo-local
-development workflows that need dedicated skill instructions.
+integration patterns, or recommended usage.
 
 ## Synchronization Rules
 
@@ -115,7 +106,7 @@ shape:
 1. Update the executable example in `examples/readme` when relevant.
 2. Update the affected user-facing `README.md` files.
 3. Update the matching `book/src/*.md` pages.
-4. Update relevant in-repository skill guidance: `.agents/skills/*-dev` for repo-local workflows and `skills/*` for public reusable guidance.
+4. Update relevant public `skills/*` guidance.
 5. Keep these surfaces aligned in the same change unless there is a documented reason not to.
 
 `examples/readme` is the canonical source of truth for usage examples.
@@ -203,7 +194,7 @@ flags, or usage guidance changes.
 - Keep READMEs, the book, and the public site user-facing.
 - Move parsing internals, macro expansion details, and subsystem design into `docs/ARCHITECTURE.md`.
 - Prefer examples over prose-only explanations.
-- Sync `examples/readme`, relevant READMEs, book pages, `.agents/skills/*-dev`, and `skills/*` guidance in the same change.
+- Sync `examples/readme`, relevant READMEs, book pages, and public `skills/*` guidance in the same change.
 - For validator catalog or feature-flag changes, update both `crates/koruma-collection/README.md` and `book/src/koruma_collection.md`.
 
 ### When Editing Rust Crates

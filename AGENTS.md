@@ -36,7 +36,7 @@ Before editing, classify the change:
    the matching `docs/ARCHITECTURE.md`.
 3. **Sync public workflow changes.** If behavior, validator inventory, feature
    flags, message shape, generated output, or recommended usage changes, update
-   the relevant example, README, book page, and public `skills/*` guidance in
+   the relevant example, README, book page, and `skills/use-koruma` guidance in
    the same change when applicable.
 4. **Validate narrowly.** Run the smallest command that proves the edited
    behavior or documentation surface is still sound.
@@ -86,16 +86,12 @@ Keep these topics in architecture documents, not in READMEs or the book:
 
 ### Skill Guidance
 
-`skills/use-koruma` is the public reusable skill for application developers. It
-must not include internal wording, maintainer-only language, repo-private
-assumptions, or implementation details.
+`skills/use-koruma` is public application-developer guidance, not repo-local
+maintenance guidance. Keep maintainer-only details in this guide or the relevant
+`docs/ARCHITECTURE.md`.
 
-Do not assume root-level `skills/*` entries are auto-loaded as repo-local Codex
-skills. Treat `skills/*` as public distribution sources.
-
-Update relevant in-repository skill guidance when a code change alters
-user-facing workflows, validator behavior, feature flags, generated output, i18n
-integration patterns, or recommended usage.
+Update it when user-facing workflows, validator behavior, feature flags,
+generated output, i18n integration patterns, or recommended usage change.
 
 ## Synchronization Rules
 
@@ -106,7 +102,7 @@ shape:
 1. Update the executable example in `examples/readme` when relevant.
 2. Update the affected user-facing `README.md` files.
 3. Update the matching `book/src/*.md` pages.
-4. Update relevant public `skills/*` guidance.
+4. Update `skills/use-koruma` when public usage guidance changes.
 5. Keep these surfaces aligned in the same change unless there is a documented reason not to.
 
 `examples/readme` is the canonical source of truth for usage examples.
@@ -194,7 +190,8 @@ flags, or usage guidance changes.
 - Keep READMEs, the book, and the public site user-facing.
 - Move parsing internals, macro expansion details, and subsystem design into `docs/ARCHITECTURE.md`.
 - Prefer examples over prose-only explanations.
-- Sync `examples/readme`, relevant READMEs, book pages, and public `skills/*` guidance in the same change.
+- Sync `examples/readme`, relevant READMEs, book pages, and
+  `skills/use-koruma` when public usage guidance changes.
 - For validator catalog or feature-flag changes, update both `crates/koruma-collection/README.md` and `book/src/koruma_collection.md`.
 
 ### When Editing Rust Crates

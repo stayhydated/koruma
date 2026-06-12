@@ -41,7 +41,8 @@ pub use parse::{
     StructKorumaItem, StructMode, StructOptions, ValidatorAttr, ValidatorFieldKorumaItem,
     ValidatorFieldRole, ValidatorFieldSpec, ValidatorLabel, ValidatorPath, ValidatorSetterArg,
     ValidatorSetterSpec, ValidatorStructSpec, ValidatorTargetSelector, ValidatorTypeArg,
-    ValidatorValueSpec, parse_field, parse_struct_options, parse_validator_struct,
+    ValidatorValueSource, ValidatorValueSpec, parse_field, parse_struct_options,
+    parse_validator_struct,
 };
 
 #[cfg(feature = "internal-showcase")]

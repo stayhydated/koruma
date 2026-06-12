@@ -154,7 +154,7 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
     let DataFieldKorumaItem::ElementValidation(element_spec) = &data_attr.items()[1] else {
         panic!("expected element validator");
     };
-    assert_eq!(element_spec.marker_source().value.to_string(), "each");
+    assert_eq!(element_spec.marker_source().value().to_string(), "each");
     assert_eq!(
         element_spec.validators()[0]
             .label()
@@ -267,14 +267,15 @@ fn parse_field_allows_distinct_fully_qualified_validators() {
 fn parse_validator_struct_rejects_missing_marker() {
     let input: syn::ItemStruct = syn::parse_quote! {
         struct Validator {
-            actual: i32,
+            #[koruma(setter)]
+            checked: i32,
         }
     };
     assert!(
         parse_validator_struct(&input)
             .expect_err("expected missing value field")
             .to_string()
-            .contains("requires a field marked with #[koruma(value)]")
+            .contains("requires a value field")
     );
 
     let tuple_input: syn::ItemStruct = syn::parse_quote! {
@@ -284,7 +285,7 @@ fn parse_validator_struct_rejects_missing_marker() {
         parse_validator_struct(&tuple_input)
             .expect_err("expected tuple validator missing value field")
             .to_string()
-            .contains("requires a field marked with #[koruma(value)]")
+            .contains("requires a value field")
     );
 }
 
@@ -1099,7 +1100,7 @@ fn struct_options_cover_constructor_combinations_and_errors() {
     let StructMode::Newtype { marker } = newtype_try_new.mode() else {
         panic!("expected newtype mode");
     };
-    assert_eq!(marker.value.to_string(), "newtype");
+    assert_eq!(marker.value().to_string(), "newtype");
     assert!(newtype_try_new.constructors().try_new());
     assert!(!newtype_try_new.constructors().try_from());
 
@@ -1298,14 +1299,23 @@ fn validator_attr_parsing_covers_grouped_calls_and_accessors() {
         syn::parse_str("(RangeValidation::min)(0)").expect("grouped call path should parse");
     assert_eq!(direct_call.setter_calls()[0].method().to_string(), "min");
 
-    for source in ["", "make().min(1)", "(make())(1)"] {
+    for (source, expected) in [
+        ("", "validator syntax requires a direct validator chain"),
+        (
+            "make().min(1)",
+            "validator setter `make(...)` expects exactly one argument",
+        ),
+        (
+            "(make())(1)",
+            "validator syntax requires a direct validator chain",
+        ),
+    ] {
         let err = match syn::parse_str::<ValidatorAttr>(source) {
             Ok(_) => panic!("expected `{source}` to fail"),
             Err(err) => err,
         };
         assert!(
-            err.to_string()
-                .contains("validator syntax requires a direct validator chain"),
+            err.to_string().contains(expected),
             "unexpected error for `{source}`: {err}",
         );
     }
@@ -1361,7 +1371,9 @@ fn value_field_info_wrappers_and_empty_marker_errors_are_covered() {
         parse_validator_struct(&bad_input)
             .expect_err("expected empty marker error")
             .to_string()
-            .contains("validator fields must contain `value`, `skip_capture`, or `setter(...)`",)
+            .contains(
+                "validator fields must contain `value`, `skip_capture`, `setter`, or `setter(...)`",
+            )
     );
 }
 

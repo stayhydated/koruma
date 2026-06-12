@@ -224,7 +224,7 @@ impl ComplexItem {
         let __field_value = &self.age;
         {
             let __koruma_builder = RangeValidation::min(0).max(100);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 RangeValidation,
@@ -242,6 +242,12 @@ impl ComplexItem {
                 has_error = true;
             }
         }
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<
+                Vec<String>,
+                String,
+            >();
+        }
         for (idx, __item_value) in self.tags.iter().enumerate() {
             let mut element_error = ComplexItemTagsElementKorumaValidationError {
                 length_validation: None,
@@ -249,7 +255,7 @@ impl ComplexItem {
             let mut element_has_error = false;
             {
                 let __koruma_builder = LengthValidation::min(1).max(50);
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_element_validator_ready::<
                     _,
                     String,
                     LengthValidation,
@@ -275,7 +281,7 @@ impl ComplexItem {
         let __field_value = &self.rating;
         {
             let __koruma_builder = RangeValidation::min(0).max(10);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 RangeValidation,
@@ -295,7 +301,7 @@ impl ComplexItem {
         }
         {
             let __koruma_builder = EvenValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 EvenValidation,

@@ -82,10 +82,18 @@ pub(crate) fn reserved_error_api_name(name: &str) -> bool {
 }
 
 pub(crate) fn reserved_builder_method_name(name: &str) -> bool {
-    RESERVED_BUILDER_METHOD_NAMES.contains(&name)
+    RESERVED_BUILDER_METHOD_NAMES.contains(&name) || name.starts_with("maybe_")
 }
 
-const RESERVED_BUILDER_METHOD_NAMES: &[&str] = &["with_value", "build", "__koruma_builder"];
+const RESERVED_BUILDER_METHOD_NAMES: &[&str] = &[
+    "__koruma_builder",
+    "build",
+    "build_validator",
+    "builder",
+    "capture_value_ref",
+    "new",
+    "with_value",
+];
 
 pub(crate) fn builder_method_namespace() -> GeneratedApiNamespace {
     let mut namespace = GeneratedApiNamespace::new();

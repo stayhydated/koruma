@@ -87,7 +87,7 @@ impl Person {
         let __field_value = &self.age;
         {
             let __koruma_builder = RangeValidation::min(0).max(150);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 RangeValidation,

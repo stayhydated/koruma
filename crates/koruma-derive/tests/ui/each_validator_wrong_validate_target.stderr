@@ -1,0 +1,21 @@
+error[E0277]: the trait bound `TextValidation: Validate<i32>` is not satisfied
+  --> tests/ui/each_validator_wrong_validate_target.rs:19:19
+   |
+19 |     #[koruma(each(TextValidation))]
+   |                   ^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `Validate<i32>` is not implemented for `TextValidation`
+      but trait `Validate<String>` is implemented for it
+  --> tests/ui/each_validator_wrong_validate_target.rs:11:1
+   |
+11 | impl Validate<String> for TextValidation {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: for that trait implementation, expected `String`, found `i32`
+note: required by a bound in `koruma::__private::assert_element_validator_ready`
+  --> $WORKSPACE/crates/koruma-core/src/lib.rs
+   |
+   |     pub fn assert_element_validator_ready<Builder, Target, Validator>(builder: &Builder)
+   |            ------------------------------ required by a bound in this function
+...
+   |         Validator: super::Validate<Target>,
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_element_validator_ready`

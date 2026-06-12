@@ -1,0 +1,23 @@
+error: validator setter `min(...)` expects exactly one argument; use bare validator syntax for validators without configuration fields
+ --> tests/ui/invalid_validator_setter_call_shape.rs:5:31
+  |
+5 |     #[koruma(RangeValidation::min())]
+  |                               ^^^
+
+error: validator setter `min(...)` expects exactly one argument; use bare validator syntax for validators without configuration fields
+ --> tests/ui/invalid_validator_setter_call_shape.rs:8:31
+  |
+8 |     #[koruma(RangeValidation::min(0, 1))]
+  |                               ^^^
+
+error: validator setter `min(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>::min(value)`
+  --> tests/ui/invalid_validator_setter_call_shape.rs:11:34
+   |
+11 |     #[koruma(RangeValidation::min::<u8>(0))]
+   |                                  ^
+
+error: validator setter `min(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>::min(value)`
+  --> tests/ui/invalid_validator_setter_call_shape.rs:14:44
+   |
+14 |     #[koruma(each(RangeValidation::<_>::min::<u8>(0)))]
+   |                                            ^

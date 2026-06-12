@@ -84,7 +84,7 @@ impl OptionalPresence {
             let __koruma_builder = RequiredValidation::<
                 Option<String>,
             >::__koruma_builder();
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 Option<String>,
                 RequiredValidation<Option<String>>,

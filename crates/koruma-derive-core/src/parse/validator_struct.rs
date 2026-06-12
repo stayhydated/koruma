@@ -13,12 +13,30 @@ use super::keywords::KorumaKeyword;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ValidatorValueSpec {
     capture: CapturePolicy,
+    source: ValidatorValueSource,
 }
 
 impl ValidatorValueSpec {
     pub fn capture(&self) -> CapturePolicy {
         self.capture
     }
+
+    pub fn source(&self) -> ValidatorValueSource {
+        self.source
+    }
+}
+
+/// How a validator value field was selected.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValidatorValueSource {
+    /// The field was marked with `#[koruma(value)]`.
+    ExplicitValue,
+    /// The field was marked with `#[koruma(skip_capture)]`.
+    SkipCapture,
+    /// The field name matched Koruma's conventional value-field names.
+    InferredConventionalName,
+    /// The field was the only unmarked field in the validator struct.
+    InferredSingleField,
 }
 
 /// Default behavior requested by `#[koruma(setter(default...))]`.
@@ -28,7 +46,7 @@ pub enum SetterDefault {
     Expr(Box<Expr>),
 }
 
-/// Input conversion policy requested by `#[koruma(setter(...))]`.
+/// Input conversion policy requested by `#[koruma(setter)]` or `#[koruma(setter(...))]`.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum SetterInputPolicy {
     #[default]
@@ -42,7 +60,7 @@ impl SetterInputPolicy {
     }
 }
 
-/// Presence policy requested by `#[koruma(setter(...))]`.
+/// Presence policy requested by `#[koruma(setter)]` or `#[koruma(setter(...))]`.
 #[derive(Clone, Debug)]
 pub enum SetterPresence {
     Required,
@@ -50,7 +68,7 @@ pub enum SetterPresence {
     Defaulted(SetterDefault),
 }
 
-/// Parsed validator-field `setter(...)` metadata.
+/// Parsed validator-field `setter` or `setter(...)` metadata.
 #[derive(Clone, Debug)]
 pub struct ValidatorSetterSpec {
     method: Ident,
@@ -174,6 +192,7 @@ impl Parse for ValidatorFieldKorumaAttr {
                     }
                     ValidatorFieldKorumaItem::Value(ValidatorValueSpec {
                         capture: CapturePolicy::CloneInput,
+                        source: ValidatorValueSource::ExplicitValue,
                     })
                 },
                 Some(KorumaKeyword::SkipCapture) => {
@@ -188,10 +207,25 @@ impl Parse for ValidatorFieldKorumaAttr {
                     }
                     ValidatorFieldKorumaItem::Value(ValidatorValueSpec {
                         capture: CapturePolicy::Skip,
+                        source: ValidatorValueSource::SkipCapture,
                     })
                 },
                 Some(KorumaKeyword::Setter) => {
-                    ValidatorFieldKorumaItem::Setter(Box::new(parse_setter_options(input)?))
+                    if input.peek(token::Paren) {
+                        ValidatorFieldKorumaItem::Setter(Box::new(parse_setter_options(input)?))
+                    } else if input.peek(Token![::])
+                        || (!input.is_empty() && !input.peek(Token![,]))
+                    {
+                        return Err(Error::new(
+                            ident.span(),
+                            format!(
+                                "`{ident}` is only valid as a bare validator-field marker or as `setter(...)`; expected {}",
+                                KorumaAttrContext::ValidatorField.accepted_items()
+                            ),
+                        ));
+                    } else {
+                        ValidatorFieldKorumaItem::Setter(Box::default())
+                    }
                 },
                 _ => return Err(context_error(&ident, KorumaAttrContext::ValidatorField)),
             };
@@ -211,6 +245,13 @@ impl Parse for ValidatorFieldKorumaAttr {
 fn parse_setter_options(input: ParseStream) -> Result<ParsedSetterOptions> {
     let content;
     parenthesized!(content in input);
+    if content.is_empty() {
+        return Err(Error::new(
+            content.span(),
+            "empty `setter()` is unsupported; use bare `setter` for default setter behavior or `setter(...)` with options",
+        ));
+    }
+
     let mut options = ParsedSetterOptions::default();
 
     while !content.is_empty() {
@@ -276,8 +317,8 @@ fn validator_field_attr(attr: &Attribute) -> Result<ValidatorFieldKorumaAttr> {
     attr.parse_args::<ValidatorFieldKorumaAttr>()
 }
 
-/// Describes whether the `#[koruma(value)]` field should capture the input
-/// value in derived validation errors.
+/// Describes whether the validator value field should capture the input value
+/// in derived validation errors.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CapturePolicy {
     /// Store the validated value in the generated validator instance.
@@ -288,20 +329,13 @@ pub enum CapturePolicy {
 
 /// Parse all fields in a `#[koruma::validator]` struct into typed metadata.
 ///
-/// This strict API proves that exactly one field is marked `#[koruma(value)]`,
+/// This strict API proves that exactly one value field is explicit or inferred,
 /// value fields do not also define setter metadata, all validator-field
 /// `#[koruma(...)]` attributes use validator-field grammar, and required
 /// setters are not also defaulted.
 pub fn parse_validator_struct(input: &ItemStruct) -> Result<ValidatorStructSpec> {
-    parse_validator_fields(input)?.ok_or_else(|| {
-        Error::new_spanned(
-            input,
-            "koruma::validator requires a field marked with #[koruma(value)].\n\
-             Example:\n\
-             #[koruma(value)]\n\
-             actual: Option<i32>",
-        )
-    })
+    parse_validator_fields(input)?
+        .ok_or_else(|| Error::new_spanned(input, missing_value_field_message()))
 }
 
 fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSpec>> {
@@ -309,8 +343,10 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
         return Ok(None);
     };
 
-    let mut parsed_fields: Vec<ValidatorFieldSpec> = Vec::new();
-    let mut value_index: Option<usize> = None;
+    let mut parsed_fields: Vec<ParsedValidatorField> = Vec::new();
+    let mut explicit_value_index: Option<usize> = None;
+    let mut conventional_value_candidates: Vec<usize> = Vec::new();
+    let mut unmarked_value_candidates: Vec<usize> = Vec::new();
 
     for field in &fields.named {
         let Some(field_name) = field.ident.clone() else {
@@ -386,7 +422,7 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
         if value.is_some() && has_setter_metadata {
             return Err(Error::new_spanned(
                 field,
-                "`#[koruma(value)]` fields cannot also use `#[koruma(setter(...))]`",
+                "validator value fields cannot also use `#[koruma(setter(...))]`",
             ));
         }
 
@@ -397,37 +433,135 @@ fn parse_validator_fields(input: &ItemStruct) -> Result<Option<ValidatorStructSp
             ));
         }
 
-        let role = if let Some((_, value_spec)) = value {
-            if let Some(existing_index) = value_index {
+        if let Some((_, value_spec)) = &value {
+            if let Some(existing_index) = explicit_value_index {
                 let existing = &parsed_fields[existing_index].name;
                 return Err(Error::new(
                     field_name.span(),
                     format!(
-                        "koruma::validator requires exactly one `#[koruma(value)]` field, found both `{}` and `{}`",
+                        "koruma::validator requires exactly one value field, found both `{}` and `{}`",
                         existing, field_name
                     ),
                 ));
             }
-            value_index = Some(parsed_fields.len());
-            ValidatorFieldRole::Value(value_spec)
-        } else {
-            ValidatorFieldRole::Setter(setter)
-        };
+            let index = parsed_fields.len();
+            explicit_value_index = Some(index);
+            if matches!(
+                value_spec.source(),
+                ValidatorValueSource::InferredConventionalName
+                    | ValidatorValueSource::InferredSingleField
+            ) {
+                return Err(Error::new_spanned(
+                    field,
+                    "internal error: parser produced inferred value metadata before inference",
+                ));
+            }
+        } else if !has_setter_metadata && is_inferable_value_field_name(&field_name) {
+            conventional_value_candidates.push(parsed_fields.len());
+            unmarked_value_candidates.push(parsed_fields.len());
+        } else if !has_setter_metadata {
+            unmarked_value_candidates.push(parsed_fields.len());
+        }
 
-        parsed_fields.push(ValidatorFieldSpec {
+        parsed_fields.push(ParsedValidatorField {
             name: field_name,
             ty: field.ty.clone(),
-            role,
+            explicit_value: value.map(|(_, spec)| spec),
+            setter,
         });
     }
 
-    match value_index {
-        Some(value_index) => Ok(Some(ValidatorStructSpec {
-            fields: parsed_fields,
-            value_index,
-        })),
-        None => Ok(None),
-    }
+    let (value_index, inferred_value_source) = if let Some(value_index) = explicit_value_index {
+        (value_index, None)
+    } else {
+        match conventional_value_candidates.as_slice() {
+            [value_index] => (
+                *value_index,
+                Some(ValidatorValueSource::InferredConventionalName),
+            ),
+            [first, second, ..] => {
+                let first_name = &parsed_fields[*first].name;
+                let second_name = &parsed_fields[*second].name;
+                return Err(Error::new(
+                    parsed_fields[*second].name.span(),
+                    format!(
+                        "koruma::validator could infer more than one value field from conventional names: `{first_name}` and `{second_name}`. Mark exactly one field with `#[koruma(value)]` or `#[koruma(skip_capture)]`",
+                    ),
+                ));
+            },
+            [] => match unmarked_value_candidates.as_slice() {
+                [] => return Ok(None),
+                [value_index] => (
+                    *value_index,
+                    Some(ValidatorValueSource::InferredSingleField),
+                ),
+                [first, second, ..] => {
+                    let first_name = &parsed_fields[*first].name;
+                    let second_name = &parsed_fields[*second].name;
+                    return Err(Error::new(
+                        parsed_fields[*second].name.span(),
+                        format!(
+                            "koruma::validator could infer more than one value field from unmarked fields: `{first_name}` and `{second_name}`. Mark exactly one value field with `#[koruma(value)]` or `#[koruma(skip_capture)]`, or mark configuration fields with `#[koruma(setter)]`",
+                        ),
+                    ));
+                },
+            },
+        }
+    };
+
+    let fields = parsed_fields
+        .into_iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let role = if index == value_index {
+                ValidatorFieldRole::Value(field.explicit_value.unwrap_or_else(|| {
+                    ValidatorValueSpec {
+                        capture: CapturePolicy::CloneInput,
+                        source: inferred_value_source
+                            .expect("inferred value fields should have a source"),
+                    }
+                }))
+            } else {
+                ValidatorFieldRole::Setter(field.setter)
+            };
+
+            ValidatorFieldSpec {
+                name: field.name,
+                ty: field.ty,
+                role,
+            }
+        })
+        .collect();
+
+    Ok(Some(ValidatorStructSpec {
+        fields,
+        value_index,
+    }))
+}
+
+#[derive(Clone, Debug)]
+struct ParsedValidatorField {
+    name: Ident,
+    ty: Type,
+    explicit_value: Option<ValidatorValueSpec>,
+    setter: ValidatorSetterSpec,
+}
+
+fn is_inferable_value_field_name(field_name: &Ident) -> bool {
+    matches!(
+        field_name.to_string().as_str(),
+        "actual" | "input" | "value"
+    )
+}
+
+fn missing_value_field_message() -> &'static str {
+    "koruma::validator requires a value field. Koruma infers unmarked fields named `actual`, `input`, or `value`, and can infer any name when exactly one field is unmarked; otherwise mark the field with #[koruma(value)] or mark configuration fields with #[koruma(setter)].\n\
+     Example:\n\
+     actual: Option<i32>\n\
+     \n\
+     Or:\n\
+     #[koruma(value)]\n\
+     checked: Option<i32>"
 }
 
 fn merge_setter_options(
@@ -444,7 +578,7 @@ fn merge_setter_options(
                 options
                     .method_marker
                     .as_ref()
-                    .map(|marker| marker.span)
+                    .map(|marker| marker.span())
                     .unwrap_or_else(|| method.span()),
                 "duplicate `setter(name = ...)` option",
             ));
@@ -458,7 +592,7 @@ fn merge_setter_options(
                 options
                     .into_marker
                     .as_ref()
-                    .map(|marker| marker.span)
+                    .map(|marker| marker.span())
                     .unwrap_or_else(|| setter.method.span()),
                 "duplicate `setter(into)` option",
             ));
@@ -472,7 +606,7 @@ fn merge_setter_options(
                 options
                     .required_marker
                     .as_ref()
-                    .map(|marker| marker.span)
+                    .map(|marker| marker.span())
                     .unwrap_or_else(|| setter.method.span()),
                 "duplicate `setter(required)` option",
             ));
@@ -486,7 +620,7 @@ fn merge_setter_options(
                 options
                     .default_marker
                     .as_ref()
-                    .map(|marker| marker.span)
+                    .map(|marker| marker.span())
                     .unwrap_or_else(|| setter.method.span()),
                 "duplicate `setter(default)` option",
             ));

@@ -80,7 +80,7 @@ impl Item {
         let __field_value = &self.value;
         {
             let __koruma_builder = EvenNumberValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 EvenNumberValidation,

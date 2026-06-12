@@ -1,5 +1,4 @@
-use es_fluent::registry::{StaticFluentDomain, StaticFluentEntryId};
-use es_fluent::{FluentArgs, FluentMessage};
+use es_fluent::{FluentMessage, FluentMessageLookup};
 use koruma_derive::{validator, KorumaAllFluent};
 use renamed_koruma::Validate;
 
@@ -19,11 +18,7 @@ impl Validate<i32> for PositiveValidation {
 impl FluentMessage for PositiveValidation {
     fn to_fluent_string_with(
         &self,
-        _localize: &mut dyn for<'a> FnMut(
-            StaticFluentDomain,
-            StaticFluentEntryId,
-            Option<&FluentArgs<'a>>,
-        ) -> String,
+        _localize: &mut FluentMessageLookup<'_>,
     ) -> String {
         "must be positive".to_string()
     }

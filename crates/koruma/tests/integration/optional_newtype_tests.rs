@@ -15,7 +15,7 @@ pub struct Age {
 /// Expanded form shape with an explicitly optional newtype field.
 #[derive(Koruma)]
 pub struct ExplicitOptionForm {
-    #[koruma(newtype, full(RequiredValidation::<_>))]
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<Age>,
 }
 

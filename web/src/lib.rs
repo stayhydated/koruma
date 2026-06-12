@@ -17,13 +17,6 @@ pub fn mark_generated_route_cache(public_dir: impl AsRef<Path>) -> std::io::Resu
     site::routing::mark_generated_route_cache(public_dir.as_ref())
 }
 
-pub fn route_cache() -> stayhydated_site::RouteCacheHooks {
-    stayhydated_site::RouteCacheHooks::new(
-        |public_dir| cleanup_generated_route_cache(public_dir),
-        |public_dir| mark_generated_route_cache(public_dir),
-    )
-}
-
 #[cfg(test)]
 mod tests {
     use crate::site::i18n::SiteLanguage;

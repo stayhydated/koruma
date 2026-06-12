@@ -9,7 +9,7 @@ pub trait Validate<T> {
     fn validate(&self, value: &T) -> bool;
 }
 
-/// Trait for validation error structs that have no errors.
+/// Trait for validation error structs that can report whether they contain errors.
 ///
 /// This is auto-implemented by the derive macro for generated
 /// error structs, allowing easy checking if any validation failed.
@@ -65,6 +65,66 @@ pub mod __private {
         fn capture_value_ref(self, value: &T) -> Self::Output;
     }
 
+    /// Hidden trait used by generated `each(...)` checks to prove that a
+    /// syntactically recognized collection is also the collection Koruma expects
+    /// after Rust name resolution.
+    pub trait EachCollectionRef {
+        type Element;
+    }
+
+    impl<T> EachCollectionRef for ::std::vec::Vec<T> {
+        type Element = T;
+    }
+
+    impl<T> EachCollectionRef for [T] {
+        type Element = T;
+    }
+
+    impl<T, const N: usize> EachCollectionRef for [T; N] {
+        type Element = T;
+    }
+
+    impl<C> EachCollectionRef for &C
+    where
+        C: EachCollectionRef + ?Sized,
+    {
+        type Element = C::Element;
+    }
+
+    impl<C> EachCollectionRef for &mut C
+    where
+        C: EachCollectionRef + ?Sized,
+    {
+        type Element = C::Element;
+    }
+
+    /// Hidden trait used by generated `each(...)` checks for optional
+    /// collections.
+    pub trait OptionalEachCollectionRef {
+        type Element;
+    }
+
+    impl<C> OptionalEachCollectionRef for ::std::option::Option<C>
+    where
+        C: EachCollectionRef,
+    {
+        type Element = C::Element;
+    }
+
+    /// Hidden type assertion used by generated `each(...)` collection checks.
+    pub fn assert_each_collection_ref<Collection, Element>()
+    where
+        Collection: EachCollectionRef<Element = Element> + ?Sized,
+    {
+    }
+
+    /// Hidden type assertion used by generated `each(...)` optional collection checks.
+    pub fn assert_optional_each_collection_ref<Collection, Element>()
+    where
+        Collection: OptionalEachCollectionRef<Element = Element>,
+    {
+    }
+
     /// Hidden type assertion used by generated validation checks.
     pub fn assert_validator_ready<Builder, Target, Validator>(_: &Builder)
     where
@@ -74,11 +134,40 @@ pub mod __private {
     {
     }
 
+    /// Hidden type assertion used by generated field-validator checks.
+    pub fn assert_field_validator_ready<Builder, Target, Validator>(builder: &Builder)
+    where
+        Builder: CaptureValueRef<Target>,
+        <Builder as CaptureValueRef<Target>>::Output: BuildValidator<Validator = Validator>,
+        Validator: super::Validate<Target>,
+    {
+        assert_validator_ready::<Builder, Target, Validator>(builder);
+    }
+
+    /// Hidden type assertion used by generated `each(...)` element-validator checks.
+    pub fn assert_element_validator_ready<Builder, Target, Validator>(builder: &Builder)
+    where
+        Builder: CaptureValueRef<Target>,
+        <Builder as CaptureValueRef<Target>>::Output: BuildValidator<Validator = Validator>,
+        Validator: super::Validate<Target>,
+    {
+        assert_validator_ready::<Builder, Target, Validator>(builder);
+    }
+
     /// Hidden type assertion used by generated nested field checks.
     pub fn assert_validate_ext<T>()
     where
         T: super::ValidateExt,
     {
+    }
+
+    /// Hidden type assertion used by generated nested field checks.
+    pub fn assert_nested_validation_ready<T>()
+    where
+        T: super::ValidateExt,
+        <T as super::ValidateExt>::Error: ::std::default::Default,
+    {
+        assert_validate_ext::<T>();
     }
 
     /// Hidden type assertion used by generated newtype field checks.
@@ -88,11 +177,44 @@ pub mod __private {
     {
     }
 
+    /// Hidden type assertion used by generated newtype field checks.
+    pub fn assert_newtype_field_ready<T>()
+    where
+        T: super::NewtypeValidation,
+        <T as super::ValidateExt>::Error: ::std::default::Default,
+    {
+        assert_newtype_validation::<T>();
+    }
+
     /// Hidden type assertion used by generated Display companion derives.
     pub fn assert_display<T>()
     where
         T: ::std::fmt::Display,
     {
+    }
+
+    /// Hidden type assertion used by generated field-validator Display impls.
+    pub fn assert_field_display<T>()
+    where
+        T: ::std::fmt::Display,
+    {
+        assert_display::<T>();
+    }
+
+    /// Hidden type assertion used by generated element-validator Display impls.
+    pub fn assert_element_display<T>()
+    where
+        T: ::std::fmt::Display,
+    {
+        assert_display::<T>();
+    }
+
+    /// Hidden type assertion used by generated newtype error Display impls.
+    pub fn assert_newtype_error_display<T>()
+    where
+        T: ::std::fmt::Display,
+    {
+        assert_display::<T>();
     }
 
     /// Hidden type assertion used by generated Fluent companion derives.
@@ -101,6 +223,42 @@ pub mod __private {
     where
         T: ::es_fluent::FluentMessage,
     {
+    }
+
+    /// Hidden type assertion used by generated field-validator Fluent impls.
+    #[cfg(feature = "fluent")]
+    pub fn assert_field_fluent_message<T>()
+    where
+        T: ::es_fluent::FluentMessage,
+    {
+        assert_fluent_message::<T>();
+    }
+
+    /// Hidden type assertion used by generated element-validator Fluent impls.
+    #[cfg(feature = "fluent")]
+    pub fn assert_element_fluent_message<T>()
+    where
+        T: ::es_fluent::FluentMessage,
+    {
+        assert_fluent_message::<T>();
+    }
+
+    /// Hidden type assertion used by generated newtype error Fluent impls.
+    #[cfg(feature = "fluent")]
+    pub fn assert_newtype_error_fluent_message<T>()
+    where
+        T: ::es_fluent::FluentMessage,
+    {
+        assert_fluent_message::<T>();
+    }
+
+    /// Hidden type assertion used by generated aggregate error Fluent impls.
+    #[cfg(feature = "fluent")]
+    pub fn assert_error_fluent_message<T>()
+    where
+        T: ::es_fluent::FluentMessage,
+    {
+        assert_fluent_message::<T>();
     }
 }
 
@@ -137,17 +295,11 @@ pub trait NewtypeValidation: ValidateExt {}
 /// When the `internal-showcase` feature is enabled, validators decorated with
 /// `#[showcase(...)]` attributes are automatically registered for
 /// programmatic discovery by showcase consumers (for example, UIs, examples, or tooling).
-/// discovery for showcase purposes.
 #[cfg(feature = "internal-showcase")]
 pub mod showcase {
     /// Localizer callback used by showcased validators to render Fluent messages.
     #[cfg(feature = "fluent")]
-    pub type FluentLocalizer<'localizer> = dyn for<'a> FnMut(
-            ::es_fluent::registry::StaticFluentDomain,
-            ::es_fluent::registry::StaticFluentEntryId,
-            Option<&::es_fluent::FluentArgs<'a>>,
-        ) -> String
-        + 'localizer;
+    pub type FluentLocalizer<'localizer> = ::es_fluent::FluentMessageLookup<'localizer>;
 
     /// Trait for validators that can be presented by showcase consumers.
     ///

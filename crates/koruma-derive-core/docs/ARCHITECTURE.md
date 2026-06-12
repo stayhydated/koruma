@@ -19,7 +19,7 @@
 - `crates/koruma-derive-core/src/parse/derive_struct.rs`: struct-level `try_new`,
   `try_from`, and `newtype` grammar.
 - `crates/koruma-derive-core/src/parse/validator_struct.rs`: validator-struct field grammar
-  for `value`, `skip_capture`, and `setter(...)`.
+  for inferred value fields, explicit `value`, `skip_capture`, bare `setter`, and `setter(...)`.
 - `crates/koruma-derive-core/src/parse/showcase.rs`: showcase-only metadata grammar behind the
   `internal-showcase` feature.
 - `crates/koruma-derive-core/src/utils.rs`: syntax-only type helpers (`KnownTypeShape`, Option/Vec inference, and placeholder substitution).
@@ -29,8 +29,9 @@
 
 - `ValidatorPath`: a non-empty validator path wrapper. It preserves the parsed `syn::Path` while making the terminal validator name available without relying on unchecked raw path construction.
 - `ValidatorAttr`: a single direct validator chain (non-empty path, accessor-backed setter calls, type inference flags, and setter access via `setter_calls()`). Setter call arguments are represented as `ValidatorSetterArg::Expr` nodes that preserve normal Rust expressions.
-- `SpannedValue<T>`: a small wrapper used when semantic nodes need to carry the source token
-  span that introduced a marker, label, selector, or option.
+- `SpannedValue<T>`: a small accessor-backed wrapper used when semantic nodes need to carry the
+  source token span that introduced a marker, label, selector, or option without exposing mutable
+  parser provenance fields.
 - `ValidatorLabel`: a validated lower-snake label with its source span, used for label-aware
   generated names.
 - `ParsedValidatorUse`: a single validator occurrence on a data field. It carries the parsed
@@ -39,14 +40,16 @@
 - `StructKorumaAttr` / `StructKorumaItem`: struct-level `#[koruma(...)]` grammar for `try_new`, `try_from`, and `newtype`.
 - `DataFieldKorumaAttr` / `DataFieldKorumaItem`: data-field `#[koruma(...)]` grammar for modifiers, direct field validators, optional `label = Validator` labels, explicit `full(...)`/`unwrapped(...)` target selectors, and `each(...)` element validators without a raw token bucket. Attribute items and field/element validation specs expose read-only accessors instead of public mutable vectors.
 - `ValidatorStructSpec` / `ValidatorFieldSpec`: normalized validator-struct metadata for
-  `#[koruma::validator]`. The spec proves that exactly one field is marked `#[koruma(value)]`,
+  `#[koruma::validator]`. The spec proves that exactly one value field is explicit or inferred,
   value fields do not also define setter metadata, and setter defaults are not combined with
   `required`. Field, value, and setter details are exposed through accessors rather than public
   fields.
 - `ValidatorValueSpec` / `ValidatorSetterSpec` / `SetterInputPolicy` / `SetterPresence`:
-  typed validator-field `#[koruma(...)]` grammar for `value`, `skip_capture`, and
-  `setter(...)`. Setter input conversion and required/optional/defaulted presence are normalized
-  as enums rather than independent flags.
+  typed validator-field role metadata for inferred value fields, explicit `value`,
+  `skip_capture`, and `setter`/`setter(...)`. `ValidatorValueSource` preserves whether the value
+  role came from a conventional name, the single remaining unmarked field, or an explicit marker.
+  Setter input conversion and required/optional/defaulted presence are normalized as enums rather
+  than independent flags.
 - `FieldSource`: source metadata derived from `syn::Field`, shared by unannotated, skipped, and participating data fields.
 - `ParsedDataField`: explicit data-field participation after field-level `#[koruma(...)]` parsing. It preserves unannotated fields, explicit skip markers, and participating `FieldInfo` as separate states.
 - `ParsedFieldSpec`: normalized field shape for participating fields. It is an enum with `Regular`, `Nested`, and `Newtype` variants so parser output cannot encode skipped-with-validator, nested-with-validator, or newtype-with-element-validator states.
@@ -54,7 +57,7 @@
 - `StructOptions` / `StructMode` / `ConstructorOptions`: normalized struct-level shape and constructor intent. `StructMode` records regular versus newtype mode, while `ConstructorOptions` records independent `try_new` and `try_from` requests.
 - `KnownTypeShape`: centralized syntactic type recognition for `Option`, `Vec`, slices, arrays, and references, including the recognized path segment or syntax span for diagnostics. It is deliberately not Rust type resolution and does not resolve aliases or custom collection types.
 - `ValidatorStructSpec` / `CapturePolicy`: typed metadata for `#[koruma::validator]` structs,
-  including the field marked `#[koruma(value)]` and whether capture clones the borrowed input or
+  including the explicit or inferred value field and whether capture clones the borrowed input or
   uses `skip_capture`.
 - `ShowcaseAttr` (feature `internal-showcase`): parsed `#[showcase(...)]` metadata, including required explicit `input_type`.
 
@@ -62,7 +65,8 @@
 
 - `parse_field` parses the field-level `#[koruma(...)]` attribute with `DataFieldKorumaAttr`, handles `skip`, `nested`, `newtype`, and `each(...)`, and returns unannotated fields, skipped fields, and participating fields as separate typed states. Duplicate generated-name diagnostics are handled by the derive planning layer where the full field scope is known.
 - `parse_struct_options` parses struct-level attributes with `StructKorumaAttr` and normalizes `try_new`, `try_from`, and `newtype` into `StructOptions`.
-- Field modifiers, struct option markers, target selectors, labels, setter options, and
+- Field modifiers keep a single marker ident as their source of truth; struct option markers,
+  target selectors, labels, setter options, and
   `each(...)` markers carry source spans so duplicate and conflict diagnostics can point at the
   second actionable token instead of falling back to the whole field or attribute.
 - Reused context and option diagnostics are built in `parse/diagnostics.rs`; parser modules keep
@@ -73,10 +77,15 @@
   `unwrapped(Validator::<_>)` use the default unwrapped optional target, while
   `full(Validator::<_>)` selects the full field or element target explicitly.
   Parser output keeps Rust type arguments intact; `koruma-derive` resolves
-  inferred types after field and element types are known.
+  inferred types after field and element types are known, including promoting
+  default-target `Validator::<Option<_>>` uses to full optional validation.
 - `parse_validator_struct` parses validator-field attributes separately from data-field
-  attributes, locates `#[koruma(value)]`, normalizes setter metadata, and validates validator-field
-  grammar before `koruma-derive` code generation.
+  attributes, locates or infers the value field, normalizes setter metadata, and validates
+  validator-field grammar before `koruma-derive` code generation. Unannotated fields named
+  `actual`, `input`, or `value` are inferred when exactly one such field exists. If no
+  conventional name exists, exactly one unmarked field can be inferred as the value field.
+  Ambiguous shapes require an explicit `#[koruma(value)]` or `#[koruma(skip_capture)]` marker, or
+  explicit `#[koruma(setter)]` markers on configuration fields.
 - `find_showcase_attr` (feature `internal-showcase`) parses showcase metadata on validators and rejects missing or invalid `input_type`.
 
 ## Feature flags

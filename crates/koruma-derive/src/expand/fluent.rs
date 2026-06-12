@@ -74,7 +74,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     let span = planned.source_span;
                     let validator_ty = planned.validator_type.as_type();
                     quote_spanned! {span=>
-                        #koruma::__private::assert_fluent_message::<#validator_ty>();
+                        #koruma::__private::assert_field_fluent_message::<#validator_ty>();
                     }
                 })
                 .collect();
@@ -87,7 +87,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     .marker_span
                     .unwrap_or_else(|| field_plan.name.span());
                 fluent_assertions.push(quote_spanned! {span=>
-                    #koruma::__private::assert_fluent_message::<<#inner_ty as #koruma::ValidateExt>::Error>();
+                    #koruma::__private::assert_newtype_error_fluent_message::<<#inner_ty as #koruma::ValidateExt>::Error>();
                 });
             }
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
@@ -124,11 +124,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 impl #helper_impl_generics ::es_fluent::FluentMessage for #enum_name #helper_ty_generics #helper_where_clause {
                     fn to_fluent_string_with(
                         &self,
-                        localize: &mut dyn for<'a> FnMut(
-                            ::es_fluent::registry::StaticFluentDomain,
-                            ::es_fluent::registry::StaticFluentEntryId,
-                            Option<&::es_fluent::FluentArgs<'a>>,
-                        ) -> String,
+                        localize: &mut ::es_fluent::FluentMessageLookup<'_>,
                     ) -> String {
                         #(#fluent_assertions)*
 
@@ -161,7 +157,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     let span = planned.source_span;
                     let validator_ty = planned.validator_type.as_type();
                     quote_spanned! {span=>
-                        #koruma::__private::assert_fluent_message::<#validator_ty>();
+                        #koruma::__private::assert_element_fluent_message::<#validator_ty>();
                     }
                 })
                 .collect();
@@ -188,11 +184,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 impl #helper_impl_generics ::es_fluent::FluentMessage for #enum_name #helper_ty_generics #helper_where_clause {
                     fn to_fluent_string_with(
                         &self,
-                        localize: &mut dyn for<'a> FnMut(
-                            ::es_fluent::registry::StaticFluentDomain,
-                            ::es_fluent::registry::StaticFluentEntryId,
-                            Option<&::es_fluent::FluentArgs<'a>>,
-                        ) -> String,
+                        localize: &mut ::es_fluent::FluentMessageLookup<'_>,
                     ) -> String {
                         #(#fluent_assertions)*
 
@@ -225,7 +217,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     let span = planned.source_span;
                     let validator_ty = planned.validator_type.as_type();
                     quote_spanned! {span=>
-                        #koruma::__private::assert_fluent_message::<#validator_ty>();
+                        #koruma::__private::assert_field_fluent_message::<#validator_ty>();
                     }
                 })
                 .collect();
@@ -238,7 +230,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                     .marker_span
                     .unwrap_or_else(|| field_plan.name.span());
                 fluent_assertions.push(quote_spanned! {span=>
-                    #koruma::__private::assert_fluent_message::<<#inner_ty as #koruma::ValidateExt>::Error>();
+                    #koruma::__private::assert_newtype_error_fluent_message::<<#inner_ty as #koruma::ValidateExt>::Error>();
                 });
             }
             let helper_generics = helper_generics_for_usages(generics, &helper_usages);
@@ -292,11 +284,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
                 impl #helper_impl_generics ::es_fluent::FluentMessage for #error_struct_name #helper_ty_generics #helper_where_clause {
                     fn to_fluent_string_with(
                         &self,
-                        localize: &mut dyn for<'a> FnMut(
-                            ::es_fluent::registry::StaticFluentDomain,
-                            ::es_fluent::registry::StaticFluentEntryId,
-                            Option<&::es_fluent::FluentArgs<'a>>,
-                        ) -> String,
+                        localize: &mut ::es_fluent::FluentMessageLookup<'_>,
                     ) -> String {
                         #(#fluent_assertions)*
                         #fluent_message_import
@@ -325,7 +313,7 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             .map(|usage| {
                 let span = struct_name.span();
                 quote_spanned! {span=>
-                    #koruma::__private::assert_fluent_message::<#usage>();
+                    #koruma::__private::assert_error_fluent_message::<#usage>();
                 }
             })
             .collect();
@@ -372,12 +360,8 @@ pub fn expand_koruma_all_fluent(input: DeriveInput) -> Result<TokenStream2, syn:
             {
                 fn to_fluent_string_with(
                     &self,
-                    localize: &mut dyn for<'a> FnMut(
-                        ::es_fluent::registry::StaticFluentDomain,
-                        ::es_fluent::registry::StaticFluentEntryId,
-                        Option<&::es_fluent::FluentArgs<'a>>,
-                    ) -> String,
-                    ) -> String {
+                    localize: &mut ::es_fluent::FluentMessageLookup<'_>,
+                ) -> String {
                     #(#main_error_assertions)*
 
                     let mut messages = Vec::new();

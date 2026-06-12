@@ -109,6 +109,9 @@ impl Order {
             },
         };
         let mut has_error = false;
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<Vec<i32>, i32>();
+        }
         for (idx, __item_value) in self.values.iter().enumerate() {
             let mut element_error = OrderValuesElementKorumaValidationError {
                 range_validation: None,
@@ -117,7 +120,7 @@ impl Order {
             let mut element_has_error = false;
             {
                 let __koruma_builder = RangeValidation::min(0).max(100);
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_element_validator_ready::<
                     _,
                     i32,
                     RangeValidation,
@@ -137,7 +140,7 @@ impl Order {
             }
             {
                 let __koruma_builder = EvenValidation::__koruma_builder();
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_element_validator_ready::<
                     _,
                     i32,
                     EvenValidation,

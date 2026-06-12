@@ -1,6 +1,6 @@
 ---
 name: use-koruma
-description: "Use only for user-facing guidance on applying koruma or koruma-collection in application Rust code, including built-in validator selection, custom validators, field #[koruma(...)] attributes, derived Koruma error accessors, KorumaAllDisplay or KorumaAllFluent rendering, nested validation, newtype validation, try_new or TryFrom checked constructors, per-element each(...) validation, feature flags, validator messages, and i18n. Do not use for generic Rust build/test tasks."
+description: "Use only for user-facing guidance on applying koruma or koruma-collection in application Rust code, including feature flags, core traits, custom #[validator] validators and setter metadata, field #[koruma(...)] validators/modifiers/labels/target selectors, optional and per-element each(...) validation, generated error accessors, KorumaAllDisplay or KorumaAllFluent rendering, nested validation, newtype validation, try_new or TryFrom checked constructors, built-in validator selection, validator messages, and i18n. Do not use for generic Rust build/test tasks."
 ---
 
 # Use Koruma
@@ -33,10 +33,14 @@ adds `koruma-collection` when built-in validators fit the rule:
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use
    `TypeName::<_>` for zero-configuration generic validators or
    `TypeName::<_>::first_setter(...)` when configuring generic validators.
+   Each setter call takes exactly one argument. Put generic arguments on the
+   validator path, not on the setter method.
    Put all validators and field modifiers for a field in one `#[koruma(...)]`
    attribute, separated by commas.
-   Optional fields and optional `each(...)` elements unwrap by default; wrap a
-   validator in `full(...)` when it should receive the whole optional value.
+   Optional fields and optional `each(...)` elements unwrap by default. Use
+   `Validator::<Option<_>>` or `full(Validator::<_>)` when the validator should
+   receive the whole optional value, and `unwrapped(Validator::<_>)` only when
+   you want to make the default target explicit.
    Add lower-snake labels with `label_name = Validator::<_>` when you need
    descriptive stable accessors or when validators would otherwise generate the
    same getter/variant name; labels work inside `each(...)` too.
@@ -51,6 +55,8 @@ adds `koruma-collection` when built-in validators fit the rule:
 
 Load only the reference needed for the task:
 
+- `references/koruma-feature-map.md`: complete public feature map for crates, feature flags,
+  macros, attributes, target selection, errors, constructors, nested/newtype, and i18n.
 - `references/validator-catalog.md`: built-in validator inventory, module names, feature flags, and usage notes.
 
 Prefer current public docs and published examples over memory when details matter.
@@ -92,13 +98,15 @@ struct SignupInput {
     #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(full(general::RequiredValidation::<_>))]
+    #[koruma(general::RequiredValidation::<Option<_>>)]
     display_name: Option<String>,
 }
 ```
 
-Use `#[validator]`, mark the captured input with `#[koruma(value)]`, implement
-`Validate<T>`, and derive or implement the error rendering needed by the caller:
+Use `#[validator]`, keep one private captured input field named `actual`,
+`input`, or `value`, implement `Validate<T>`, and derive or implement the error
+rendering needed by the caller. Use `#[koruma(value)]` only when the captured
+field needs another name:
 
 ```rust
 use koruma::{Validate, validator};
@@ -109,7 +117,6 @@ use std::fmt;
 pub struct StringLengthValidation {
     min: usize,
     max: usize,
-    #[koruma(value)]
     input: String,
 }
 
@@ -133,19 +140,27 @@ impl fmt::Display for StringLengthValidation {
 }
 ```
 
-Keep `#[koruma(value)]` fields private and use the generated getter when
-external code needs the captured input. For validators that do not need to store
-the failing input, use `#[koruma(skip_capture)]` on an `Option<T>` value
-field so derived validation does not clone the original value. Built-in
+Keep captured value fields private and use the generated getter when external
+code needs the captured input. For validators that do not need to store the
+failing input, use `#[koruma(skip_capture)]` on an `Option<T>` value field so
+derived validation does not clone the original value. Built-in
 collection, string, format, and numeric validators that do not render the
 failing input use this pattern internally.
 
-For direct setter generation on custom validators, use
-`#[koruma(setter(...))]` on configuration fields. Supported setter options are
-`into`, `required`, `name`, and `default`. Optional non-required `Option<T>`
-setter fields generate a direct setter that takes `T` and a `maybe_*` setter
-that takes `Option<T>`. Use `setter(required)` on `Option<T>` when callers must
-pass `Some(...)` or `None` explicitly.
+Unannotated configuration fields on custom validators generate direct setters.
+Koruma infers an unmarked value field named `actual`, `input`, or `value`, and
+can infer any field name when exactly one field is unmarked. Use bare
+`#[koruma(setter)]` when a configuration field is named `actual`, `input`, or
+`value`, or when marking configuration fields lets Koruma infer the only
+remaining unmarked value field. Use `#[koruma(setter(...))]` when a setter
+needs options. Supported setter options are `into`, `required`, `name`, and
+`default`. Setter names that collide with generated builder APIs are rejected,
+including `new`, `build`, `with_value`, `builder`, `__koruma_builder`,
+`build_validator`, `capture_value_ref`, and the generated `maybe_` prefix.
+Optional non-required `Option<T>` setter fields generate a direct setter that
+takes `T` and a `maybe_*` setter that takes `Option<T>`. Use
+`setter(required)` on `Option<T>` when callers must pass `Some(...)` or `None`
+explicitly.
 
 Read generated errors through field and validator accessors:
 
@@ -179,9 +194,18 @@ order listed, and all configured validators are evaluated.
 
 Common patterns:
 
-- Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>::first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those.
+- Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>::first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those. Type aliases and custom collections are not resolved; recognized `Vec<T>` paths must resolve to `std::vec::Vec<T>`.
 - Use `#[koruma(label_name = Validator::<_>)]` or `#[koruma(each(label_name = Validator::<_>))]` to select generated getter and `all()` variant names explicitly.
+- Use `#[koruma(skip)]` to explicitly exclude a field from validation when a `#[koruma(...)]` marker would otherwise be expected nearby; fields with no `#[koruma(...)]` attribute are ignored by default.
+- Use `#[koruma(full(Validator::<_>))]` or `Validator::<Option<_>>` for full optional-field or optional-element validation; use `#[koruma(unwrapped(Validator::<_>))]` to document the default unwrapped target.
 - Use `#[koruma(nested)]` when a field is another `Koruma` type and the parent should expose the nested error tree. Handwritten `ValidateExt` integrations must use an associated error type implementing `ValidationError + Default`.
 - Use `#[koruma(newtype)]` for transparent error access through newtype wrappers.
-- Add `#[koruma(try_new, newtype)]` to generate a checked `try_new` constructor.
+  A `newtype` field may also include ordinary field validators, such as
+  `#[koruma(newtype, general::RequiredValidation::<Option<_>>)]`; those
+  validators use the normal optional, `full(...)`, and `unwrapped(...)` target
+  rules.
+- Add `#[koruma(try_new)]` to generate a checked constructor that takes the struct fields,
+  validates the instance, and returns `Result<Self, Error>`.
 - Add `#[koruma(try_from)]` on any exactly-one-field struct to generate checked `TryFrom<Inner>` conversions; combine it with `newtype` only when you also want transparent newtype error access.
+- Use tuple structs when they fit the domain; `Koruma`, `try_new`, `try_from`, and struct-level
+  `newtype` all support exactly-one-field tuple wrappers.

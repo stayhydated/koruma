@@ -23,14 +23,21 @@ pub enum FieldModifierKind {
 /// A parsed field-level modifier inside `#[koruma(...)]`.
 #[derive(Clone, Debug)]
 pub struct FieldModifier {
-    pub kind: FieldModifierKind,
-    pub ident: Ident,
-    pub source: SpannedValue<FieldModifierKind>,
+    kind: FieldModifierKind,
+    ident: Ident,
 }
 
 impl FieldModifier {
-    fn span(&self) -> proc_macro2::Span {
-        self.source.span
+    pub fn kind(&self) -> FieldModifierKind {
+        self.kind
+    }
+
+    pub fn ident(&self) -> &Ident {
+        &self.ident
+    }
+
+    pub fn span(&self) -> proc_macro2::Span {
+        self.ident.span()
     }
 }
 
@@ -175,7 +182,7 @@ impl ValidatorTargetSelector {
     pub fn marker_span(&self) -> Option<proc_macro2::Span> {
         match self {
             Self::Default => None,
-            Self::Full { marker } | Self::Unwrapped { marker } => Some(marker.span),
+            Self::Full { marker } | Self::Unwrapped { marker } => Some(marker.span()),
         }
     }
 
@@ -363,7 +370,7 @@ impl DataFieldKorumaAttr {
 impl DataFieldKorumaItem {
     pub fn modifier(&self) -> Option<FieldModifierKind> {
         match self {
-            DataFieldKorumaItem::Modifier(modifier) => Some(modifier.kind),
+            DataFieldKorumaItem::Modifier(modifier) => Some(modifier.kind()),
             DataFieldKorumaItem::FieldValidation(_) | DataFieldKorumaItem::ElementValidation(_) => {
                 None
             },
@@ -459,12 +466,7 @@ fn try_parse_field_modifier(input: ParseStream) -> Result<Option<FieldModifier>>
     }
 
     let ident = input.parse::<Ident>()?;
-    let span = ident.span();
-    Ok(Some(FieldModifier {
-        kind,
-        source: SpannedValue::new(kind, span),
-        ident,
-    }))
+    Ok(Some(FieldModifier { kind, ident }))
 }
 
 fn parse_validator_use(input: ParseStream) -> Result<ParsedValidatorUse> {
@@ -517,14 +519,12 @@ fn parse_targeted_validator(
                     KorumaKeyword::from_ident(&marker),
                     Some(KorumaKeyword::Full)
                 ) {
-                    let span = marker.span();
                     ValidatorTargetSelector::Full {
-                        marker: SpannedValue::new(marker, span),
+                        marker: SpannedValue::new(marker.clone(), marker.span()),
                     }
                 } else {
-                    let span = marker.span();
                     ValidatorTargetSelector::Unwrapped {
-                        marker: SpannedValue::new(marker, span),
+                        marker: SpannedValue::new(marker.clone(), marker.span()),
                     }
                 };
                 return Ok((target, validator));
@@ -895,7 +895,7 @@ fn normalize_field_items(
         first_field_validator_path
             .as_ref()
             .map(Spanned::span)
-            .or_else(|| first_element_marker.as_ref().map(|marker| marker.span))
+            .or_else(|| first_element_marker.as_ref().map(SpannedValue::span))
             .unwrap_or(fallback)
     };
 
@@ -909,7 +909,7 @@ fn normalize_field_items(
                     ));
                 }
 
-                let marker = SpannedValue::new(modifier.ident, modifier.source.span);
+                let marker = SpannedValue::new(modifier.ident.clone(), modifier.span());
                 return Ok(NormalizedFieldSpec::Skipped { marker });
             },
             FieldModifierKind::Nested => {
@@ -929,7 +929,7 @@ fn normalize_field_items(
                     return Err(Error::new(
                         first_element_marker
                             .as_ref()
-                            .map(|marker| marker.span)
+                            .map(SpannedValue::span)
                             .unwrap_or_else(|| modifier.span()),
                         "fields marked `#[koruma(newtype)]` cannot also use `each(...)`; validate elements before wrapping or attach validators to the inner type",
                     ));

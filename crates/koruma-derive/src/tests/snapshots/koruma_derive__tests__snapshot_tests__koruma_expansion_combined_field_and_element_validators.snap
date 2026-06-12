@@ -137,7 +137,7 @@ impl OrderWithLenCheck {
         let __field_value = &self.scores;
         {
             let __koruma_builder = VecLenValidation::min(1).max(10);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 Vec<i32>,
                 VecLenValidation<i32>,
@@ -157,6 +157,9 @@ impl OrderWithLenCheck {
                 has_error = true;
             }
         }
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<Vec<i32>, i32>();
+        }
         for (idx, __item_value) in self.scores.iter().enumerate() {
             let mut element_error = OrderWithLenCheckScoresElementKorumaValidationError {
                 range_validation: None,
@@ -164,7 +167,7 @@ impl OrderWithLenCheck {
             let mut element_has_error = false;
             {
                 let __koruma_builder = RangeValidation::<i32>::min(0).max(100);
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_element_validator_ready::<
                     _,
                     i32,
                     RangeValidation<i32>,

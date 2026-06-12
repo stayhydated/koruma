@@ -57,6 +57,8 @@ value field to avoid clone requirements for non-`Clone` payloads.
 
 ## Feature flags
 
+- `fluent`: enables hidden Fluent assertion hooks and Fluent rendering support
+  for showcased validators.
 - `internal-showcase`: enables the showcase registry types, `inventory` integration, and
   `ValidatorModule` generation.
 

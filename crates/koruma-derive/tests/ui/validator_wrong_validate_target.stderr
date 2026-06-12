@@ -11,11 +11,11 @@ help: the trait `Validate<i32>` is not implemented for `TextValidation`
 11 | impl Validate<String> for TextValidation {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: for that trait implementation, expected `String`, found `i32`
-note: required by a bound in `koruma::__private::assert_validator_ready`
+note: required by a bound in `koruma::__private::assert_field_validator_ready`
   --> $WORKSPACE/crates/koruma-core/src/lib.rs
    |
-   |     pub fn assert_validator_ready<Builder, Target, Validator>(_: &Builder)
-   |            ---------------------- required by a bound in this function
+   |     pub fn assert_field_validator_ready<Builder, Target, Validator>(builder: &Builder)
+   |            ---------------------------- required by a bound in this function
 ...
    |         Validator: super::Validate<Target>,
-   |                    ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_validator_ready`
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_field_validator_ready`

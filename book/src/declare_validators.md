@@ -2,9 +2,11 @@
 
 Validators are regular Rust types that describe a validation rule. To define one, annotate the
 struct with `#[validator]` and implement `Validate<T>` for the input type you want to check. The
-`#[koruma(value)]` attribute marks the field that stores the actual input value used for error
-reporting, and `#[validator]` generates a getter with the same name. Keep that field private and
-use the generated getter for external reads.
+`#[validator]` macro infers an unmarked private field named `actual`, `input`, or `value` as
+the captured input value used for error reporting, and generates a getter with the same name. If no
+conventional name exists, it can infer the value field when exactly one field is unmarked. Use
+`#[koruma(value)]` when multiple unmarked fields remain. Keep that field private and use the
+generated getter for external reads.
 
 For example, a generic range validator:
 
@@ -17,7 +19,6 @@ use std::fmt;
 pub struct NumberRangeValidation<T: PartialOrd + fmt::Display + Clone> {
     min: T,
     max: T,
-    #[koruma(value)]
     actual: T,
 }
 
@@ -49,7 +50,6 @@ use std::fmt;
 pub struct StringLengthValidation {
     min: usize,
     max: usize,
-    #[koruma(value)]
     input: String,
 }
 
@@ -73,13 +73,16 @@ impl fmt::Display for StringLengthValidation {
 }
 ```
 
-The core pattern stays the same: define any configuration fields you need, mark the validated value
-with `#[koruma(value)]`, implement `Validate<T>`, and optionally implement `Display` for friendly
+The core pattern stays the same: define any configuration fields you need, keep one inferred or
+explicit value field, implement `Validate<T>`, and optionally implement `Display` for friendly
 error messages. External callers can read the captured value through the generated getter
 (`validator.actual()`, `validator.input()`, and so on).
 
-For direct setter generation, use `#[koruma(setter(...))]` on configuration fields. Supported
-setter options are `into`, `required`, `name`, and `default`:
+Unannotated configuration fields generate direct setters. Use bare `#[koruma(setter)]`
+when a configuration field is named `actual`, `input`, or `value`, or when marking configuration
+fields lets Koruma infer the only remaining unmarked value field. Use `#[koruma(setter(...))]`
+when a setter needs options.
+Supported setter options are `into`, `required`, `name`, and `default`:
 
 ```rust
 #[validator]
@@ -90,6 +93,10 @@ pub struct PrefixValidation<T> {
     actual: Option<T>,
 }
 ```
+
+Setter names that collide with generated builder APIs are rejected, including `new`, `build`,
+`with_value`, `builder`, `__koruma_builder`, `build_validator`, `capture_value_ref`, and the
+generated `maybe_` prefix.
 
 For optional non-required configuration fields, `Option<T>` setters take `T` directly and wrap it
 in `Some(...)`. Use the generated `maybe_*` setter when you already have an `Option<T>`. Mark an

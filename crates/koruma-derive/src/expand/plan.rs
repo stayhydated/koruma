@@ -1247,14 +1247,17 @@ impl ValidationTarget {
     ) -> Result<Self, syn::Error> {
         let value_context = target_context.value();
 
-        Self::reject_option_target_type_arg_on_default_target(
+        Self::reject_option_target_type_arg_on_explicit_unwrapped_target(
             validator,
             target_selector,
             target_context,
             field_name,
         )?;
 
-        if target_selector.is_full() {
+        let full_target_selected = target_selector.is_full()
+            || Self::should_infer_full_target_from_option_type(validator, target_selector);
+
+        if full_target_selected {
             if validator
                 .explicit_type()
                 .is_some_and(|ty| option_inner_type(ty).is_some())
@@ -1300,7 +1303,17 @@ impl ValidationTarget {
         })
     }
 
-    fn reject_option_target_type_arg_on_default_target(
+    fn should_infer_full_target_from_option_type(
+        validator: &ValidatorAttr,
+        target_selector: &ValidatorTargetSelector,
+    ) -> bool {
+        matches!(target_selector, ValidatorTargetSelector::Default)
+            && validator
+                .explicit_type()
+                .is_some_and(|ty| option_inner_type(ty).is_some())
+    }
+
+    fn reject_option_target_type_arg_on_explicit_unwrapped_target(
         validator: &ValidatorAttr,
         target_selector: &ValidatorTargetSelector,
         target_context: ValidationTargetContext<'_>,
@@ -1312,7 +1325,8 @@ impl ValidationTarget {
         if option_inner_type(explicit_ty).is_none() {
             return Ok(());
         }
-        if target_selector.is_full() {
+        if target_selector.is_full() || matches!(target_selector, ValidatorTargetSelector::Default)
+        {
             return Ok(());
         }
 
@@ -1322,7 +1336,7 @@ impl ValidationTarget {
         Err(syn::Error::new_spanned(
             explicit_ty,
             format!(
-                "explicit `Option<...>` validator type arguments require `full(...)` target selection for {target_description}; write `full({validator_name}::<Option<_>>)` or use `::<_>` inside `full(...)`"
+                "explicit `Option<...>` validator type arguments require full-option target selection for {target_description}; remove `unwrapped(...)`, write `{validator_name}::<Option<_>>`, or use `full({validator_name}::<_>)`"
             ),
         ))
     }

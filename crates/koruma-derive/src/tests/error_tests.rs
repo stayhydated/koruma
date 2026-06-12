@@ -7,16 +7,18 @@ use syn::{DeriveInput, ItemStruct};
 fn test_validator_error_missing_value_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
+            #[koruma(setter)]
             min: i32,
+            #[koruma(setter)]
             max: i32,
-            // Missing #[koruma(value)] field!
+            // Missing an unmarked or explicit value field.
         }
     };
 
     let result = expand_validator(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(err.to_string().contains("koruma(value)"));
+    assert!(err.to_string().contains("requires a value field"));
 }
 
 #[test]
@@ -25,7 +27,6 @@ fn test_validator_error_public_value_field() {
         pub struct BadValidator {
             min: i32,
             max: i32,
-            #[koruma(value)]
             pub actual: i32,
         }
     };
@@ -66,10 +67,7 @@ fn test_validator_error_on_multiple_value_fields() {
     let result = expand_validator(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("requires exactly one `#[koruma(value)]` field")
-    );
+    assert!(err.to_string().contains("requires exactly one value field"));
 }
 
 #[test]
@@ -119,7 +117,7 @@ fn test_validator_error_value_field_rejects_setter_metadata() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`#[koruma(value)]` fields cannot also use `#[koruma(setter(...))]`")
+            .contains("validator value fields cannot also use `#[koruma(setter(...))]`")
     );
 }
 
@@ -275,7 +273,7 @@ fn test_validator_error_generated_setter_method_collisions() {
                     actual: Option<i32>,
                 }
             },
-            "generated optional setter method `maybe_min` collides",
+            "setter method name `maybe_min` is reserved",
         ),
     ] {
         let err = expand_validator(input).expect_err("expected setter method collision");
@@ -474,7 +472,7 @@ fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_targe
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments require `full(...)` target selection"
+            "explicit `Option<...>` validator type arguments require an optional validation target"
         ),
         "expected non-optional option-target diagnostic, got: {}",
         err
@@ -501,7 +499,7 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_target() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments require `full(...)` target selection"
+            "explicit `Option<...>` validator type arguments require an optional validation target"
         ),
         "expected non-optional option-target diagnostic, got: {}",
         err
@@ -514,10 +512,10 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_target() {
 }
 
 #[test]
-fn test_koruma_error_on_explicit_option_validator_without_full_target() {
+fn test_koruma_error_on_explicit_option_validator_with_unwrapped_target() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalExplicitFullTypeValidator {
-            #[koruma(GenericValidation::<Option<_>>)]
+            #[koruma(unwrapped(GenericValidation::<Option<_>>))]
             pub value: Option<String>,
         }
     };
@@ -527,9 +525,9 @@ fn test_koruma_error_on_explicit_option_validator_without_full_target() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments require `full(...)` target selection"
+            "explicit `Option<...>` validator type arguments require full-option target selection"
         ),
-        "expected missing full(...) diagnostic, got: {}",
+        "expected unwrapped target conflict diagnostic, got: {}",
         err
     );
     assert!(
@@ -540,10 +538,10 @@ fn test_koruma_error_on_explicit_option_validator_without_full_target() {
 }
 
 #[test]
-fn test_koruma_error_on_explicit_option_element_validator_without_full_target() {
+fn test_koruma_error_on_explicit_option_element_validator_with_unwrapped_target() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalExplicitFullElementTypeValidator {
-            #[koruma(each(GenericValidation::<Option<_>>))]
+            #[koruma(each(unwrapped(GenericValidation::<Option<_>>)))]
             pub values: Vec<Option<String>>,
         }
     };
@@ -553,9 +551,9 @@ fn test_koruma_error_on_explicit_option_element_validator_without_full_target() 
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator type arguments require `full(...)` target selection"
+            "explicit `Option<...>` validator type arguments require full-option target selection"
         ),
-        "expected missing full(...) diagnostic, got: {}",
+        "expected unwrapped target conflict diagnostic, got: {}",
         err
     );
     assert!(

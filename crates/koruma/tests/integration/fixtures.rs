@@ -172,21 +172,21 @@ pub struct NonCloneSecret {
 /// Example struct demonstrating required optional-field validation.
 #[derive(Koruma)]
 pub struct ExplicitRequiredProfile {
-    #[koruma(full(RequiredValidation::<_>))]
+    #[koruma(RequiredValidation::<Option<_>>)]
     pub bio: Option<String>,
 }
 
 /// Example struct demonstrating required optional-element validation.
 #[derive(Koruma)]
 pub struct OptionalElementPresenceOrder {
-    #[koruma(each(full(RequiredValidation::<_>)))]
+    #[koruma(each(RequiredValidation::<Option<_>>))]
     pub values: Vec<Option<i32>>,
 }
 
 /// Example struct demonstrating mixed full-type and unwrapped element validators.
 #[derive(Koruma)]
 pub struct OptionalElementMixedValidators {
-    #[koruma(each(full(RequiredValidation::<_>), GenericRangeValidation::<_>::min(0).max(10)))]
+    #[koruma(each(RequiredValidation::<Option<_>>, GenericRangeValidation::<_>::min(0).max(10)))]
     pub values: Vec<Option<i32>>,
 }
 
@@ -201,7 +201,7 @@ pub struct RequiredElementFullTypeOrder {
 /// without forcing clone capture in the derive expansion.
 #[derive(Koruma)]
 pub struct PresenceOnlyNonClone {
-    #[koruma(full(RequiredValidation::<_>))]
+    #[koruma(RequiredValidation::<Option<_>>)]
     pub token: Option<NonCloneSecret>,
 }
 
@@ -306,14 +306,14 @@ pub struct ContainsNewtype {
 /// This tests the new functionality where newtype fields can have additional validators.
 #[derive(Koruma)]
 pub struct ContainsRequiredNewtype {
-    #[koruma(newtype, full(RequiredValidation::<_>))]
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<PositiveNumber>,
 }
 
 /// Example struct containing an optional newtype field with multiple validators.
 #[derive(Koruma)]
 pub struct ContainsNewtypeWithValidators {
-    #[koruma(newtype, full(RequiredValidation::<_>))]
+    #[koruma(newtype, RequiredValidation::<Option<_>>)]
     pub age: Option<PositiveNumber>,
     #[allow(dead_code)]
     pub name: String,

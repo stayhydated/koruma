@@ -27,6 +27,7 @@ use koruma_collection::{collection, format, general, numeric, string};
 - `full`: enables optional validator dependencies (`url`, `credit-card`, `phone-number`, `email`, `regex`, `smallvec`, `rust_decimal`).
 - `fluent`: enables i18n integration with [es-fluent](https://github.com/stayhydated/es-fluent).
 - `full-fluent`: `full` + `fluent`.
+- `internal-showcase`: internal registry support used by workspace demos; normal application code does not need it.
 
 Validator-specific optional flags:
 
@@ -104,12 +105,12 @@ store an error.
 
 | Validator                       | Rule                  | Example attribute                             | Feature    |
 | ------------------------------- | --------------------- | --------------------------------------------- | ---------- |
-| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(full(general::RequiredValidation::<_>))]` | `default`  |
+| `RequiredValidation<Option<T>>` | Option must be `Some` | `#[koruma(general::RequiredValidation::<Option<_>>)]` | `default`  |
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
 `collection::NonEmptyValidation::<_>` when you need an emptiness check. It also uses
 `#[koruma(skip_capture)]` internally, so `Option<NonCloneType>` fields do not need `Clone`
-just to report a missing-value error. Wrap it in `full(...)` so Koruma validates the whole
+just to report a missing-value error. Write it with `Option<_>` so Koruma validates the whole
 `Option<T>` and can report `None` as a missing value.
 
 ## Example
@@ -129,7 +130,7 @@ struct SignupInput {
     #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
     age: u8,
 
-    #[koruma(full(general::RequiredValidation::<_>))]
+    #[koruma(general::RequiredValidation::<Option<_>>)]
     display_name: Option<String>,
 }
 
@@ -155,4 +156,6 @@ if let Err(errors) = input.validate() {
 }
 ```
 
-Validator configuration uses direct validator setter chains, so IDE completion works after the first setter method.
+Validator configuration uses direct validator setter chains, so IDE completion works after the first
+setter method. Each setter call takes exactly one argument; put generic arguments on the validator
+path, not on the setter method.

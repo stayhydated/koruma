@@ -103,6 +103,12 @@ impl LabeledTags {
             },
         };
         let mut has_error = false;
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<
+                Vec<String>,
+                String,
+            >();
+        }
         for (idx, __item_value) in self.tags.iter().enumerate() {
             let mut element_error = LabeledTagsTagsElementKorumaValidationError {
                 tag_prefix: None,
@@ -110,7 +116,7 @@ impl LabeledTags {
             let mut element_has_error = false;
             {
                 let __koruma_builder = PrefixValidation::<String>::prefix("tag:");
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_element_validator_ready::<
                     _,
                     String,
                     PrefixValidation<String>,

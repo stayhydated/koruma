@@ -73,7 +73,7 @@ impl Item {
         if let Some(ref __field_value) = self.score {
             {
                 let __koruma_builder = GenericRange::<i32>::min(0).max(100);
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_field_validator_ready::<
                     _,
                     i32,
                     GenericRange<i32>,

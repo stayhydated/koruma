@@ -28,9 +28,16 @@ Raw data-field attribute items are exposed through read-only accessors such as
 `DataFieldKorumaAttr::items()` instead of public mutable fields.
 
 `parse_validator_struct` returns opaque `ValidatorStructSpec` metadata for `#[koruma::validator]`
-structs. It keeps `value`, `skip_capture`, and `setter(...)` metadata typed behind
-accessors in this crate before the proc-macro renderer builds validator builders. Setter metadata
-uses `SetterInputPolicy` and `SetterPresence` so tooling sees exact, into, required, optional, and
-defaulted intent without combining raw boolean flags.
+structs. It keeps inferred value fields, explicit `value`, `skip_capture`, bare `setter`, and
+`setter(...)` metadata typed behind accessors in this crate before the proc-macro renderer builds
+validator builders. `ValidatorValueSource` distinguishes conventional-name inference,
+single-unmarked-field inference, and explicit markers, and
+setter metadata uses `SetterInputPolicy` and `SetterPresence` so tooling sees exact, into,
+required, optional, and defaulted intent without combining raw boolean flags.
+
+## Features
+
+- `internal-showcase`: enables parser support for internal `#[showcase(...)]`
+  validator registry metadata used by workspace demos.
 
 Most users should depend on `koruma` (or `koruma-derive`) instead of this crate directly.

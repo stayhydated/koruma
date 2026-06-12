@@ -17,8 +17,9 @@
 ## Validator pattern
 
 - Each validator is a struct annotated with `#[koruma::validator]`.
-- One field is marked `#[koruma(value)]` to store the validated value, with a generated getter on
-  the validator type for external access.
+- One field is inferred or marked as the validated value, with a generated getter on the validator
+  type for external access. Conventional fields named `actual`, `input`, or `value` are inferred;
+  validators that do not retain input use explicit `#[koruma(skip_capture)]` on `Option<T>`.
 - Each validator implements `Validate<T>`; optional `Display` impls live behind `fmt`.
 - Optional `#[showcase(...)]` metadata registers validators when `internal-showcase` is enabled; showcase registrations must state `input_type` explicitly.
 
@@ -28,11 +29,11 @@
 - `full`: enables all optional validators and dependencies.
 - `fluent`: enables Fluent integration and embedded i18n assets.
 - `full-fluent`: `full` + `fluent`.
-- Per-validator and integration features: `email`, `url`, `phone-number`, `credit-card`, `regex`, `smallvec`, `decimal` (`rust_decimal::Decimal` support for `numeric::Numeric`).
+- Per-validator and integration features: `email`, `url`, `phone-number`, `credit-card`, `regex`, `smallvec`, `rust_decimal` (`rust_decimal::Decimal` support for `numeric::Numeric`).
 - `internal-showcase`: enables validator registry support via `koruma/internal-showcase`, turns on
   `full-fluent`, keeps `fmt`, and adds `anyhow` for showcase factory closures.
 
 ## Extending
 
 - Add validators under `src/validators/<category>` and re-export in `mod.rs`.
-- Add localized messages under `i18n/<locale>/koruma-collection.ftl` when `fluent` is in use.
+- Add localized messages under `i18n/<locale>/koruma-collection/<module>.ftl` when `fluent` is in use.

@@ -1,14 +1,13 @@
 use es_fluent::EsFluent;
 use koruma::{Validate, validator};
 
-/// A validation rule that checks if a number is positive.
+/// A validation rule that checks if a number is even.
 /// Uses `EsFluent` for internationalized error messages.
 #[validator]
 #[derive(Clone, Debug, EsFluent)]
 pub struct IsEvenNumberValidation<
     T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
 > {
-    #[koruma(value)]
     #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
@@ -26,7 +25,6 @@ impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + Partia
 #[validator]
 #[derive(Clone, Debug, EsFluent)]
 pub struct NonEmptyStringValidation {
-    #[koruma(value)]
     input: String,
 }
 
@@ -41,7 +39,6 @@ impl Validate<String> for NonEmptyStringValidation {
 #[validator]
 #[derive(Clone, Debug, EsFluent)]
 pub struct PositiveNumberValidation<T: Clone + Copy + std::fmt::Display + PartialOrd + Default> {
-    #[koruma(value)]
     #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
@@ -59,7 +56,6 @@ impl<T: Copy + std::fmt::Display + PartialOrd + Default> Validate<T>
 pub struct Only67Validation<
     T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
 > {
-    #[koruma(value)]
     #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }

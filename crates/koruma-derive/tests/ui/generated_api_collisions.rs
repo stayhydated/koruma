@@ -22,6 +22,22 @@ pub struct BuildMethodValidation {
 }
 
 #[validator]
+pub struct NewMethodValidation {
+    #[koruma(setter(name = new))]
+    min: usize,
+    #[koruma(value)]
+    actual: Option<usize>,
+}
+
+#[validator]
+pub struct BuilderMethodValidation {
+    #[koruma(setter(name = builder))]
+    min: usize,
+    #[koruma(value)]
+    actual: Option<usize>,
+}
+
+#[validator]
 pub struct MaybeMethodValidation {
     maybe_min: i32,
     min: Option<i32>,

@@ -11,7 +11,7 @@ koruma = { version = "*" }
 
 - `derive` (default): enables derive/attribute macros (`Koruma`, `KorumaAllDisplay`, `#[validator]`).
 - `fluent`: enables localized error support for `KorumaAllFluent` (use with `es-fluent`).
-- `internal-showcase`: enables internal validator showcase registry hooks used by workspace demos.
+- `internal-showcase`: enables internal validator showcase registry hooks used by workspace demos; normal application code does not need it.
 
 A typical `koruma` workflow looks like this:
 
@@ -63,7 +63,7 @@ if let Err(errors) = item.validate() {
 ```
 
 The validator definitions themselves come next. If you want to inspect the captured input on a
-validator error, call the generated getter that matches the `#[koruma(value)]` field name.
+validator error, call the generated getter that matches the inferred or explicit value field name.
 
 For validators that do not need to store the input, an `Option<T>` value field can use
 `#[koruma(skip_capture)]` to avoid derive-generated capture clones. If that field would

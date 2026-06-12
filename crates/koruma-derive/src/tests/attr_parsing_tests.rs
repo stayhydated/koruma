@@ -44,6 +44,34 @@ fn test_validator_attr_parse_direct_chain() {
 }
 
 #[test]
+fn test_validator_attr_rejects_invalid_setter_call_shape() {
+    for (source, expected) in [
+        (
+            "RangeValidation::min()",
+            "validator setter `min(...)` expects exactly one argument",
+        ),
+        (
+            "RangeValidation::min(0, 1)",
+            "validator setter `min(...)` expects exactly one argument",
+        ),
+        (
+            "RangeValidation::min::<u8>(0)",
+            "validator setter `min(...)` does not accept generic arguments",
+        ),
+        (
+            "RangeValidation::<_>::min::<u8>(0)",
+            "validator setter `min(...)` does not accept generic arguments",
+        ),
+    ] {
+        let err = syn::parse_str::<ValidatorAttr>(source).expect_err("setter shape should fail");
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}` for `{source}`, got: {err}",
+        );
+    }
+}
+
+#[test]
 fn test_validator_attr_parse_direct_chain_with_turbofish_inference() {
     let attr: ValidatorAttr =
         syn::parse_quote!(validators::numeric::RangeValidation::<_>::min(0).max(100));

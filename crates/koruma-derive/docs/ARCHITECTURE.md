@@ -26,8 +26,9 @@
   `with_value`, hidden `CaptureValueRef` and `BuildValidator` glue, and optional showcase
   registration while preserving the validator's original bounds in the generated showcase impl.
   `ValidatorBuilderPlan` consumes `koruma-derive-core`'s typed validator-field spec for
-  `value` and `setter(...)` metadata, then materializes distinct captured-value, skipped-value,
-  required-setter, optional-setter, and defaulted-setter slots. Setter slots precompute
+  inferred or explicit value roles and `setter`/`setter(...)` metadata, then materializes distinct
+  captured-value, skipped-value, required-setter, optional-setter, and defaulted-setter slots.
+  Setter slots precompute
   `SetterSignature` values so generated builder methods and direct validator entrypoints share
   the same input type and value-conversion plan. Generated direct methods, `maybe_*` helpers,
   capture policy, `_state`, and required-state generics are planned and checked for collisions
@@ -47,7 +48,7 @@
   generated surfaces stay in sync.
 - `expand/plan.rs`: normalizes parsed metadata into struct shape, one planned field node that owns source field data, field shape, shared cardinality, typed `ValueShape` and `CollectionShape` data for `each(...)`, `ValidationTarget` decisions, generated API decisions, and render-ready validation/error plan nodes. Validation operations encode required vs. optional field handling and explicit collection/element iteration variants so renderers consume a single planned shape instead of recomputing those branches from raw field data.
 - Field error storage is derived from `FieldPlan::shape` through render-plan methods; `FieldPlan` does not cache a separate storage classification that can disagree with the shape.
-- `ValidationTarget`: models the four valid target shapes directly: full field, unwrapped field, full element, and unwrapped element. Each variant carries the raw and validation types plus explicit borrow behavior needed for that target, so validation rendering consumes planned access metadata instead of recomputing it from raw field data. Optional targets are unwrapped by default; `full(Validator::<_>)` selects the full optional field or element target explicitly, while bare validators and `unwrapped(Validator::<_>)` select the default unwrapped target.
+- `ValidationTarget`: models the four valid target shapes directly: full field, unwrapped field, full element, and unwrapped element. Each variant carries the raw and validation types plus explicit borrow behavior needed for that target, so validation rendering consumes planned access metadata instead of recomputing it from raw field data. Optional targets are unwrapped by default; `Validator::<Option<_>>` infers the full optional field or element target, `full(Validator::<_>)` selects it explicitly, and `unwrapped(Validator::<_>)` forces the default unwrapped target.
 - `expand/display.rs`: implements `Display` for field and element validator enums.
 - `expand/fluent.rs`: implements `FluentMessage` for validator enums and error structs (feature `fluent`).
 - `expand/codegen.rs`: shared helpers for type resolution and argument transformations.

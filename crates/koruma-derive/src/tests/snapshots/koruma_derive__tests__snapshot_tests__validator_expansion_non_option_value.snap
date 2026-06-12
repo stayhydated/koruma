@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 173
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -121,7 +122,7 @@ impl DirectValueValidation {
         Self::__koruma_builder().with_value(value)
     }
     #[doc = concat!(
-        "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
+        "Returns the stored `", "actual", "` value captured during validation."
     )]
     pub fn actual(&self) -> &i32 {
         &self.actual

@@ -52,7 +52,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             return Err(syn::Error::new_spanned(
                 &field.vis,
                 format!(
-                    "`#[koruma(value)]` field `{}` must be private; use the generated getter instead",
+                    "validator value field `{}` must be private; use the generated getter instead",
                     value_field_name
                 ),
             ));
@@ -119,7 +119,7 @@ pub fn expand_validator(mut input: ItemStruct) -> Result<TokenStream2, syn::Erro
             #[doc = concat!(
                 "Returns the stored `",
                 #value_field_name_str,
-                "` value captured by `#[koruma(value)]`."
+                "` value captured during validation."
             )]
             pub fn #value_field_name(&self) -> &#value_field_type {
                 &self.#value_field_name
@@ -899,6 +899,12 @@ fn reject_generated_method_collisions(slots: &[BuilderSlot]) -> Result<(), syn::
             continue;
         };
         let method_name = method.to_string();
+        if reserved_builder_method_name(&method_name) {
+            return Err(syn::Error::new(
+                method.span(),
+                format!("setter method name `{method_name}` is reserved by koruma"),
+            ));
+        }
         generated_names.register_ident(
             method,
             GeneratedApiNameKind::BuilderMethod,

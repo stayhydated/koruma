@@ -16,16 +16,28 @@ error: setter method name `build` is reserved by koruma
 18 |     #[koruma(setter(name = build))]
    |                            ^^^^^
 
-error: generated optional setter method `maybe_min` collides with setter `maybe_min`
-  --> tests/ui/generated_api_collisions.rs:27:5
+error: setter method name `new` is reserved by koruma
+  --> tests/ui/generated_api_collisions.rs:26:28
    |
-27 |     min: Option<i32>,
-   |     ^^^
+26 |     #[koruma(setter(name = new))]
+   |                            ^^^
+
+error: setter method name `builder` is reserved by koruma
+  --> tests/ui/generated_api_collisions.rs:34:28
+   |
+34 |     #[koruma(setter(name = builder))]
+   |                            ^^^^^^^
+
+error: setter method name `maybe_min` is reserved by koruma
+  --> tests/ui/generated_api_collisions.rs:42:5
+   |
+42 |     maybe_min: i32,
+   |     ^^^^^^^^^
 
 error: generated required-state generic `__KorumaMinState` collides with a user generic
-  --> tests/ui/generated_api_collisions.rs:32:1
+  --> tests/ui/generated_api_collisions.rs:48:1
    |
-32 | #[validator]
+48 | #[validator]
    | ^^^^^^^^^^^^
    |
    = note: this error originates in the attribute macro `validator` (in Nightly builds, run with -Z macro-backtrace for more info)

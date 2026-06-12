@@ -1,8 +1,9 @@
-use crate::components::{FooterPanel, PageCardLink, PageHeader};
+use crate::components::{FooterPanel, PageHeader};
 use crate::site::i18n::DemosPageMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
+use stayhydated_dioxus::{DemoCard, DemoCardGrid, GridColumns, ProjectPageShell};
 
 #[component]
 pub(crate) fn DemosPage() -> Element {
@@ -39,28 +40,30 @@ pub(crate) fn DemosPage() -> Element {
     );
 
     rsx! {
-            div { class: "page-shell",
-            PageHeader { current_page: PageKind::Demos }
-            main { class: "stack",
-                section { class: "grid columns-2 motion-reveal",
-                    style: demos_style.as_str(),
-                    PageCardLink {
-                        page: PageKind::CollectionDioxus,
-                        label: dioxus_label,
-                        title: dioxus_title,
-                        body: dioxus_body,
-                        action: dioxus_action,
-                    }
-                    PageCardLink {
-                        page: PageKind::SalesForm,
-                        label: sales_label,
-                        title: sales_title,
-                        body: sales_body,
-                        action: sales_action,
-                    }
-                }
+        ProjectPageShell {
+            header: rsx!(PageHeader { current_page: PageKind::Demos }),
+            footer: Some(rsx!(FooterPanel {})),
+            DemoCardGrid::<crate::site::routing::AppRoute> {
+                cards: vec![
+                    DemoCard::route(
+                        crate::site::routing::app_route(PageKind::CollectionDioxus),
+                        dioxus_label,
+                        dioxus_title,
+                        dioxus_body,
+                        dioxus_action,
+                    ),
+                    DemoCard::route(
+                        crate::site::routing::app_route(PageKind::SalesForm),
+                        sales_label,
+                        sales_title,
+                        sales_body,
+                        sales_action,
+                    ),
+                ],
+                columns: GridColumns::Two,
+                extra_class: "motion-reveal",
+                style: demos_style,
             }
-            FooterPanel {}
         }
     }
 }

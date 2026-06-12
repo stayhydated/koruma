@@ -5,7 +5,6 @@ use renamed_koruma::Validate;
 #[validator]
 #[derive(Debug, EsFluent)]
 pub struct PositiveValidation {
-    #[koruma(value)]
     actual: i32,
 }
 

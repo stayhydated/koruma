@@ -17,14 +17,14 @@ help: the trait `koruma::__private::BuildValidator` is implemented for `Required
    |
  4 | #[validator]
    | ^^^^^^^^^^^^
-note: required by a bound in `koruma::__private::assert_validator_ready`
+note: required by a bound in `koruma::__private::assert_field_validator_ready`
   --> $WORKSPACE/crates/koruma-core/src/lib.rs
    |
-   |     pub fn assert_validator_ready<Builder, Target, Validator>(_: &Builder)
-   |            ---------------------- required by a bound in this function
+   |     pub fn assert_field_validator_ready<Builder, Target, Validator>(builder: &Builder)
+   |            ---------------------------- required by a bound in this function
 ...
    |         <Builder as CaptureValueRef<Target>>::Output: BuildValidator<Validator = Validator>,
-   |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_validator_ready`
+   |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_field_validator_ready`
    = note: this error originates in the attribute macro `validator` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>: koruma::__private::BuildValidator` is not satisfied

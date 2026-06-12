@@ -24,10 +24,16 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 /// - Generates Koruma-owned builder plumbing for the struct
 /// - Generates direct builder entrypoints on the validator type for each
 ///   configurable field, such as `RangeValidation::min(value)`
-/// - Generates `with_value` methods that delegate to the field marked with
-///   `#[koruma(value)]`
+/// - Generates `with_value` methods that delegate to the explicit or inferred
+///   value field
 /// - Generates a getter on the validator type with the same name as the
-///   `#[koruma(value)]` field
+///   value field
+/// - Supports `#[koruma(value)]` for explicitly marking the captured value field
+/// - Supports `#[koruma(skip_capture)]` on `Option<T>` value fields that should
+///   not retain the validated input during derived validation
+/// - Supports bare `#[koruma(setter)]` to force default setter behavior when a
+///   configuration field is named `actual`, `input`, or `value`, or when
+///   marking setters leaves exactly one unmarked value field
 ///
 /// # Example (non-generic)
 ///
@@ -37,7 +43,6 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 /// pub struct NumberRangeValidation {
 ///     min: i32,
 ///     max: i32,
-///     #[koruma(value)]
 ///     actual: i32,
 /// }
 ///
@@ -58,7 +63,6 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 /// pub struct RangeValidation<T> {
 ///     min: T,
 ///     max: T,
-///     #[koruma(value)]
 ///     actual: T,
 /// }
 ///
@@ -139,15 +143,24 @@ fn validate_validator_macro_input(input: &syn::ItemStruct) -> syn::Result<()> {
 /// ```
 ///
 /// This generates:
-/// - `ItemValidationError` struct with `Option<ValidatorType>` for each validated field
-/// - Getter methods returning `Option<&ValidatorType>` for each field
-/// - `validate(&self) -> Result<(), ItemValidationError>` method on `Item`
+/// - `{Item}KorumaValidationError` with typed field, nested, newtype, and element
+///   error storage as needed
+/// - Field accessors on the error type, plus per-validator accessors on field
+///   error containers
+/// - `validate(&self) -> Result<(), {Item}KorumaValidationError>` on the source
+///   type and a matching `ValidateExt` implementation
 ///
 /// The macro captures validator values through a hidden borrowed builder hook.
-/// Validators that keep the default `#[koruma(value)]` behavior still clone the
-/// input into the error value; validators marked with
-/// `#[koruma(skip_capture)]` on an `Option<T>` value field can opt out
-/// when they do not need to store the validated value.
+/// Validators that keep the default capture behavior still clone the input into
+/// the error value; validators marked with `#[koruma(skip_capture)]` on an
+/// `Option<T>` value field can opt out when they do not need to store the
+/// validated value.
+///
+/// Field-level `#[koruma(...)]` attributes accept direct validators,
+/// lower-snake labels, `each(...)` element validators, explicit `full(...)` and
+/// `unwrapped(...)` target selectors for optional values, plus `skip`, `nested`,
+/// and field-level `newtype` modifiers. Struct-level options include `try_new`,
+/// `try_from`, and `newtype`.
 #[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]
 pub fn derive_koruma(input: TokenStream) -> TokenStream {
@@ -293,7 +306,6 @@ mod macro_entrypoint_tests {
             TokenStream2::new(),
             quote! {
                 pub struct DemoValidation {
-                    #[koruma(value)]
                     actual: Option<String>,
                 }
             },
@@ -304,7 +316,6 @@ mod macro_entrypoint_tests {
             quote!(unexpected),
             quote! {
                 pub struct DemoValidation {
-                    #[koruma(value)]
                     actual: Option<String>,
                 }
             },
@@ -363,7 +374,8 @@ mod macro_entrypoint_tests {
             TokenStream2::new(),
             quote! {
                 pub struct DemoValidation {
-                    actual: Option<String>,
+                    #[koruma(setter)]
+                    checked: Option<String>,
                 }
             },
         );

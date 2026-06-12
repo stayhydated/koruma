@@ -9,6 +9,15 @@ Use `#[koruma(newtype)]`, adding `try_new` and `try_from` as needed, when you wa
 You can layer `derive_more` traits on top for additional wrapper ergonomics (for example, `Deref`
 to inner value).
 
+A field can combine `newtype` with ordinary field validators when the wrapper field itself also
+needs rules. The transparent newtype error access is preserved, and the extra validators use the
+same optional, `full(...)`, and `unwrapped(...)` target selection rules as any other field:
+
+```rust
+#[koruma(newtype, koruma_collection::general::RequiredValidation::<Option<_>>)]
+pub email: Option<Email>;
+```
+
 Types produced by `#[derive(Koruma)]` already provide the required error shape.
 If you implement `ValidateExt` by hand for a nested or newtype target, its
 associated `Error` type must implement `ValidationError + Default`.
@@ -135,7 +144,7 @@ match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),
     Err(errors) => {
         for failed in errors.all() {
-        println!("validation failed: {}", i18n::localize(failed));
+            println!("validation failed: {}", i18n::localize(failed));
         }
     }
 }

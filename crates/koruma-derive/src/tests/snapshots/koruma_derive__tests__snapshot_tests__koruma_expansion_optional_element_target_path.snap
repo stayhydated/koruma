@@ -107,6 +107,12 @@ impl OptionalScores {
             },
         };
         let mut has_error = false;
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<
+                Vec<Option<i32>>,
+                Option<i32>,
+            >();
+        }
         for (idx, item) in self.values.iter().enumerate() {
             let mut element_error = OptionalScoresValuesElementKorumaValidationError {
                 generic_range_validation: None,
@@ -115,7 +121,7 @@ impl OptionalScores {
             if let Some(__item_value) = item {
                 {
                     let __koruma_builder = GenericRangeValidation::<i32>::min(0).max(10);
-                    ::renamed_koruma::__private::assert_validator_ready::<
+                    ::renamed_koruma::__private::assert_element_validator_ready::<
                         _,
                         i32,
                         GenericRangeValidation<i32>,

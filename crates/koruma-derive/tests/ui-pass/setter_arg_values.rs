@@ -7,7 +7,6 @@ const MIN_LEN: usize = 3;
 #[derive(Debug)]
 pub struct MatchesValidation {
     expected: String,
-    #[koruma(value)]
     actual: Option<String>,
 }
 
@@ -21,7 +20,6 @@ impl Validate<String> for MatchesValidation {
 #[derive(Debug)]
 pub struct MinLenValidation {
     min: usize,
-    #[koruma(value)]
     actual: Option<String>,
 }
 

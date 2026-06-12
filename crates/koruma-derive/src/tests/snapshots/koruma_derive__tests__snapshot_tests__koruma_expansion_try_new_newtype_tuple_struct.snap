@@ -95,7 +95,7 @@ impl Username {
         let __field_value = &self.0;
         {
             let __koruma_builder = NonEmptyStringValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 NonEmptyStringValidation,

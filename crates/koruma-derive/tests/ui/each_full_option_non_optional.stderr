@@ -1,0 +1,5 @@
+error: explicit `Option<...>` validator type arguments require an optional validation target for element validators on field `values`; `GenericValidation` is targeting a non-optional value
+ --> tests/ui/each_full_option_non_optional.rs:5:19
+  |
+5 |     #[koruma(each(GenericValidation::<Option<_>>))]
+  |                   ^^^^^^^^^^^^^^^^^

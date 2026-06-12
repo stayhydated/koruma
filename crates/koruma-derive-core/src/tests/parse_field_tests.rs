@@ -5,7 +5,8 @@
 use crate::{
     CapturePolicy, FieldInfo, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse, SetterDefault,
     SetterInputPolicy, SetterPresence, StructMode, ValidatorAttr, ValidatorFieldRole,
-    ValidatorLabel, parse_field, parse_struct_options, parse_validator_struct,
+    ValidatorLabel, ValidatorValueSource, parse_field, parse_struct_options,
+    parse_validator_struct,
 };
 use insta::assert_debug_snapshot;
 use quote::ToTokens;
@@ -166,6 +167,12 @@ fn find_value_field_name_strict(input: &syn::ItemStruct) -> Result<String, Strin
 fn find_value_field_capture_strict(input: &syn::ItemStruct) -> Result<CapturePolicy, String> {
     parse_validator_struct(input)
         .map(|spec| spec.value_spec().capture())
+        .map_err(|err| err.to_string())
+}
+
+fn find_value_field_source_strict(input: &syn::ItemStruct) -> Result<ValidatorValueSource, String> {
+    parse_validator_struct(input)
+        .map(|spec| spec.value_spec().source())
         .map_err(|err| err.to_string())
 }
 
@@ -477,10 +484,7 @@ fn test_parse_validator_struct_rejects_multiple_value_fields() {
     };
 
     let err = parse_validator_struct(&input).unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("requires exactly one `#[koruma(value)]` field")
-    );
+    assert!(err.to_string().contains("requires exactly one value field"));
 }
 
 #[test]
@@ -495,7 +499,7 @@ fn test_parse_validator_struct_rejects_unknown_marker() {
     let err = parse_validator_struct(&input).unwrap_err();
     let message = err.to_string();
     assert!(message.contains("validator field"));
-    assert!(message.contains("expected `value`, `skip_capture`, or `setter(...)`"));
+    assert!(message.contains("expected `value`, `skip_capture`, `setter`, or `setter(...)`"));
 }
 
 #[test]
@@ -511,6 +515,142 @@ fn test_parse_validator_struct_returns_value_name() {
     assert_eq!(
         find_value_field_name_strict(&input).unwrap(),
         "actual".to_string()
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_infers_conventional_value_field() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            min: i32,
+            max: i32,
+            actual: i32,
+        }
+    };
+
+    assert_eq!(
+        find_value_field_name_strict(&input).unwrap(),
+        "actual".to_string()
+    );
+    assert_eq!(
+        find_value_field_source_strict(&input).unwrap(),
+        ValidatorValueSource::InferredConventionalName
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_infers_input_and_value_field_names() {
+    let input_field: syn::ItemStruct = syn::parse_quote! {
+        pub struct InputValidator {
+            min: usize,
+            input: String,
+        }
+    };
+    let value_field: syn::ItemStruct = syn::parse_quote! {
+        pub struct ValueValidator {
+            min: usize,
+            value: String,
+        }
+    };
+
+    assert_eq!(
+        find_value_field_name_strict(&input_field).unwrap(),
+        "input".to_string()
+    );
+    assert_eq!(
+        find_value_field_name_strict(&value_field).unwrap(),
+        "value".to_string()
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_infers_single_unmarked_value_field() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            candidate: String,
+        }
+    };
+
+    let spec = parse_validator_struct(&input).unwrap();
+    assert_eq!(spec.value_field().name().to_string(), "candidate");
+    assert_eq!(
+        spec.value_spec().source(),
+        ValidatorValueSource::InferredSingleField
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_infers_only_unmarked_field_after_setters() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(setter)]
+            min: usize,
+            #[koruma(setter(into, name = label))]
+            prefix: String,
+            candidate: String,
+        }
+    };
+
+    let spec = parse_validator_struct(&input).unwrap();
+    assert_eq!(spec.value_field().name().to_string(), "candidate");
+    assert_eq!(
+        spec.value_spec().source(),
+        ValidatorValueSource::InferredSingleField
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_bare_setter_disables_conventional_value_inference() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct ValueConfiguredValidator {
+            #[koruma(setter)]
+            value: usize,
+            actual: String,
+        }
+    };
+
+    let spec = parse_validator_struct(&input).unwrap();
+    assert_eq!(spec.value_field().name().to_string(), "actual");
+
+    let ValidatorFieldRole::Setter(setter) = spec.fields()[0].role() else {
+        panic!("expected conventional `value` field to be an explicit setter");
+    };
+    assert_eq!(setter.method().to_string(), "value");
+    assert_eq!(setter.input(), SetterInputPolicy::Exact);
+    assert!(matches!(setter.presence(), SetterPresence::Optional));
+}
+
+#[test]
+fn test_parse_validator_struct_rejects_ambiguous_inferred_value_fields() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            actual: i32,
+            input: i32,
+        }
+    };
+
+    let err = parse_validator_struct(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("could infer more than one value field"),
+        "expected ambiguous value field error, got: {err}"
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_rejects_ambiguous_unmarked_value_fields() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            minimum: i32,
+            maximum: i32,
+        }
+    };
+
+    let err = parse_validator_struct(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("could infer more than one value field from unmarked fields"),
+        "expected ambiguous unmarked value field error, got: {err}"
     );
 }
 
@@ -544,6 +684,10 @@ fn test_parse_validator_struct_supports_skip_capture_policy() {
     assert_eq!(
         find_value_field_capture_strict(&input).unwrap(),
         CapturePolicy::Skip
+    );
+    assert_eq!(
+        find_value_field_source_strict(&input).unwrap(),
+        ValidatorValueSource::SkipCapture
     );
 }
 
@@ -616,7 +760,7 @@ fn test_parse_validator_struct_rejects_value_with_setter() {
     let err = parse_validator_struct(&input).unwrap_err();
     assert!(
         err.to_string()
-            .contains("fields cannot also use `#[koruma(setter(...))]`")
+            .contains("validator value fields cannot also use `#[koruma(setter(...))]`")
     );
 }
 
@@ -683,6 +827,23 @@ fn test_parse_validator_struct_rejects_parenthesized_skip_capture() {
     assert!(
         err.to_string()
             .contains("`skip_capture` is only valid as a bare validator-field")
+    );
+}
+
+#[test]
+fn test_parse_validator_struct_rejects_empty_setter_options() {
+    let input: syn::ItemStruct = syn::parse_quote! {
+        pub struct Validator {
+            #[koruma(setter())]
+            value: usize,
+            actual: String,
+        }
+    };
+
+    let err = parse_validator_struct(&input).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("empty `setter()` is unsupported; use bare `setter`")
     );
 }
 

@@ -6,7 +6,6 @@ use std::fmt;
 #[derive(Debug)]
 pub struct MinValidation<T> {
     min: T,
-    #[koruma(value)]
     actual: T,
 }
 

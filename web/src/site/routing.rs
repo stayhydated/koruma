@@ -3,6 +3,7 @@ use crate::site::i18n::PageMetadataMessage;
 use dioxus::cli_config;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
+use stayhydated_dioxus::ProjectNavItem;
 use stayhydated_site::routing::{BaseHref, BasePath, Href, OutputDir, RoutePath};
 use std::path::Path;
 
@@ -35,6 +36,13 @@ impl PageKind {
 
     pub(crate) fn path(self) -> RoutePath {
         RoutePath::new(self.route())
+    }
+
+    pub(crate) const fn project_nav_item(self) -> ProjectNavItem {
+        match self {
+            Self::Home => ProjectNavItem::Home,
+            Self::Demos | Self::CollectionDioxus | Self::SalesForm => ProjectNavItem::Demos,
+        }
     }
 
     fn title_i18n(self, i18n: &DioxusAssetI18nHandle) -> String {
@@ -209,15 +217,6 @@ fn route_element(route: SiteRoute) -> Element {
         }
         {pages::route_content(route)}
     }
-}
-
-#[server(endpoint = "static_routes")]
-async fn static_routes() -> Result<Vec<String>, ServerFnError> {
-    Ok(all_routes()
-        .into_iter()
-        .map(|route| page_href(route.page))
-        .map(Href::into_string)
-        .collect())
 }
 
 #[component]

@@ -86,7 +86,7 @@ impl LabeledItem {
         let __field_value = &self.value;
         {
             let __koruma_builder = LengthValidation::<String>::min(3);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 LengthValidation<String>,
@@ -108,7 +108,7 @@ impl LabeledItem {
         }
         {
             let __koruma_builder = LengthValidation::<String>::max(30);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 LengthValidation<String>,

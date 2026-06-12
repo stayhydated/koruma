@@ -44,7 +44,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                     let span = planned.source_span;
                     let validator_ty = planned.validator_type.as_type();
                     quote_spanned! {span=>
-                        #koruma::__private::assert_display::<#validator_ty>();
+                        #koruma::__private::assert_field_display::<#validator_ty>();
                     }
                 })
                 .collect();
@@ -57,7 +57,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                     .marker_span
                     .unwrap_or_else(|| field_plan.name.span());
                 display_assertions.push(quote_spanned! {span=>
-                    #koruma::__private::assert_display::<<#inner_ty as #koruma::ValidateExt>::Error>();
+                    #koruma::__private::assert_newtype_error_display::<<#inner_ty as #koruma::ValidateExt>::Error>();
                 });
             }
             let helper_generics = ref_enum_generics_for_usages(generics, &helper_usages);
@@ -119,7 +119,7 @@ pub fn expand_koruma_all_display(input: DeriveInput) -> Result<TokenStream2, syn
                     let span = planned.source_span;
                     let validator_ty = planned.validator_type.as_type();
                     quote_spanned! {span=>
-                        #koruma::__private::assert_display::<#validator_ty>();
+                        #koruma::__private::assert_element_display::<#validator_ty>();
                     }
                 })
                 .collect();

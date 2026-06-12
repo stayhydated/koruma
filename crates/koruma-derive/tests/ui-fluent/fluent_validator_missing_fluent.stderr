@@ -19,9 +19,9 @@ help: the following other types implement trait `FluentMessage`
    |                  `ItemValueKorumaValidationError`
    |                  `ItemValueKorumaValidatorRef<'koruma>`
    |
-  ::: /home/mark/Documents/GitHub/es-fluent/crates/es-fluent/src/traits/fluent_message.rs:60:1
+  ::: /home/mark/Documents/GitHub/es-fluent/crates/es-fluent/src/traits/fluent_message.rs:66:1
    |
-60 | impl<T: FluentMessage + ?Sized> FluentMessage for &T {
+66 | impl<T: FluentMessage + ?Sized> FluentMessage for &T {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&T`
    = note: this error originates in the derive macro `KorumaAllFluent` (in Nightly builds, run with -Z macro-backtrace for more info)
 
@@ -46,9 +46,9 @@ help: the following other types implement trait `FluentMessage`
    |                  `ItemValueKorumaValidationError`
    |                  `ItemValueKorumaValidatorRef<'koruma>`
    |
-  ::: /home/mark/Documents/GitHub/es-fluent/crates/es-fluent/src/traits/fluent_message.rs:60:1
+  ::: /home/mark/Documents/GitHub/es-fluent/crates/es-fluent/src/traits/fluent_message.rs:66:1
    |
-60 | impl<T: FluentMessage + ?Sized> FluentMessage for &T {
+66 | impl<T: FluentMessage + ?Sized> FluentMessage for &T {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&T`
 note: required for `ItemValueKorumaValidationError` to implement `FluentMessage`
   --> tests/ui-fluent/fluent_validator_missing_fluent.rs:17:18

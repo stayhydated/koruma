@@ -1,9 +1,12 @@
-use crate::components::{ContributePanel, FeatureCard, FooterPanel, PageHeader, PageLink};
+use crate::components::{ContributePanel, FeatureCard, FooterPanel, PageHeader};
 use crate::site::i18n::HomeMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
-use stayhydated_dioxus::{DisplayText, SkillInstallCommand};
+use stayhydated_dioxus::{
+    ButtonLink, ButtonRouteLink, ButtonVariant, HeroSidePanel, LinkTarget, ProjectHero,
+    ProjectHomeShell, SkillRepo, SkillSurfaceSection,
+};
 
 #[component]
 pub(crate) fn HomePage() -> Element {
@@ -66,29 +69,16 @@ pub(crate) fn HomePage() -> Element {
     );
 
     rsx! {
-        div { class: "page-shell",
-            PageHeader { current_page: PageKind::Home }
-            main { class: "stack",
-                section { class: "hero motion-reveal",
-                    style: hero_style.as_str(),
-                    div { class: "hero-copy",
-                        div { class: "eyebrow", "{eyebrow}" }
-                        h1 { "{title}" }
-                        p { "{body}" }
-                        div { class: "hero-actions",
-                            a {
-                                class: "button-link primary",
-                                href: crate::site::routing::book_href().as_str(),
-                                "{primary_action}"
-                            }
-                            PageLink {
-                                page: PageKind::Demos,
-                                class: "button-link secondary".to_string(),
-                                label: secondary_action,
-                            }
-                        }
-                    }
-                    aside { class: "workflow-panel",
+        ProjectHomeShell {
+            header: rsx!(PageHeader { current_page: PageKind::Home }),
+            footer: rsx!(FooterPanel {}),
+            ProjectHero {
+                eyebrow,
+                title,
+                body,
+                style: hero_style,
+                side: Some(rsx! {
+                    HeroSidePanel {
                         span { class: "panel-label", "{workflow_panel_label}" }
                         ol { class: "workflow-list",
                             li {
@@ -105,44 +95,46 @@ pub(crate) fn HomePage() -> Element {
                             }
                         }
                     }
-                }
-
-                section { class: "section-band motion-reveal",
-                    style: surface_style.as_str(),
-                    div { class: "surface-panel-header",
-                        div { class: "section-heading surface-panel-heading",
-                            span { class: "panel-label", "{surface_panel_label}" }
-                            h2 { "{surface_title}" }
-                        }
-                        div { class: "surface-install-command",
-                            SkillInstallCommand { repo: "koruma" }
-                        }
+                }),
+                actions: Some(rsx! {
+                    ButtonLink {
+                        href: crate::site::routing::book_href().as_str(),
+                        label: primary_action,
                     }
-                    div { class: "feature-grid",
-                        FeatureCard {
-                            label: DisplayText::new("derive"),
-                            title: DisplayText::new(surface_card_one_title),
-                            body: DisplayText::new(surface_card_one_body),
-                            style: first_card_style,
-                        }
-                        FeatureCard {
-                            label: DisplayText::new("validators"),
-                            title: DisplayText::new(surface_card_two_title),
-                            body: DisplayText::new(surface_card_two_body),
-                            style: second_card_style,
-                        }
-                        FeatureCard {
-                            label: DisplayText::new("i18n"),
-                            title: DisplayText::new(surface_card_three_title),
-                            body: DisplayText::new(surface_card_three_body),
-                            style: third_card_style,
-                        }
+                    ButtonRouteLink::<crate::site::routing::AppRoute> {
+                        target: LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
+                        label: secondary_action,
+                        variant: ButtonVariant::Secondary,
                     }
-                }
-
-                ContributePanel {}
+                }),
             }
-            FooterPanel {}
+
+            SkillSurfaceSection {
+                label: surface_panel_label,
+                title: surface_title,
+                repo: SkillRepo::Koruma,
+                style: surface_style,
+                FeatureCard {
+                    label: "derive",
+                    title: surface_card_one_title,
+                    body: surface_card_one_body,
+                    style: first_card_style,
+                }
+                FeatureCard {
+                    label: "validators",
+                    title: surface_card_two_title,
+                    body: surface_card_two_body,
+                    style: second_card_style,
+                }
+                FeatureCard {
+                    label: "i18n",
+                    title: surface_card_three_title,
+                    body: surface_card_three_body,
+                    style: third_card_style,
+                }
+            }
+
+            ContributePanel {}
         }
     }
 }

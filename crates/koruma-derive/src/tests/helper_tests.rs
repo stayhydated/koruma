@@ -424,21 +424,24 @@ fn test_find_value_field_finds_marked_field() {
             min: i32,
             max: i32,
             #[koruma(value)]
-            actual: Option<i32>,
+            checked: Option<i32>,
         }
     };
 
     let result = parse_validator_struct(&input).expect("expected validator struct parse");
-    assert_eq!(result.value_field().name().to_string(), "actual");
+    assert_eq!(result.value_field().name().to_string(), "checked");
 }
 
 #[test]
 fn test_parse_validator_struct_errors_when_missing_value() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct Test {
+            #[koruma(setter)]
             min: i32,
+            #[koruma(setter)]
             max: i32,
-            actual: Option<i32>,
+            #[koruma(setter)]
+            checked: Option<i32>,
         }
     };
 
@@ -446,7 +449,7 @@ fn test_parse_validator_struct_errors_when_missing_value() {
         parse_validator_struct(&input)
             .expect_err("expected missing value field")
             .to_string()
-            .contains("requires a field marked with #[koruma(value)]")
+            .contains("requires a value field")
     );
 }
 
@@ -796,12 +799,12 @@ fn test_required_validation_name_does_not_select_full_target() {
 }
 
 #[test]
-fn test_validation_plan_uses_explicit_full_targets() {
+fn test_validation_plan_infers_full_targets_from_explicit_option_types() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Planned {
-            #[koruma(full(GenericPresence::<Option<_>>))]
+            #[koruma(GenericPresence::<Option<_>>)]
             value: Option<i32>,
-            #[koruma(each(full(GenericElementPresence::<Option<_>>)))]
+            #[koruma(each(GenericElementPresence::<Option<_>>))]
             values: Vec<Option<String>>,
         }
     };
@@ -810,7 +813,7 @@ fn test_validation_plan_uses_explicit_full_targets() {
 
     let field_validator = &plan.fields[0].field_validators()[0];
     let ValidationTarget::FieldFull(full_field_target) = &field_validator.target else {
-        panic!("expected explicit Option field validator to use full field target");
+        panic!("expected explicit Option field validator to infer full field target");
     };
     let field_ty = &full_field_target.ty;
     assert_eq!(quote!(#field_ty).to_string(), "Option < i32 >");
@@ -823,7 +826,7 @@ fn test_validation_plan_uses_explicit_full_targets() {
 
     let element_validator = &plan.fields[1].element_validators()[0];
     let ValidationTarget::ElementFull(full_element_target) = &element_validator.target else {
-        panic!("expected explicit Option element validator to use full element target");
+        panic!("expected explicit Option element validator to infer full element target");
     };
     let element_ty = &full_element_target.ty;
     assert_eq!(quote!(#element_ty).to_string(), "Option < String >");

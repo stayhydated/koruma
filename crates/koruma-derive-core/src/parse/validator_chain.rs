@@ -320,6 +320,15 @@ fn analyze_direct_validator_expr(expr: &Expr) -> Result<Option<(Path, Vec<Builde
                 ));
             }
 
+            validate_builder_method_syntax(
+                &method_call.method,
+                method_call
+                    .turbofish
+                    .as_ref()
+                    .map(syn::spanned::Spanned::span),
+                method_call.args.len(),
+            )?;
+
             builder_methods.push(BuilderMethodCall {
                 method: method_call.method.clone(),
                 args: method_call
@@ -378,6 +387,12 @@ fn analyze_direct_validator_call_expr(
         ));
     }
 
+    validate_builder_method_syntax(
+        &method,
+        setter_path_args_span(last_segment),
+        call.args.len(),
+    )?;
+
     validator_path.segments.pop();
     validator_path.segments.pop_punct();
     if validator_path.segments.is_empty() {
@@ -396,6 +411,40 @@ fn analyze_direct_validator_call_expr(
                 .collect(),
         }],
     )))
+}
+
+fn setter_path_args_span(segment: &syn::PathSegment) -> Option<proc_macro2::Span> {
+    match &segment.arguments {
+        PathArguments::None => None,
+        PathArguments::AngleBracketed(args) => Some(args.span()),
+        PathArguments::Parenthesized(args) => Some(args.span()),
+    }
+}
+
+fn validate_builder_method_syntax(
+    method: &Ident,
+    generic_args_span: Option<proc_macro2::Span>,
+    arg_count: usize,
+) -> Result<()> {
+    if let Some(span) = generic_args_span {
+        return Err(Error::new(
+            span,
+            format!(
+                "validator setter `{method}(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>::{method}(value)`"
+            ),
+        ));
+    }
+
+    if arg_count != 1 {
+        return Err(Error::new(
+            method.span(),
+            format!(
+                "validator setter `{method}(...)` expects exactly one argument; use bare validator syntax for validators without configuration fields"
+            ),
+        ));
+    }
+
+    Ok(())
 }
 
 fn reserved_builder_method_error(method: ReservedBuilderMethod, method_name: &str) -> String {

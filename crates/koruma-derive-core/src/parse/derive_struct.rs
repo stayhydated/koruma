@@ -206,7 +206,7 @@ impl Parse for StructOptions {
                 StructKorumaItemSourceKind::TryNew => {
                     if try_new_marker.is_some() {
                         return Err(Error::new(
-                            item.marker.span,
+                            item.marker.span(),
                             "duplicate struct-level koruma option `try_new`",
                         ));
                     }
@@ -215,7 +215,7 @@ impl Parse for StructOptions {
                 StructKorumaItemSourceKind::TryFrom => {
                     if try_from_marker.is_some() {
                         return Err(Error::new(
-                            item.marker.span,
+                            item.marker.span(),
                             "duplicate struct-level koruma option `try_from`",
                         ));
                     }
@@ -224,7 +224,7 @@ impl Parse for StructOptions {
                 StructKorumaItemSourceKind::Newtype => {
                     if newtype_marker.is_some() {
                         return Err(Error::new(
-                            item.marker.span,
+                            item.marker.span(),
                             "duplicate struct-level koruma option `newtype`",
                         ));
                     }

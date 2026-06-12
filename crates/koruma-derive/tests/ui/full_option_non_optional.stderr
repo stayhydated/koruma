@@ -1,5 +1,5 @@
-error: explicit `Option<...>` validator type arguments require `full(...)` target selection for field `value`; write `full(GenericValidation::<Option<_>>)` or use `::<_>` inside `full(...)`
- --> tests/ui/full_option_non_optional.rs:5:34
+error: explicit `Option<...>` validator type arguments require an optional validation target for field `value`; `GenericValidation` is targeting a non-optional value
+ --> tests/ui/full_option_non_optional.rs:5:14
   |
 5 |     #[koruma(GenericValidation::<Option<_>>)]
-  |                                  ^^^^^^^^^
+  |              ^^^^^^^^^^^^^^^^^

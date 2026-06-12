@@ -29,7 +29,9 @@ impl KorumaAttrContext {
             KorumaAttrContext::DataField => {
                 "`skip`, `nested`, `newtype`, validators, or `each(...)`"
             },
-            KorumaAttrContext::ValidatorField => "`value`, `skip_capture`, or `setter(...)`",
+            KorumaAttrContext::ValidatorField => {
+                "`value`, `skip_capture`, `setter`, or `setter(...)`"
+            },
             KorumaAttrContext::Showcase => {
                 "`name`, `description`, `create`, `input_type`, or `module`"
             },
@@ -53,7 +55,7 @@ pub(super) fn unsupported_setter_option_error(option: &Ident) -> Error {
     Error::new(
         option.span(),
         format!(
-            "unsupported `#[koruma(setter({option}))]` option; supported options are `into`, `required`, `name`, and `default`"
+            "unsupported `#[koruma(setter({option}))]` option; supported options are `into`, `required`, `name`, and `default`; use bare `setter` for default setter behavior"
         ),
     )
 }

@@ -30,18 +30,30 @@ pub use validator_chain::{
 pub use validator_struct::{
     CapturePolicy, SetterDefault, SetterInputPolicy, SetterPresence, ValidatorFieldKorumaItem,
     ValidatorFieldRole, ValidatorFieldSpec, ValidatorSetterSpec, ValidatorStructSpec,
-    ValidatorValueSpec, parse_validator_struct,
+    ValidatorValueSource, ValidatorValueSpec, parse_validator_struct,
 };
 
 /// Parsed value paired with the source span that introduced it.
 #[derive(Clone, Debug)]
 pub struct SpannedValue<T> {
-    pub value: T,
-    pub span: proc_macro2::Span,
+    value: T,
+    span: proc_macro2::Span,
 }
 
 impl<T> SpannedValue<T> {
     pub fn new(value: T, span: proc_macro2::Span) -> Self {
         Self { value, span }
+    }
+
+    pub fn value(&self) -> &T {
+        &self.value
+    }
+
+    pub fn span(&self) -> proc_macro2::Span {
+        self.span
+    }
+
+    pub fn into_value(self) -> T {
+        self.value
     }
 }

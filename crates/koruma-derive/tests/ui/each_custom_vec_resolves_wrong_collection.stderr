@@ -1,0 +1,25 @@
+error[E0277]: the trait bound `custom::Vec<i32>: koruma::__private::EachCollectionRef` is not satisfied
+  --> tests/ui/each_custom_vec_resolves_wrong_collection.rs:30:13
+   |
+30 |     values: custom::Vec<i32>,
+   |             ^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `koruma::__private::EachCollectionRef` is not implemented for `custom::Vec<i32>`
+  --> tests/ui/each_custom_vec_resolves_wrong_collection.rs:5:5
+   |
+ 5 |     pub struct Vec<T>(std::vec::Vec<T>);
+   |     ^^^^^^^^^^^^^^^^^
+   = help: the following other types implement trait `koruma::__private::EachCollectionRef`:
+             &C
+             &mut C
+             [T; N]
+             [T]
+             std::vec::Vec<T>
+note: required by a bound in `koruma::__private::assert_each_collection_ref`
+  --> $WORKSPACE/crates/koruma-core/src/lib.rs
+   |
+   |     pub fn assert_each_collection_ref<Collection, Element>()
+   |            -------------------------- required by a bound in this function
+   |     where
+   |         Collection: EachCollectionRef<Element = Element> + ?Sized,
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_each_collection_ref`

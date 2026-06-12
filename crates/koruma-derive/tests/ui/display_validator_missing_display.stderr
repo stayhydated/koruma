@@ -9,14 +9,14 @@ help: the trait `std::fmt::Display` is not implemented for `PositiveValidation`
    |
  6 | pub struct PositiveValidation {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: required by a bound in `koruma::__private::assert_display`
+note: required by a bound in `koruma::__private::assert_field_display`
   --> $WORKSPACE/crates/koruma-core/src/lib.rs
    |
-   |     pub fn assert_display<T>()
-   |            -------------- required by a bound in this function
+   |     pub fn assert_field_display<T>()
+   |            -------------------- required by a bound in this function
    |     where
    |         T: ::std::fmt::Display,
-   |            ^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_display`
+   |            ^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_field_display`
 
 error[E0277]: `PositiveValidation` doesn't implement `std::fmt::Display`
   --> tests/ui/display_validator_missing_display.rs:17:18

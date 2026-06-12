@@ -29,7 +29,6 @@ clap = "4.5"
 dioxus = "0.7.9"
 dioxus-free-icons = { default-features = false, features = [ "lucide" ], version = "0.10.0" }
 dioxus-primitives = { git = "https://github.com/DioxusLabs/components" }
-dioxus-server = { default-features = false, version = "0.7.9" }
 email_address = "0.2"
 es-fluent = { path = "../es-fluent/crates/es-fluent", version = "0.16" }
 es-fluent-build = { path = "../es-fluent/crates/es-fluent-build", version = "0.16" }

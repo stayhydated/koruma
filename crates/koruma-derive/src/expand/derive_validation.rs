@@ -30,6 +30,10 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
         TargetBorrow::Reference => quote! { &#target_expr },
         TargetBorrow::AlreadyBorrowed => quote! { #target_expr },
     };
+    let readiness_assertion = match &check.sink {
+        ErrorSink::FieldValidator { .. } => quote! { assert_field_validator_ready },
+        ErrorSink::ElementValidator { .. } => quote! { assert_element_validator_ready },
+    };
     let error_assignment = match check.sink {
         ErrorSink::FieldValidator { field, slot } => {
             quote! {
@@ -50,7 +54,7 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     quote_spanned! {source_span=>
         {
             let __koruma_builder = #builder_expr;
-            #koruma::__private::assert_validator_ready::<
+            #koruma::__private::#readiness_assertion::<
                 _,
                 #validation_target_ty,
                 #validator_ty,
@@ -127,7 +131,7 @@ fn render_nested_assertion(field_plan: &FieldPlan, koruma: &TokenStream2) -> Tok
     let inner_ty = field_plan.inner_type();
     quote_spanned! {span=>
         {
-            #koruma::__private::assert_validate_ext::<#inner_ty>();
+            #koruma::__private::assert_nested_validation_ready::<#inner_ty>();
         }
     }
 }
@@ -140,7 +144,30 @@ fn render_newtype_assertion(field_plan: &FieldPlan, koruma: &TokenStream2) -> To
     let inner_ty = field_plan.inner_type();
     quote_spanned! {span=>
         {
-            #koruma::__private::assert_newtype_validation::<#inner_ty>();
+            #koruma::__private::assert_newtype_field_ready::<#inner_ty>();
+        }
+    }
+}
+
+fn render_each_collection_assertion(field_plan: &FieldPlan, koruma: &TokenStream2) -> TokenStream2 {
+    let field_ty = &field_plan.source.ty;
+    let Some(element_ty) = field_plan.element_type() else {
+        return quote! {};
+    };
+    let assertion = if field_plan.field_optional() {
+        quote! { assert_optional_each_collection_ref }
+    } else {
+        quote! { assert_each_collection_ref }
+    };
+    let span = field_plan
+        .element_validators()
+        .first()
+        .map(|validator| validator.source_span)
+        .unwrap_or_else(|| field_plan.name.span());
+
+    quote_spanned! {span=>
+        {
+            #koruma::__private::#assertion::<#field_ty, #element_ty>();
         }
     }
 }
@@ -480,6 +507,7 @@ fn render_element_validation(
         quote! { __item_value },
         koruma,
     );
+    let collection_assertion = render_each_collection_assertion(field_plan, koruma);
     let element_validator_defaults: Vec<TokenStream2> = field_plan
         .element_validators()
         .iter()
@@ -491,6 +519,7 @@ fn render_element_validation(
 
     match element {
         PlannedElementValidation::OptionalCollectionOptional(_) => quote! {
+            #collection_assertion
             if let Some(ref __collection_value) = self.#field_member {
                 for (idx, item) in __collection_value.iter().enumerate() {
                     let mut element_error = #element_error_struct_name {
@@ -512,6 +541,7 @@ fn render_element_validation(
             }
         },
         PlannedElementValidation::OptionalCollectionRequired(_) => quote! {
+            #collection_assertion
             if let Some(ref __collection_value) = self.#field_member {
                 for (idx, __item_value) in __collection_value.iter().enumerate() {
                     let mut element_error = #element_error_struct_name {
@@ -530,6 +560,7 @@ fn render_element_validation(
             }
         },
         PlannedElementValidation::RequiredCollectionOptional(_) => quote! {
+            #collection_assertion
             for (idx, item) in self.#field_member.iter().enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*
@@ -549,6 +580,7 @@ fn render_element_validation(
             }
         },
         PlannedElementValidation::RequiredCollectionRequired(_) => quote! {
+            #collection_assertion
             for (idx, __item_value) in self.#field_member.iter().enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*

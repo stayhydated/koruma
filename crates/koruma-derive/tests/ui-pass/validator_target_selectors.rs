@@ -4,7 +4,6 @@ use renamed_koruma::Validate;
 #[validator]
 #[derive(Debug)]
 pub struct RequiredValidation<T> {
-    #[koruma(value)]
     actual: T,
 }
 
@@ -17,7 +16,6 @@ impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
 #[validator]
 #[derive(Debug)]
 pub struct PositiveValidation<T> {
-    #[koruma(value)]
     actual: T,
 }
 
@@ -29,7 +27,7 @@ impl Validate<i32> for PositiveValidation<i32> {
 
 #[derive(Koruma)]
 struct Item {
-    #[koruma(full(RequiredValidation::<_>), unwrapped(PositiveValidation::<_>))]
+    #[koruma(RequiredValidation::<Option<_>>, unwrapped(PositiveValidation::<_>))]
     value: Option<i32>,
 }
 

@@ -287,7 +287,7 @@ fn localize_with_args<'a>(
     id: StaticFluentEntryId,
     args: Option<&FluentArgs<'a>>,
 ) -> String {
-    i18n.localize_in_domain(domain.as_str(), id.as_str(), args.map(FluentArgs::as_raw))
+    i18n.localize_in_domain(domain, id, args)
         .unwrap_or_else(|| id.as_str().to_string())
 }
 fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<ValidatorModule> {

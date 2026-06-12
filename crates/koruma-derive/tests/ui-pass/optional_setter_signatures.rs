@@ -9,7 +9,6 @@ pub struct OptionSetterValidation {
     optional_text: Option<String>,
     #[koruma(setter(required))]
     required_limit: Option<usize>,
-    #[koruma(value)]
     actual: Option<String>,
 }
 
@@ -25,7 +24,6 @@ pub struct DefaultedRangeValidation {
     min: usize,
     #[koruma(setter(default = false))]
     exclusive_max: bool,
-    #[koruma(value)]
     actual: usize,
 }
 

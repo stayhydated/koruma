@@ -138,7 +138,7 @@ impl UserProfile {
         let __field_value = &self.username;
         {
             let __koruma_builder = StringLengthValidation::min(1).max(50);
-            ::renamed_koruma::__private::assert_validator_ready::<
+            ::renamed_koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 StringLengthValidation,
@@ -159,7 +159,7 @@ impl UserProfile {
         if let Some(ref __field_value) = self.bio {
             {
                 let __koruma_builder = StringLengthValidation::min(1).max(200);
-                ::renamed_koruma::__private::assert_validator_ready::<
+                ::renamed_koruma::__private::assert_field_validator_ready::<
                     _,
                     String,
                     StringLengthValidation,

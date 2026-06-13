@@ -60,13 +60,18 @@ home_message-WorkflowStepInspectTitle = Inspect
 ## PageMetadataMessage
 
 page_metadata_message-DemosDescription = Interactive koruma-collection validator demos.
-page_metadata_message-DemosTitle = koruma - Demos
+page_metadata_message-DemosTitle = Demos
 page_metadata_message-DioxusDemoDescription = A Dioxus koruma-collection validator browser with localized validation output.
-page_metadata_message-DioxusDemoTitle = Dioxus Collection Example - koruma
+page_metadata_message-DioxusDemoTitle = Dioxus Collection Example
 page_metadata_message-HomeDescription = Type-safe per-field validation for Rust with derive macros, validator attributes, typed error accessors, and Fluent-ready rendering.
-page_metadata_message-HomeTitle = koruma
+page_metadata_message-HomeTitle = Home
 page_metadata_message-SalesFormDemoDescription = A sales intake form showing typed koruma validation errors in a realistic workflow.
-page_metadata_message-SalesFormDemoTitle = Sales Form Demo - koruma
+page_metadata_message-SalesFormDemoTitle = Sales Form Demo
+
+## ProjectMessage
+
+project_message-Description = Rust validation
+project_message-Name = koruma
 
 ## SalesFormMessage
 

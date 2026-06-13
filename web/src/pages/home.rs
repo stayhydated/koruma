@@ -112,7 +112,7 @@ pub(crate) fn HomePage() -> Element {
             SkillSurfaceSection {
                 label: surface_panel_label,
                 title: surface_title,
-                repo: SkillRepo::Koruma,
+                repo: SkillRepo::new("koruma"),
                 style: surface_style,
                 FeatureCard {
                     label: "derive",

@@ -60,13 +60,19 @@ home_message-WorkflowStepInspectTitle = 检查
 ## PageMetadataMessage
 
 page_metadata_message-DemosDescription = koruma-collection 验证器互动演示。
-page_metadata_message-DemosTitle = koruma - 演示
+page_metadata_message-DemosTitle = 演示
 page_metadata_message-DioxusDemoDescription = 基于 Dioxus 的 koruma-collection 验证器浏览器，支持本地化输出。
-page_metadata_message-DioxusDemoTitle = Dioxus 示例 - koruma
+page_metadata_message-DioxusDemoTitle = Dioxus 示例
 page_metadata_message-HomeDescription = Rust 类型化的按字段验证，具备派生宏、字段属性、错误访问器以及 Fluent 渲染。
-page_metadata_message-HomeTitle = koruma
+page_metadata_message-HomeTitle = 首页
 page_metadata_message-SalesFormDemoDescription = 在真实业务流程中展示类型化 koruma 验证错误的销售录入表单。
-page_metadata_message-SalesFormDemoTitle = 销售表单演示 - koruma
+page_metadata_message-SalesFormDemoTitle = 销售表单演示
+
+## ProjectMessage
+
+project_message-Description = Rust 验证
+# es-fluent: same-as-fallback
+project_message-Name = koruma
 
 ## SalesFormMessage
 

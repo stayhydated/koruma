@@ -1,9 +1,9 @@
 use crate::pages;
-use crate::site::i18n::PageMetadataMessage;
+use crate::site::i18n::{PageMetadataMessage, ProjectMessage};
 use dioxus::cli_config;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
-use stayhydated_dioxus::ProjectNavItem;
+use stayhydated_dioxus::{ProjectNavItem, ProjectPageMetadata};
 use stayhydated_site::routing::{BaseHref, BasePath, Href, OutputDir, RoutePath};
 use std::path::Path;
 
@@ -206,14 +206,15 @@ fn route_element(route: SiteRoute) -> Element {
         },
     };
 
-    let title = route.page.title_i18n(&i18n);
+    let site_name = i18n.localize_message(&ProjectMessage::Name);
+    let page_title = route.page.title_i18n(&i18n);
     let description = route.page.description_i18n(&i18n);
 
     rsx! {
-        Title { "{title}" }
-        Meta {
-            name: "description",
-            content: description,
+        ProjectPageMetadata {
+            site_name,
+            page_title,
+            description,
         }
         {pages::route_content(route)}
     }

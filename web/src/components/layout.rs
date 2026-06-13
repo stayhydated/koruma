@@ -1,15 +1,17 @@
 use crate::components::LanguageSelect;
 use crate::site::constants::{
     KORUMA_COLLECTION_CRATES_URL, KORUMA_COLLECTION_CROWDIN_URL, KORUMA_CRATES_URL,
-    PROJECT_FLUENT_URL,
+    KORUMA_SOURCE_URL, PROJECT_FLUENT_URL,
 };
-use crate::site::i18n::{ContributeMessage, SiteChromeMessage, SiteFooterMessage, SiteLanguage};
+use crate::site::i18n::{
+    ContributeMessage, ProjectMessage, SiteChromeMessage, SiteFooterMessage, SiteLanguage,
+};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::{
     ContributePanelShell, FooterPanel as SharedFooterPanel, LinkTarget, ProjectChromeHeader,
-    ProjectId, ProjectNavConfig, ProjectNavLabels,
+    ProjectId, ProjectMark, ProjectNavConfig, ProjectNavLabels, ProjectOption,
 };
 
 #[component]
@@ -27,12 +29,19 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
     let nav_demos = i18n.localize_message(&SiteChromeMessage::NavDemos);
     let nav_docs = i18n.localize_message(&SiteChromeMessage::NavDocs);
     let nav_source = i18n.localize_message(&SiteChromeMessage::NavSource);
+    let project = ProjectOption::with_description(
+        ProjectId::new("koruma"),
+        ProjectMark::new("K"),
+        i18n.localize_message(&ProjectMessage::Name),
+        i18n.localize_message(&ProjectMessage::Description),
+        crate::site::routing::page_href(PageKind::Home).into_string(),
+    );
     let nav = ProjectNavConfig::new(
-        ProjectId::Koruma,
-        crate::site::routing::page_href(PageKind::Home).as_str(),
+        project,
         LinkTarget::route(crate::site::routing::app_route(PageKind::Home)),
         LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
         crate::site::routing::book_href().as_str(),
+        KORUMA_SOURCE_URL,
         ProjectNavLabels::new(nav_home, nav_demos, nav_docs, nav_source),
         current_page.project_nav_item(),
     );
@@ -148,7 +157,7 @@ pub(crate) fn ContributePanel() -> Element {
                 "{body_github}"
                 " "
                 a {
-                    href: ProjectId::Koruma.source_href(),
+                    href: KORUMA_SOURCE_URL,
                     target: "_blank",
                     rel: "noreferrer",
                     "GitHub"

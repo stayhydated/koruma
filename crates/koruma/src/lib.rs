@@ -1,6 +1,10 @@
 #![doc = include_str!("../README.md")]
 
-pub use koruma_core::{NewtypeValidation, Validate, ValidateExt, ValidationError};
+pub use koruma_core::{
+    NewtypeValidation, Validate, ValidateExt, ValidationError, ValidationIssue,
+    ValidationIssueScope, ValidationIssues, ValidatorDescriptor, ValidatorMetadata, ValidatorParam,
+    ValidatorParamDescriptor, ValidatorParamValue,
+};
 
 #[cfg(feature = "derive")]
 pub use koruma_derive::{Koruma, KorumaAllDisplay, validator};

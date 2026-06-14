@@ -9,7 +9,12 @@ Core traits and types for the `koruma` validation ecosystem. Most users should d
 ## What it provides
 
 - `Validate<T>`: implemented by validator structs.
+- `ValidatorMetadata<T>`, `ValidatorDescriptor`, `ValidatorParamDescriptor`,
+  and `ValidatorParamValue`: optional metadata for tooling that needs validator
+  type and parameter information without changing `Validate<T>`.
 - `ValidationError`: implemented by generated error structs.
+- `ValidationIssues`: optional structured issue enumeration implemented by
+  generated error structs.
 - `ValidateExt`: used for nested/newtype validation; handwritten implementations
   must use an error type that implements `ValidationError + Default`.
 - `NewtypeValidation`: marker for newtype structs with transparent error access.

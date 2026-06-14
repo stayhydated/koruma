@@ -68,6 +68,26 @@ impl ::renamed_koruma::ValidationError for GenericItemKorumaValidationError {
         self.score.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for GenericItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.score.generic_range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "score",
+                        ::core::any::type_name::<GenericRangeValidation<f64>>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "GenericRangeValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl GenericItem {
     #[doc = concat!(
         "Validates all fields of `", "GenericItem",

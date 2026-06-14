@@ -70,6 +70,36 @@ impl ::renamed_koruma::ValidationError for LabeledItemKorumaValidationError {
         self.value.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for LabeledItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.value.min_len().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<LengthValidation<String>>(),
+                        Some("min_len"),
+                        ::std::format!("validation failed for `{}`", "min_len"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.value.max_len().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<LengthValidation<String>>(),
+                        Some("max_len"),
+                        ::std::format!("validation failed for `{}`", "max_len"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl LabeledItem {
     #[doc = concat!(
         "Validates all fields of `", "LabeledItem",

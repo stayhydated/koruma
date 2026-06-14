@@ -89,6 +89,29 @@ impl ::renamed_koruma::ValidationError for OrderKorumaValidationError {
         self.scores.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for OrderKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        for (__koruma_index, __koruma_element_error) in self.scores.element_errors() {
+            if __koruma_element_error.generic_range_validation().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "scores",
+                            *__koruma_index,
+                            ::core::any::type_name::<GenericRangeValidation<f64>>(),
+                            None,
+                            ::std::format!(
+                                "validation failed for `{}`", "GenericRangeValidation"
+                            ),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+        }
+        __koruma_issues
+    }
+}
 impl Order {
     #[doc = concat!(
         "Validates all fields of `", "Order",

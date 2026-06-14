@@ -78,6 +78,13 @@ explicit value field, implement `Validate<T>`, and optionally implement `Display
 error messages. External callers can read the captured value through the generated getter
 (`validator.actual()`, `validator.input()`, and so on).
 
+`#[validator]` also emits `ValidatorMetadata<T>`. The descriptor reports the
+validator type and configurable setter fields, while `validator_params()` reads
+runtime parameter values from a validator instance. Bool, numeric, string, and
+optional values are represented directly; generic or otherwise unconstrained
+values are reported as opaque so metadata does not add trait bounds to the
+validator.
+
 Unannotated configuration fields generate direct setters. Use bare `#[koruma(setter)]`
 when a configuration field is named `actual`, `input`, or `value`, or when marking configuration
 fields lets Koruma infer the only remaining unmarked value field. Use `#[koruma(setter(...))]`

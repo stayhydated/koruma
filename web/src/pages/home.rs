@@ -1,20 +1,16 @@
-use crate::components::{ContributePanel, FeatureCard, FooterPanel, PageHeader};
+use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::site::i18n::HomeMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::{
-    ButtonLink, ButtonRouteLink, ButtonVariant, HeroSidePanel, LinkTarget, ProjectHero,
-    ProjectHomeShell, SkillRepo, SkillSurfaceSection,
+    FeatureCardItem, HeroListPanel, HeroPanelItem, HeroPanelListKind, LinkTarget, Project,
+    ProjectHero, ProjectHeroActions, ProjectHomeShell, SkillFeatureSection, hero_reveal_style,
 };
 
 #[component]
 pub(crate) fn HomePage() -> Element {
-    let hero_style = crate::components::use_reveal_style(0, 24.0);
-    let surface_style = crate::components::use_reveal_style(90, 18.0);
-    let first_card_style = crate::components::use_reveal_style(160, 16.0);
-    let second_card_style = crate::components::use_reveal_style(230, 16.0);
-    let third_card_style = crate::components::use_reveal_style(300, 16.0);
+    let hero_style = hero_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -78,60 +74,35 @@ pub(crate) fn HomePage() -> Element {
                 body,
                 style: hero_style,
                 side: Some(rsx! {
-                    HeroSidePanel {
-                        span { class: "panel-label", "{workflow_panel_label}" }
-                        ol { class: "workflow-list",
-                            li {
-                                strong { "{step_define_title}" }
-                                span { "{step_define_body}" }
-                            }
-                            li {
-                                strong { "{step_attach_title}" }
-                                span { "{step_attach_body}" }
-                            }
-                            li {
-                                strong { "{step_inspect_title}" }
-                                span { "{step_inspect_body}" }
-                            }
-                        }
+                    HeroListPanel {
+                        label: workflow_panel_label,
+                        kind: HeroPanelListKind::Ordered,
+                        items: vec![
+                            HeroPanelItem::new(step_define_title, step_define_body),
+                            HeroPanelItem::new(step_attach_title, step_attach_body),
+                            HeroPanelItem::new(step_inspect_title, step_inspect_body),
+                        ],
                     }
                 }),
                 actions: Some(rsx! {
-                    ButtonLink {
-                        href: crate::site::routing::book_href().as_str(),
-                        label: primary_action,
-                    }
-                    ButtonRouteLink::<crate::site::routing::AppRoute> {
-                        target: LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
-                        label: secondary_action,
-                        variant: ButtonVariant::Secondary,
+                    ProjectHeroActions::<crate::site::routing::AppRoute> {
+                        book: crate::site::routing::book_href().as_str(),
+                        demos: LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
+                        primary_label: primary_action,
+                        secondary_label: secondary_action,
                     }
                 }),
             }
 
-            SkillSurfaceSection {
+            SkillFeatureSection {
                 label: surface_panel_label,
                 title: surface_title,
-                repo: SkillRepo::new("koruma"),
-                style: surface_style,
-                FeatureCard {
-                    label: "derive",
-                    title: surface_card_one_title,
-                    body: surface_card_one_body,
-                    style: first_card_style,
-                }
-                FeatureCard {
-                    label: "validators",
-                    title: surface_card_two_title,
-                    body: surface_card_two_body,
-                    style: second_card_style,
-                }
-                FeatureCard {
-                    label: "i18n",
-                    title: surface_card_three_title,
-                    body: surface_card_three_body,
-                    style: third_card_style,
-                }
+                repo: Project::Koruma,
+                items: vec![
+                    FeatureCardItem::new("derive", surface_card_one_title, surface_card_one_body),
+                    FeatureCardItem::new("validators", surface_card_two_title, surface_card_two_body),
+                    FeatureCardItem::new("i18n", surface_card_three_title, surface_card_three_body),
+                ],
             }
 
             ContributePanel {}

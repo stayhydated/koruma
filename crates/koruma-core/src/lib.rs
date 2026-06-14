@@ -23,6 +23,238 @@ pub trait ValidationError {
     }
 }
 
+/// Static metadata describing one configurable parameter on a validator.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ValidatorParamDescriptor {
+    name: &'static str,
+    type_name: &'static str,
+    required: bool,
+}
+
+impl ValidatorParamDescriptor {
+    /// Describe a validator parameter.
+    pub const fn new(name: &'static str, type_name: &'static str, required: bool) -> Self {
+        Self {
+            name,
+            type_name,
+            required,
+        }
+    }
+
+    /// Parameter name as it appears in the validator struct.
+    pub const fn name(self) -> &'static str {
+        self.name
+    }
+
+    /// Rust type name recorded for the parameter.
+    pub const fn type_name(self) -> &'static str {
+        self.type_name
+    }
+
+    /// Whether this parameter must be supplied before building the validator.
+    pub const fn required(self) -> bool {
+        self.required
+    }
+}
+
+/// Static metadata describing a validator type.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ValidatorDescriptor {
+    type_name: &'static str,
+    params: &'static [ValidatorParamDescriptor],
+}
+
+impl ValidatorDescriptor {
+    /// Describe a validator type and its configurable parameters.
+    pub const fn new(type_name: &'static str, params: &'static [ValidatorParamDescriptor]) -> Self {
+        Self { type_name, params }
+    }
+
+    /// Fully qualified Rust type name for the validator.
+    pub const fn type_name(self) -> &'static str {
+        self.type_name
+    }
+
+    /// Parameter descriptors for this validator.
+    pub const fn params(self) -> &'static [ValidatorParamDescriptor] {
+        self.params
+    }
+}
+
+/// Runtime value captured for one validator parameter.
+#[derive(Clone, Debug, PartialEq)]
+pub enum ValidatorParamValue {
+    Bool(bool),
+    I64(i64),
+    U64(u64),
+    F64(f64),
+    String(String),
+    None,
+    Opaque { type_name: &'static str },
+}
+
+impl ValidatorParamValue {
+    /// Create an opaque value when the parameter cannot be represented without
+    /// adding trait bounds to the validator type.
+    pub fn opaque<T: ?Sized>(_: &T) -> Self {
+        Self::Opaque {
+            type_name: ::core::any::type_name::<T>(),
+        }
+    }
+}
+
+/// Runtime metadata for one validator parameter.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ValidatorParam {
+    name: &'static str,
+    value: ValidatorParamValue,
+}
+
+impl ValidatorParam {
+    /// Pair a validator parameter name with its runtime value.
+    pub const fn new(name: &'static str, value: ValidatorParamValue) -> Self {
+        Self { name, value }
+    }
+
+    /// Parameter name.
+    pub const fn name(&self) -> &'static str {
+        self.name
+    }
+
+    /// Runtime parameter value.
+    pub const fn value(&self) -> &ValidatorParamValue {
+        &self.value
+    }
+}
+
+/// Optional metadata companion for validators.
+///
+/// This trait intentionally sits beside [`Validate`] instead of changing it.
+/// Implementing it does not prove that the validator can validate `T`; use
+/// [`Validate<T>`] for that runtime contract.
+pub trait ValidatorMetadata<T> {
+    /// Static validator descriptor.
+    fn validator_descriptor() -> ValidatorDescriptor;
+
+    /// Runtime parameter values captured by this validator instance.
+    fn validator_params(&self) -> Vec<ValidatorParam>;
+}
+
+/// Scope of a structured validation issue.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ValidationIssueScope {
+    Form,
+    Field,
+    Element,
+}
+
+/// Structured validation issue emitted by generated Koruma error types.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ValidationIssue {
+    field: Option<&'static str>,
+    scope: ValidationIssueScope,
+    validator: Option<&'static str>,
+    label: Option<&'static str>,
+    element_index: Option<usize>,
+    message: String,
+    params: Vec<ValidatorParam>,
+}
+
+impl ValidationIssue {
+    /// Create a form-scoped issue.
+    pub fn form(message: impl Into<String>) -> Self {
+        Self {
+            field: None,
+            scope: ValidationIssueScope::Form,
+            validator: None,
+            label: None,
+            element_index: None,
+            message: message.into(),
+            params: Vec::new(),
+        }
+    }
+
+    /// Create a field-scoped issue.
+    pub fn field(
+        field: &'static str,
+        validator: &'static str,
+        label: Option<&'static str>,
+        message: impl Into<String>,
+        params: Vec<ValidatorParam>,
+    ) -> Self {
+        Self {
+            field: Some(field),
+            scope: ValidationIssueScope::Field,
+            validator: Some(validator),
+            label,
+            element_index: None,
+            message: message.into(),
+            params,
+        }
+    }
+
+    /// Create an element-scoped issue.
+    pub fn element(
+        field: &'static str,
+        element_index: usize,
+        validator: &'static str,
+        label: Option<&'static str>,
+        message: impl Into<String>,
+        params: Vec<ValidatorParam>,
+    ) -> Self {
+        Self {
+            field: Some(field),
+            scope: ValidationIssueScope::Element,
+            validator: Some(validator),
+            label,
+            element_index: Some(element_index),
+            message: message.into(),
+            params,
+        }
+    }
+
+    /// Field name, if this issue is field- or element-scoped.
+    pub const fn field_name(&self) -> Option<&'static str> {
+        self.field
+    }
+
+    /// Issue scope.
+    pub const fn scope(&self) -> ValidationIssueScope {
+        self.scope
+    }
+
+    /// Validator type name, if known.
+    pub const fn validator(&self) -> Option<&'static str> {
+        self.validator
+    }
+
+    /// Validator label from the source attribute, if present.
+    pub const fn label(&self) -> Option<&'static str> {
+        self.label
+    }
+
+    /// Collection element index for element-scoped issues.
+    pub const fn element_index(&self) -> Option<usize> {
+        self.element_index
+    }
+
+    /// Human-readable validation message.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// Runtime validator parameters.
+    pub fn params(&self) -> &[ValidatorParam] {
+        &self.params
+    }
+}
+
+/// Optional structured issue enumeration for generated validation errors.
+pub trait ValidationIssues {
+    /// Return all validation issues represented by this error value.
+    fn issues(&self) -> Vec<ValidationIssue>;
+}
+
 #[doc(hidden)]
 pub mod __private {
     /// Hidden marker implemented by `#[derive(Koruma)]` for the source type.

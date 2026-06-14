@@ -68,12 +68,6 @@ page_metadata_message-HomeTitle = 首页
 page_metadata_message-SalesFormDemoDescription = 在真实业务流程中展示类型化 koruma 验证错误的销售录入表单。
 page_metadata_message-SalesFormDemoTitle = 销售表单演示
 
-## ProjectMessage
-
-project_message-Description = Rust 验证
-# es-fluent: same-as-fallback
-project_message-Name = koruma
-
 ## SalesFormMessage
 
 sales_form_message-ClearAction = 清空
@@ -121,13 +115,6 @@ sales_form_message-SummaryTitle = 验证状态
 sales_form_message-SummaryValidBody = 该销售线索满足配置的 koruma 验证器。
 sales_form_message-SummaryValidTitle = 可以提交
 sales_form_message-ValidSampleAction = 有效示例
-
-## SiteChromeMessage
-
-site_chrome_message-NavDemos = 演示
-site_chrome_message-NavDocs = 手册
-site_chrome_message-NavHome = 首页
-site_chrome_message-NavSource = 源码
 
 ## SiteFooterMessage
 

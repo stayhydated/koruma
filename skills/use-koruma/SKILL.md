@@ -147,6 +147,10 @@ derived validation does not clone the original value. Built-in
 collection, string, format, and numeric validators that do not render the
 failing input use this pattern internally.
 
+`#[validator]` also emits `ValidatorMetadata<T>` for tooling. Use it when a
+generic integration needs validator descriptors or runtime parameter values;
+generic values may be reported as opaque to avoid adding trait bounds.
+
 Unannotated configuration fields on custom validators generate direct setters.
 Koruma infers an unmarked value field named `actual`, `input`, or `value`, and
 can infer any field name when exactly one field is unmarked. Use bare
@@ -191,6 +195,11 @@ the generated accessor is `label_name()` and the `all()` enum variant uses
 `LabelName`.
 Fields without `#[koruma(...)]` are ignored. Multiple validators run in the
 order listed, and all configured validators are evaluated.
+
+Generated aggregate error structs implement `ValidationIssues` for generic
+field and element issue enumeration. Prefer the strongly typed accessors for
+normal app code, and use `ValidationIssues` when building tooling that needs
+field names, validator type names, labels, element indices, and messages.
 
 Common patterns:
 

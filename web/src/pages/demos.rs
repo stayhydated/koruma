@@ -3,11 +3,13 @@ use crate::site::i18n::DemosPageMessage;
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
-use stayhydated_dioxus::{DemoCard, DemoCardGrid, GridColumns, ProjectPageShell};
+use stayhydated_dioxus::{
+    DemoCard, DemoCardGrid, GridColumns, ProjectPageShell, page_entry_reveal_style,
+};
 
 #[component]
 pub(crate) fn DemosPage() -> Element {
-    let demos_style = crate::components::use_reveal_style(0, 24.0);
+    let demos_style = page_entry_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {

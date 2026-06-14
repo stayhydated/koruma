@@ -68,6 +68,26 @@ impl ::renamed_koruma::ValidationError for OptionalPresenceKorumaValidationError
         self.value.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for OptionalPresenceKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.value.required_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<RequiredValidation<Option<String>>>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "RequiredValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl OptionalPresence {
     #[doc = concat!(
         "Validates all fields of `", "OptionalPresence",

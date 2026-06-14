@@ -10,6 +10,7 @@ use dioxus_primitives::label::Label;
 use es_fluent_manager_dioxus::use_i18n;
 use koruma::{Koruma, KorumaAllDisplay};
 use koruma_collection::{collection, format, general, numeric};
+use stayhydated_dioxus::{page_entry_reveal_style, surface_reveal_style};
 
 use crate::components::{FooterPanel, PageHeader};
 use crate::site::i18n::SalesFormMessage;
@@ -257,8 +258,8 @@ pub(crate) fn SalesFormPage() -> Element {
     let status_valid = i18n.localize_message(&SalesFormMessage::FieldStatusValid);
     let status_invalid = i18n.localize_message(&SalesFormMessage::FieldStatusInvalid);
     let status_optional = i18n.localize_message(&SalesFormMessage::FieldStatusOptional);
-    let title_style = crate::components::use_reveal_style(0, 24.0);
-    let demo_style = crate::components::use_reveal_style(90, 18.0);
+    let title_style = page_entry_reveal_style();
+    let demo_style = surface_reveal_style();
 
     rsx! {
         div { class: "page-shell",

@@ -8,7 +8,10 @@ use es_fluent::{FluentArgs, FluentLocalizer as _};
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
 use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
-use stayhydated_dioxus::{TabContent, TabList, TabTrigger, Tabs, TabsOrientation};
+use stayhydated_dioxus::{
+    TabContent, TabList, TabTrigger, Tabs, TabsOrientation, page_entry_reveal_style,
+    surface_reveal_style,
+};
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::site::i18n::DioxusShowcaseMessage;
@@ -84,8 +87,8 @@ pub(crate) fn CollectionDioxusPage() -> Element {
 
 #[component]
 fn CollectionDioxusShowcase() -> Element {
-    let title_style = crate::components::use_reveal_style(0, 24.0);
-    let showcase_style = crate::components::use_reveal_style(90, 18.0);
+    let title_style = page_entry_reveal_style();
+    let showcase_style = surface_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {

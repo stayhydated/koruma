@@ -68,12 +68,6 @@ page_metadata_message-HomeTitle = Accueil
 page_metadata_message-SalesFormDemoDescription = Formulaire commercial montrant des erreurs de validation koruma typées dans un flux réaliste.
 page_metadata_message-SalesFormDemoTitle = Démo formulaire commercial
 
-## ProjectMessage
-
-project_message-Description = Validation Rust
-# es-fluent: same-as-fallback
-project_message-Name = koruma
-
 ## SalesFormMessage
 
 sales_form_message-ClearAction = Effacer
@@ -121,13 +115,6 @@ sales_form_message-SummaryTitle = État de validation
 sales_form_message-SummaryValidBody = Le prospect respecte les validateurs koruma configurés.
 sales_form_message-SummaryValidTitle = Prêt à soumettre
 sales_form_message-ValidSampleAction = Exemple valide
-
-## SiteChromeMessage
-
-site_chrome_message-NavDemos = Démo
-site_chrome_message-NavDocs = Livre
-site_chrome_message-NavHome = Accueil
-site_chrome_message-NavSource = Source
 
 ## SiteFooterMessage
 

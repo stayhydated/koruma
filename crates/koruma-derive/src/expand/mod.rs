@@ -10,6 +10,7 @@ pub(crate) mod crate_path;
 pub(crate) mod derive;
 pub(crate) mod derive_constructors;
 pub(crate) mod derive_field_errors;
+pub(crate) mod derive_issues;
 pub(crate) mod derive_main_error;
 pub(crate) mod derive_newtype;
 pub(crate) mod derive_shared;

@@ -17,11 +17,14 @@ instead of using this crate directly.
   `#[koruma(setter(name = ...))]`, and `#[koruma(setter(default = ...))]` on direct setter fields,
   `#[koruma(value)]` for explicitly named captured value fields,
   plus `#[koruma(skip_capture)]` on `Option<T>` value fields that should not retain the
-  validated input during derived validation.
+  validated input during derived validation. It also emits `ValidatorMetadata<T>` with a
+  static descriptor and runtime parameter values; primitive, string, and `Option` parameters are
+  represented directly, while generic or otherwise unconstrained values are reported as opaque.
 - `#[derive(Koruma)]`: generates validation error structs and `validate()`, accepting Rust-native
   direct validator chains like `RangeValidation::<_>::min(0).max(10)`, lower-snake labels,
   `each(...)` element validators, `full(...)` and `unwrapped(...)` target selectors, `skip`,
-  `nested`, `newtype`, and struct-level `try_new`/`try_from` options.
+  `nested`, `newtype`, and struct-level `try_new`/`try_from` options. Generated aggregate error
+  structs implement `ValidationIssues` for field- and element-scoped issue enumeration.
 - `#[derive(KorumaAllDisplay)]`: adds `Display` for `all()` validator enums.
 - `#[derive(KorumaAllFluent)]`: adds `FluentMessage` for `all()` validator enums (feature `fluent`).
 

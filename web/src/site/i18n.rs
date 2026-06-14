@@ -1,36 +1,12 @@
 use es_fluent::EsFluent;
-use es_fluent_lang::{LanguageIdentifier, es_fluent_language};
-use strum::{EnumIter, IntoEnumIterator as _};
+use es_fluent_lang::es_fluent_language;
+use strum::EnumIter;
 
 es_fluent_manager_dioxus::define_i18n_module!();
 
 #[es_fluent_language]
 #[derive(Clone, Copy, Debug, EnumIter, Eq, EsFluent, PartialEq)]
 pub(crate) enum SiteLanguage {}
-
-impl SiteLanguage {
-    pub(crate) fn all() -> impl Iterator<Item = Self> {
-        Self::iter()
-    }
-
-    pub(crate) fn lang(self) -> LanguageIdentifier {
-        self.into()
-    }
-}
-
-#[derive(Clone, Copy, Debug, EsFluent)]
-pub(crate) enum SiteChromeMessage {
-    NavHome,
-    NavDemos,
-    NavDocs,
-    NavSource,
-}
-
-#[derive(Clone, Copy, Debug, EsFluent)]
-pub(crate) enum ProjectMessage {
-    Name,
-    Description,
-}
 
 #[derive(Clone, Copy, Debug, EsFluent)]
 pub(crate) enum HomeMessage {

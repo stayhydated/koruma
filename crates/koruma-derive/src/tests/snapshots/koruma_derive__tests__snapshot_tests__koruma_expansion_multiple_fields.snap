@@ -114,6 +114,40 @@ impl ::renamed_koruma::ValidationError for ItemKorumaValidationError {
         self.age.is_empty() && self.name.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for ItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.age.number_range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "age",
+                        ::core::any::type_name::<NumberRangeValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "NumberRangeValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.name.string_length_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "name",
+                        ::core::any::type_name::<StringLengthValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "StringLengthValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl Item {
     #[doc = concat!(
         "Validates all fields of `", "Item",

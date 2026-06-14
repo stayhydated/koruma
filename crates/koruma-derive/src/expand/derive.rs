@@ -1,5 +1,6 @@
 use crate::expand::derive_constructors::{render_try_from_impl, render_try_new_fn};
 use crate::expand::derive_field_errors::render_field_error_structs;
+use crate::expand::derive_issues::render_validation_issues_impl;
 use crate::expand::derive_main_error::render_main_error;
 use crate::expand::derive_newtype::{
     NewtypeDerefInputs, render_newtype_deref_impl, render_newtype_marker_impl,
@@ -41,6 +42,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
     let error_defaults = &main_error.defaults;
 
     let validation_checks = render_validation_checks(&plan, &koruma)?;
+    let validation_issues_impl =
+        render_validation_issues_impl(&plan, &error_struct_name, generics, &koruma);
 
     let struct_name_str = struct_name.to_string();
     let impl_generics_tokens = quote! { #impl_generics };
@@ -107,6 +110,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
                 #is_empty_body
             }
         }
+
+        #validation_issues_impl
 
         impl #impl_generics #struct_name #ty_generics #where_clause {
             #try_new_fn

@@ -73,6 +73,25 @@ for BoundedWrapperKorumaValidationError<T> {
         self._0.is_empty()
     }
 }
+impl<T: Clone> ::renamed_koruma::ValidationIssues
+for BoundedWrapperKorumaValidationError<T> {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self._0.generic_range().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "_0",
+                        ::core::any::type_name::<GenericRange<T>>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "GenericRange"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl<T: Clone> BoundedWrapper<T> {
     #[doc = concat!(
         "Validates all fields of `", "BoundedWrapper",

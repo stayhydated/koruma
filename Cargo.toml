@@ -59,13 +59,18 @@ smallvec = "1.15"
 stayhydated-dioxus = { path = "../stayhydated/crates/stayhydated-dioxus" }
 stayhydated-site = { path = "../stayhydated/crates/stayhydated-site" }
 stayhydated-xtask = { path = "../stayhydated/crates/stayhydated-xtask" }
-strum = "0.27"
+strum = "0.28"
 syn = "2.0"
 tempfile = "3"
 trybuild = "1.0"
 unic-langid = "0.9"
 url = "2.5"
 web = { path = "web" }
+
+[patch.crates-io]
+es-fluent = { path = "../es-fluent/crates/es-fluent" }
+es-fluent-build = { path = "../es-fluent/crates/es-fluent-build" }
+es-fluent-manager-dioxus = { path = "../es-fluent/crates/es-fluent-manager-dioxus" }
 
 [profile.dev]
 codegen-units = 16

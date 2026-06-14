@@ -202,6 +202,65 @@ impl ::renamed_koruma::ValidationError for ComplexItemKorumaValidationError {
         self.age.is_empty() && self.tags.is_empty() && self.rating.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for ComplexItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.age.range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "age",
+                        ::core::any::type_name::<RangeValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "RangeValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        for (__koruma_index, __koruma_element_error) in self.tags.element_errors() {
+            if __koruma_element_error.length_validation().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "tags",
+                            *__koruma_index,
+                            ::core::any::type_name::<LengthValidation>(),
+                            None,
+                            ::std::format!(
+                                "validation failed for `{}`", "LengthValidation"
+                            ),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+        }
+        if self.rating.range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "rating",
+                        ::core::any::type_name::<RangeValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "RangeValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.rating.even_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "rating",
+                        ::core::any::type_name::<EvenValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "EvenValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl ComplexItem {
     #[doc = concat!(
         "Validates all fields of `", "ComplexItem",

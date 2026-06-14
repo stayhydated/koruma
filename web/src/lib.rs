@@ -23,6 +23,7 @@ mod tests {
     use crate::site::routing::{
         PageKind, SiteRoute, page_href, site_route_from_path, site_route_from_path_with_base_path,
     };
+    use stayhydated_dioxus::StayhydatedSiteLanguage;
     use std::fs;
 
     #[test]
@@ -76,16 +77,21 @@ mod tests {
 
     #[test]
     fn i18n_language_switcher_initialization_is_supported() {
-        println!("default language: {}", SiteLanguage::default().lang());
-        let available = SiteLanguage::all().collect::<Vec<_>>();
+        println!(
+            "default language: {}",
+            SiteLanguage::default().language_identifier()
+        );
+        let available = SiteLanguage::all_languages()
+            .into_iter()
+            .collect::<Vec<_>>();
         let rendered = available
             .iter()
-            .map(|language| language.lang().to_string())
+            .map(|language| language.language_identifier().to_string())
             .collect::<Vec<_>>()
             .join(", ");
         println!("supported language enums: {rendered}");
 
-        let selected = SiteLanguage::default().lang();
+        let selected = SiteLanguage::default().language_identifier();
         let selected = selected.clone();
         let init =
             es_fluent_manager_dioxus::ssr::SsrI18nRuntime::discovered().request_blocking(selected);

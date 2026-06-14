@@ -1,9 +1,9 @@
 use crate::pages;
-use crate::site::i18n::{PageMetadataMessage, ProjectMessage};
+use crate::site::i18n::PageMetadataMessage;
 use dioxus::cli_config;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
-use stayhydated_dioxus::{ProjectNavItem, ProjectPageMetadata};
+use stayhydated_dioxus::{Project, ProjectNavItem, StayhydatedProjectPageMetadata};
 use stayhydated_site::routing::{BaseHref, BasePath, Href, OutputDir, RoutePath};
 use std::path::Path;
 
@@ -138,23 +138,10 @@ pub(crate) fn mark_generated_route_cache(public_dir: &Path) -> std::io::Result<(
 }
 
 pub(crate) fn cleanup_generated_route_cache(public_dir: &Path) -> std::io::Result<()> {
-    let generated_top_level_dirs = all_routes()
-        .into_iter()
-        .filter_map(|route| {
-            route
-                .output_dir()
-                .as_str()
-                .split('/')
-                .next()
-                .filter(|segment| !segment.is_empty())
-                .map(str::to_string)
-        })
-        .collect::<Vec<_>>();
-
-    stayhydated_site::route_cache::cleanup_generated_route_cache(
+    stayhydated_site::route_cache::cleanup_generated_route_cache_for_outputs(
         public_dir,
         GENERATED_ROUTE_CACHE_MARKER,
-        generated_top_level_dirs,
+        all_routes().into_iter().map(SiteRoute::output_dir),
         |_, _| false,
     )
 }
@@ -206,13 +193,12 @@ fn route_element(route: SiteRoute) -> Element {
         },
     };
 
-    let site_name = i18n.localize_message(&ProjectMessage::Name);
     let page_title = route.page.title_i18n(&i18n);
     let description = route.page.description_i18n(&i18n);
 
     rsx! {
-        ProjectPageMetadata {
-            site_name,
+        StayhydatedProjectPageMetadata {
+            project: Project::Koruma,
             page_title,
             description,
         }

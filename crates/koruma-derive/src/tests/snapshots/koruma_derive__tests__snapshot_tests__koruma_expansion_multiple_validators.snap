@@ -80,6 +80,40 @@ impl ::renamed_koruma::ValidationError for MultiValidatorItemKorumaValidationErr
         self.value.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for MultiValidatorItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.value.number_range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<NumberRangeValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "NumberRangeValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.value.even_number_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<EvenNumberValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "EvenNumberValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl MultiValidatorItem {
     #[doc = concat!(
         "Validates all fields of `", "MultiValidatorItem",

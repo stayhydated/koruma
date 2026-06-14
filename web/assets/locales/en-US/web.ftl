@@ -68,11 +68,6 @@ page_metadata_message-HomeTitle = Home
 page_metadata_message-SalesFormDemoDescription = A sales intake form showing typed koruma validation errors in a realistic workflow.
 page_metadata_message-SalesFormDemoTitle = Sales Form Demo
 
-## ProjectMessage
-
-project_message-Description = Rust validation
-project_message-Name = koruma
-
 ## SalesFormMessage
 
 sales_form_message-ClearAction = Clear
@@ -120,13 +115,6 @@ sales_form_message-SummaryTitle = Validation state
 sales_form_message-SummaryValidBody = The lead payload satisfies the configured koruma validators.
 sales_form_message-SummaryValidTitle = Ready to submit
 sales_form_message-ValidSampleAction = Valid sample
-
-## SiteChromeMessage
-
-site_chrome_message-NavDemos = Demos
-site_chrome_message-NavDocs = Book
-site_chrome_message-NavHome = Home
-site_chrome_message-NavSource = Source
 
 ## SiteFooterMessage
 

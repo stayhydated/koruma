@@ -91,6 +91,27 @@ impl ::renamed_koruma::ValidationError for LabeledTagsKorumaValidationError {
         self.tags.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for LabeledTagsKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        for (__koruma_index, __koruma_element_error) in self.tags.element_errors() {
+            if __koruma_element_error.tag_prefix().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "tags",
+                            *__koruma_index,
+                            ::core::any::type_name::<PrefixValidation<String>>(),
+                            Some("tag_prefix"),
+                            ::std::format!("validation failed for `{}`", "tag_prefix"),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+        }
+        __koruma_issues
+    }
+}
 impl LabeledTags {
     #[doc = concat!(
         "Validates all fields of `", "LabeledTags",

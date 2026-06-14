@@ -65,6 +65,26 @@ impl ::renamed_koruma::ValidationError for UsernameKorumaValidationError {
         self._0.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for UsernameKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self._0.non_empty_string_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "_0",
+                        ::core::any::type_name::<NonEmptyStringValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "NonEmptyStringValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl Username {
     #[doc = concat!(
         "Creates a new `", "Username",

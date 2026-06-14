@@ -120,6 +120,40 @@ impl ::renamed_koruma::ValidationError for UserProfileKorumaValidationError {
         self.username.is_empty() && self.bio.is_empty()
     }
 }
+impl ::renamed_koruma::ValidationIssues for UserProfileKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.username.string_length_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "username",
+                        ::core::any::type_name::<StringLengthValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "StringLengthValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.bio.string_length_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "bio",
+                        ::core::any::type_name::<StringLengthValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "StringLengthValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
 impl UserProfile {
     #[doc = concat!(
         "Validates all fields of `", "UserProfile",

@@ -1,17 +1,13 @@
-use crate::components::LanguageSelect;
-use crate::site::constants::{
-    KORUMA_COLLECTION_CRATES_URL, KORUMA_COLLECTION_CROWDIN_URL, KORUMA_CRATES_URL,
-    KORUMA_SOURCE_URL, PROJECT_FLUENT_URL,
-};
-use crate::site::i18n::{
-    ContributeMessage, ProjectMessage, SiteChromeMessage, SiteFooterMessage, SiteLanguage,
-};
+use crate::site::i18n::{ContributeMessage, SiteFooterMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::{
-    ContributePanelShell, FooterPanel as SharedFooterPanel, LinkTarget, ProjectChromeHeader,
-    ProjectId, ProjectMark, ProjectNavConfig, ProjectNavLabels, ProjectOption,
+    ContributePanelShell, InPlaceLocalizedLanguageSelect, LinkTarget, Project,
+    ProjectFluentTextLink, ProjectPackage, ProjectPackageTextLink,
+    ProjectPackagesFooterPanelForProject, ProjectSourceTextLink, ProjectSupportLink,
+    ProjectSupportTextLink, StayhydatedProjectHeader, StayhydatedProjectHeaderConfig,
+    contribute_reveal_style,
 };
 
 #[component]
@@ -25,30 +21,19 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
         },
     };
 
-    let nav_home = i18n.localize_message(&SiteChromeMessage::NavHome);
-    let nav_demos = i18n.localize_message(&SiteChromeMessage::NavDemos);
-    let nav_docs = i18n.localize_message(&SiteChromeMessage::NavDocs);
-    let nav_source = i18n.localize_message(&SiteChromeMessage::NavSource);
-    let project = ProjectOption::with_description(
-        ProjectId::new("koruma"),
-        ProjectMark::new("K"),
-        i18n.localize_message(&ProjectMessage::Name),
-        i18n.localize_message(&ProjectMessage::Description),
+    let config = StayhydatedProjectHeaderConfig::localized_with_i18n(
+        Project::Koruma,
         crate::site::routing::page_href(PageKind::Home).into_string(),
-    );
-    let nav = ProjectNavConfig::new(
-        project,
         LinkTarget::route(crate::site::routing::app_route(PageKind::Home)),
         LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
         crate::site::routing::book_href().as_str(),
-        KORUMA_SOURCE_URL,
-        ProjectNavLabels::new(nav_home, nav_demos, nav_docs, nav_source),
         current_page.project_nav_item(),
+        &i18n,
     );
 
     rsx! {
-        ProjectChromeHeader::<crate::site::routing::AppRoute> {
-            nav,
+        StayhydatedProjectHeader::<crate::site::routing::AppRoute> {
+            config,
             LocaleSwitcher {}
         }
     }
@@ -56,42 +41,14 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
 
 #[component]
 fn LocaleSwitcher() -> Element {
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                div { class: "locale-switcher-dropdown", "failed to initialize locale switcher: {error}" }
-            };
-        },
-    };
-
-    let language_options = SiteLanguage::all()
-        .map(|language| {
-            let label = i18n.localize_message(&language);
-            (language, label)
-        })
-        .collect::<Vec<_>>();
-
-    let requested_language = i18n.requested_language();
-    let current_language = SiteLanguage::all()
-        .find(|language| language.lang() == requested_language)
-        .unwrap_or_default();
-    let on_locale_changed = move |next_language: SiteLanguage| {
-        let _ = i18n.select_language(next_language.lang());
-    };
-
     rsx! {
-        LanguageSelect::<SiteLanguage> {
-            selected: current_language,
-            options: language_options,
-            on_change: on_locale_changed,
-        }
+        InPlaceLocalizedLanguageSelect::<SiteLanguage> {}
     }
 }
 
 #[component]
 pub(crate) fn ContributePanel() -> Element {
-    let reveal_style = crate::components::use_reveal_style(370, 16.0);
+    let reveal_style = contribute_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -121,46 +78,29 @@ pub(crate) fn ContributePanel() -> Element {
             span { class: "panel-label", "{label}" }
             h2 {
                 "{headline} "
-                a {
-                    href: KORUMA_COLLECTION_CRATES_URL,
-                    target: "_blank",
-                    rel: "noreferrer",
-                    "koruma-collection"
-                }
+                ProjectPackageTextLink { package: ProjectPackage::KORUMA_COLLECTION }
             }
             p {
-                a {
-                    href: KORUMA_COLLECTION_CRATES_URL,
-                    target: "_blank",
-                    rel: "noreferrer",
-                    "koruma-collection"
-                }
+                ProjectPackageTextLink { package: ProjectPackage::KORUMA_COLLECTION }
                 " "
                 "{body_prefix}"
                 " "
-                a {
-                    href: PROJECT_FLUENT_URL,
-                    target: "_blank",
-                    rel: "noreferrer",
-                    "Project Fluent"
+                ProjectFluentTextLink {
+                    label: "Project Fluent",
                 }
                 " "
                 "{project_fluent}"
                 " "
-                a {
-                    href: KORUMA_COLLECTION_CROWDIN_URL,
-                    target: "_blank",
-                    rel: "noreferrer",
-                    "{body_crowdin}"
+                ProjectSupportTextLink {
+                    link: ProjectSupportLink::KORUMA_COLLECTION_CROWDIN,
+                    label: body_crowdin,
                 }
                 " "
                 "{body_github}"
                 " "
-                a {
-                    href: KORUMA_SOURCE_URL,
-                    target: "_blank",
-                    rel: "noreferrer",
-                    "GitHub"
+                ProjectSourceTextLink {
+                    project: Project::Koruma,
+                    label: "GitHub",
                 }
                 "{dot}"
             }
@@ -180,37 +120,24 @@ pub(crate) fn FooterPanel() -> Element {
     };
 
     let label = i18n.localize_message(&SiteFooterMessage::CratesLabel);
-    let crates_text_prefix = i18n.localize_message(&SiteFooterMessage::CratesTextPrefix);
-    let crates_text_middle = i18n.localize_message(&SiteFooterMessage::CratesTextMiddle);
-    let crates_text_suffix = i18n.localize_message(&SiteFooterMessage::CratesTextSuffix);
-    let crates_text_middle = crates_text_middle.trim().to_string();
-    let crates_text_suffix = crates_text_suffix.trim().to_string();
-
+    let prefix = i18n.localize_message(&SiteFooterMessage::CratesTextPrefix);
+    let separator = i18n
+        .localize_message(&SiteFooterMessage::CratesTextMiddle)
+        .trim()
+        .to_string();
+    let suffix = i18n
+        .localize_message(&SiteFooterMessage::CratesTextSuffix)
+        .trim()
+        .to_string();
+    let separator = format!(" {separator} ");
+    let suffix = format!(" {suffix}");
     rsx! {
-        SharedFooterPanel {
-            p {
-                span { class: "footer-label", "{label}" }
-                span { class: "footer-text",
-                    "{crates_text_prefix}"
-                    a {
-                        href: KORUMA_CRATES_URL,
-                        target: "_blank",
-                        rel: "noreferrer",
-                        "koruma"
-                    }
-                    " "
-                    "{crates_text_middle}"
-                    " "
-                    a {
-                        href: KORUMA_COLLECTION_CRATES_URL,
-                        target: "_blank",
-                        rel: "noreferrer",
-                        "koruma-collection"
-                    }
-                    " "
-                    "{crates_text_suffix}"
-                }
-            }
+        ProjectPackagesFooterPanelForProject {
+            project: Project::Koruma,
+            label,
+            prefix,
+            separator,
+            suffix,
         }
     }
 }

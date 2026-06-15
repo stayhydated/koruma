@@ -190,6 +190,72 @@ impl ::renamed_koruma::ValidateExt for OptionalWrapper {
 }
 impl ::renamed_koruma::__private::KorumaWasDerived for OptionalWrapper {}
 impl ::renamed_koruma::NewtypeValidation for OptionalWrapper {}
+impl ::renamed_koruma::NewtypeValue for OptionalWrapper {
+    type Inner = Option<InnerValue>;
+    fn as_inner(&self) -> &Self::Inner {
+        &self.inner
+    }
+    fn into_inner(self) -> Self::Inner
+    where
+        Self: Sized,
+    {
+        self.inner
+    }
+    fn validate_inner(
+        __koruma_newtype_inner_value: &Self::Inner,
+    ) -> Result<(), Self::Error> {
+        let mut error = OptionalWrapperKorumaValidationError {
+            inner: OptionalWrapperInnerKorumaValidationError {
+                required_validation: None,
+                inner: None,
+            },
+        };
+        let mut has_error = false;
+        {
+            ::renamed_koruma::__private::assert_newtype_field_ready::<InnerValue>();
+        }
+        {
+            let __koruma_builder = RequiredValidation::<
+                Option<InnerValue>,
+            >::__koruma_builder();
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                Option<InnerValue>,
+                RequiredValidation<Option<InnerValue>>,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    &*__koruma_newtype_inner_value,
+                ),
+            );
+            if !<RequiredValidation<
+                Option<InnerValue>,
+            > as ::renamed_koruma::Validate<
+                Option<InnerValue>,
+            >>::validate(&validator, &*__koruma_newtype_inner_value) {
+                error.inner.required_validation = Some(validator);
+                has_error = true;
+            }
+        }
+        if let Some(ref __newtype_value) = *__koruma_newtype_inner_value {
+            if let Err(newtype_err) = __newtype_value.validate() {
+                error.inner.inner = Some(newtype_err);
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl ::renamed_koruma::NewtypeTryFromInner for OptionalWrapper {
+    fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        <Self as ::renamed_koruma::NewtypeValue>::validate_inner(&value)?;
+        Ok(Self { inner: value })
+    }
+}
 impl TryFrom<Option<InnerValue>> for OptionalWrapper {
     type Error = OptionalWrapperKorumaValidationError;
     fn try_from(value: Option<InnerValue>) -> Result<Self, Self::Error> {

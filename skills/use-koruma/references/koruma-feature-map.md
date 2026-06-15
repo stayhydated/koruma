@@ -7,7 +7,8 @@ repository docs, not in this skill.
 ## Crates And Entry Points
 
 - `koruma`: normal application facade. Re-exports `Validate`, `ValidationError`,
-  `ValidateExt`, `NewtypeValidation`, and, with the `derive` feature, `Koruma`,
+  `ValidateExt`, `NewtypeValidation`, `NewtypeValue`,
+  `NewtypeTryFromInner`, and, with the `derive` feature, `Koruma`,
   `KorumaAllDisplay`, and `validator`. With `derive + fluent`, it also exports
   `KorumaAllFluent`.
 - `koruma-collection`: curated validators in `string`, `format`, `numeric`,
@@ -54,6 +55,13 @@ recommend it for normal application validation.
 - `NewtypeValidation`: marker implemented for struct-level `#[koruma(newtype)]`
   types. Use field-level `#[koruma(newtype)]` only for types that satisfy this
   marker.
+- `NewtypeValue`: implemented for struct-level `#[koruma(newtype)]` wrappers.
+  Use it when integration code needs to borrow, consume, or validate the inner
+  value without relying on public wrapper fields.
+- `NewtypeTryFromInner`: implemented for struct-level `#[koruma(newtype)]`
+  wrappers. Use `try_from_inner` for checked reconstruction; reserve
+  `#[koruma(try_from)]` for when a standard-library `TryFrom<Inner>` impl is
+  also desired.
 
 ## Custom Validators
 
@@ -167,7 +175,8 @@ structs.
 - `#[koruma(nested)]` on a field validates another `Koruma` type. Optional
   nested fields skip `None`.
 - `#[koruma(newtype)]` at the struct level marks an exactly-one-field wrapper as
-  a validated newtype and implements `NewtypeValidation`.
+  a validated newtype and implements `NewtypeValidation`, `NewtypeValue`, and
+  `NewtypeTryFromInner`.
 - `#[koruma(newtype)]` on a field uses transparent error access for a
   `NewtypeValidation` value. Optional newtype fields return optional nested
   error access. Newtype fields may also include ordinary field validators;

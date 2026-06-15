@@ -20,6 +20,44 @@ pub(crate) enum ErrorSink<'a> {
     ElementValidator { slot: &'a Ident },
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum ValidationFieldAccess {
+    StructField,
+    NewtypeInnerValue,
+}
+
+impl ValidationFieldAccess {
+    fn field_expr(self, field_plan: &FieldPlan) -> TokenStream2 {
+        match self {
+            Self::StructField => {
+                let field_member = &field_plan.source.member;
+                quote! { self.#field_member }
+            },
+            Self::NewtypeInnerValue => quote! { *__koruma_newtype_inner_value },
+        }
+    }
+
+    fn field_ref_expr(self, field_plan: &FieldPlan) -> TokenStream2 {
+        match self {
+            Self::StructField => {
+                let field_member = &field_plan.source.member;
+                quote! { &self.#field_member }
+            },
+            Self::NewtypeInnerValue => quote! { __koruma_newtype_inner_value },
+        }
+    }
+
+    fn field_iter_expr(self, field_plan: &FieldPlan) -> TokenStream2 {
+        match self {
+            Self::StructField => {
+                let field_member = &field_plan.source.member;
+                quote! { self.#field_member.iter() }
+            },
+            Self::NewtypeInnerValue => quote! { __koruma_newtype_inner_value.iter() },
+        }
+    }
+}
+
 fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) -> TokenStream2 {
     let validator = check.validator;
     let builder_expr = validator_builder_expr(validator);
@@ -81,18 +119,31 @@ pub(crate) fn render_validation_checks(
     koruma: &TokenStream2,
 ) -> Result<Vec<TokenStream2>, syn::Error> {
     let render_plan = plan.validation_render_plan();
-    render_validation_render_plan(&render_plan, koruma)
+    render_validation_render_plan(&render_plan, koruma, ValidationFieldAccess::StructField)
+}
+
+pub(crate) fn render_validation_checks_for_newtype_inner(
+    plan: &ValidationPlan,
+    koruma: &TokenStream2,
+) -> Result<Vec<TokenStream2>, syn::Error> {
+    let render_plan = plan.validation_render_plan();
+    render_validation_render_plan(
+        &render_plan,
+        koruma,
+        ValidationFieldAccess::NewtypeInnerValue,
+    )
 }
 
 fn render_validation_render_plan(
     render_plan: &ValidationRenderPlan<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> Result<Vec<TokenStream2>, syn::Error> {
     render_plan
         .operations
         .iter()
         .map(|operation| -> Result<TokenStream2, syn::Error> {
-            Ok(render_validation_operation(operation, koruma))
+            Ok(render_validation_operation(operation, koruma, access))
         })
         .collect()
 }
@@ -100,25 +151,26 @@ fn render_validation_render_plan(
 fn render_validation_operation(
     operation: &PlannedValidationOperation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     match operation {
         PlannedValidationOperation::NestedRequired(operation) => {
-            render_nested_required_validation(operation, koruma)
+            render_nested_required_validation(operation, koruma, access)
         },
         PlannedValidationOperation::NestedOptional(operation) => {
-            render_nested_optional_validation(operation, koruma)
+            render_nested_optional_validation(operation, koruma, access)
         },
         PlannedValidationOperation::NewtypeRequired(operation) => {
-            render_newtype_required_validation(operation, koruma)
+            render_newtype_required_validation(operation, koruma, access)
         },
         PlannedValidationOperation::NewtypeOptional(operation) => {
-            render_newtype_optional_validation(operation, koruma)
+            render_newtype_optional_validation(operation, koruma, access)
         },
         PlannedValidationOperation::RegularRequired(operation) => {
-            render_regular_required_validation(operation, koruma)
+            render_regular_required_validation(operation, koruma, access)
         },
         PlannedValidationOperation::RegularOptional(operation) => {
-            render_regular_optional_validation(operation, koruma)
+            render_regular_optional_validation(operation, koruma, access)
         },
     }
 }
@@ -175,16 +227,17 @@ fn render_each_collection_assertion(field_plan: &FieldPlan, koruma: &TokenStream
 fn render_nested_required_validation(
     operation: &PlannedNestedValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
-    let field_member = &field_plan.source.member;
     let nested_assertion = render_nested_assertion(field_plan, koruma);
+    let field_ref = access.field_ref_expr(field_plan);
 
     if operation.direct_storage {
         quote! {
             #nested_assertion
-            if let Err(nested_err) = self.#field_member.validate() {
+            if let Err(nested_err) = (#field_ref).validate() {
                 error.#field_name = nested_err;
                 has_error = true;
             }
@@ -192,7 +245,7 @@ fn render_nested_required_validation(
     } else {
         quote! {
             #nested_assertion
-            if let Err(nested_err) = self.#field_member.validate() {
+            if let Err(nested_err) = (#field_ref).validate() {
                 error.#field_name = Some(nested_err);
                 has_error = true;
             }
@@ -203,15 +256,16 @@ fn render_nested_required_validation(
 fn render_nested_optional_validation(
     operation: &PlannedNestedValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
-    let field_member = &field_plan.source.member;
     let nested_assertion = render_nested_assertion(field_plan, koruma);
+    let field_expr = access.field_expr(field_plan);
 
     quote! {
         #nested_assertion
-        if let Some(ref __nested_value) = self.#field_member {
+        if let Some(ref __nested_value) = #field_expr {
             if let Err(nested_err) = __nested_value.validate() {
                 error.#field_name = Some(nested_err);
                 has_error = true;
@@ -223,18 +277,20 @@ fn render_nested_optional_validation(
 fn render_newtype_required_validation(
     operation: &PlannedNewtypeValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
-    let field_member = &field_plan.source.member;
     let set_inner_error = quote! { error.#field_name.inner = newtype_err; };
     let newtype_assertion = render_newtype_assertion(field_plan, koruma);
+    let field_expr = access.field_expr(field_plan);
+    let field_ref = access.field_ref_expr(field_plan);
 
     if operation.field_validators.has_any() {
         let full_type_checks = render_field_validator_checks(
             field_plan,
             &operation.field_validators.full_type_validators,
-            quote! { self.#field_member },
+            field_expr,
             koruma,
         );
         let unwrapped_checks = render_field_validator_checks(
@@ -254,14 +310,14 @@ fn render_newtype_required_validation(
         return quote! {
             #newtype_assertion
             #(#full_type_checks)*
-            let __newtype_value = &self.#field_member;
+            let __newtype_value = #field_ref;
             #inner_validation
         };
     }
 
     quote! {
         #newtype_assertion
-        if let Err(newtype_err) = self.#field_member.validate() {
+        if let Err(newtype_err) = (#field_ref).validate() {
             #set_inner_error
             has_error = true;
         }
@@ -271,18 +327,19 @@ fn render_newtype_required_validation(
 fn render_newtype_optional_validation(
     operation: &PlannedNewtypeValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_plan = operation.field;
     let field_name = &field_plan.name;
-    let field_member = &field_plan.source.member;
     let set_inner_error = quote! { error.#field_name.inner = Some(newtype_err); };
     let newtype_assertion = render_newtype_assertion(field_plan, koruma);
+    let field_expr = access.field_expr(field_plan);
 
     if operation.field_validators.has_any() {
         let full_type_checks = render_field_validator_checks(
             field_plan,
             &operation.field_validators.full_type_validators,
-            quote! { self.#field_member },
+            field_expr.clone(),
             koruma,
         );
         let unwrapped_checks = render_field_validator_checks(
@@ -295,7 +352,7 @@ fn render_newtype_optional_validation(
         return quote! {
             #newtype_assertion
             #(#full_type_checks)*
-            if let Some(ref __newtype_value) = self.#field_member {
+            if let Some(ref __newtype_value) = #field_expr {
                 #(#unwrapped_checks)*
                 if let Err(newtype_err) = __newtype_value.validate() {
                     #set_inner_error
@@ -307,7 +364,7 @@ fn render_newtype_optional_validation(
 
     quote! {
         #newtype_assertion
-        if let Some(ref __newtype_value) = self.#field_member {
+        if let Some(ref __newtype_value) = #field_expr {
             if let Err(newtype_err) = __newtype_value.validate() {
                 #set_inner_error
                 has_error = true;
@@ -319,14 +376,16 @@ fn render_newtype_optional_validation(
 fn render_regular_required_validation(
     operation: &PlannedRegularValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_plan = operation.field;
-    let field_member = &field_plan.source.member;
     let element_validation = operation
         .element_validators
         .as_ref()
-        .map(|element| render_element_validation(field_plan, element, koruma))
+        .map(|element| render_element_validation(field_plan, element, koruma, access))
         .unwrap_or_else(|| quote! {});
+    let field_expr = access.field_expr(field_plan);
+    let field_ref = access.field_ref_expr(field_plan);
 
     match operation.field_validators.binding() {
         PlannedFieldBinding::FullAndUnwrapped {
@@ -336,7 +395,7 @@ fn render_regular_required_validation(
             let full_type_checks = render_field_validator_checks(
                 field_plan,
                 &full_type_validators,
-                quote! { self.#field_member },
+                field_expr,
                 koruma,
             );
             let unwrapped_checks = render_field_validator_checks(
@@ -347,7 +406,7 @@ fn render_regular_required_validation(
             );
             quote! {
             #(#full_type_checks)*
-            let __field_value = &self.#field_member;
+            let __field_value = #field_ref;
             #(#unwrapped_checks)*
             #element_validation
             }
@@ -358,7 +417,7 @@ fn render_regular_required_validation(
             let full_type_checks = render_field_validator_checks(
                 field_plan,
                 &full_type_validators,
-                quote! { self.#field_member },
+                field_expr,
                 koruma,
             );
             quote! {
@@ -376,7 +435,7 @@ fn render_regular_required_validation(
                 koruma,
             );
             quote! {
-            let __field_value = &self.#field_member;
+            let __field_value = #field_ref;
             #(#unwrapped_checks)*
             #element_validation
             }
@@ -388,14 +447,15 @@ fn render_regular_required_validation(
 fn render_regular_optional_validation(
     operation: &PlannedRegularValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_plan = operation.field;
-    let field_member = &field_plan.source.member;
     let element_validation = operation
         .element_validators
         .as_ref()
-        .map(|element| render_element_validation(field_plan, element, koruma))
+        .map(|element| render_element_validation(field_plan, element, koruma, access))
         .unwrap_or_else(|| quote! {});
+    let field_expr = access.field_expr(field_plan);
 
     match operation.field_validators.binding() {
         PlannedFieldBinding::FullAndUnwrapped {
@@ -405,7 +465,7 @@ fn render_regular_optional_validation(
             let full_type_checks = render_field_validator_checks(
                 field_plan,
                 &full_type_validators,
-                quote! { self.#field_member },
+                field_expr.clone(),
                 koruma,
             );
             let unwrapped_checks = render_field_validator_checks(
@@ -416,7 +476,7 @@ fn render_regular_optional_validation(
             );
             quote! {
             #(#full_type_checks)*
-            if let Some(ref __field_value) = self.#field_member {
+            if let Some(ref __field_value) = #field_expr {
                 #(#unwrapped_checks)*
             }
             #element_validation
@@ -428,7 +488,7 @@ fn render_regular_optional_validation(
             let full_type_checks = render_field_validator_checks(
                 field_plan,
                 &full_type_validators,
-                quote! { self.#field_member },
+                field_expr,
                 koruma,
             );
             quote! {
@@ -446,7 +506,7 @@ fn render_regular_optional_validation(
                 koruma,
             );
             quote! {
-            if let Some(ref __field_value) = self.#field_member {
+            if let Some(ref __field_value) = #field_expr {
                 #(#unwrapped_checks)*
             }
             #element_validation
@@ -486,9 +546,9 @@ fn render_element_validation(
     field_plan: &FieldPlan,
     element: &PlannedElementValidation<'_>,
     koruma: &TokenStream2,
+    access: ValidationFieldAccess,
 ) -> TokenStream2 {
     let field_name = &field_plan.name;
-    let field_member = &field_plan.source.member;
     let element_error_struct_name = &field_plan.generated_names.element_error_struct;
     let groups = element.groups();
     let full_element_target_expr = match element {
@@ -516,11 +576,13 @@ fn render_element_validation(
             quote! { #validator_snake: None }
         })
         .collect();
+    let field_expr = access.field_expr(field_plan);
+    let field_iter_expr = access.field_iter_expr(field_plan);
 
     match element {
         PlannedElementValidation::OptionalCollectionOptional(_) => quote! {
             #collection_assertion
-            if let Some(ref __collection_value) = self.#field_member {
+            if let Some(ref __collection_value) = #field_expr {
                 for (idx, item) in __collection_value.iter().enumerate() {
                     let mut element_error = #element_error_struct_name {
                         #(#element_validator_defaults),*
@@ -542,7 +604,7 @@ fn render_element_validation(
         },
         PlannedElementValidation::OptionalCollectionRequired(_) => quote! {
             #collection_assertion
-            if let Some(ref __collection_value) = self.#field_member {
+            if let Some(ref __collection_value) = #field_expr {
                 for (idx, __item_value) in __collection_value.iter().enumerate() {
                     let mut element_error = #element_error_struct_name {
                         #(#element_validator_defaults),*
@@ -561,7 +623,7 @@ fn render_element_validation(
         },
         PlannedElementValidation::RequiredCollectionOptional(_) => quote! {
             #collection_assertion
-            for (idx, item) in self.#field_member.iter().enumerate() {
+            for (idx, item) in #field_iter_expr.enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*
                 };
@@ -581,7 +643,7 @@ fn render_element_validation(
         },
         PlannedElementValidation::RequiredCollectionRequired(_) => quote! {
             #collection_assertion
-            for (idx, __item_value) in self.#field_member.iter().enumerate() {
+            for (idx, __item_value) in #field_iter_expr.enumerate() {
                 let mut element_error = #element_error_struct_name {
                     #(#element_validator_defaults),*
                 };

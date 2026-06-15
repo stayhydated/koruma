@@ -156,6 +156,65 @@ impl<T> ::renamed_koruma::NewtypeValidation for WhereWrapper<T>
 where
     T: Default,
 {}
+impl<T> ::renamed_koruma::NewtypeValue for WhereWrapper<T>
+where
+    T: Default,
+{
+    type Inner = T;
+    fn as_inner(&self) -> &Self::Inner {
+        &self.0
+    }
+    fn into_inner(self) -> Self::Inner
+    where
+        Self: Sized,
+    {
+        self.0
+    }
+    fn validate_inner(
+        __koruma_newtype_inner_value: &Self::Inner,
+    ) -> Result<(), Self::Error> {
+        let mut error = WhereWrapperKorumaValidationError {
+            _0: WhereWrapper0KorumaValidationError {
+                generic_range: None,
+            },
+        };
+        let mut has_error = false;
+        let __field_value = __koruma_newtype_inner_value;
+        {
+            let __koruma_builder = GenericRange::<T>::min(0).max(100);
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                T,
+                GenericRange<T>,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<GenericRange<
+                T,
+            > as ::renamed_koruma::Validate<T>>::validate(&validator, __field_value) {
+                error._0.generic_range = Some(validator);
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl<T> ::renamed_koruma::NewtypeTryFromInner for WhereWrapper<T>
+where
+    T: Default,
+{
+    fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
+    where
+        Self: Sized,
+    {
+        <Self as ::renamed_koruma::NewtypeValue>::validate_inner(&value)?;
+        Ok(Self(value))
+    }
+}
 impl<T> TryFrom<T> for WhereWrapper<T>
 where
     T: Default,

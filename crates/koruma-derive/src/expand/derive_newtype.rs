@@ -1,8 +1,9 @@
 use crate::expand::derive_shared::field_error_type_path;
+use crate::expand::derive_validation::render_validation_checks_for_newtype_inner;
 use crate::expand::plan::ValidationPlan;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{Generics, Ident};
+use syn::{Generics, Ident, Member};
 
 pub(crate) struct NewtypeDerefInputs<'a> {
     pub plan: &'a ValidationPlan,
@@ -11,6 +12,17 @@ pub(crate) struct NewtypeDerefInputs<'a> {
     pub main_error_impl_generics: &'a TokenStream2,
     pub main_error_ty_generics: &'a TokenStream2,
     pub main_error_where_clause: &'a TokenStream2,
+    pub koruma: &'a TokenStream2,
+}
+
+pub(crate) struct NewtypeValueInputs<'a> {
+    pub plan: &'a ValidationPlan,
+    pub struct_name: &'a Ident,
+    pub error_struct_name: &'a Ident,
+    pub impl_generics: &'a TokenStream2,
+    pub ty_generics: &'a TokenStream2,
+    pub where_clause: &'a TokenStream2,
+    pub error_defaults: &'a [TokenStream2],
     pub koruma: &'a TokenStream2,
 }
 
@@ -29,6 +41,76 @@ pub(crate) fn render_newtype_marker_impl(
     quote! {
         impl #impl_generics #koruma::NewtypeValidation for #struct_name #ty_generics #where_clause {}
     }
+}
+
+pub(crate) fn render_newtype_value_impl(
+    input: NewtypeValueInputs<'_>,
+) -> Result<TokenStream2, syn::Error> {
+    let Some(field_plan) = input.plan.struct_newtype() else {
+        return Ok(quote! {});
+    };
+
+    let inner_ty = &field_plan.source.ty;
+    let field_member = &field_plan.source.member;
+    let struct_init = match field_member {
+        Member::Named(ident) => quote! { Self { #ident: value } },
+        Member::Unnamed(_) => quote! { Self(value) },
+    };
+    let validation_checks = render_validation_checks_for_newtype_inner(input.plan, input.koruma)?;
+
+    let struct_name = input.struct_name;
+    let error_struct_name = input.error_struct_name;
+    let impl_generics = input.impl_generics;
+    let ty_generics = input.ty_generics;
+    let where_clause = input.where_clause;
+    let error_defaults = input.error_defaults;
+    let koruma = input.koruma;
+
+    Ok(quote! {
+        impl #impl_generics #koruma::NewtypeValue for #struct_name #ty_generics #where_clause {
+            type Inner = #inner_ty;
+
+            fn as_inner(&self) -> &Self::Inner {
+                &self.#field_member
+            }
+
+            fn into_inner(self) -> Self::Inner
+            where
+                Self: Sized,
+            {
+                self.#field_member
+            }
+
+            fn validate_inner(
+                __koruma_newtype_inner_value: &Self::Inner
+            ) -> Result<(), Self::Error> {
+                let mut error = #error_struct_name {
+                    #(#error_defaults),*
+                };
+                let mut has_error = false;
+
+                #(#validation_checks)*
+
+                if has_error {
+                    Err(error)
+                } else {
+                    Ok(())
+                }
+            }
+        }
+
+        impl #impl_generics #koruma::NewtypeTryFromInner
+            for #struct_name #ty_generics #where_clause
+        {
+            fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
+            where
+                Self: Sized,
+            {
+                <Self as #koruma::NewtypeValue>::validate_inner(&value)?;
+                Ok(#struct_init)
+            }
+        }
+    })
 }
 
 pub(crate) fn render_newtype_deref_impl(input: NewtypeDerefInputs<'_>) -> TokenStream2 {

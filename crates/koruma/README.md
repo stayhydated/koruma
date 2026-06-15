@@ -389,6 +389,7 @@ if let Err(errors) = user.validate() {
 Use `#[koruma(newtype)]`, adding `try_new` and `try_from` as needed, when you want:
 
 - `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
+- `NewtypeValue` / `NewtypeTryFromInner` - public inner-value borrow, consume, validation, and checked reconstruction methods that work even when the wrapper field is private
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
 - `try_from` - a `TryFrom<Inner>` impl for checked conversions from the inner type
 
@@ -405,7 +406,7 @@ pub email: Option<Email>;
 
 ```rs
 use es_fluent::EsFluent;
-use koruma::{Koruma, KorumaAllFluent, Validate};
+use koruma::{Koruma, KorumaAllFluent, NewtypeTryFromInner, NewtypeValue, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
@@ -472,6 +473,13 @@ if let Err(errors) = Email::try_new("".to_string()) {
         println!("email::try_new validator: {}", i18n::localize(failed));
     }
 }
+
+// Generic UI and adapter code can use the trait surface without relying on
+// public wrapper fields.
+let email = Email::try_from_inner("hello@example.com".to_string()).unwrap();
+assert_eq!(email.as_inner(), "hello@example.com");
+let raw_email = email.into_inner();
+assert!(Email::validate_inner(&raw_email).is_ok());
 ```
 
 ### Unnamed newtype (tuple struct)
@@ -508,7 +516,9 @@ if let Ok(username) = Username::try_new("alice".to_string()) {
 
 ### TryFrom integration (`#[koruma(newtype, try_from)]`)
 
-Add flat `try_from` alongside `newtype` to generate a `TryFrom<Inner>` impl:
+Every struct-level `#[koruma(newtype)]` wrapper implements
+`NewtypeTryFromInner::try_from_inner`. Add flat `try_from` alongside `newtype`
+only when you also want the standard-library `TryFrom<Inner>` impl:
 
 ```rs
 use std::convert::TryFrom;

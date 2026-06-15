@@ -52,14 +52,11 @@ help: the trait `ValidateExt` is implemented for `Parent`
   |          ^^^^^^
   = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0599]: no method named `validate` found for struct `Child` in the current scope
+error[E0599]: no method named `validate` found for reference `&Child` in the current scope
  --> tests/ui/nested_required_requires_validate_ext.rs:7:10
   |
-3 | struct Child {
-  | ------------ method `validate` not found for this struct
-...
 7 | #[derive(Koruma)]
-  |          ^^^^^^ method not found in `Child`
+  |          ^^^^^^ method not found in `&Child`
   |
   = help: items from traits can only be used if the trait is implemented and in scope
   = note: the following traits define an item `validate`, perhaps you need to implement one of them:

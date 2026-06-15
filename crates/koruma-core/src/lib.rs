@@ -409,6 +409,20 @@ pub mod __private {
     {
     }
 
+    /// Hidden type assertion used by generated and downstream newtype-value checks.
+    pub fn assert_newtype_value<T>()
+    where
+        T: super::NewtypeValue,
+    {
+    }
+
+    /// Hidden type assertion used by generated and downstream checked newtype reconstruction.
+    pub fn assert_newtype_try_from_inner<T>()
+    where
+        T: super::NewtypeTryFromInner,
+    {
+    }
+
     /// Hidden type assertion used by generated newtype field checks.
     pub fn assert_newtype_field_ready<T>()
     where
@@ -521,6 +535,41 @@ pub trait ValidateExt {
 /// When using a newtype as a field in another struct, use `#[koruma(newtype)]`
 /// on the field (instead of `#[koruma(nested)]`) to get transparent error access.
 pub trait NewtypeValidation: ValidateExt {}
+
+/// Public inner-value contract for single-field structs that derive `Koruma`
+/// with `#[koruma(newtype)]`.
+///
+/// This trait is implemented by the derive macro in the defining module, so it
+/// works for private tuple and named fields without requiring downstream crates
+/// to rely on public fields or `Deref` implementations.
+pub trait NewtypeValue: NewtypeValidation {
+    /// The wrapped value type.
+    type Inner;
+
+    /// Borrow the wrapped value.
+    fn as_inner(&self) -> &Self::Inner;
+
+    /// Consume the wrapper and return the wrapped value.
+    fn into_inner(self) -> Self::Inner
+    where
+        Self: Sized;
+
+    /// Validate a candidate wrapped value without constructing or cloning the
+    /// wrapper.
+    fn validate_inner(value: &Self::Inner) -> Result<(), Self::Error>;
+}
+
+/// Checked reconstruction contract for Koruma newtypes.
+///
+/// The derive macro implements this for every struct-level
+/// `#[koruma(newtype)]` wrapper. Standard-library `TryFrom<Inner>` remains
+/// controlled by the existing `#[koruma(try_from)]` option.
+pub trait NewtypeTryFromInner: NewtypeValue {
+    /// Validate `value` and construct the wrapper when validation succeeds.
+    fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
+    where
+        Self: Sized;
+}
 
 /// Showcase module for validator discovery and registration.
 ///

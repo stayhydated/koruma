@@ -1049,8 +1049,8 @@ fn test_koruma_expansion_try_from_bare_tuple_struct() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("implTryFrom<String>forEmail"));
-    assert!(compact.contains("ifletErr(newtype_err)=self.0.validate()"));
-    assert!(compact.contains("error._0.inner=newtype_err;"));
+    assert!(compact.contains("NewtypeValueforEmail"));
+    assert!(compact.contains("fnvalidate_inner"));
     assert!(compact.contains("implcore::ops::DerefforEmailKorumaValidationError"));
 }
 

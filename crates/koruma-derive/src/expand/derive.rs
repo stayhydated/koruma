@@ -3,7 +3,8 @@ use crate::expand::derive_field_errors::render_field_error_structs;
 use crate::expand::derive_issues::render_validation_issues_impl;
 use crate::expand::derive_main_error::render_main_error;
 use crate::expand::derive_newtype::{
-    NewtypeDerefInputs, render_newtype_deref_impl, render_newtype_marker_impl,
+    NewtypeDerefInputs, NewtypeValueInputs, render_newtype_deref_impl, render_newtype_marker_impl,
+    render_newtype_value_impl,
 };
 use crate::expand::derive_validation::render_validation_checks;
 use crate::expand::koruma_crate_path;
@@ -76,6 +77,16 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         main_error_where_clause,
         koruma: &koruma,
     });
+    let newtype_value_impl = render_newtype_value_impl(NewtypeValueInputs {
+        plan: &plan,
+        struct_name,
+        error_struct_name: &error_struct_name,
+        impl_generics: &impl_generics_tokens,
+        ty_generics: &ty_generics_tokens,
+        where_clause: &where_clause_tokens,
+        error_defaults,
+        koruma: &koruma,
+    })?;
 
     let field_names: Vec<String> = plan
         .fields
@@ -144,6 +155,8 @@ pub fn expand_koruma(input: DeriveInput) -> Result<TokenStream2, syn::Error> {
         impl #impl_generics #koruma::__private::KorumaWasDerived for #struct_name #ty_generics #where_clause {}
 
         #newtype_marker_impl
+
+        #newtype_value_impl
 
         #try_from_impl
     })

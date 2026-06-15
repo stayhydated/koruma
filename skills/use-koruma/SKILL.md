@@ -212,9 +212,13 @@ Common patterns:
   A `newtype` field may also include ordinary field validators, such as
   `#[koruma(newtype, general::RequiredValidation::<Option<_>>)]`; those
   validators use the normal optional, `full(...)`, and `unwrapped(...)` target
-  rules.
+  rules. Struct-level newtypes also implement `NewtypeValue` and
+  `NewtypeTryFromInner` so integration code can borrow, consume, validate, and
+  checked-reconstruct inner values even when wrapper fields are private.
 - Add `#[koruma(try_new)]` to generate a checked constructor that takes the struct fields,
   validates the instance, and returns `Result<Self, Error>`.
-- Add `#[koruma(try_from)]` on any exactly-one-field struct to generate checked `TryFrom<Inner>` conversions; combine it with `newtype` only when you also want transparent newtype error access.
+- Use `NewtypeTryFromInner::try_from_inner` for checked reconstruction of
+  struct-level newtypes, and add `#[koruma(try_from)]` only when you also need a
+  standard-library `TryFrom<Inner>` impl.
 - Use tuple structs when they fit the domain; `Koruma`, `try_new`, `try_from`, and struct-level
   `newtype` all support exactly-one-field tuple wrappers.

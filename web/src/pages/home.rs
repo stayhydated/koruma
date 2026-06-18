@@ -1,5 +1,5 @@
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
-use crate::site::i18n::HomeMessage;
+use crate::site::i18n::{HomeMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
@@ -9,7 +9,7 @@ use stayhydated_dioxus::{
 };
 
 #[component]
-pub(crate) fn HomePage() -> Element {
+pub(crate) fn HomePage(locale: SiteLanguage) -> Element {
     let hero_style = hero_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
@@ -66,7 +66,7 @@ pub(crate) fn HomePage() -> Element {
 
     rsx! {
         ProjectHomeShell {
-            header: rsx!(PageHeader { current_page: PageKind::Home }),
+            header: rsx!(PageHeader { locale, current_page: PageKind::Home }),
             footer: rsx!(FooterPanel {}),
             ProjectHero {
                 eyebrow,
@@ -87,7 +87,7 @@ pub(crate) fn HomePage() -> Element {
                 actions: Some(rsx! {
                     ProjectHeroActions::<crate::site::routing::AppRoute> {
                         book: crate::site::routing::book_href().as_str(),
-                        demos: LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
+                        demos: LinkTarget::route(crate::site::routing::app_route(locale, PageKind::Demos)),
                         primary_label: primary_action,
                         secondary_label: secondary_action,
                     }

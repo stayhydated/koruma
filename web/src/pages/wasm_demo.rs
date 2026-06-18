@@ -14,7 +14,7 @@ use stayhydated_dioxus::{
 };
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
-use crate::site::i18n::DioxusShowcaseMessage;
+use crate::site::i18n::{DioxusShowcaseMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 
 #[derive(Clone, Copy)]
@@ -60,13 +60,13 @@ impl ValidatorState {
 }
 
 #[component]
-pub(crate) fn CollectionDioxusPage() -> Element {
+pub(crate) fn CollectionDioxusPage(locale: SiteLanguage) -> Element {
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
                 div { class: "page-shell",
-                    PageHeader { current_page: PageKind::CollectionDioxus }
+                    PageHeader { locale, current_page: PageKind::CollectionDioxus }
                     main { class: "stack",
                         section { class: "page-title-band",
                             span { class: "panel-label", "i18n load failure" }
@@ -82,11 +82,11 @@ pub(crate) fn CollectionDioxusPage() -> Element {
 
     let _ = &i18n;
 
-    rsx! { CollectionDioxusShowcase {} }
+    rsx! { CollectionDioxusShowcase { locale } }
 }
 
 #[component]
-fn CollectionDioxusShowcase() -> Element {
+fn CollectionDioxusShowcase(locale: SiteLanguage) -> Element {
     let title_style = page_entry_reveal_style();
     let showcase_style = surface_reveal_style();
     let i18n = match use_i18n() {
@@ -94,7 +94,7 @@ fn CollectionDioxusShowcase() -> Element {
         Err(error) => {
             return rsx! {
                 div { class: "page-shell",
-                    PageHeader { current_page: PageKind::CollectionDioxus }
+                    PageHeader { locale, current_page: PageKind::CollectionDioxus }
                     main { class: "stack",
                         section { class: "page-title-band",
                             span { class: "panel-label", "i18n load failure" }
@@ -127,7 +127,7 @@ fn CollectionDioxusShowcase() -> Element {
 
     rsx! {
         div { class: "page-shell",
-            PageHeader { current_page: PageKind::CollectionDioxus }
+            PageHeader { locale, current_page: PageKind::CollectionDioxus }
             main { class: "stack",
                 section { class: "page-title-band motion-reveal",
                     style: title_style.as_str(),

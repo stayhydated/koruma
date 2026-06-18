@@ -1,5 +1,5 @@
 use crate::components::{FooterPanel, PageHeader};
-use crate::site::i18n::DemosPageMessage;
+use crate::site::i18n::{DemosPageMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
@@ -8,7 +8,7 @@ use stayhydated_dioxus::{
 };
 
 #[component]
-pub(crate) fn DemosPage() -> Element {
+pub(crate) fn DemosPage(locale: SiteLanguage) -> Element {
     let demos_style = page_entry_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
@@ -43,19 +43,19 @@ pub(crate) fn DemosPage() -> Element {
 
     rsx! {
         ProjectPageShell {
-            header: rsx!(PageHeader { current_page: PageKind::Demos }),
+            header: rsx!(PageHeader { locale, current_page: PageKind::Demos }),
             footer: Some(rsx!(FooterPanel {})),
             DemoCardGrid::<crate::site::routing::AppRoute> {
                 cards: vec![
                     DemoCard::route(
-                        crate::site::routing::app_route(PageKind::CollectionDioxus),
+                        crate::site::routing::app_route(locale, PageKind::CollectionDioxus),
                         dioxus_label,
                         dioxus_title,
                         dioxus_body,
                         dioxus_action,
                     ),
                     DemoCard::route(
-                        crate::site::routing::app_route(PageKind::SalesForm),
+                        crate::site::routing::app_route(locale, PageKind::SalesForm),
                         sales_label,
                         sales_title,
                         sales_body,

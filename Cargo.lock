@@ -1790,12 +1790,9 @@ dependencies = [
  "darling 0.23.0",
  "es-fluent-derive-core",
  "es-fluent-shared",
- "heck",
- "proc-macro-crate",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
- "strum 0.28.0",
  "syn 2.0.117",
 ]
 
@@ -1839,7 +1836,6 @@ dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
  "heck",
- "proc-macro-crate",
  "proc-macro-error2",
  "proc-macro2",
  "quote",
@@ -5908,7 +5904,6 @@ dependencies = [
  "stayhydated-dioxus",
  "stayhydated-site",
  "strum 0.28.0",
- "tempfile",
  "unic-langid",
 ]
 

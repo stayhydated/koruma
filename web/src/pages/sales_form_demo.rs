@@ -13,7 +13,7 @@ use koruma_collection::{collection, format, general, numeric};
 use stayhydated_dioxus::{page_entry_reveal_style, surface_reveal_style};
 
 use crate::components::{FooterPanel, PageHeader};
-use crate::site::i18n::SalesFormMessage;
+use crate::site::i18n::{SalesFormMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 
 const SALES_STAGES: &[&str] = &["Discovery", "Qualified", "Proposal", "Procurement"];
@@ -218,13 +218,13 @@ impl FieldStatus {
 }
 
 #[component]
-pub(crate) fn SalesFormPage() -> Element {
+pub(crate) fn SalesFormPage(locale: SiteLanguage) -> Element {
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
                 div { class: "page-shell",
-                    PageHeader { current_page: PageKind::SalesForm }
+                    PageHeader { locale, current_page: PageKind::SalesForm }
                     main { class: "stack",
                         section { class: "page-title-band",
                             span { class: "panel-label", "i18n load failure" }
@@ -263,7 +263,7 @@ pub(crate) fn SalesFormPage() -> Element {
 
     rsx! {
         div { class: "page-shell",
-            PageHeader { current_page: PageKind::SalesForm }
+            PageHeader { locale, current_page: PageKind::SalesForm }
             main { class: "stack",
                 section { class: "page-title-band motion-reveal",
                     style: title_style.as_str(),

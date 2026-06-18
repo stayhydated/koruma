@@ -13,9 +13,17 @@ use dioxus::prelude::*;
 
 pub(crate) fn route_content(route: SiteRoute) -> Element {
     match route.page {
-        PageKind::Home => rsx!(HomePage {}),
-        PageKind::Demos => rsx!(DemosPage {}),
-        PageKind::CollectionDioxus => rsx!(CollectionDioxusPage {}),
-        PageKind::SalesForm => rsx!(SalesFormPage {}),
+        PageKind::Home => rsx!(HomePage {
+            locale: route.locale
+        }),
+        PageKind::Demos => rsx!(DemosPage {
+            locale: route.locale
+        }),
+        PageKind::CollectionDioxus => rsx!(CollectionDioxusPage {
+            locale: route.locale
+        }),
+        PageKind::SalesForm => rsx!(SalesFormPage {
+            locale: route.locale
+        }),
     }
 }

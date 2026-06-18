@@ -3,15 +3,15 @@ use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::{
-    ContributePanelShell, InPlaceLocalizedLanguageSelect, LinkTarget, Project,
-    ProjectFluentTextLink, ProjectPackage, ProjectPackageTextLink,
-    ProjectPackagesFooterPanelForProject, ProjectSourceTextLink, ProjectSupportLink,
-    ProjectSupportTextLink, StayhydatedProjectHeader, StayhydatedProjectHeaderConfig,
-    contribute_reveal_style,
+    ContributePanelShell, LinkTarget, Project, ProjectFluentTextLink, ProjectPackage,
+    ProjectPackageTextLink, ProjectPackagesFooterPanelForProject, ProjectSourceTextLink,
+    ProjectSupportLink, ProjectSupportTextLink, RouteLocalizedLanguageSelect,
+    StayhydatedProjectHeader, StayhydatedProjectHeaderConfig, contribute_reveal_style,
+    stayhydated_project_options_for_locale,
 };
 
 #[component]
-pub(crate) fn PageHeader(current_page: PageKind) -> Element {
+pub(crate) fn PageHeader(locale: SiteLanguage, current_page: PageKind) -> Element {
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
@@ -21,28 +21,44 @@ pub(crate) fn PageHeader(current_page: PageKind) -> Element {
         },
     };
 
+    let project_options =
+        stayhydated_project_options_for_locale(locale, |message| i18n.localize_message(&message));
     let config = StayhydatedProjectHeaderConfig::localized_with_i18n(
         Project::Koruma,
-        crate::site::routing::page_href(PageKind::Home).into_string(),
-        LinkTarget::route(crate::site::routing::app_route(PageKind::Home)),
-        LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
+        crate::site::routing::page_href(locale, PageKind::Home).into_string(),
+        LinkTarget::route(crate::site::routing::app_route(locale, PageKind::Home)),
+        LinkTarget::route(crate::site::routing::app_route(locale, PageKind::Demos)),
         crate::site::routing::book_href().as_str(),
         current_page.project_nav_item(),
         &i18n,
-    );
+    )
+    .with_project_options(project_options);
 
     rsx! {
         StayhydatedProjectHeader::<crate::site::routing::AppRoute> {
             config,
-            LocaleSwitcher {}
+            LocaleSwitcher { locale, current_page }
         }
     }
 }
 
 #[component]
-fn LocaleSwitcher() -> Element {
+fn LocaleSwitcher(locale: SiteLanguage, current_page: PageKind) -> Element {
+    let i18n = match use_i18n() {
+        Ok(i18n) => i18n,
+        Err(error) => {
+            return rsx! {
+                div { class: "locale-switcher-dropdown", "Failed to initialize i18n: {error}" }
+            };
+        },
+    };
+
     rsx! {
-        InPlaceLocalizedLanguageSelect::<SiteLanguage> {}
+        RouteLocalizedLanguageSelect::<SiteLanguage, _, crate::site::routing::AppRoute> {
+            localizer: i18n,
+            selected: locale,
+            route_for_language: move |next_locale| crate::site::routing::app_route(next_locale, current_page),
+        }
     }
 }
 

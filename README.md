@@ -288,9 +288,9 @@ generators:
   that field, while `errors.all()` returns borrowed top-level validator refs
   when `KorumaAllDisplay` or `KorumaAllFluent` is derived.
 - aggregate error structs implement `ValidationIssues`, which returns
-  structured field and element issues with field names, validator type names,
-  labels, element indices, and messages for tooling that does not need the
-  strongly typed accessor surface.
+  structured field and element issues with typed `ValidationFieldName` values,
+  validator type names, labels, element indices, and messages for tooling that
+  does not need the strongly typed accessor surface.
 
 For display-based UI, derive `KorumaAllDisplay` and make every stored validator
 implement `Display`. For localized UI, derive `KorumaAllFluent` and make every

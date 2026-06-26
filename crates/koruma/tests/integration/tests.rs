@@ -1,8 +1,8 @@
 //! Test cases for koruma validation.
 
 use koruma::{
-    Validate, ValidationError, ValidationIssueScope, ValidationIssues, ValidatorMetadata,
-    ValidatorParamValue,
+    Validate, ValidationError, ValidationFieldName, ValidationIssueScope, ValidationIssues,
+    ValidatorMetadata, ValidatorParamValue,
 };
 
 use super::fixtures::{
@@ -162,7 +162,11 @@ fn test_validation_issues_reports_field_failures() {
     let issues = err.issues();
 
     assert_eq!(issues.len(), 2);
-    assert_eq!(issues[0].field_name(), Some("age"));
+    assert_eq!(
+        issues[0].field_name(),
+        Some(ValidationFieldName::new("age"))
+    );
+    assert_eq!(issues[0].field_name_str(), Some("age"));
     assert_eq!(issues[0].scope(), ValidationIssueScope::Field);
     assert!(
         issues[0]
@@ -173,7 +177,10 @@ fn test_validation_issues_reports_field_failures() {
     assert!(issues[0].message().contains("NumberRangeValidation"));
     assert!(issues[0].params().is_empty());
 
-    assert_eq!(issues[1].field_name(), Some("name"));
+    assert_eq!(
+        issues[1].field_name(),
+        Some(ValidationFieldName::new("name"))
+    );
     assert_eq!(issues[1].scope(), ValidationIssueScope::Field);
     assert!(
         issues[1]
@@ -191,7 +198,10 @@ fn test_validation_issues_reports_element_failures() {
     let issues = err.issues();
 
     assert_eq!(issues.len(), 1);
-    assert_eq!(issues[0].field_name(), Some("scores"));
+    assert_eq!(
+        issues[0].field_name(),
+        Some(ValidationFieldName::new("scores"))
+    );
     assert_eq!(issues[0].scope(), ValidationIssueScope::Element);
     assert_eq!(issues[0].element_index(), Some(1));
     assert!(

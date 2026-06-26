@@ -2,8 +2,9 @@
 
 pub use koruma_core::{
     NewtypeTryFromInner, NewtypeValidation, NewtypeValue, Validate, ValidateExt, ValidationError,
-    ValidationIssue, ValidationIssueScope, ValidationIssues, ValidatorDescriptor,
-    ValidatorMetadata, ValidatorParam, ValidatorParamDescriptor, ValidatorParamValue,
+    ValidationFieldName, ValidationIssue, ValidationIssueScope, ValidationIssues,
+    ValidatorDescriptor, ValidatorMetadata, ValidatorParam, ValidatorParamDescriptor,
+    ValidatorParamValue,
 };
 
 #[cfg(feature = "derive")]

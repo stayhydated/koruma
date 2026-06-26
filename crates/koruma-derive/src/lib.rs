@@ -152,7 +152,7 @@ fn validate_validator_macro_input(input: &syn::ItemStruct) -> syn::Result<()> {
 /// - `validate(&self) -> Result<(), {Item}KorumaValidationError>` on the source
 ///   type and a matching `ValidateExt` implementation
 /// - `ValidationIssues` on the aggregate error type for structured field and
-///   element issue enumeration
+///   element issue enumeration with typed field names
 ///
 /// The macro captures validator values through a hidden borrowed builder hook.
 /// Validators that keep the default capture behavior still clone the input into

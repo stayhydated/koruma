@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+use core::{borrow::Borrow, fmt};
+
 /// Trait for types that can validate a value of type `T`.
 ///
 /// Implementors should return `true` if validation passes,
@@ -148,10 +150,50 @@ pub enum ValidationIssueScope {
     Element,
 }
 
+/// Field name carried by a structured validation issue.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ValidationFieldName(&'static str);
+
+impl ValidationFieldName {
+    /// Create a field name from a static source-level field identifier.
+    pub const fn new(name: &'static str) -> Self {
+        Self(name)
+    }
+
+    /// Return the field name as a string slice.
+    pub const fn as_str(self) -> &'static str {
+        self.0
+    }
+}
+
+impl fmt::Display for ValidationFieldName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl AsRef<str> for ValidationFieldName {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
+
+impl Borrow<str> for ValidationFieldName {
+    fn borrow(&self) -> &str {
+        self.0
+    }
+}
+
+impl From<&'static str> for ValidationFieldName {
+    fn from(value: &'static str) -> Self {
+        Self::new(value)
+    }
+}
+
 /// Structured validation issue emitted by generated Koruma error types.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ValidationIssue {
-    field: Option<&'static str>,
+    field: Option<ValidationFieldName>,
     scope: ValidationIssueScope,
     validator: Option<&'static str>,
     label: Option<&'static str>,
@@ -176,14 +218,14 @@ impl ValidationIssue {
 
     /// Create a field-scoped issue.
     pub fn field(
-        field: &'static str,
+        field: impl Into<ValidationFieldName>,
         validator: &'static str,
         label: Option<&'static str>,
         message: impl Into<String>,
         params: Vec<ValidatorParam>,
     ) -> Self {
         Self {
-            field: Some(field),
+            field: Some(field.into()),
             scope: ValidationIssueScope::Field,
             validator: Some(validator),
             label,
@@ -195,7 +237,7 @@ impl ValidationIssue {
 
     /// Create an element-scoped issue.
     pub fn element(
-        field: &'static str,
+        field: impl Into<ValidationFieldName>,
         element_index: usize,
         validator: &'static str,
         label: Option<&'static str>,
@@ -203,7 +245,7 @@ impl ValidationIssue {
         params: Vec<ValidatorParam>,
     ) -> Self {
         Self {
-            field: Some(field),
+            field: Some(field.into()),
             scope: ValidationIssueScope::Element,
             validator: Some(validator),
             label,
@@ -214,8 +256,16 @@ impl ValidationIssue {
     }
 
     /// Field name, if this issue is field- or element-scoped.
-    pub const fn field_name(&self) -> Option<&'static str> {
+    pub const fn field_name(&self) -> Option<ValidationFieldName> {
         self.field
+    }
+
+    /// Field name as a string slice, if this issue is field- or element-scoped.
+    pub const fn field_name_str(&self) -> Option<&'static str> {
+        match self.field {
+            Some(field) => Some(field.as_str()),
+            None => None,
+        }
     }
 
     /// Issue scope.

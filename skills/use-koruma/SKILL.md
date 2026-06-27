@@ -27,7 +27,10 @@ adds `koruma-collection` when built-in validators fit the rule:
 2. Use `koruma` as the normal entry point for derives, core traits, and error
    rendering helpers.
 3. Use `koruma-collection` when a common string, format, numeric, collection,
-   or general validator already fits the rule.
+   or general validator already fits the rule. For normalized string newtypes,
+   normalize in an application parser or constructor first, then use
+   `string::CanonicalFormValidation::<_>::predicate(...)` only to reject
+   values that are not already canonical at storage or API boundaries.
 4. Define a custom `#[validator]` only when the rule is domain-specific, needs
    custom stored error data, or needs custom `Display` or Fluent behavior.
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use

@@ -6,6 +6,10 @@ alphanumeric_validation = Doit contenir uniquement des lettres et des chiffres.
 
 ascii_validation = Doit contenir uniquement des caractères ASCII.
 
+## CanonicalFormValidation
+
+canonical_form_validation = Doit déjà être sous forme canonique.
+
 ## ContainsValidation
 
 contains_validation = Doit contenir la sous-chaîne « { $substring } ».

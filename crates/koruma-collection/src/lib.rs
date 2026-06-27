@@ -46,6 +46,12 @@ mod tests {
                 valid_input: "hello",
             },
             Case {
+                name: "Canonical Form",
+                module: ValidatorModule::String,
+                input_type: InputType::Text,
+                valid_input: "provider-1",
+            },
+            Case {
                 name: "Contains 'test'",
                 module: ValidatorModule::String,
                 input_type: InputType::Text,

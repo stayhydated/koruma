@@ -10,6 +10,47 @@ Use `#[koruma(newtype)]`, adding `try_new` and `try_from` as needed, when you wa
 You can layer `derive_more` traits on top for additional wrapper ergonomics (for example, `Deref`
 to inner value).
 
+For normalized string newtypes, keep normalization outside validation. Parse or
+normalize user input before constructing the newtype, then let Koruma validate
+that the stored value is already canonical:
+
+- use `#[koruma(newtype, try_new, try_from)]` when the wrapper should expose
+  checked constructors and `TryFrom<Inner>`;
+- put parsing, trimming, case conversion, or Unicode normalization in an
+  application-owned parser or constructor before calling `try_new` or
+  `try_from`;
+- use `koruma_collection::string::CanonicalFormValidation::<_>::predicate(...)`
+  when a storage or API boundary must reject values that are not already in
+  canonical form;
+- keep `FromStr`, `TryFrom`, serde `try_from`/`into`, `Display`, and localized
+  validation messages aligned so every ingress path accepts the same canonical
+  representation.
+
+```rust,ignore
+use koruma::{Koruma, KorumaAllDisplay};
+use koruma_collection::string::CanonicalFormValidation;
+
+#[derive(Clone, Debug, Koruma, KorumaAllDisplay)]
+#[koruma(newtype, try_from)]
+pub struct ProviderId {
+    #[koruma(CanonicalFormValidation::<_>::predicate(is_provider_id_canonical))]
+    value: String,
+}
+
+fn normalize_provider_id(value: &str) -> String {
+    value.trim().to_ascii_lowercase()
+}
+
+fn is_provider_id_canonical(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
+let provider_id = ProviderId::try_from(normalize_provider_id(" Provider-1 "))?;
+```
+
 A field can combine `newtype` with ordinary field validators when the wrapper field itself also
 needs rules. The transparent newtype error access is preserved, and the extra validators use the
 same optional, `full(...)`, and `unwrapped(...)` target selection rules as any other field:

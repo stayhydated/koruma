@@ -47,15 +47,19 @@ Validator-specific optional flags:
 | --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ------- |
 | `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation::<_>)]`                                                   | `default`  |
 | `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation::<_>)]`                                                          | `default`  |
+| `CanonicalFormValidation<T>` | Already canonical by predicate | `#[koruma(string::CanonicalFormValidation::<_>::predicate(is_canonical))]`                   | `default` |
 | `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>::substring("abc"))]`                                    | `default`  |
 | `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>::other("secret".to_string()))]`                          | `default`  |
 | `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation::<_>::pattern(regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
 | `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>::prefix("usr_"))]`                                        | `default`  |
 | `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>::suffix(".rs"))]`                                         | `default`  |
 
-`MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
-compared value or regex pattern. `PatternValidation` stores a compiled `regex::Regex`, so invalid
-patterns fail during construction instead of during validation.
+`CanonicalFormValidation` accepts a caller-provided predicate and only checks
+that a string is already canonical. It does not trim, lower-case, normalize, or
+repair values. `MatchesValidation` and `PatternValidation` use generic error
+messages and do not echo the compared value or regex pattern. `PatternValidation`
+stores a compiled `regex::Regex`, so invalid patterns fail during construction
+instead of during validation.
 
 ### Format validators (`koruma_collection::format`)
 

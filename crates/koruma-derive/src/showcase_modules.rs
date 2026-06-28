@@ -55,6 +55,8 @@ fn expand_showcase_modules(modules: &[Ident]) -> Result<TokenStream2> {
         quote! { #module::__link_showcase_validators(); }
     });
 
+    // Stable rustc 1.96 still rejects `#[used(linker)]`, so downstream
+    // binaries need a normal referenced symbol to pull inventory sections in.
     Ok(quote! {
         #[cfg(feature = "internal-showcase")]
         #[doc(hidden)]

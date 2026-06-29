@@ -8,7 +8,7 @@ use super::validators::{NumberRangeValidation, RequiredValidation};
 #[derive(Clone, Debug, Koruma)]
 #[koruma(newtype)]
 pub struct Age {
-    #[koruma(NumberRangeValidation::min(0).max(150))]
+    #[koruma(NumberRangeValidation.min(0).max(150))]
     pub value: i32,
 }
 

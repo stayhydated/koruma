@@ -23,13 +23,13 @@ const SALES_FIELD_COUNT: usize = 8;
 struct SalesLeadForm {
     #[koruma(
         collection::NonEmptyValidation::<_>,
-        collection::LenValidation::<_>::min(2).max(80)
+        collection::LenValidation::<_>.min(2).max(80)
     )]
     company: String,
 
     #[koruma(
         collection::NonEmptyValidation::<_>,
-        collection::LenValidation::<_>::min(2).max(80)
+        collection::LenValidation::<_>.min(2).max(80)
     )]
     contact_name: String,
 
@@ -41,7 +41,7 @@ struct SalesLeadForm {
 
     #[koruma(
         full(general::RequiredValidation::<_>),
-        numeric::RangeValidation::<_>::min(1_000.0_f64).max(500_000.0_f64)
+        numeric::RangeValidation::<_>.min(1_000.0_f64).max(500_000.0_f64)
     )]
     deal_value: Option<f64>,
 
@@ -53,7 +53,7 @@ struct SalesLeadForm {
 
     #[koruma(
         collection::NonEmptyValidation::<_>,
-        collection::LenValidation::<_>::min(4).max(160)
+        collection::LenValidation::<_>.min(4).max(160)
     )]
     next_step: String,
 }

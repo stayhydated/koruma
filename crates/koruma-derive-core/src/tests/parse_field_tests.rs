@@ -190,7 +190,7 @@ fn parse_field_snapshot(field: &syn::Field) -> Option<SnapshotFieldInfo> {
 #[test]
 fn test_parse_field_direct_single_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::min(0).max(100))]
+        #[koruma(RangeValidation.min(0).max(100))]
         pub age: i32
     };
 
@@ -200,7 +200,7 @@ fn test_parse_field_direct_single_validator() {
 #[test]
 fn test_parse_field_direct_multiple_validators() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::min(0).max(100), EvenValidation)]
+        #[koruma(RangeValidation.min(0).max(100), EvenValidation)]
         pub value: i32
     };
 
@@ -210,7 +210,7 @@ fn test_parse_field_direct_multiple_validators() {
 #[test]
 fn test_parse_field_direct_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange::<_>::min(0.0).max(1.0))]
+        #[koruma(GenericRange::<_>.min(0.0).max(1.0))]
         pub score: f64
     };
 
@@ -220,7 +220,67 @@ fn test_parse_field_direct_generic_validator() {
 #[test]
 fn test_parse_field_direct_each() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(RangeValidation::min(0).max(100)))]
+        #[koruma(each(RangeValidation.min(0).max(100)))]
+        pub scores: Vec<i32>
+    };
+
+    assert_debug_snapshot!(parse_field_snapshot(&field));
+}
+
+#[test]
+fn test_parse_field_builder_entrypoint_validator() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(validators::normal::NumberRangeValidation::<_>.min(1).max(5))]
+        pub score: i32
+    };
+
+    assert_debug_snapshot!(parse_field_snapshot(&field));
+}
+
+#[test]
+fn test_parse_field_builder_entrypoint_validator_with_completion_probe() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(validators::normal::NumberRangeValidation::<_>.min(1).max(5).)]
+        pub score: i32
+    };
+
+    let info = match parse_field(&field, 0).expect("completion probe parse should succeed") {
+        ParsedDataField::Participating(info) => info,
+        _ => panic!("expected field to participate"),
+    };
+    let field_spec = info.validation();
+
+    let ParsedFieldSpec::Regular {
+        field_validators, ..
+    } = field_spec
+    else {
+        panic!("expected regular field spec");
+    };
+    let validator = field_validators[0].validator();
+    assert!(validator.has_completion_probe());
+    assert_eq!(validator.setter_calls().len(), 2);
+}
+
+#[test]
+fn test_parse_field_rejects_source_completion_marker() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(validators::normal::NumberRangeValidation::<_>.min(1).__koruma_ra_completion_marker)]
+        pub score: i32
+    };
+
+    let err = parse_field(&field, 0).expect_err("source marker syntax should be rejected");
+    assert!(
+        err.to_string().contains("expected validator chain"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn test_parse_field_each_builder_entrypoint_validator() {
+    let field: syn::Field = syn::parse_quote! {
+        #[koruma(each(
+            validators::normal::NumberRangeValidation::<_>.min(1).max(5)
+        ))]
         pub scores: Vec<i32>
     };
 
@@ -231,7 +291,7 @@ fn test_parse_field_direct_each() {
 fn test_parse_field_direct_labeled_validators() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(
-            lower_bound = RangeValidation::min(0),
+            lower_bound = RangeValidation.min(0),
             even_check = EvenValidation,
         )]
         pub value: i32
@@ -243,7 +303,7 @@ fn test_parse_field_direct_labeled_validators() {
 #[test]
 fn test_parse_field_rejects_non_lower_snake_validator_label() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(BadLabel = RangeValidation::min(0))]
+        #[koruma(BadLabel = RangeValidation.min(0))]
         pub value: i32
     };
 
@@ -257,7 +317,7 @@ fn test_parse_field_rejects_non_lower_snake_validator_label() {
 #[test]
 fn test_parse_field_rejects_invalid_element_validator_label() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(bad__label = RangeValidation::min(0)))]
+        #[koruma(each(bad__label = RangeValidation.min(0)))]
         pub values: Vec<i32>
     };
 
@@ -272,8 +332,8 @@ fn test_parse_field_rejects_invalid_element_validator_label() {
 fn test_parse_field_direct_labeled_each() {
     let field: syn::Field = syn::parse_quote! {
         #[koruma(each(
-            lower_bound = RangeValidation::min(0),
-            upper_bound = RangeValidation::max(100),
+            lower_bound = RangeValidation.min(0),
+            upper_bound = RangeValidation.max(100),
         ))]
         pub scores: Vec<i32>
     };
@@ -865,7 +925,7 @@ fn test_parse_field_non_koruma_attrs_skipped() {
 fn test_parse_field_mixed_attrs_only_direct_koruma_parsed() {
     let field: syn::Field = syn::parse_quote! {
         #[serde(rename = "val")]
-        #[koruma(RangeValidation::min(0).max(100))]
+        #[koruma(RangeValidation.min(0).max(100))]
         #[doc = "Some documentation"]
         pub value: i32
     };

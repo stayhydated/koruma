@@ -28,15 +28,15 @@ Import with `use koruma_collection::string;`.
 - `string::AlphanumericValidation<T>`: input contains only letters and numbers.
 - `string::AsciiValidation<T>`: input is ASCII only.
 - `string::ContainsValidation<T>`: input contains a substring. Configure with
-  `string::ContainsValidation::<_>::substring("abc")`.
+  `string::ContainsValidation::<_>.substring("abc")`.
 - `string::MatchesValidation<T>`: input equals another value. Configure with
-  `string::MatchesValidation::<_>::other("secret".to_string())`.
+  `string::MatchesValidation::<_>.other("secret".to_string())`.
 - `string::PatternValidation<T>`: input matches a compiled regex; requires `regex`. Configure with
-  `string::PatternValidation::<_>::pattern(regex::Regex::new("...").unwrap())`.
+  `string::PatternValidation::<_>.pattern(regex::Regex::new("...").unwrap())`.
 - `string::PrefixValidation<T>`: input starts with a prefix. Configure with
-  `string::PrefixValidation::<_>::prefix("usr_")`.
+  `string::PrefixValidation::<_>.prefix("usr_")`.
 - `string::SuffixValidation<T>`: input ends with a suffix. Configure with
-  `string::SuffixValidation::<_>::suffix(".rs")`.
+  `string::SuffixValidation::<_>.suffix(".rs")`.
 
 `MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
 compared value or regex pattern.
@@ -46,9 +46,9 @@ compared value or regex pattern.
 Import with `use koruma_collection::format;`.
 
 - `format::IpValidation<T>`: valid IP address. Configure with
-  `format::IpValidation::<_>::kind(format::IpKind::Any)`,
-  `format::IpValidation::<_>::kind(format::IpKind::V4)`, or
-  `format::IpValidation::<_>::kind(format::IpKind::V6)`.
+  `format::IpValidation::<_>.kind(format::IpKind::Any)`,
+  `format::IpValidation::<_>.kind(format::IpKind::V4)`, or
+  `format::IpValidation::<_>.kind(format::IpKind::V6)`.
 - `format::EmailValidation<T>`: valid email address; requires `email`.
 - `format::PhoneNumberValidation<T>`: valid phone number; requires `phone-number`.
 - `format::UrlValidation<T>`: valid URL; requires `url`.
@@ -63,7 +63,7 @@ Import with `use koruma_collection::numeric;`.
 - `numeric::NonPositiveValidation<T>`: `value <= 0`.
 - `numeric::NegativeValidation<T>`: `value < 0`.
 - `numeric::RangeValidation<T>`: value is within the configured range. Configure with
-  `numeric::RangeValidation::<_>::min(min).max(max)`.
+  `numeric::RangeValidation::<_>.min(min).max(max)`.
 
 `RangeValidation` is inclusive by default. Chain `.exclusive_min(true)` or
 `.exclusive_max(true)` when needed. It renders interval notation such as `[min, max]` or
@@ -78,7 +78,7 @@ Primitive integers and floats implement `numeric::Numeric` out of the box. Imple
 Import with `use koruma_collection::collection;`.
 
 - `collection::LenValidation<T>`: collection length is within the inclusive range. Configure with
-  `collection::LenValidation::<_>::min(1).max(10)`.
+  `collection::LenValidation::<_>.min(1).max(10)`.
 - `collection::NonEmptyValidation<T>`: collection or string is not empty.
 
 `collection::HasLen` is implemented for common standard collections, strings, slices, arrays, and

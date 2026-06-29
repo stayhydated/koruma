@@ -331,7 +331,7 @@ fn validator_syntax(validator: &ValidatorAttr) -> String {
         },
     }
 
-    for (index, call) in validator.setter_calls().iter().enumerate() {
+    for call in validator.setter_calls() {
         let args = call
             .args()
             .iter()
@@ -339,11 +339,7 @@ fn validator_syntax(validator: &ValidatorAttr) -> String {
             .map(|tokens| tokens.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        if index == 0 {
-            syntax.push_str("::");
-        } else {
-            syntax.push('.');
-        }
+        syntax.push('.');
         syntax.push_str(&call.method().to_string());
         syntax.push('(');
         syntax.push_str(&args);
@@ -407,17 +403,17 @@ mod tests {
         let plain: ValidatorAttr = syn::parse_quote!(RequiredValidation);
         assert_eq!(validator_syntax(&plain), "RequiredValidation");
 
-        let inferred: ValidatorAttr = syn::parse_quote!(RangeValidation::<_>::min(0).max(10));
+        let inferred: ValidatorAttr = syn::parse_quote!(RangeValidation::<_>.min(0).max(10));
         assert_eq!(
             validator_syntax(&inferred),
-            "RangeValidation::<_>::min(0).max(10)"
+            "RangeValidation::<_>.min(0).max(10)"
         );
 
         let explicit: ValidatorAttr =
-            syn::parse_quote!(validators::RangeValidation::<Option<i32>>::min(0));
+            syn::parse_quote!(validators::RangeValidation::<Option<i32>>.min(0));
         assert_eq!(
             validator_syntax(&explicit),
-            "validators::RangeValidation::<Option < i32 >>::min(0)"
+            "validators::RangeValidation::<Option < i32 >>.min(0)"
         );
     }
 

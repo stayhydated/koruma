@@ -1,23 +1,23 @@
 error: validator setter `min(...)` expects exactly one argument; use bare validator syntax for validators without configuration fields
- --> tests/ui/invalid_validator_setter_call_shape.rs:5:31
+ --> tests/ui/invalid_validator_setter_call_shape.rs:5:30
   |
-5 |     #[koruma(RangeValidation::min())]
-  |                               ^^^
+5 |     #[koruma(RangeValidation.min())]
+  |                              ^^^
 
 error: validator setter `min(...)` expects exactly one argument; use bare validator syntax for validators without configuration fields
- --> tests/ui/invalid_validator_setter_call_shape.rs:8:31
+ --> tests/ui/invalid_validator_setter_call_shape.rs:8:30
   |
-8 |     #[koruma(RangeValidation::min(0, 1))]
-  |                               ^^^
+8 |     #[koruma(RangeValidation.min(0, 1))]
+  |                              ^^^
 
-error: validator setter `min(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>::min(value)`
-  --> tests/ui/invalid_validator_setter_call_shape.rs:11:34
+error: validator setter `min(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>.min(value)`
+  --> tests/ui/invalid_validator_setter_call_shape.rs:11:33
    |
-11 |     #[koruma(RangeValidation::min::<u8>(0))]
-   |                                  ^
+11 |     #[koruma(RangeValidation.min::<u8>(0))]
+   |                                 ^
 
-error: validator setter `min(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>::min(value)`
-  --> tests/ui/invalid_validator_setter_call_shape.rs:14:44
+error: validator setter `min(...)` does not accept generic arguments; put type arguments on the validator path, such as `Validator::<_>.min(value)`
+  --> tests/ui/invalid_validator_setter_call_shape.rs:14:43
    |
-14 |     #[koruma(each(RangeValidation::<_>::min::<u8>(0)))]
-   |                                            ^
+14 |     #[koruma(each(RangeValidation::<_>.min::<u8>(0)))]
+   |                                           ^

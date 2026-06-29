@@ -12,7 +12,7 @@ use super::HasLen;
 ///
 /// #[derive(Koruma)]
 /// struct Order {
-///     #[koruma(LenValidation::<_>::min(1).max(5))]
+///     #[koruma(LenValidation::<_>.min(1).max(5))]
 ///     items: Vec<String>,
 /// }
 /// ```

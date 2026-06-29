@@ -29,13 +29,13 @@ adds `koruma-collection` when built-in validators fit the rule:
 3. Use `koruma-collection` when a common string, format, numeric, collection,
    or general validator already fits the rule. For normalized string newtypes,
    normalize in an application parser or constructor first, then use
-   `string::CanonicalFormValidation::<_>::predicate(...)` only to reject
+   `string::CanonicalFormValidation::<_>.predicate(...)` only to reject
    values that are not already canonical at storage or API boundaries.
 4. Define a custom `#[validator]` only when the rule is domain-specific, needs
    custom stored error data, or needs custom `Display` or Fluent behavior.
 5. Attach validators with field-level `#[koruma(...)]` attributes. Use
    `TypeName::<_>` for zero-configuration generic validators or
-   `TypeName::<_>::first_setter(...)` when configuring generic validators.
+   `TypeName::<_>.first_setter(...)` when configuring generic validators.
    Each setter call takes exactly one argument. Put generic arguments on the
    validator path, not on the setter method.
    Put all validators and field modifiers for a field in one `#[koruma(...)]`
@@ -98,7 +98,7 @@ struct SignupInput {
     #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
     handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
+    #[koruma(numeric::RangeValidation::<_>.min(13_u8).max(120_u8))]
     age: u8,
 
     #[koruma(general::RequiredValidation::<Option<_>>)]
@@ -174,10 +174,10 @@ Read generated errors through field and validator accessors:
 ```rust
 #[derive(Koruma, KorumaAllDisplay)]
 pub struct Item {
-    #[koruma(NumberRangeValidation::<_>::min(0).max(100))]
+    #[koruma(NumberRangeValidation::<_>.min(0).max(100))]
     pub age: i32,
 
-    #[koruma(StringLengthValidation::min(1).max(67))]
+    #[koruma(StringLengthValidation.min(1).max(67))]
     pub name: String,
 }
 
@@ -206,7 +206,7 @@ field names, validator type names, labels, element indices, and messages.
 
 Common patterns:
 
-- Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>::first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those. Type aliases and custom collections are not resolved; recognized `Vec<T>` paths must resolve to `std::vec::Vec<T>`.
+- Use `#[koruma(each(Validator::<_>))]` or `#[koruma(each(Validator::<_>.first_setter(...)))]` for per-element validation of `Vec<T>`, slices, arrays, and optional variants of those. Type aliases and custom collections are not resolved; recognized `Vec<T>` paths must resolve to `std::vec::Vec<T>`.
 - Use `#[koruma(label_name = Validator::<_>)]` or `#[koruma(each(label_name = Validator::<_>))]` to select generated getter and `all()` variant names explicitly.
 - Use `#[koruma(skip)]` to explicitly exclude a field from validation when a `#[koruma(...)]` marker would otherwise be expected nearby; fields with no `#[koruma(...)]` attribute are ignored by default.
 - Use `#[koruma(full(Validator::<_>))]` or `Validator::<Option<_>>` for full optional-field or optional-element validation; use `#[koruma(unwrapped(Validator::<_>))]` to document the default unwrapped target.

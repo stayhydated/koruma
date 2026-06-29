@@ -14,10 +14,10 @@ use koruma::Koruma;
 
 #[derive(Clone, Koruma)]
 pub struct Address {
-    #[koruma(StringLengthValidation::min(1).max(100))]
+    #[koruma(StringLengthValidation.min(1).max(100))]
     pub street: String,
 
-    #[koruma(StringLengthValidation::min(1).max(50))]
+    #[koruma(StringLengthValidation.min(1).max(50))]
     pub city: String,
 
     #[koruma(ZipCodeValidation)]
@@ -26,10 +26,10 @@ pub struct Address {
 
 #[derive(Koruma)]
 pub struct Customer {
-    #[koruma(StringLengthValidation::min(1).max(100))]
+    #[koruma(StringLengthValidation.min(1).max(100))]
     pub name: String,
 
-    #[koruma(NumberRangeValidation::<_>::min(18).max(120))]
+    #[koruma(NumberRangeValidation::<_>.min(18).max(120))]
     pub age: i32,
 
     // Nested struct - validation cascades automatically

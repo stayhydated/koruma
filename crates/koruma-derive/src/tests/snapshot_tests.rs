@@ -54,7 +54,20 @@ fn test_validator_expansion_generic() {
 fn test_koruma_expansion_single_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Item {
-            #[koruma(NumberRangeValidation::min(0).max(100))]
+            #[koruma(NumberRangeValidation.min(0).max(100))]
+            pub age: i32,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    assert_snapshot!(pretty_print(expanded));
+}
+
+#[test]
+fn test_koruma_expansion_single_builder_chain_validator() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct Item {
+            #[koruma(NumberRangeValidation::<_>.min(0).max(100))]
             pub age: i32,
         }
     };
@@ -67,7 +80,7 @@ fn test_koruma_expansion_single_validator() {
 fn test_koruma_expansion_multiple_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MultiValidatorItem {
-            #[koruma(NumberRangeValidation::min(0).max(100), EvenNumberValidation)]
+            #[koruma(NumberRangeValidation.min(0).max(100), EvenNumberValidation)]
             pub value: i32,
         }
     };
@@ -81,8 +94,8 @@ fn test_koruma_expansion_labeled_field_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct LabeledItem {
             #[koruma(
-                min_len = LengthValidation::<_>::min(3),
-                max_len = LengthValidation::<_>::max(30),
+                min_len = LengthValidation::<_>.min(3),
+                max_len = LengthValidation::<_>.max(30),
             )]
             pub value: String,
         }
@@ -102,7 +115,7 @@ fn test_koruma_expansion_labeled_element_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct LabeledTags {
             #[koruma(each(
-                tag_prefix = PrefixValidation::<_>::prefix("tag:"),
+                tag_prefix = PrefixValidation::<_>.prefix("tag:"),
             ))]
             pub tags: Vec<String>,
         }
@@ -119,7 +132,7 @@ fn test_koruma_expansion_labeled_element_validators() {
 fn test_koruma_expansion_generic_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct GenericItem {
-            #[koruma(GenericRangeValidation::<_>::min(0.0).max(100.0))]
+            #[koruma(GenericRangeValidation::<_>.min(0.0).max(100.0))]
             pub score: f64,
         }
     };
@@ -132,7 +145,7 @@ fn test_koruma_expansion_generic_validator() {
 fn test_koruma_expansion_each() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Order {
-            #[koruma(each(GenericRangeValidation::<_>::min(0.0).max(100.0)))]
+            #[koruma(each(GenericRangeValidation::<_>.min(0.0).max(100.0)))]
             pub scores: Vec<f64>,
         }
     };
@@ -145,10 +158,10 @@ fn test_koruma_expansion_each() {
 fn test_koruma_expansion_multiple_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct Item {
-            #[koruma(NumberRangeValidation::min(0).max(100))]
+            #[koruma(NumberRangeValidation.min(0).max(100))]
             pub age: i32,
 
-            #[koruma(StringLengthValidation::min(1).max(67))]
+            #[koruma(StringLengthValidation.min(1).max(67))]
             pub name: String,
         }
     };
@@ -206,7 +219,7 @@ fn test_koruma_expansion_each_multiple_validators() {
     // each() with multiple validators
     let input: DeriveInput = syn::parse_quote! {
         pub struct Order {
-            #[koruma(each(RangeValidation::min(0).max(100), EvenValidation))]
+            #[koruma(each(RangeValidation.min(0).max(100), EvenValidation))]
             pub values: Vec<i32>,
         }
     };
@@ -220,13 +233,13 @@ fn test_koruma_expansion_mixed_fields() {
     // Mix of regular field, each field, and multiple validators
     let input: DeriveInput = syn::parse_quote! {
         pub struct ComplexItem {
-            #[koruma(RangeValidation::min(0).max(100))]
+            #[koruma(RangeValidation.min(0).max(100))]
             pub age: i32,
 
-            #[koruma(each(LengthValidation::min(1).max(50)))]
+            #[koruma(each(LengthValidation.min(1).max(50)))]
             pub tags: Vec<String>,
 
-            #[koruma(RangeValidation::min(0).max(10), EvenValidation)]
+            #[koruma(RangeValidation.min(0).max(10), EvenValidation)]
             pub rating: i32,
         }
     };
@@ -240,10 +253,10 @@ fn test_koruma_expansion_optional_field() {
     // Optional field should generate if-let pattern and skip validation when None
     let input: DeriveInput = syn::parse_quote! {
         pub struct UserProfile {
-            #[koruma(StringLengthValidation::min(1).max(50))]
+            #[koruma(StringLengthValidation.min(1).max(50))]
             pub username: String,
 
-            #[koruma(StringLengthValidation::min(1).max(200))]
+            #[koruma(StringLengthValidation.min(1).max(200))]
             pub bio: Option<String>,
         }
     };
@@ -257,7 +270,7 @@ fn test_koruma_expansion_optional_with_generic() {
     // Optional field with generic validator
     let input: DeriveInput = syn::parse_quote! {
         pub struct Item {
-            #[koruma(GenericRange::<_>::min(0).max(100))]
+            #[koruma(GenericRange::<_>.min(0).max(100))]
             pub score: Option<i32>,
         }
     };
@@ -283,7 +296,7 @@ fn test_koruma_expansion_full_optional_field_target_path() {
 fn test_koruma_expansion_optional_element_target_path() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalScores {
-            #[koruma(each(GenericRangeValidation::<_>::min(0).max(10)))]
+            #[koruma(each(GenericRangeValidation::<_>.min(0).max(10)))]
             pub values: Vec<Option<i32>>,
         }
     };
@@ -312,7 +325,7 @@ fn test_koruma_expansion_combined_field_and_element_validators() {
     // instead of <_> (which would give Vec<i32>).
     let input: DeriveInput = syn::parse_quote! {
         pub struct OrderWithLenCheck {
-            #[koruma(VecLenValidation::<i32>::min(1).max(10), each(RangeValidation::<_>::min(0).max(100)))]
+            #[koruma(VecLenValidation::<i32>.min(1).max(10), each(RangeValidation::<_>.min(0).max(100)))]
             pub scores: Vec<i32>,
         }
     };
@@ -326,7 +339,7 @@ fn test_koruma_expansion_only_element_validators() {
     // Only element validators (no field-level validators)
     let input: DeriveInput = syn::parse_quote! {
         pub struct Scores {
-            #[koruma(each(RangeValidation::<_>::min(0).max(100)))]
+            #[koruma(each(RangeValidation::<_>.min(0).max(100)))]
             pub values: Vec<i32>,
         }
     };
@@ -341,7 +354,7 @@ fn test_koruma_expansion_try_new() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(try_new)]
         pub struct Person {
-            #[koruma(RangeValidation::min(0).max(150))]
+            #[koruma(RangeValidation.min(0).max(150))]
             pub age: i32,
             pub name: String,
         }
@@ -381,9 +394,9 @@ fn test_koruma_expansion_try_new_newtype_tuple_struct() {
 fn test_koruma_all_display_expansion() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayItem {
-            #[koruma(RangeValidation::min(0).max(10), EvenValidation)]
+            #[koruma(RangeValidation.min(0).max(10), EvenValidation)]
             pub value: i32,
-            #[koruma(each(RangeValidation::min(0).max(10)))]
+            #[koruma(each(RangeValidation.min(0).max(10)))]
             pub values: Vec<i32>,
         }
     };
@@ -413,8 +426,8 @@ fn test_koruma_all_display_expansion_uses_labeled_variant_names() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayQualifiedValidators {
             #[koruma(
-                low_range = foo::RangeValidation::min(0).max(10),
-                high_range = bar::RangeValidation::min(11).max(20),
+                low_range = foo::RangeValidation.min(0).max(10),
+                high_range = bar::RangeValidation.min(11).max(20),
             )]
             pub value: i32,
         }
@@ -476,7 +489,7 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
 fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct RichNewtypeField {
-            #[koruma(newtype, RequiredValidation::<Option<_>>, GenericRange::<_>::min(0).max(10), PlainValidation::min(1))]
+            #[koruma(newtype, RequiredValidation::<Option<_>>, GenericRange::<_>.min(0).max(10), PlainValidation.min(1))]
             pub wrapped: Option<WrappedValue>,
         }
     };
@@ -497,7 +510,7 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
 fn test_koruma_expansion_newtype_non_optional_with_validators_uses_direct_inner_validation() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DirectNewtypeField {
-            #[koruma(newtype, GenericRange::<_>::min(0).max(10), PlainValidation::min(1))]
+            #[koruma(newtype, GenericRange::<_>.min(0).max(10), PlainValidation.min(1))]
             pub wrapped: WrappedValue,
         }
     };
@@ -514,8 +527,8 @@ fn test_koruma_expansion_labeled_qualified_validators_generate_distinct_members(
     let input: DeriveInput = syn::parse_quote! {
         pub struct QualifiedValidators {
             #[koruma(
-                low_range = foo::RangeValidation::min(0).max(10),
-                high_range = bar::RangeValidation::min(11).max(20),
+                low_range = foo::RangeValidation.min(0).max(10),
+                high_range = bar::RangeValidation.min(11).max(20),
             )]
             pub value: i32,
         }
@@ -533,7 +546,7 @@ fn test_koruma_expansion_labeled_qualified_validators_generate_distinct_members(
 fn test_koruma_expansion_optional_field_with_full_and_unwrapped_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalMixedValidators {
-            #[koruma(RequiredValidation::<Option<_>>, GenericRange::<_>::min(0).max(10))]
+            #[koruma(RequiredValidation::<Option<_>>, GenericRange::<_>.min(0).max(10))]
             pub value: Option<i32>,
         }
     };
@@ -610,7 +623,7 @@ fn test_koruma_expansion_empty_koruma_attr_is_rejected() {
 fn test_koruma_expansion_vec_option_each_with_explicit_infer_type() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct VecOptionElementValidators {
-            #[koruma(each(GenericRange::<Vec<_>>::min(0).max(10)))]
+            #[koruma(each(GenericRange::<Vec<_>>.min(0).max(10)))]
             pub values: Vec<Option<i32>>,
         }
     };
@@ -626,7 +639,7 @@ fn test_koruma_expansion_vec_option_each_with_explicit_infer_type() {
 fn test_koruma_expansion_option_vec_each_uses_inner_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalVecElementValidators {
-            #[koruma(each(GenericRange::<_>::min(0).max(10)))]
+            #[koruma(each(GenericRange::<_>.min(0).max(10)))]
             pub values: Option<Vec<i32>>,
         }
     };
@@ -642,7 +655,7 @@ fn test_koruma_expansion_option_vec_each_uses_inner_collection() {
 fn test_koruma_expansion_slice_each_uses_element_type() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct BorrowedSliceElementValidators<'a> {
-            #[koruma(each(GenericRange::<_>::min(0).max(10)))]
+            #[koruma(each(GenericRange::<_>.min(0).max(10)))]
             pub values: &'a [i32],
         }
     };
@@ -657,7 +670,7 @@ fn test_koruma_expansion_slice_each_uses_element_type() {
 fn test_koruma_expansion_borrowed_field_carries_lifetimes() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct BorrowedField<'a> {
-            #[koruma(StartsWithValidation::<_>::prefix("user:"))]
+            #[koruma(StartsWithValidation::<_>.prefix("user:"))]
             pub name: &'a str,
         }
     };
@@ -675,7 +688,7 @@ fn test_koruma_expansion_borrowed_field_carries_lifetimes() {
 fn test_koruma_expansion_borrowed_explicit_reference_infer() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct BorrowedField<'a> {
-            #[koruma(StartsWithValidation::<&_>::prefix("user:"))]
+            #[koruma(StartsWithValidation::<&_>.prefix("user:"))]
             pub name: &'a str,
         }
     };
@@ -707,7 +720,7 @@ fn test_koruma_expansion_field_arg_ident_is_rejected() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MatchesValidationInput {
             pub password: String,
-            #[koruma(MatchesValidation::matches(password))]
+            #[koruma(MatchesValidation.matches(password))]
             pub confirm: String,
         }
     };
@@ -723,7 +736,7 @@ fn test_koruma_expansion_field_arg_ident_is_rejected() {
 fn test_koruma_expansion_direct_chain_uses_supplied_setters() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DirectSyntaxItem {
-            #[koruma(GenericRangeValidation::<_>::min(0.0).max(100.0))]
+            #[koruma(GenericRangeValidation::<_>.min(0.0).max(100.0))]
             pub score: f64,
         }
     };
@@ -738,7 +751,7 @@ fn test_koruma_expansion_direct_chain_field_arg_requires_explicit_self() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct BuilderMatchesValidationInput {
             pub password: String,
-            #[koruma(MatchesValidation::matches(self.password.clone()))]
+            #[koruma(MatchesValidation.matches(self.password.clone()))]
             pub confirm: String,
         }
     };
@@ -752,7 +765,7 @@ fn test_koruma_expansion_direct_chain_field_arg_requires_explicit_self() {
 fn test_koruma_expansion_non_field_arg_ident_is_left_alone() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct ConstantArgInput {
-            #[koruma(MatchesValidation::matches(STATIC_MATCH))]
+            #[koruma(MatchesValidation.matches(STATIC_MATCH))]
             pub confirm: String,
         }
     };
@@ -785,7 +798,7 @@ fn test_koruma_all_display_handles_skipped_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayWithSkippedField {
             pub plain: i32,
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub value: i32,
         }
     };
@@ -799,9 +812,9 @@ fn test_koruma_all_display_handles_skipped_fields() {
 fn test_koruma_all_display_borrowed_types_carry_lifetimes() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DisplayBorrowed<'a> {
-            #[koruma(StartsWithValidation::<_>::prefix("user:"))]
+            #[koruma(StartsWithValidation::<_>.prefix("user:"))]
             pub value: &'a str,
-            #[koruma(each(StartsWithValidation::<_>::prefix("tag:")))]
+            #[koruma(each(StartsWithValidation::<_>.prefix("tag:")))]
             pub values: &'a [&'a str],
         }
     };
@@ -916,9 +929,9 @@ fn test_validator_expansion_respects_setter_metadata() {
 fn test_koruma_all_fluent_expansion() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct FluentItem {
-            #[koruma(RangeValidation::min(0).max(10), EvenValidation)]
+            #[koruma(RangeValidation.min(0).max(10), EvenValidation)]
             pub value: i32,
-            #[koruma(each(RangeValidation::min(0).max(10)))]
+            #[koruma(each(RangeValidation.min(0).max(10)))]
             pub values: Vec<i32>,
         }
     };
@@ -934,9 +947,9 @@ fn test_koruma_all_fluent_expansion() {
 fn test_koruma_all_fluent_borrowed_types_carry_lifetimes() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct FluentBorrowed<'a> {
-            #[koruma(StartsWithValidation::<_>::prefix("user:"))]
+            #[koruma(StartsWithValidation::<_>.prefix("user:"))]
             pub value: &'a str,
-            #[koruma(each(StartsWithValidation::<_>::prefix("tag:")))]
+            #[koruma(each(StartsWithValidation::<_>.prefix("tag:")))]
             pub values: &'a [&'a str],
         }
     };
@@ -959,7 +972,7 @@ fn test_koruma_all_fluent_handles_skipped_fields() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct FluentWithSkippedField {
             pub plain: i32,
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub value: i32,
         }
     };
@@ -1122,7 +1135,7 @@ fn test_koruma_expansion_newtype_try_new_and_try_from() {
 fn test_koruma_expansion_try_from_generic() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype, try_from)]
-        pub struct Wrapper<T>(#[koruma(GenericRange::<_>::min(0).max(100))] pub T);
+        pub struct Wrapper<T>(#[koruma(GenericRange::<_>.min(0).max(100))] pub T);
     };
 
     let expanded = expand_koruma(input).unwrap();
@@ -1134,7 +1147,7 @@ fn test_koruma_expansion_try_from_generic() {
 fn test_koruma_expansion_try_from_generic_with_bounds() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype, try_from)]
-        pub struct BoundedWrapper<T: Clone>(#[koruma(GenericRange::<_>::min(0).max(100))] pub T);
+        pub struct BoundedWrapper<T: Clone>(#[koruma(GenericRange::<_>.min(0).max(100))] pub T);
     };
 
     let expanded = expand_koruma(input).unwrap();
@@ -1146,7 +1159,7 @@ fn test_koruma_expansion_try_from_generic_with_bounds() {
 fn test_koruma_expansion_try_from_generic_with_where_clause() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype, try_from)]
-        pub struct WhereWrapper<T>(#[koruma(GenericRange::<_>::min(0).max(100))] pub T) where T: Default;
+        pub struct WhereWrapper<T>(#[koruma(GenericRange::<_>.min(0).max(100))] pub T) where T: Default;
     };
 
     let expanded = expand_koruma(input).unwrap();

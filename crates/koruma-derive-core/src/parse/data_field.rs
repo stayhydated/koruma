@@ -248,14 +248,14 @@ pub enum DataFieldKorumaItem {
 /// use koruma_derive_core::DataFieldKorumaAttr;
 ///
 /// let multiple: DataFieldKorumaAttr = syn::parse_quote!(
-///     Validator1::a(1),
-///     Validator2::b(2)
+///     Validator1.a(1),
+///     Validator2.b(2)
 /// );
 /// assert_eq!(multiple.field_validator_count(), 2);
 ///
 /// let with_each: DataFieldKorumaAttr = syn::parse_quote!(
-///     VecValidator::min(0),
-///     each(ElementValidator::max(100))
+///     VecValidator.min(0),
+///     each(ElementValidator.max(100))
 /// );
 /// assert_eq!(with_each.field_validator_count(), 1);
 /// assert_eq!(with_each.element_validator_count(), 1);

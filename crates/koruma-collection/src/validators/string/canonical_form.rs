@@ -20,7 +20,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Provider {
-///     #[koruma(CanonicalFormValidation::<_>::predicate(is_lowercase_token))]
+///     #[koruma(CanonicalFormValidation::<_>.predicate(is_lowercase_token))]
 ///     provider_id: String,
 /// }
 /// ```

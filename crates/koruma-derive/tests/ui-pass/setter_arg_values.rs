@@ -33,9 +33,9 @@ impl Validate<String> for MinLenValidation {
 struct Demo<const EXTRA_MIN: usize> {
     other: String,
     #[koruma(
-        MatchesValidation::expected(self.other.clone()),
-        min_const = MinLenValidation::min(MIN_LEN),
-        min_const_generic = MinLenValidation::min(EXTRA_MIN),
+        MatchesValidation.expected(self.other.clone()),
+        min_const = MinLenValidation.min(MIN_LEN),
+        min_const_generic = MinLenValidation.min(EXTRA_MIN),
     )]
     value: String,
 }

@@ -326,6 +326,18 @@ pub mod __private {
 
     impl<T: Clone> CapturedInputCanBeCloned for T {}
 
+    /// Hidden rust-analyzer completion probe used by generated validation code.
+    ///
+    /// The trait method gives proc-macro completions a valid method-call shape
+    /// without adding a real public field or inherent method to validator
+    /// builders.
+    #[rust_analyzer::completions(ignore_methods)]
+    pub trait RustAnalyzerCompletionMarker {
+        fn __koruma_ra_completion_marker(&self) {}
+    }
+
+    impl<T: ?Sized> RustAnalyzerCompletionMarker for T {}
+
     /// Hidden trait used by generated validation code to turn a ready validator
     /// builder into its validator instance.
     pub trait BuildValidator {

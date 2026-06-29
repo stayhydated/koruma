@@ -15,7 +15,7 @@ fn test_validator_attr_parse_simple() {
 
 #[test]
 fn test_validator_attr_parse_with_args() {
-    let attr: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0).max(100));
+    let attr: ValidatorAttr = syn::parse_quote!(RangeValidation.min(0).max(100));
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert!(!attr.uses_type_inference());
     assert_eq!(attr.setter_calls().len(), 2);
@@ -24,8 +24,29 @@ fn test_validator_attr_parse_with_args() {
 }
 
 #[test]
+fn test_validator_attr_parse_with_trailing_dot_probe() {
+    let attr: ValidatorAttr = syn::parse_str("RangeValidation::<_>.")
+        .expect("expected parser recovery for trailing-dot probe");
+    assert!(attr.has_completion_probe());
+    assert_eq!(attr.name().to_string(), "RangeValidation");
+    assert_eq!(attr.setter_calls().len(), 0);
+}
+
+#[test]
+fn test_validator_attr_rejects_source_completion_marker() {
+    let err = syn::parse_str::<ValidatorAttr>(
+        "RangeValidation::<_>.min(0).__koruma_ra_completion_marker",
+    )
+    .expect_err("source marker syntax should be rejected");
+    assert!(
+        err.to_string().contains("expected validator chain"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
 fn test_validator_attr_parse_generic() {
-    let attr: ValidatorAttr = syn::parse_quote!(GenericRange::<_>::min(0.0).max(1.0));
+    let attr: ValidatorAttr = syn::parse_quote!(GenericRange::<_>.min(0.0).max(1.0));
     assert_eq!(attr.name().to_string(), "GenericRange");
     assert!(attr.uses_type_inference());
     assert_eq!(attr.setter_calls().len(), 2);
@@ -34,7 +55,7 @@ fn test_validator_attr_parse_generic() {
 #[test]
 fn test_validator_attr_parse_direct_chain() {
     let attr: ValidatorAttr =
-        syn::parse_quote!(RangeValidation::min(0).max(100).exclusive_max(true));
+        syn::parse_quote!(RangeValidation.min(0).max(100).exclusive_max(true));
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert!(!attr.uses_type_inference());
     assert_eq!(attr.setter_calls().len(), 3);
@@ -47,19 +68,19 @@ fn test_validator_attr_parse_direct_chain() {
 fn test_validator_attr_rejects_invalid_setter_call_shape() {
     for (source, expected) in [
         (
-            "RangeValidation::min()",
+            "RangeValidation.min()",
             "validator setter `min(...)` expects exactly one argument",
         ),
         (
-            "RangeValidation::min(0, 1)",
+            "RangeValidation.min(0, 1)",
             "validator setter `min(...)` expects exactly one argument",
         ),
         (
-            "RangeValidation::min::<u8>(0)",
+            "RangeValidation.min::<u8>(0)",
             "validator setter `min(...)` does not accept generic arguments",
         ),
         (
-            "RangeValidation::<_>::min::<u8>(0)",
+            "RangeValidation::<_>.min::<u8>(0)",
             "validator setter `min(...)` does not accept generic arguments",
         ),
     ] {
@@ -74,7 +95,7 @@ fn test_validator_attr_rejects_invalid_setter_call_shape() {
 #[test]
 fn test_validator_attr_parse_direct_chain_with_turbofish_inference() {
     let attr: ValidatorAttr =
-        syn::parse_quote!(validators::numeric::RangeValidation::<_>::min(0).max(100));
+        syn::parse_quote!(validators::numeric::RangeValidation::<_>.min(0).max(100));
     assert_eq!(attr.name().to_string(), "RangeValidation");
     assert_eq!(attr.path_name(), "validators::numeric::RangeValidation");
     assert!(attr.uses_type_inference());
@@ -101,7 +122,7 @@ fn test_koruma_attr_parse_skip() {
 #[test]
 fn test_koruma_attr_parse_each() {
     let attr: DataFieldKorumaAttr = syn::parse_quote!(each(
-        RangeValidation::min(0).max(100),
+        RangeValidation.min(0).max(100),
         RequiredValidation::<Option<_>>
     ));
     assert!(!attr.is_skip());
@@ -112,9 +133,20 @@ fn test_koruma_attr_parse_each() {
 }
 
 #[test]
+fn test_koruma_attr_parse_each_with_completion_probe() {
+    let attr: DataFieldKorumaAttr = syn::parse_str("each(NumberRangeValidation::<_>.min(1).)")
+        .expect("expected parser recovery for element trailing-dot probe");
+    assert!(!attr.is_skip());
+    assert!(!attr.has_field_validators());
+    assert_eq!(attr.element_validator_count(), 1);
+    let element_validators: Vec<_> = attr.element_validators().collect();
+    assert!(element_validators[0].has_completion_probe());
+}
+
+#[test]
 fn test_koruma_attr_parse_labeled_field_validator() {
     let attr: DataFieldKorumaAttr =
-        syn::parse_quote!(username_prefix = string::PrefixValidation::<_>::prefix("user:"));
+        syn::parse_quote!(username_prefix = string::PrefixValidation::<_>.prefix("user:"));
 
     let DataFieldKorumaItem::FieldValidation(spec) = &attr.items()[0] else {
         panic!("expected field validator");
@@ -133,7 +165,7 @@ fn test_koruma_attr_parse_labeled_field_validator() {
 fn test_koruma_attr_parse_full_and_unwrapped_field_targets() {
     let attr: DataFieldKorumaAttr = syn::parse_quote!(
         required = full(general::RequiredValidation::<_>),
-        len = unwrapped(string::LenValidation::<_>::min(1))
+        len = unwrapped(string::LenValidation::<_>.min(1))
     );
 
     let DataFieldKorumaItem::FieldValidation(full_spec) = &attr.items()[0] else {
@@ -160,7 +192,7 @@ fn test_koruma_attr_parse_full_and_unwrapped_field_targets() {
 #[test]
 fn test_koruma_attr_parse_labeled_element_validator() {
     let attr: DataFieldKorumaAttr = syn::parse_quote!(each(
-        tag_prefix = string::PrefixValidation::<_>::prefix("tag:")
+        tag_prefix = string::PrefixValidation::<_>.prefix("tag:")
     ));
 
     let DataFieldKorumaItem::ElementValidation(spec) = &attr.items()[0] else {
@@ -197,7 +229,7 @@ fn test_koruma_attr_parse_labeled_full_element_validator() {
 #[test]
 fn test_koruma_attr_parse_multiple_validators() {
     let attr: DataFieldKorumaAttr =
-        syn::parse_quote!(ValidatorA::x(1), ValidatorB, ValidatorC::<_>::y(2));
+        syn::parse_quote!(ValidatorA.x(1), ValidatorB, ValidatorC::<_>.y(2));
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 3);
     assert!(!attr.has_element_validators());
@@ -211,8 +243,8 @@ fn test_koruma_attr_parse_multiple_validators() {
 fn test_koruma_attr_parse_combined_field_and_each() {
     // Combined: field validator + each(element validators) with inferred generics
     let attr: DataFieldKorumaAttr = syn::parse_quote!(
-        LenValidator::min(1).max(10),
-        each(RangeValidation::<_>::min(0).max(100))
+        LenValidator.min(1).max(10),
+        each(RangeValidation::<_>.min(0).max(100))
     );
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 1);
@@ -228,7 +260,7 @@ fn test_koruma_attr_parse_combined_field_and_each() {
 fn test_koruma_attr_parse_each_then_field() {
     // each() can come before field validators too
     let attr: DataFieldKorumaAttr =
-        syn::parse_quote!(each(RangeValidation::min(0).max(100)), LenValidator::min(1));
+        syn::parse_quote!(each(RangeValidation.min(0).max(100)), LenValidator.min(1));
     assert!(!attr.is_skip());
     assert_eq!(attr.field_validator_count(), 1);
     assert_eq!(attr.element_validator_count(), 1);
@@ -304,10 +336,7 @@ fn test_validator_attr_parse_option_infer_type() {
 fn test_validator_attr_parse_invalid_call_error() {
     let result: Result<ValidatorAttr, _> = syn::parse_str("Validator<_>");
     let err = result.expect_err("expected invalid validator call syntax to be rejected");
-    assert!(
-        err.to_string()
-            .contains("requires a direct validator chain")
-    );
+    assert!(err.to_string().contains("requires a dot validator chain"));
 }
 
 #[test]

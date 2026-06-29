@@ -1,5 +1,6 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 924
 expression: rendered
 ---
 #[derive(Clone, Debug)]
@@ -173,6 +174,7 @@ impl<
             _state: ::std::marker::PhantomData,
         }
     }
+    #[doc(hidden)]
     pub fn with_value(
         self,
         value: T,

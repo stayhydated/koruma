@@ -22,8 +22,8 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 ///
 /// This automatically:
 /// - Generates Koruma-owned builder plumbing for the struct
-/// - Generates direct builder entrypoints on the validator type for each
-///   configurable field, such as `RangeValidation::min(value)`
+/// - Generates builder plumbing used by Koruma attribute setter syntax for each
+///   configurable field, such as `#[koruma(RangeValidation.min(value))]`
 /// - Generates `with_value` methods that delegate to the explicit or inferred
 ///   value field
 /// - Generates a getter on the validator type with the same name as the
@@ -133,10 +133,10 @@ fn validate_validator_macro_input(input: &syn::ItemStruct) -> syn::Result<()> {
 /// ```ignore
 /// #[derive(Koruma)]
 /// struct Item {
-///     #[koruma(NumberRangeValidation::min(0).max(100))]
+///     #[koruma(NumberRangeValidation.min(0).max(100))]
 ///     age: i32,
 ///
-///     #[koruma(StringLengthValidation::min(1).max(50))]
+///     #[koruma(StringLengthValidation.min(1).max(50))]
 ///     name: String,
 ///
 ///     // No #[koruma(...)] attribute means field is not validated
@@ -188,7 +188,7 @@ fn derive_koruma_macro(input: TokenStream2) -> TokenStream2 {
 ///
 /// #[derive(Koruma, KorumaAllDisplay)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>::min(5).max(20), PrefixValidation::<_>::prefix("SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>.min(5).max(20), PrefixValidation::<_>.prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///
@@ -222,7 +222,7 @@ fn derive_koruma_all_display_macro(input: TokenStream2) -> TokenStream2 {
 ///
 /// #[derive(Koruma, KorumaAllFluent)]
 /// pub struct Product {
-///     #[koruma(LenValidation::<_>::min(5).max(20), PrefixValidation::<_>::prefix("SKU-".to_string()))]
+///     #[koruma(LenValidation::<_>.min(5).max(20), PrefixValidation::<_>.prefix("SKU-".to_string()))]
 ///     pub sku: String,
 /// }
 ///

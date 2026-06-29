@@ -18,12 +18,12 @@ pub mod __private {
     pub use koruma_core::__private::{
         BuildValidator, CaptureValueRef, CapturedInputCanBeCloned, EachCollectionRef,
         KorumaAllDisplayRequiresKoruma, KorumaAllFluentRequiresKoruma, KorumaWasDerived,
-        OptionalEachCollectionRef, assert_display, assert_each_collection_ref,
-        assert_element_display, assert_element_validator_ready, assert_field_display,
-        assert_field_validator_ready, assert_nested_validation_ready, assert_newtype_error_display,
-        assert_newtype_field_ready, assert_newtype_try_from_inner, assert_newtype_validation,
-        assert_newtype_value, assert_optional_each_collection_ref, assert_validate_ext,
-        assert_validator_ready,
+        OptionalEachCollectionRef, RustAnalyzerCompletionMarker, assert_display,
+        assert_each_collection_ref, assert_element_display, assert_element_validator_ready,
+        assert_field_display, assert_field_validator_ready, assert_nested_validation_ready,
+        assert_newtype_error_display, assert_newtype_field_ready, assert_newtype_try_from_inner,
+        assert_newtype_validation, assert_newtype_value, assert_optional_each_collection_ref,
+        assert_validate_ext, assert_validator_ready,
     };
 
     #[cfg(feature = "fluent")]

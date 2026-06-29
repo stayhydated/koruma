@@ -19,7 +19,7 @@ that the stored value is already canonical:
 - put parsing, trimming, case conversion, or Unicode normalization in an
   application-owned parser or constructor before calling `try_new` or
   `try_from`;
-- use `koruma_collection::string::CanonicalFormValidation::<_>::predicate(...)`
+- use `koruma_collection::string::CanonicalFormValidation::<_>.predicate(...)`
   when a storage or API boundary must reject values that are not already in
   canonical form;
 - keep `FromStr`, `TryFrom`, serde `try_from`/`into`, `Display`, and localized
@@ -33,7 +33,7 @@ use koruma_collection::string::CanonicalFormValidation;
 #[derive(Clone, Debug, Koruma, KorumaAllDisplay)]
 #[koruma(newtype, try_from)]
 pub struct ProviderId {
-    #[koruma(CanonicalFormValidation::<_>::predicate(is_provider_id_canonical))]
+    #[koruma(CanonicalFormValidation::<_>.predicate(is_provider_id_canonical))]
     value: String,
 }
 

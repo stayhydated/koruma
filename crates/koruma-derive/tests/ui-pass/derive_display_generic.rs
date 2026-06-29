@@ -29,7 +29,7 @@ struct Item<T>
 where
     T: Clone + Default + PartialOrd,
 {
-    #[koruma(MinValidation::<_>::min(T::default()))]
+    #[koruma(MinValidation::<_>.min(T::default()))]
     value: T,
 }
 

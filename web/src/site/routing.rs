@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
 use stayhydated_dioxus::{
     LocalizedRouteSegment, Project, ProjectNavItem, StayhydatedProjectPageMetadata,
-    StayhydatedSiteLanguage,
+    StayhydatedSiteLanguage as _,
 };
 use stayhydated_site::routing::{BaseHref, BasePath, Href, RoutePath};
 

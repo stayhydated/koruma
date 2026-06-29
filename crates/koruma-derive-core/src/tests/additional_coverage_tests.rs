@@ -22,12 +22,20 @@ fn validator_attr_helpers_and_error_paths() {
     assert!(!plain.uses_type_inference());
     assert!(!plain.has_explicit_type());
 
-    let with_builder_methods: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0).max(10));
+    let with_builder_methods: ValidatorAttr = syn::parse_quote!(RangeValidation.min(0).max(10));
     assert!(with_builder_methods.has_args());
     let builder_calls = with_builder_methods.setter_calls();
     assert_eq!(builder_calls.len(), 2);
     assert_eq!(builder_calls[0].method().to_string(), "min");
     assert_eq!(builder_calls[1].method().to_string(), "max");
+
+    let associated_setter: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::min(0)");
+    assert!(
+        associated_setter
+            .expect_err("expected associated setter starters to be rejected")
+            .to_string()
+            .contains("expected validator chain")
+    );
 
     let infer: ValidatorAttr = syn::parse_quote!(GenericValidation::<_>);
     assert!(infer.uses_type_inference());
@@ -36,6 +44,31 @@ fn validator_attr_helpers_and_error_paths() {
     let explicit: ValidatorAttr = syn::parse_quote!(GenericValidation::<i32>);
     assert!(!explicit.uses_type_inference());
     assert!(explicit.has_explicit_type());
+
+    let builder_only: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation.builder()");
+    assert!(
+        builder_only
+            .expect_err("expected builder entrypoint to be rejected")
+            .to_string()
+            .contains("outside Koruma's validator attribute grammar")
+    );
+
+    let builder_chain: Result<ValidatorAttr, _> =
+        syn::parse_str("RangeValidation::<_>.builder().min(0).max(10)");
+    assert!(
+        builder_chain
+            .expect_err("expected builder entrypoint chains to be rejected")
+            .to_string()
+            .contains("outside Koruma's validator attribute grammar")
+    );
+
+    let fq_direct_chain: ValidatorAttr =
+        syn::parse_quote!(validators::normal::NumberRangeValidation::<_>.min(1).max(5));
+    assert_eq!(
+        fq_direct_chain.path_name(),
+        "validators::normal::NumberRangeValidation"
+    );
+    assert_eq!(fq_direct_chain.setter_calls().len(), 2);
 
     let too_many_types: Result<ValidatorAttr, _> = syn::parse_str("GenericValidation::<i32, u32>");
     assert!(
@@ -58,16 +91,42 @@ fn validator_attr_helpers_and_error_paths() {
         rejected_shorthand
             .expect_err("expected shorthand syntax to be rejected")
             .to_string()
-            .contains("requires a direct validator chain")
+            .contains("requires a dot validator chain")
     );
 
     let builder_with_build: Result<ValidatorAttr, _> =
-        syn::parse_str("GenericValidation::min(1).build()");
+        syn::parse_str("GenericValidation.min(1).build()");
     assert!(
         builder_with_build
             .expect_err("expected validator chains to reject .build()")
             .to_string()
             .contains("injects builder creation, value capture, and `.build()` automatically")
+    );
+
+    let builder_with_arg: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation.builder(123)");
+    assert!(
+        builder_with_arg
+            .expect_err("expected builder args to be rejected")
+            .to_string()
+            .contains("outside Koruma's validator attribute grammar")
+    );
+
+    let builder_with_turbofish: Result<ValidatorAttr, _> =
+        syn::parse_str("RangeValidation::builder::<i32>()");
+    assert!(
+        builder_with_turbofish
+            .expect_err("expected builder turbofish to be rejected")
+            .to_string()
+            .contains("expected validator chain")
+    );
+
+    let builder_then_build: Result<ValidatorAttr, _> =
+        syn::parse_str("RangeValidation.builder().build()");
+    assert!(
+        builder_then_build
+            .expect_err("expected .build() to be rejected")
+            .to_string()
+            .contains("outside Koruma's validator attribute grammar")
     );
 
     let parenthesized_path: Result<ValidatorAttr, _> = syn::parse_str("std::ops::Fn(i32)");
@@ -80,7 +139,7 @@ fn validator_attr_helpers_and_error_paths() {
 #[test]
 fn koruma_attr_helpers_and_newtype_parsing_paths() {
     let attr: DataFieldKorumaAttr =
-        syn::parse_quote!(RangeValidation::min(0).max(10), each(PositiveValidation));
+        syn::parse_quote!(RangeValidation.min(0).max(10), each(PositiveValidation));
     assert!(attr.has_validators());
     assert!(!attr.is_modifier());
 
@@ -99,7 +158,7 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
     let newtype_with_validators: DataFieldKorumaAttr = syn::parse_quote!(
         newtype,
         each(PositiveValidation),
-        RangeValidation::min(0).max(1)
+        RangeValidation.min(0).max(1)
     );
     assert!(newtype_with_validators.is_newtype());
     assert!(newtype_with_validators.has_validators());
@@ -110,7 +169,7 @@ fn koruma_attr_helpers_and_newtype_parsing_paths() {
 #[test]
 fn context_specific_koruma_attr_types_parse_normalized_items() {
     let data_attr: DataFieldKorumaAttr =
-        syn::parse_quote!(nested, each(PositiveValidation), RangeValidation::min(0));
+        syn::parse_quote!(nested, each(PositiveValidation), RangeValidation.min(0));
     assert_eq!(data_attr.items().len(), 3);
     assert!(matches!(
         data_attr.items()[0],
@@ -170,7 +229,7 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
 #[test]
 fn field_info_and_parse_field_participation_helpers() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::min(0).max(10), each(PositiveValidation))]
+        #[koruma(RangeValidation.min(0).max(10), each(PositiveValidation))]
         value: Vec<i32>
     };
     let info = parse_field_info(&field);
@@ -225,7 +284,7 @@ fn field_info_and_parse_field_participation_helpers() {
     );
 
     let explicit_field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::<i32>::min(0).max(10))]
+        #[koruma(RangeValidation::<i32>.min(0).max(10))]
         constrained: i32
     };
     let ParsedDataField::Participating(explicit_info) =
@@ -247,7 +306,7 @@ fn field_info_and_parse_field_participation_helpers() {
 #[test]
 fn parse_field_allows_distinct_fully_qualified_validators() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(foo::RangeValidation::min(0).max(10), bar::RangeValidation::min(11).max(20))]
+        #[koruma(foo::RangeValidation.min(0).max(10), bar::RangeValidation.min(11).max(20))]
         value: i32
     };
 
@@ -453,7 +512,7 @@ fn source_infer_type_substitution_reaches_associated_type_bounds() {
 #[test]
 fn koruma_attr_newtype_parser_handles_trailing_commas() {
     let with_trailing_commas: DataFieldKorumaAttr = syn::parse_str(
-        "newtype, each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",
+        "newtype, each(RangeValidation.min(0).max(1), PositiveValidation,), RequiredValidation,",
     )
     .expect("newtype parser should accept commas");
     assert!(with_trailing_commas.is_newtype());
@@ -461,7 +520,7 @@ fn koruma_attr_newtype_parser_handles_trailing_commas() {
     assert_eq!(with_trailing_commas.element_validator_count(), 2);
 
     let plain_with_each: DataFieldKorumaAttr = syn::parse_str(
-        "each(RangeValidation::min(0).max(1), PositiveValidation,), RequiredValidation,",
+        "each(RangeValidation.min(0).max(1), PositiveValidation,), RequiredValidation,",
     )
     .expect("plain parser should accept commas");
     assert!(!plain_with_each.is_newtype());
@@ -479,8 +538,8 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
             .contains("must contain a modifier, validator, or `each(...)` block")
     );
 
-    let chain_with_spaces: ValidatorAttr = syn::parse_str("RangeValidation :: < _ > :: min(0)")
-        .expect("expected direct validator syntax to parse");
+    let chain_with_spaces: ValidatorAttr = syn::parse_str("RangeValidation :: < _ > . min(0)")
+        .expect("expected dot validator syntax to parse");
     assert!(chain_with_spaces.uses_type_inference());
     assert_eq!(chain_with_spaces.setter_calls().len(), 1);
 
@@ -535,38 +594,31 @@ fn parser_edge_cases_cover_remaining_parse_lines() {
     };
     assert!(flat_try_from_options.constructors().try_from());
 
-    let disallowed_builder_chain: Result<ValidatorAttr, _> =
-        syn::parse_str("RangeValidation::builder()");
-    assert!(
-        disallowed_builder_chain
-            .expect_err("expected builder chain syntax rejection")
-            .to_string()
-            .contains("`::builder()` is outside Koruma's validator attribute grammar")
-    );
-
     let direct_with_value: Result<ValidatorAttr, _> =
-        syn::parse_str("RangeValidation::with_value(1)");
+        syn::parse_str("RangeValidation.with_value(1)");
     assert!(
         direct_with_value
             .expect_err("expected with_value syntax rejection")
             .to_string()
-            .contains("chains should stop before `.with_value(...)`")
+            .contains("the value is supplied automatically by the field or collection element")
     );
 
     let uppercase_constructor: Result<ValidatorAttr, _> = syn::parse_str("RangeValidation::New(1)");
+    let err = uppercase_constructor.expect_err("expected uppercase constructor syntax rejection");
+    let err_text = err.to_string();
     assert!(
-        uppercase_constructor
-            .expect_err("expected uppercase constructor syntax rejection")
-            .to_string()
-            .contains("requires a direct validator chain")
+        err_text.contains("requires a direct validator chain")
+            || err_text.contains("expected validator chain"),
+        "unexpected error: {err_text}"
     );
 
     let free_function_call: Result<ValidatorAttr, _> = syn::parse_str("min(1)");
+    let err = free_function_call.expect_err("expected free function syntax rejection");
+    let err_text = err.to_string();
     assert!(
-        free_function_call
-            .expect_err("expected free function syntax rejection")
-            .to_string()
-            .contains("requires a direct validator chain")
+        err_text.contains("requires a direct validator chain")
+            || err_text.contains("expected validator chain"),
+        "unexpected error: {err_text}"
     );
 }
 
@@ -961,7 +1013,7 @@ fn parsed_data_field_accessors_and_labels_cover_helpers() {
         .expect("lower-snake label should be accepted");
     assert_eq!(label.ident().to_string(), "valid_label");
 
-    let validator: ValidatorAttr = syn::parse_quote!(RangeValidation::min(0));
+    let validator: ValidatorAttr = syn::parse_quote!(RangeValidation.min(0));
     let unlabeled = crate::ParsedValidatorUse::unlabeled(validator.clone());
     assert!(unlabeled.label().is_none());
     assert!(unlabeled.label_span().is_none());
@@ -1286,7 +1338,7 @@ fn validator_struct_value_and_setter_parser_errors_cover_remaining_branches() {
 
 #[test]
 fn validator_attr_parsing_covers_grouped_calls_and_accessors() {
-    let grouped: ValidatorAttr = syn::parse_str("(RangeValidation::<i32>::min(0).max(10))")
+    let grouped: ValidatorAttr = syn::parse_str("(RangeValidation::<i32>.min(0).max(10))")
         .expect("grouped validator chains should parse");
     assert_eq!(grouped.path_name(), "RangeValidation");
     assert_eq!(grouped.path().segments.len(), 1);
@@ -1295,20 +1347,18 @@ fn validator_attr_parsing_covers_grouped_calls_and_accessors() {
     let first_arg = grouped.setter_calls()[0].args()[0].as_expr();
     assert_eq!(quote::quote!(#first_arg).to_string(), "0");
 
-    let direct_call: ValidatorAttr =
-        syn::parse_str("(RangeValidation::min)(0)").expect("grouped call path should parse");
-    assert_eq!(direct_call.setter_calls()[0].method().to_string(), "min");
+    let direct_call: Result<ValidatorAttr, _> = syn::parse_str("(RangeValidation::min)(0)");
+    assert!(
+        direct_call
+            .expect_err("expected grouped associated setter starters to be rejected")
+            .to_string()
+            .contains("expected validator chain")
+    );
 
     for (source, expected) in [
-        ("", "validator syntax requires a direct validator chain"),
-        (
-            "make().min(1)",
-            "validator setter `make(...)` expects exactly one argument",
-        ),
-        (
-            "(make())(1)",
-            "validator syntax requires a direct validator chain",
-        ),
+        ("", "validator syntax requires a dot validator chain"),
+        ("make().min(1)", "expected validator chain"),
+        ("(make())(1)", "expected validator chain"),
     ] {
         let err = match syn::parse_str::<ValidatorAttr>(source) {
             Ok(_) => panic!("expected `{source}` to fail"),

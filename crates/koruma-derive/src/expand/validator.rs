@@ -326,7 +326,7 @@ fn validator_param_value_expr(
 ) -> TokenStream2 {
     if let Some(inner) = option_inner_type(ty) {
         let some_value =
-            validator_param_ref_value_expr(quote! { __koruma_param_value }, &inner, koruma);
+            validator_param_ref_value_expr(quote! { __koruma_param_value }, inner, koruma);
         return quote! {
             match #value.as_ref() {
                 Some(__koruma_param_value) => #some_value,
@@ -1354,6 +1354,7 @@ fn render_value_setter(
     let assignments = builder_assignments(plan.slots(), ident, value_expr);
 
     quote! {
+        #[doc(hidden)]
         pub fn #method(self, value: #inner_ty) -> #return_ty {
             #builder_name {
                 #(#assignments,)*

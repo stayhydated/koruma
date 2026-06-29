@@ -64,6 +64,16 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     let validator_ty = &validator.validator_type;
     let validation_target_ty = check.target.validate_type();
     let target_expr = check.target_expr;
+    let completion_probe = if check.validator.attr.has_completion_probe() {
+        quote! {
+            {
+                use #koruma::__private::RustAnalyzerCompletionMarker as _;
+                let _ = __koruma_builder.__koruma_ra_completion_marker();
+            }
+        }
+    } else {
+        quote! {}
+    };
     let target_ref = match check.target.borrow() {
         TargetBorrow::Reference => quote! { &#target_expr },
         TargetBorrow::AlreadyBorrowed => quote! { #target_expr },
@@ -92,6 +102,7 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     quote_spanned! {source_span=>
         {
             let __koruma_builder = #builder_expr;
+            #completion_probe
             #koruma::__private::#readiness_assertion::<
                 _,
                 #validation_target_ty,

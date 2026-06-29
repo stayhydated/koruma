@@ -15,31 +15,31 @@ use koruma_collection::{collection, general, numeric, string};
 
 #[derive(Koruma)]
 pub struct Order {
-    #[koruma(each(validators::normal::NumberRangeValidation::<_>::min(1).max(5)))]
+    #[koruma(each(validators::normal::NumberRangeValidation::<_>.min(1).max(5)))]
     pub quantities: Vec<i32>,
 }
 
 #[derive(Koruma)]
 pub struct BorrowedOrder<'a> {
-    #[koruma(each(validators::normal::NumberRangeValidation::<_>::min(1).max(5)))]
+    #[koruma(each(validators::normal::NumberRangeValidation::<_>.min(1).max(5)))]
     pub quantities: &'a [i32],
 }
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct BorrowedUsername<'a> {
-    #[koruma(validators::normal::StartsWithValidation::<_>::prefix("user:"))]
+    #[koruma(validators::normal::StartsWithValidation::<_>.prefix("user:"))]
     pub username: &'a str,
 }
 
 #[derive(Koruma, koruma::KorumaAllDisplay)]
 pub struct Item {
     #[koruma(
-        validators::normal::NumberRangeValidation::<_>::min(0)
+        validators::normal::NumberRangeValidation::<_>.min(0)
             .max(100)
     )]
     pub age: i32,
 
-    #[koruma(StringLengthValidation::min(1).max(67))]
+    #[koruma(StringLengthValidation.min(1).max(67))]
     pub name: String,
 
     // This field is not validated
@@ -64,10 +64,10 @@ pub struct User {
 /// Uses Display-based validators.
 #[derive(Clone, Koruma)]
 pub struct Address {
-    #[koruma(StringLengthValidation::min(1).max(100))]
+    #[koruma(StringLengthValidation.min(1).max(100))]
     pub street: String,
 
-    #[koruma(StringLengthValidation::min(1).max(50))]
+    #[koruma(StringLengthValidation.min(1).max(50))]
     pub city: String,
 
     #[koruma(ZipCodeValidation)]
@@ -78,10 +78,10 @@ pub struct Address {
 /// Demonstrates `#[koruma(nested)]` for Display-based error messages.
 #[derive(Koruma)]
 pub struct Customer {
-    #[koruma(StringLengthValidation::min(1).max(100))]
+    #[koruma(StringLengthValidation.min(1).max(100))]
     pub name: String,
 
-    #[koruma(NumberRangeValidation::<_>::min(18).max(120))]
+    #[koruma(NumberRangeValidation::<_>.min(18).max(120))]
     pub age: i32,
 
     /// Nested struct - validation cascades automatically
@@ -184,7 +184,7 @@ pub struct SignupInput {
     )]
     pub handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
+    #[koruma(numeric::RangeValidation::<_>.min(13_u8).max(120_u8))]
     pub age: u8,
 
     #[koruma(general::RequiredValidation::<Option<_>>)]

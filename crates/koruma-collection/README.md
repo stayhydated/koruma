@@ -47,12 +47,12 @@ Validator-specific optional flags:
 | --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ | ------- |
 | `AlphanumericValidation<T>` | Only letters and numbers | `#[koruma(string::AlphanumericValidation::<_>)]`                                                   | `default`  |
 | `AsciiValidation<T>`        | ASCII-only input         | `#[koruma(string::AsciiValidation::<_>)]`                                                          | `default`  |
-| `CanonicalFormValidation<T>` | Already canonical by predicate | `#[koruma(string::CanonicalFormValidation::<_>::predicate(is_canonical))]`                   | `default` |
-| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>::substring("abc"))]`                                    | `default`  |
-| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>::other("secret".to_string()))]`                          | `default`  |
-| `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation::<_>::pattern(regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
-| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>::prefix("usr_"))]`                                        | `default`  |
-| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>::suffix(".rs"))]`                                         | `default`  |
+| `CanonicalFormValidation<T>` | Already canonical by predicate | `#[koruma(string::CanonicalFormValidation::<_>.predicate(is_canonical))]`                   | `default` |
+| `ContainsValidation<T>`     | Contains substring       | `#[koruma(string::ContainsValidation::<_>.substring("abc"))]`                                    | `default`  |
+| `MatchesValidation<T>`      | Equals expected value    | `#[koruma(string::MatchesValidation::<_>.other("secret".to_string()))]`                          | `default`  |
+| `PatternValidation<T>`      | Matches regex pattern    | `#[koruma(string::PatternValidation::<_>.pattern(regex::Regex::new(r"^[a-z0-9_]+$").unwrap()))]` | `regex` |
+| `PrefixValidation<T>`       | Starts with prefix       | `#[koruma(string::PrefixValidation::<_>.prefix("usr_"))]`                                        | `default`  |
+| `SuffixValidation<T>`       | Ends with suffix         | `#[koruma(string::SuffixValidation::<_>.suffix(".rs"))]`                                         | `default`  |
 
 `CanonicalFormValidation` accepts a caller-provided predicate and only checks
 that a string is already canonical. It does not trim, lower-case, normalize, or
@@ -65,7 +65,7 @@ instead of during validation.
 
 | Validator                  | Rule                         | Example attribute                                               | Feature        |
 | -------------------------- | ---------------------------- | --------------------------------------------------------------- | -------------- |
-| `IpValidation<T>`          | Valid IP (`Any`, `V4`, `V6`) | `#[koruma(format::IpValidation::<_>::kind(format::IpKind::V4))]` | `default`       |
+| `IpValidation<T>`          | Valid IP (`Any`, `V4`, `V6`) | `#[koruma(format::IpValidation::<_>.kind(format::IpKind::V4))]` | `default`       |
 | `EmailValidation<T>`       | Valid email address          | `#[koruma(format::EmailValidation::<_>)]`                         | `email`        |
 | `PhoneNumberValidation<T>` | Valid phone number           | `#[koruma(format::PhoneNumberValidation::<_>)]`                   | `phone-number` |
 | `UrlValidation<T>`         | Valid URL                    | `#[koruma(format::UrlValidation::<_>)]`                           | `url`          |
@@ -79,7 +79,7 @@ instead of during validation.
 | `NonNegativeValidation<T>` | `value >= 0`                                   | `#[koruma(numeric::NonNegativeValidation::<_>)]`                                     | `default`  |
 | `NonPositiveValidation<T>` | `value <= 0`                                   | `#[koruma(numeric::NonPositiveValidation::<_>)]`                                     | `default`  |
 | `NegativeValidation<T>`    | `value < 0`                                    | `#[koruma(numeric::NegativeValidation::<_>)]`                                        | `default`  |
-| `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>::min(0).max(100).exclusive_max(true))]` | `default`  |
+| `RangeValidation<T>`       | Between `min` and `max` (inclusive by default) | `#[koruma(numeric::RangeValidation::<_>.min(0).max(100).exclusive_max(true))]` | `default`  |
 
 Primitive integers and floats implement `numeric::Numeric` out of the box. Enable the `rust_decimal`
 feature to add `rust_decimal::Decimal`. Custom numeric-like types can opt in by implementing
@@ -92,7 +92,7 @@ bounds are reflected directly in the rendered error.
 
 | Validator               | Rule                           | Example attribute                                            | Feature |
 | ----------------------- | ------------------------------ | ------------------------------------------------------------ | ------- |
-| `LenValidation<T>`      | Length within `[min, max]`     | `#[koruma(collection::LenValidation::<_>::min(1).max(10))]` | `default`  |
+| `LenValidation<T>`      | Length within `[min, max]`     | `#[koruma(collection::LenValidation::<_>.min(1).max(10))]` | `default`  |
 | `NonEmptyValidation<T>` | Collection/string is not empty | `#[koruma(collection::NonEmptyValidation::<_>)]`               | `default`  |
 
 `collection::HasLen` is implemented for common standard types (`String`, `str`,
@@ -131,7 +131,7 @@ struct SignupInput {
     #[koruma(string::AsciiValidation::<_>, string::AlphanumericValidation::<_>)]
     handle: String,
 
-    #[koruma(numeric::RangeValidation::<_>::min(13_u8).max(120_u8))]
+    #[koruma(numeric::RangeValidation::<_>.min(13_u8).max(120_u8))]
     age: u8,
 
     #[koruma(general::RequiredValidation::<Option<_>>)]

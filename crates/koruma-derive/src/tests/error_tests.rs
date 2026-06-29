@@ -403,7 +403,7 @@ fn test_koruma_error_on_enum() {
 fn test_koruma_error_on_duplicate_validator_same_attr() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateValidatorSameAttr {
-            #[koruma(RangeValidation::min(0).max(100), RangeValidation::min(10).max(50))]
+            #[koruma(RangeValidation.min(0).max(100), RangeValidation.min(10).max(50))]
             pub value: i32,
         }
     };
@@ -422,8 +422,8 @@ fn test_koruma_error_on_duplicate_validator_same_attr() {
 fn test_koruma_error_on_repeated_field_attrs() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct RepeatedFieldAttrs {
-            #[koruma(RangeValidation::min(0).max(100))]
-            #[koruma(RangeValidation::min(10).max(50))]
+            #[koruma(RangeValidation.min(0).max(100))]
+            #[koruma(RangeValidation.min(10).max(50))]
             pub value: i32,
         }
     };
@@ -443,7 +443,7 @@ fn test_koruma_error_on_repeated_field_attrs() {
 fn test_koruma_error_on_duplicate_element_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateElementValidator {
-            #[koruma(each(RangeValidation::min(0).max(100), RangeValidation::min(10).max(50)))]
+            #[koruma(each(RangeValidation.min(0).max(100), RangeValidation.min(10).max(50)))]
             pub values: Vec<i32>,
         }
     };
@@ -568,7 +568,7 @@ fn test_koruma_error_on_explicit_option_element_validator_with_unwrapped_target(
 fn test_koruma_error_on_direct_chain_with_build_call() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct InvalidDirectSyntax {
-            #[koruma(NumberRangeValidation::min(0).max(100).build())]
+            #[koruma(NumberRangeValidation.min(0).max(100).build())]
             pub value: i32,
         }
     };
@@ -585,6 +585,26 @@ fn test_koruma_error_on_direct_chain_with_build_call() {
 }
 
 #[test]
+fn test_koruma_error_on_each_validator_with_value_call() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct InvalidElementValueSyntax {
+            #[koruma(each(NumberRangeValidation::<_>.min(1).max(5).with_value(2)))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    let err_text = err.to_string();
+    assert!(
+        err_text.contains("the value is supplied automatically by the field or collection element"),
+        "expected with_value attribute diagnostic, got: {}",
+        err_text
+    );
+}
+
+#[test]
 fn test_koruma_error_on_invalid_validator_call() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct InvalidValidatorSyntax {
@@ -596,11 +616,12 @@ fn test_koruma_error_on_invalid_validator_call() {
     let result = expand_koruma(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
+    let err_text = err.to_string();
     assert!(
-        err.to_string()
-            .contains("requires a direct validator chain"),
-        "expected direct-chain diagnostic, got: {}",
-        err
+        err_text.contains("requires a direct validator chain")
+            || err_text.contains("expected validator chain"),
+        "expected validator-chain diagnostic, got: {}",
+        err_text
     );
 }
 
@@ -608,7 +629,7 @@ fn test_koruma_error_on_invalid_validator_call() {
 fn test_koruma_error_on_each_non_vec_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonVecEach {
-            #[koruma(each(RangeValidation::min(0).max(100)))]
+            #[koruma(each(RangeValidation.min(0).max(100)))]
             pub values: std::collections::HashSet<i32>,
         }
     };
@@ -631,7 +652,7 @@ fn test_koruma_error_on_each_non_vec_collection() {
 fn test_koruma_error_on_each_optional_non_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct OptionalNonCollectionEach {
-            #[koruma(each(RangeValidation::min(0).max(100)))]
+            #[koruma(each(RangeValidation.min(0).max(100)))]
             pub values: Option<std::collections::HashSet<i32>>,
         }
     };
@@ -651,9 +672,9 @@ fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]
         pub struct BadNewtype {
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub a: i32,
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub b: i32,
         }
     };
@@ -673,7 +694,7 @@ fn test_koruma_error_on_struct_level_newtype_with_one_validated_and_one_plain_fi
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]
         pub struct BadNewtype {
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub a: i32,
             pub b: i32,
         }

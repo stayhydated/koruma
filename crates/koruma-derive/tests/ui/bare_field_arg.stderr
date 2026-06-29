@@ -1,5 +1,5 @@
 error: bare field argument `other` is ambiguous; use `self.other.clone()` explicitly
- --> tests/ui/bare_field_arg.rs:6:42
+ --> tests/ui/bare_field_arg.rs:6:41
   |
-6 |     #[koruma(MatchesValidation::expected(other))]
-  |                                          ^^^^^
+6 |     #[koruma(MatchesValidation.expected(other))]
+  |                                         ^^^^^

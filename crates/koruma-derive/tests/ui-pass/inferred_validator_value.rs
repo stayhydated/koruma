@@ -56,11 +56,11 @@ impl Validate<i32> for MinScoreValidation {
 struct Item {
     #[koruma(PositiveValidation)]
     count: i32,
-    #[koruma(LenValidation::min(3))]
+    #[koruma(LenValidation.min(3))]
     label: String,
     #[koruma(CandidateValidation)]
     lucky_number: i32,
-    #[koruma(MinScoreValidation::lower_bound(10))]
+    #[koruma(MinScoreValidation.lower_bound(10))]
     score: i32,
 }
 

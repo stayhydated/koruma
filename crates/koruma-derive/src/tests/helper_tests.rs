@@ -324,8 +324,8 @@ fn test_same_validator_type_can_be_used_twice_with_labels() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Demo {
             #[koruma(
-                min_len = LengthValidation::<_>::min(3),
-                max_len = LengthValidation::<_>::max(30),
+                min_len = LengthValidation::<_>.min(3),
+                max_len = LengthValidation::<_>.max(30),
             )]
             value: String,
         }
@@ -344,7 +344,7 @@ fn test_labeled_element_validator_names_drive_getters_and_variants() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Demo {
             #[koruma(each(
-                tag_prefix = string::PrefixValidation::<_>::prefix("tag:"),
+                tag_prefix = string::PrefixValidation::<_>.prefix("tag:"),
             ))]
             tags: Vec<String>,
         }
@@ -456,7 +456,7 @@ fn test_parse_validator_struct_errors_when_missing_value() {
 #[test]
 fn test_parse_field_with_single_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(RangeValidation::min(0).max(100))]
+        #[koruma(RangeValidation.min(0).max(100))]
         pub age: i32
     };
 
@@ -482,7 +482,7 @@ fn test_parse_field_with_single_validator() {
 #[test]
 fn test_parse_field_with_generic_validator() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(GenericRange::<_>::min(0.0).max(1.0))]
+        #[koruma(GenericRange::<_>.min(0.0).max(1.0))]
         pub score: f64
     };
 
@@ -497,7 +497,7 @@ fn test_parse_field_with_generic_validator() {
 #[test]
 fn test_parse_field_with_each() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(each(RangeValidation::min(0).max(100)))]
+        #[koruma(each(RangeValidation.min(0).max(100)))]
         pub scores: Vec<i32>
     };
 
@@ -641,9 +641,9 @@ fn test_validator_builder_plan_covers_setter_signatures_and_capture_policy() {
 fn test_validation_plan_resolves_targets_names_and_type_args() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Planned {
-            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>::min(1))]
+            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>.min(1))]
             name: Option<String>,
-            #[koruma(each(full(RequiredValidation::<_>), ItemLength::<_>::min(1)))]
+            #[koruma(each(full(RequiredValidation::<_>), ItemLength::<_>.min(1)))]
             tags: Vec<Option<String>>,
         }
     };
@@ -846,9 +846,9 @@ fn test_validation_plan_infers_full_targets_from_explicit_option_types() {
 fn test_validation_plan_exposes_render_ready_validation_operations() {
     let input: syn::DeriveInput = syn::parse_quote! {
         struct Planned {
-            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>::min(1))]
+            #[koruma(full(RequiredValidation::<_>), LengthValidation::<_>.min(1))]
             name: Option<String>,
-            #[koruma(each(full(RequiredValidation::<_>), ItemLength::<_>::min(1)))]
+            #[koruma(each(full(RequiredValidation::<_>), ItemLength::<_>.min(1)))]
             tags: Vec<Option<String>>,
         }
     };
@@ -1018,7 +1018,7 @@ fn test_validation_plan_exposes_main_error_render_plan() {
             checked: Wrapper,
             #[koruma(newtype, RequiredValidation)]
             maybe_checked: Option<Wrapper>,
-            #[koruma(RangeValidation::min(0), each(ItemValidation))]
+            #[koruma(RangeValidation.min(0), each(ItemValidation))]
             values: Vec<i32>,
         }
     };
@@ -1123,7 +1123,7 @@ fn test_validation_plan_exposes_field_error_render_plan() {
             name: String,
             #[koruma(each(ItemValidation))]
             tags: Vec<String>,
-            #[koruma(LengthValidation::min(1), each(ItemValidation))]
+            #[koruma(LengthValidation.min(1), each(ItemValidation))]
             values: Vec<String>,
         }
     };

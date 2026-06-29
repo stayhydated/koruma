@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct File {
-///     #[koruma(SuffixValidation::<_>::suffix(".txt"))]
+///     #[koruma(SuffixValidation::<_>.suffix(".txt"))]
 ///     name: String,
 /// }
 /// ```

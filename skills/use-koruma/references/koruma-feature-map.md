@@ -104,7 +104,7 @@ validators/modifiers in that attribute.
 - `Validator`: run a validator on the field target.
 - `Validator::<_>`: infer a generic validator type from the selected target.
 - `Validator::<Concrete>`: use an explicit validator type argument.
-- `Validator::<_>::setter(value).other(value)`: configure validators with direct
+- `Validator::<_>.setter(value).other(value)`: configure validators with dot-chain
   setter chains. Each setter call takes exactly one argument; put generic
   arguments on the validator path, not on setter methods.
 - `label_name = Validator::<_>`: choose generated getter and `all()` enum

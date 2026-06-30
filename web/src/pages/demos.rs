@@ -1,65 +1,33 @@
 use crate::components::{FooterPanel, PageHeader};
-use crate::site::i18n::{DemosPageMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::{
     DemoCard, DemoCardGrid, GridColumns, ProjectPageShell, page_entry_reveal_style,
 };
 
 #[component]
-pub(crate) fn DemosPage(locale: SiteLanguage) -> Element {
+pub(crate) fn DemosPage() -> Element {
     let demos_style = page_entry_reveal_style();
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                div { class: "page-shell",
-                    "Failed to initialize i18n: {error}"
-                }
-            };
-        },
-    };
-
-    let (
-        dioxus_label,
-        dioxus_title,
-        dioxus_body,
-        dioxus_action,
-        sales_label,
-        sales_title,
-        sales_body,
-        sales_action,
-    ) = (
-        i18n.localize_message(&DemosPageMessage::DioxusLabel),
-        i18n.localize_message(&DemosPageMessage::DioxusTitle),
-        i18n.localize_message(&DemosPageMessage::DioxusBody),
-        i18n.localize_message(&DemosPageMessage::DioxusAction),
-        i18n.localize_message(&DemosPageMessage::SalesLabel),
-        i18n.localize_message(&DemosPageMessage::SalesTitle),
-        i18n.localize_message(&DemosPageMessage::SalesBody),
-        i18n.localize_message(&DemosPageMessage::SalesAction),
-    );
 
     rsx! {
         ProjectPageShell {
-            header: rsx!(PageHeader { locale, current_page: PageKind::Demos }),
+            header: rsx!(PageHeader { current_page: PageKind::Demos }),
             footer: Some(rsx!(FooterPanel {})),
             DemoCardGrid::<crate::site::routing::AppRoute> {
                 cards: vec![
                     DemoCard::route(
-                        crate::site::routing::app_route(locale, PageKind::CollectionDioxus),
-                        dioxus_label,
-                        dioxus_title,
-                        dioxus_body,
-                        dioxus_action,
+                        crate::site::routing::app_route(PageKind::CollectionDioxus),
+                        "web",
+                        "koruma-collection - web",
+                        "Interactive Dioxus UI showcasing validator behavior and localized error messages.",
+                        "Open Dioxus demo",
                     ),
                     DemoCard::route(
-                        crate::site::routing::app_route(locale, PageKind::SalesForm),
-                        sales_label,
-                        sales_title,
-                        sales_body,
-                        sales_action,
+                        crate::site::routing::app_route(PageKind::SalesForm),
+                        "form",
+                        "Sales intake form",
+                        "A live sales intake form that validates a realistic lead payload with typed koruma errors.",
+                        "Open sales form",
                     ),
                 ],
                 columns: GridColumns::Two,

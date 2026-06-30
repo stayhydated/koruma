@@ -7,13 +7,14 @@ use dioxus_free_icons::{
     icons::ld_icons::{LdClipboardCheck, LdRotateCcw, LdSend, LdTriangleAlert},
 };
 use dioxus_primitives::label::Label;
-use es_fluent_manager_dioxus::use_i18n;
+use es_fluent_manager_dioxus::{DioxusAssetI18nProvider, use_i18n};
 use koruma::{Koruma, KorumaAllDisplay};
 use koruma_collection::{collection, format, general, numeric};
-use stayhydated_dioxus::{page_entry_reveal_style, surface_reveal_style};
+use stayhydated_dioxus::{StayhydatedSiteLanguage as _, surface_reveal_style};
 
 use crate::components::{FooterPanel, PageHeader};
-use crate::site::i18n::{SalesFormMessage, SiteLanguage};
+use crate::pages::DemoLanguageSwitcher;
+use crate::pages::i18n::{DemoLanguage, SalesFormMessage};
 use crate::site::routing::PageKind;
 
 const SALES_STAGES: &[&str] = &["Discovery", "Qualified", "Proposal", "Procurement"];
@@ -218,13 +219,23 @@ impl FieldStatus {
 }
 
 #[component]
-pub(crate) fn SalesFormPage(locale: SiteLanguage) -> Element {
+pub(crate) fn SalesFormPage() -> Element {
+    rsx! {
+        DioxusAssetI18nProvider {
+            initial_language: DemoLanguage::default().language_identifier(),
+            SalesFormContent {}
+        }
+    }
+}
+
+#[component]
+fn SalesFormContent() -> Element {
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
                 div { class: "page-shell",
-                    PageHeader { locale, current_page: PageKind::SalesForm }
+                    PageHeader { current_page: PageKind::SalesForm }
                     main { class: "stack",
                         section { class: "page-title-band",
                             span { class: "panel-label", "i18n load failure" }
@@ -258,23 +269,26 @@ pub(crate) fn SalesFormPage(locale: SiteLanguage) -> Element {
     let status_valid = i18n.localize_message(&SalesFormMessage::FieldStatusValid);
     let status_invalid = i18n.localize_message(&SalesFormMessage::FieldStatusInvalid);
     let status_optional = i18n.localize_message(&SalesFormMessage::FieldStatusOptional);
-    let title_style = page_entry_reveal_style();
     let demo_style = surface_reveal_style();
 
     rsx! {
         div { class: "page-shell",
-            PageHeader { locale, current_page: PageKind::SalesForm }
+            PageHeader { current_page: PageKind::SalesForm }
             main { class: "stack",
-                section { class: "page-title-band motion-reveal",
-                    style: title_style.as_str(),
-                    span { class: "panel-label",
-                        "{i18n.localize_message(&SalesFormMessage::PanelLabel)}"
-                    }
-                    h1 { "{i18n.localize_message(&SalesFormMessage::IntroTitle)}" }
-                    p { "{i18n.localize_message(&SalesFormMessage::IntroBody)}" }
-                }
                 section { class: "sales-demo-shell motion-reveal",
                     style: demo_style.as_str(),
+                    div { class: "demo-card-header sales-demo-header",
+                        div { class: "demo-card-heading",
+                            span { class: "panel-label",
+                                "{i18n.localize_message(&SalesFormMessage::PanelLabel)}"
+                            }
+                            h1 { "{i18n.localize_message(&SalesFormMessage::IntroTitle)}" }
+                            p { "{i18n.localize_message(&SalesFormMessage::IntroBody)}" }
+                        }
+                        div { class: "demo-card-controls",
+                            DemoLanguageSwitcher {}
+                        }
+                    }
                     div { class: "sales-form-panel",
                         div { class: "sales-action-row",
                             button {

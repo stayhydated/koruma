@@ -1,63 +1,27 @@
-use crate::site::i18n::{ContributeMessage, SiteFooterMessage, SiteLanguage};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
-use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::{
     ContributePanelShell, LinkTarget, Project, ProjectFluentTextLink, ProjectPackage,
     ProjectPackageTextLink, ProjectPackagesFooterPanelForProject, ProjectSourceTextLink,
-    ProjectSupportLink, ProjectSupportTextLink, RouteLocalizedLanguageSelect,
-    StayhydatedProjectHeader, StayhydatedProjectHeaderConfig, contribute_reveal_style,
-    stayhydated_project_options_for_locale,
+    ProjectSupportLink, ProjectSupportTextLink, StayhydatedProjectHeader,
+    StayhydatedProjectHeaderConfig, contribute_reveal_style, stayhydated_header_labels,
 };
 
 #[component]
-pub(crate) fn PageHeader(locale: SiteLanguage, current_page: PageKind) -> Element {
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                div { "Failed to initialize i18n: {error}" }
-            };
-        },
-    };
-
-    let project_options =
-        stayhydated_project_options_for_locale(locale, |message| i18n.localize_message(&message));
-    let config = StayhydatedProjectHeaderConfig::localized_with_i18n(
+pub(crate) fn PageHeader(current_page: PageKind) -> Element {
+    let config = StayhydatedProjectHeaderConfig::new(
         Project::Koruma,
-        crate::site::routing::page_href(locale, PageKind::Home).into_string(),
-        LinkTarget::route(crate::site::routing::app_route(locale, PageKind::Home)),
-        LinkTarget::route(crate::site::routing::app_route(locale, PageKind::Demos)),
+        crate::site::routing::page_href(PageKind::Home).into_string(),
+        LinkTarget::route(crate::site::routing::app_route(PageKind::Home)),
+        LinkTarget::route(crate::site::routing::app_route(PageKind::Demos)),
         crate::site::routing::book_href().as_str(),
+        stayhydated_header_labels(),
         current_page.project_nav_item(),
-        &i18n,
-    )
-    .with_project_options(project_options);
+    );
 
     rsx! {
         StayhydatedProjectHeader::<crate::site::routing::AppRoute> {
             config,
-            LocaleSwitcher { locale, current_page }
-        }
-    }
-}
-
-#[component]
-fn LocaleSwitcher(locale: SiteLanguage, current_page: PageKind) -> Element {
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                div { class: "locale-switcher-dropdown", "Failed to initialize i18n: {error}" }
-            };
-        },
-    };
-
-    rsx! {
-        RouteLocalizedLanguageSelect::<SiteLanguage, _, crate::site::routing::AppRoute> {
-            localizer: i18n,
-            selected: locale,
-            route_for_language: move |next_locale| crate::site::routing::app_route(next_locale, current_page),
         }
     }
 }
@@ -65,60 +29,31 @@ fn LocaleSwitcher(locale: SiteLanguage, current_page: PageKind) -> Element {
 #[component]
 pub(crate) fn ContributePanel() -> Element {
     let reveal_style = contribute_reveal_style();
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                section { class: "contribute-panel",
-                    div { class: "contribute-copy", "Failed to initialize i18n: {error}" }
-                }
-            };
-        },
-    };
-
-    let (label, headline, body_prefix, project_fluent, body_crowdin, body_github, dot) = (
-        i18n.localize_message(&ContributeMessage::Label),
-        i18n.localize_message(&ContributeMessage::Headline),
-        i18n.localize_message(&ContributeMessage::BodyPrefix),
-        i18n.localize_message(&ContributeMessage::BodyProjectFluent),
-        i18n.localize_message(&ContributeMessage::BodyCrowdin),
-        i18n.localize_message(&ContributeMessage::BodyGithub),
-        i18n.localize_message(&ContributeMessage::FooterDot),
-    );
-    let body_prefix = body_prefix.trim().to_string();
-    let project_fluent = project_fluent.trim().to_string();
-    let body_github = body_github.trim().to_string();
 
     rsx! {
         ContributePanelShell { style: reveal_style,
-            span { class: "panel-label", "{label}" }
+            span { class: "panel-label", "Help translate" }
             h2 {
-                "{headline} "
+                "Improve "
                 ProjectPackageTextLink { package: ProjectPackage::KORUMA_COLLECTION }
             }
             p {
                 ProjectPackageTextLink { package: ProjectPackage::KORUMA_COLLECTION }
-                " "
-                "{body_prefix}"
-                " "
+                " ships "
                 ProjectFluentTextLink {
                     label: "Project Fluent",
                 }
-                " "
-                "{project_fluent}"
-                " "
+                " messages. Add missing translations through "
                 ProjectSupportTextLink {
                     link: ProjectSupportLink::KORUMA_COLLECTION_CROWDIN,
-                    label: body_crowdin,
+                    label: "Crowdin",
                 }
-                " "
-                "{body_github}"
-                " "
+                " or contribute directly on "
                 ProjectSourceTextLink {
                     project: Project::Koruma,
                     label: "GitHub",
                 }
-                "{dot}"
+                "."
             }
         }
     }
@@ -126,34 +61,13 @@ pub(crate) fn ContributePanel() -> Element {
 
 #[component]
 pub(crate) fn FooterPanel() -> Element {
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                footer { class: "site-footer", "Failed to initialize i18n: {error}" }
-            };
-        },
-    };
-
-    let label = i18n.localize_message(&SiteFooterMessage::CratesLabel);
-    let prefix = i18n.localize_message(&SiteFooterMessage::CratesTextPrefix);
-    let separator = i18n
-        .localize_message(&SiteFooterMessage::CratesTextMiddle)
-        .trim()
-        .to_string();
-    let suffix = i18n
-        .localize_message(&SiteFooterMessage::CratesTextSuffix)
-        .trim()
-        .to_string();
-    let separator = format!(" {separator} ");
-    let suffix = format!(" {suffix}");
     rsx! {
         ProjectPackagesFooterPanelForProject {
             project: Project::Koruma,
-            label,
-            prefix,
-            separator,
-            suffix,
+            label: "Crates",
+            prefix: "",
+            separator: " and ",
+            suffix: " are published on crates.io.",
         }
     }
 }

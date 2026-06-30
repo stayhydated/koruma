@@ -5,16 +5,17 @@ use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
 use es_fluent::registry::{StaticFluentDomain, StaticFluentEntryId};
 use es_fluent::{FluentArgs, FluentLocalizer as _};
-use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, use_i18n};
+use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, DioxusAssetI18nProvider, use_i18n};
 use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
 use stayhydated_dioxus::{
-    TabContent, TabList, TabTrigger, Tabs, TabsOrientation, page_entry_reveal_style,
+    StayhydatedSiteLanguage as _, TabContent, TabList, TabTrigger, Tabs, TabsOrientation,
     surface_reveal_style,
 };
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
-use crate::site::i18n::{DioxusShowcaseMessage, SiteLanguage};
+use crate::pages::DemoLanguageSwitcher;
+use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage};
 use crate::site::routing::PageKind;
 
 #[derive(Clone, Copy)]
@@ -60,41 +61,24 @@ impl ValidatorState {
 }
 
 #[component]
-pub(crate) fn CollectionDioxusPage(locale: SiteLanguage) -> Element {
-    let i18n = match use_i18n() {
-        Ok(i18n) => i18n,
-        Err(error) => {
-            return rsx! {
-                div { class: "page-shell",
-                    PageHeader { locale, current_page: PageKind::CollectionDioxus }
-                    main { class: "stack",
-                        section { class: "page-title-band",
-                            span { class: "panel-label", "i18n load failure" }
-                            h1 { "koruma-collection Dioxus demo" }
-                            p { "Failed to initialize i18n: {error}" }
-                        }
-                    }
-                    FooterPanel {}
-                }
-            };
-        },
-    };
-
-    let _ = &i18n;
-
-    rsx! { CollectionDioxusShowcase { locale } }
+pub(crate) fn CollectionDioxusPage() -> Element {
+    rsx! {
+        DioxusAssetI18nProvider {
+            initial_language: DemoLanguage::default().language_identifier(),
+            CollectionDioxusShowcase {}
+        }
+    }
 }
 
 #[component]
-fn CollectionDioxusShowcase(locale: SiteLanguage) -> Element {
-    let title_style = page_entry_reveal_style();
+fn CollectionDioxusShowcase() -> Element {
     let showcase_style = surface_reveal_style();
     let i18n = match use_i18n() {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
                 div { class: "page-shell",
-                    PageHeader { locale, current_page: PageKind::CollectionDioxus }
+                    PageHeader { current_page: PageKind::CollectionDioxus }
                     main { class: "stack",
                         section { class: "page-title-band",
                             span { class: "panel-label", "i18n load failure" }
@@ -127,16 +111,20 @@ fn CollectionDioxusShowcase(locale: SiteLanguage) -> Element {
 
     rsx! {
         div { class: "page-shell",
-            PageHeader { locale, current_page: PageKind::CollectionDioxus }
+            PageHeader { current_page: PageKind::CollectionDioxus }
             main { class: "stack",
-                section { class: "page-title-band motion-reveal",
-                    style: title_style.as_str(),
-                    span { class: "panel-label", "{panel_label}" }
-                    h1 { "{page_title}" }
-                    p { "{page_intro_body}" }
-                }
-                section { class: "section-band motion-reveal",
+                section { class: "section-band collection-demo-card motion-reveal",
                     style: showcase_style.as_str(),
+                    div { class: "demo-card-header",
+                        div { class: "demo-card-heading",
+                            span { class: "panel-label", "{panel_label}" }
+                            h1 { "{page_title}" }
+                            p { "{page_intro_body}" }
+                        }
+                        div { class: "demo-card-controls",
+                            DemoLanguageSwitcher {}
+                        }
+                    }
                     Tabs {
                         default_value: default_module.to_string(),
                         orientation: TabsOrientation::Horizontal,

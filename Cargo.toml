@@ -23,6 +23,7 @@ version = "0.9.0"
 
 [workspace.dependencies]
 anyhow = "1.0"
+attribute-dsl = { path = "../attribute-dsl", version = "0.1.0" }
 bon = "3.9"
 card-validate = "2.4"
 clap = "4.5"

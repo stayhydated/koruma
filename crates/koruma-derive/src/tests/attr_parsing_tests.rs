@@ -25,23 +25,29 @@ fn test_validator_attr_parse_with_args() {
 
 #[test]
 fn test_validator_attr_parse_with_trailing_dot_probe() {
-    let attr: ValidatorAttr = syn::parse_str("RangeValidation::<_>.")
-        .expect("expected parser recovery for trailing-dot probe");
-    assert!(attr.has_completion_probe());
-    assert_eq!(attr.name().to_string(), "RangeValidation");
-    assert_eq!(attr.setter_calls().len(), 0);
+    for (source, uses_type_inference) in
+        [("RangeValidation.", false), ("RangeValidation::<_>.", true)]
+    {
+        let attr: ValidatorAttr =
+            syn::parse_str(source).expect("expected parser recovery for trailing-dot probe");
+        assert!(attr.has_completion_probe());
+        assert_eq!(attr.name().to_string(), "RangeValidation");
+        assert_eq!(attr.setter_calls().len(), 0);
+        assert_eq!(attr.uses_type_inference(), uses_type_inference);
+    }
 }
 
 #[test]
-fn test_validator_attr_rejects_source_completion_marker() {
-    let err = syn::parse_str::<ValidatorAttr>(
-        "RangeValidation::<_>.min(0).__koruma_ra_completion_marker",
-    )
-    .expect_err("source marker syntax should be rejected");
-    assert!(
-        err.to_string().contains("expected validator chain"),
-        "unexpected error: {err}"
+fn test_validator_attr_parse_with_named_completion_probe() {
+    let attr: ValidatorAttr = syn::parse_str("RangeValidation::<_>.min(0).raCompletionMarker")
+        .expect("expected named completion probe parse");
+    assert!(attr.has_completion_probe());
+    assert_eq!(
+        attr.completion_marker().map(|marker| marker.to_string()),
+        Some("raCompletionMarker".to_string())
     );
+    assert_eq!(attr.name().to_string(), "RangeValidation");
+    assert_eq!(attr.setter_calls().len(), 1);
 }
 
 #[test]

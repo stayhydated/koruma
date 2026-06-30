@@ -331,9 +331,10 @@ pub mod __private {
     /// The trait method gives proc-macro completions a valid method-call shape
     /// without adding a real public field or inherent method to validator
     /// builders.
+    #[allow(non_snake_case)]
     #[rust_analyzer::completions(ignore_methods)]
     pub trait RustAnalyzerCompletionMarker {
-        fn __koruma_ra_completion_marker(&self) {}
+        fn raCompletionMarker(&self) {}
     }
 
     impl<T: ?Sized> RustAnalyzerCompletionMarker for T {}

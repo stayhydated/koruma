@@ -9,7 +9,7 @@ use syn::{
 
 use super::keywords::ReservedBuilderMethod;
 
-const COMPLETION_MARKER: &str = "__koruma_ra_completion_marker";
+const COMPLETION_MARKER: &str = "raCompletionMarker";
 
 /// Represents a single parsed validator configuration chain.
 ///
@@ -72,7 +72,7 @@ pub struct BuilderMethodCall {
 #[derive(Clone, Debug)]
 pub enum ValidatorChainCompletion {
     None,
-    DotProbe,
+    DotProbe { marker: Ident },
 }
 
 impl BuilderMethodCall {
@@ -207,7 +207,15 @@ impl ValidatorAttr {
 
     /// Returns true when the parsed chain ends in a completion probe.
     pub fn has_completion_probe(&self) -> bool {
-        matches!(self.completion, ValidatorChainCompletion::DotProbe)
+        matches!(self.completion, ValidatorChainCompletion::DotProbe { .. })
+    }
+
+    /// Returns the completion probe marker that rust-analyzer maps back to the cursor.
+    pub fn completion_marker(&self) -> Option<&Ident> {
+        match &self.completion {
+            ValidatorChainCompletion::DotProbe { marker } => Some(marker),
+            ValidatorChainCompletion::None => None,
+        }
     }
 
     /// Returns validator configuration as normalized builder setter calls.
@@ -246,13 +254,13 @@ impl Parse for ValidatorAttr {
 
 fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
     let fork = input.fork();
-    let (expr, synthetic_probe, advanced_fork) = match fork.parse::<Expr>() {
+    let (expr, advanced_fork) = match fork.parse::<Expr>() {
         Ok(expr) => {
             if fork.is_empty() || !fork.peek(syn::Token![.]) {
-                (expr, false, fork)
+                (expr, fork)
             } else {
                 match parse_trailing_dot_probe_expr(&fork, expr.to_token_stream())? {
-                    Some(expr) => (expr, true, fork),
+                    Some(expr) => (expr, fork),
                     None => return Ok(None),
                 }
             }
@@ -260,7 +268,7 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
         Err(_) => {
             let fallback = input.fork();
             match parse_trailing_dot_probe_expr(&fallback, proc_macro2::TokenStream::new())? {
-                Some(expr) => (expr, true, fallback),
+                Some(expr) => (expr, fallback),
                 None => return Ok(None),
             }
         },
@@ -268,7 +276,7 @@ fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr
     input.advance_to(&advanced_fork);
 
     let Some((validator, builder_methods, completion)) =
-        analyze_direct_validator_expr(&expr, synthetic_probe)?
+        analyze_direct_validator_expr(&expr, true)?
     else {
         return Err(Error::new(expr.span(), "expected validator chain"));
     };
@@ -381,7 +389,9 @@ fn analyze_direct_validator_expr(
             Ok(Some((
                 validator,
                 builder_methods,
-                ValidatorChainCompletion::DotProbe,
+                ValidatorChainCompletion::DotProbe {
+                    marker: marker.clone(),
+                },
             )))
         },
         Expr::MethodCall(method_call) => {

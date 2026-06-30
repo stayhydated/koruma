@@ -262,17 +262,33 @@ fn test_parse_field_builder_entrypoint_validator_with_completion_probe() {
 }
 
 #[test]
-fn test_parse_field_rejects_source_completion_marker() {
+fn test_parse_field_accepts_named_completion_marker() {
     let field: syn::Field = syn::parse_quote! {
-        #[koruma(validators::normal::NumberRangeValidation::<_>.min(1).__koruma_ra_completion_marker)]
+        #[koruma(validators::normal::NumberRangeValidation::<_>.min(1).raCompletionMarker)]
         pub score: i32
     };
 
-    let err = parse_field(&field, 0).expect_err("source marker syntax should be rejected");
-    assert!(
-        err.to_string().contains("expected validator chain"),
-        "unexpected error: {err}"
+    let info = match parse_field(&field, 0).expect("named completion marker should parse") {
+        ParsedDataField::Participating(info) => info,
+        _ => panic!("expected field to participate"),
+    };
+    let field_spec = info.validation();
+
+    let ParsedFieldSpec::Regular {
+        field_validators, ..
+    } = field_spec
+    else {
+        panic!("expected regular field spec");
+    };
+    let validator = field_validators[0].validator();
+    assert!(validator.has_completion_probe());
+    assert_eq!(
+        validator
+            .completion_marker()
+            .map(|marker| marker.to_string()),
+        Some("raCompletionMarker".to_string())
     );
+    assert_eq!(validator.setter_calls().len(), 1);
 }
 
 #[test]

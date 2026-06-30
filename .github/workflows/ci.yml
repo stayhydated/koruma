@@ -55,6 +55,8 @@ jobs:
       - uses: actions/checkout@v6
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rust-analyzer
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.10

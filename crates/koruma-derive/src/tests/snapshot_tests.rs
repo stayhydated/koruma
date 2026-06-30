@@ -77,6 +77,26 @@ fn test_koruma_expansion_single_builder_chain_validator() {
 }
 
 #[test]
+fn test_koruma_expansion_completion_probe_uses_ra_marker() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct CompletionProbe {
+            #[koruma(StringLengthValidation.)]
+            pub name: String,
+
+            #[koruma(NumberRangeValidation::<_>.)]
+            pub age: i32,
+        }
+    };
+
+    let expanded = expand_koruma(input).unwrap();
+    let compact = compact_ws(&pretty_print(expanded));
+    assert!(compact.contains("StringLengthValidation::__koruma_builder()"));
+    assert!(compact.contains("NumberRangeValidation::<i32>::__koruma_builder()"));
+    assert!(compact.contains("let_=__koruma_builder.raCompletionMarker();"));
+    assert!(!compact.contains("__koruma_ra_completion_marker"));
+}
+
+#[test]
 fn test_koruma_expansion_multiple_validators() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct MultiValidatorItem {

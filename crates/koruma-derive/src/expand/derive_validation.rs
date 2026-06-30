@@ -65,10 +65,15 @@ fn render_validation_check(check: ValidationCheck<'_>, koruma: &TokenStream2) ->
     let validation_target_ty = check.target.validate_type();
     let target_expr = check.target_expr;
     let completion_probe = if check.validator.attr.has_completion_probe() {
+        let marker = check
+            .validator
+            .attr
+            .completion_marker()
+            .expect("completion probe marker should be present");
         quote! {
             {
                 use #koruma::__private::RustAnalyzerCompletionMarker as _;
-                let _ = __koruma_builder.__koruma_ra_completion_marker();
+                let _ = __koruma_builder.#marker();
             }
         }
     } else {

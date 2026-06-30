@@ -30,10 +30,12 @@ syn = { features = [ "full", "extra-traits", "visit" ], workspace = true }
 [dev-dependencies]
 es-fluent = { workspace = true }
 insta = { workspace = true }
+lsp-types = { workspace = true }
 prettyplease = { workspace = true }
 renamed-koruma = { default-features = false, features = [
   "fluent",
 ], package = "koruma", path = "../koruma" }
+serde_json = { workspace = true }
 trybuild = { workspace = true }
 
 [package.metadata.docs.rs]

@@ -1,15 +1,15 @@
+use attribute_dsl::{
+    AttributeChain, ChainCompletion, SingleTypeArg, split_terminal_single_type_arg,
+};
 use heck::{ToSnakeCase as _, ToUpperCamelCase as _};
-use proc_macro2::TokenTree;
 use quote::ToTokens;
 use syn::{
-    Error, Expr, GenericArgument, Ident, Path, PathArguments, Result, Type,
+    Error, Expr, Ident, Path, PathArguments, Result, Type,
     parse::{Parse, ParseStream, discouraged::Speculative as _},
     spanned::Spanned as _,
 };
 
 use super::keywords::ReservedBuilderMethod;
-
-const COMPLETION_MARKER: &str = "__koruma_ra_completion_marker";
 
 /// Represents a single parsed validator configuration chain.
 ///
@@ -72,7 +72,7 @@ pub struct BuilderMethodCall {
 #[derive(Clone, Debug)]
 pub enum ValidatorChainCompletion {
     None,
-    DotProbe,
+    DotProbe { marker: Ident },
 }
 
 impl BuilderMethodCall {
@@ -207,7 +207,15 @@ impl ValidatorAttr {
 
     /// Returns true when the parsed chain ends in a completion probe.
     pub fn has_completion_probe(&self) -> bool {
-        matches!(self.completion, ValidatorChainCompletion::DotProbe)
+        matches!(self.completion, ValidatorChainCompletion::DotProbe { .. })
+    }
+
+    /// Returns the completion probe marker that rust-analyzer maps back to the cursor.
+    pub fn completion_marker(&self) -> Option<&Ident> {
+        match &self.completion {
+            ValidatorChainCompletion::DotProbe { marker } => Some(marker),
+            ValidatorChainCompletion::None => None,
+        }
     }
 
     /// Returns validator configuration as normalized builder setter calls.
@@ -236,201 +244,103 @@ impl ValidatorAttr {
 
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
-        if let Some(attr) = try_parse_direct_validator(input)? {
-            return Ok(attr);
+        let fork = input.fork();
+        match fork.parse::<AttributeChain>() {
+            Ok(chain) => {
+                input.advance_to(&fork);
+                ValidatorAttr::try_from_chain(chain)
+            },
+            Err(_) => Err(invalid_validator_syntax_error(input)),
         }
-
-        Err(invalid_validator_syntax_error(input))
     }
 }
 
-fn try_parse_direct_validator(input: ParseStream) -> Result<Option<ValidatorAttr>> {
-    let fork = input.fork();
-    let (expr, synthetic_probe, advanced_fork) = match fork.parse::<Expr>() {
-        Ok(expr) => {
-            if fork.is_empty() || !fork.peek(syn::Token![.]) {
-                (expr, false, fork)
-            } else {
-                match parse_trailing_dot_probe_expr(&fork, expr.to_token_stream())? {
-                    Some(expr) => (expr, true, fork),
-                    None => return Ok(None),
-                }
-            }
-        },
-        Err(_) => {
-            let fallback = input.fork();
-            match parse_trailing_dot_probe_expr(&fallback, proc_macro2::TokenStream::new())? {
-                Some(expr) => (expr, true, fallback),
-                None => return Ok(None),
-            }
-        },
-    };
-    input.advance_to(&advanced_fork);
+impl ValidatorAttr {
+    fn try_from_chain(chain: AttributeChain) -> Result<Self> {
+        let (validator, type_arg) = split_validator_path_type_args(chain.root_path().clone())?;
+        let validator = ValidatorPath::new(validator)?;
+        let mut builder_methods = Vec::new();
 
-    let Some((validator, builder_methods, completion)) =
-        analyze_direct_validator_expr(&expr, synthetic_probe)?
-    else {
-        return Err(Error::new(expr.span(), "expected validator chain"));
-    };
-
-    let (validator, type_arg) = split_validator_path_type_args(validator)?;
-    let validator = ValidatorPath::new(validator)?;
-
-    Ok(Some(ValidatorAttr {
-        validator,
-        type_arg,
-        builder_methods,
-        completion,
-    }))
-}
-
-fn parse_trailing_dot_probe_expr(
-    input: ParseStream,
-    probe_expr: proc_macro2::TokenStream,
-) -> Result<Option<Expr>> {
-    let mut probe_expr = probe_expr;
-    let mut saw_token = false;
-    let mut ends_with_dot = false;
-
-    while !input.is_empty() && !input.peek(syn::Token![,]) {
-        let token: TokenTree = input.parse()?;
-        ends_with_dot = matches!(&token, TokenTree::Punct(punct) if punct.as_char() == '.');
-        probe_expr.extend(token.to_token_stream());
-        saw_token = true;
-    }
-
-    if !saw_token || !ends_with_dot {
-        return Ok(None);
-    }
-
-    let marker = Ident::new(COMPLETION_MARKER, proc_macro2::Span::call_site());
-    probe_expr.extend(marker.to_token_stream());
-
-    Ok(syn::parse2::<Expr>(probe_expr).ok())
-}
-
-fn invalid_validator_syntax_error(input: ParseStream) -> Error {
-    Error::new(
-        input.span(),
-        "validator syntax requires a dot validator chain such as \
-         `RequiredValidation::<_>` or `RangeValidation::<_>.min(value).max(value)`",
-    )
-}
-
-fn split_validator_path_type_args(mut validator: Path) -> Result<(Path, ValidatorTypeArg)> {
-    let validator_span = validator.span();
-    let last_segment = validator
-        .segments
-        .last_mut()
-        .ok_or_else(|| Error::new(validator_span, "expected validator path"))?;
-
-    let args = std::mem::replace(&mut last_segment.arguments, PathArguments::None);
-    let type_arg = match args {
-        PathArguments::None => ValidatorTypeArg::None,
-        PathArguments::AngleBracketed(mut angle_args) => {
-            if angle_args.args.len() != 1 {
+        for call in chain.calls() {
+            if let Some(method) = ReservedBuilderMethod::from_ident(call.method()) {
+                let method_name = call.method().to_string();
                 return Err(Error::new(
-                    angle_args.span(),
-                    "validator type syntax expects exactly one type argument",
-                ));
-            }
-
-            let arg = angle_args.args.pop().expect("len checked").into_value();
-            match arg {
-                GenericArgument::Type(Type::Infer(_)) => ValidatorTypeArg::Infer,
-                GenericArgument::Type(ty) => ValidatorTypeArg::Explicit(Box::new(ty)),
-                _ => Err(Error::new(
-                    arg.span(),
-                    "validator type syntax expects a type argument",
-                ))?,
-            }
-        },
-        PathArguments::Parenthesized(args) => {
-            return Err(Error::new(
-                args.span(),
-                "validator path does not support parenthesized arguments",
-            ));
-        },
-    };
-
-    Ok((validator, type_arg))
-}
-
-fn analyze_direct_validator_expr(
-    expr: &Expr,
-    allow_completion_probe: bool,
-) -> Result<Option<(Path, Vec<BuilderMethodCall>, ValidatorChainCompletion)>> {
-    match expr {
-        Expr::Group(group) => analyze_direct_validator_expr(&group.expr, allow_completion_probe),
-        Expr::Paren(paren) => analyze_direct_validator_expr(&paren.expr, allow_completion_probe),
-        Expr::Field(field) => {
-            let Some((validator, builder_methods, _completion)) =
-                analyze_direct_validator_expr(&field.base, false)?
-            else {
-                return Ok(None);
-            };
-
-            let syn::Member::Named(marker) = &field.member else {
-                return Ok(None);
-            };
-
-            if !allow_completion_probe || marker != COMPLETION_MARKER {
-                return Ok(None);
-            }
-
-            Ok(Some((
-                validator,
-                builder_methods,
-                ValidatorChainCompletion::DotProbe,
-            )))
-        },
-        Expr::MethodCall(method_call) => {
-            let Some((validator, mut builder_methods, _completion)) =
-                analyze_direct_validator_expr(&method_call.receiver, false)?
-            else {
-                return Ok(None);
-            };
-
-            if let Some(method) = ReservedBuilderMethod::from_ident(&method_call.method) {
-                let method_name = method_call.method.to_string();
-                return Err(Error::new(
-                    method_call.method.span(),
+                    call.method().span(),
                     reserved_builder_method_error(method, &method_name),
                 ));
             }
 
             validate_builder_method_syntax(
-                &method_call.method,
-                method_call
-                    .turbofish
-                    .as_ref()
-                    .map(syn::spanned::Spanned::span),
-                method_call.args.len(),
+                call.method(),
+                call.turbofish().map(syn::spanned::Spanned::span),
+                call.args().len(),
             )?;
 
             builder_methods.push(BuilderMethodCall {
-                method: method_call.method.clone(),
-                args: method_call
-                    .args
+                method: call.method().clone(),
+                args: call
+                    .args()
                     .iter()
                     .cloned()
                     .map(ValidatorSetterArg::Expr)
                     .collect(),
             });
-            Ok(Some((
-                validator,
-                builder_methods,
-                ValidatorChainCompletion::None,
-            )))
-        },
-        Expr::Call(_) => Ok(None),
-        Expr::Path(path) => Ok(Some((
-            path.path.clone(),
-            Vec::new(),
-            ValidatorChainCompletion::None,
-        ))),
-        _ => Ok(None),
+        }
+
+        let completion = match chain.completion() {
+            ChainCompletion::None => ValidatorChainCompletion::None,
+            ChainCompletion::DotProbe { marker } => ValidatorChainCompletion::DotProbe {
+                marker: marker.clone(),
+            },
+        };
+
+        Ok(ValidatorAttr {
+            validator,
+            type_arg,
+            builder_methods,
+            completion,
+        })
     }
+}
+
+fn split_validator_path_type_args(validator: Path) -> Result<(Path, ValidatorTypeArg)> {
+    let (path, type_arg) = split_terminal_single_type_arg(validator, "validator")?;
+    let type_arg = match type_arg {
+        SingleTypeArg::None => ValidatorTypeArg::None,
+        SingleTypeArg::Infer => ValidatorTypeArg::Infer,
+        SingleTypeArg::Explicit(ty) => ValidatorTypeArg::Explicit(ty),
+    };
+    Ok((path, type_arg))
+}
+
+fn invalid_validator_syntax_error(input: ParseStream) -> Error {
+    if input.is_empty() || looks_like_angle_generic_shorthand(input) {
+        return Error::new(
+            input.span(),
+            "validator syntax requires a dot validator chain such as \
+             `RequiredValidation::<_>` or `RangeValidation::<_>.min(value).max(value)`",
+        );
+    }
+
+    Error::new(input.span(), "expected validator chain")
+}
+
+fn looks_like_angle_generic_shorthand(input: ParseStream) -> bool {
+    let fork = input.fork();
+    let Ok(path) = fork.parse::<Path>() else {
+        return false;
+    };
+
+    if !fork.is_empty() {
+        return false;
+    }
+
+    path.segments.last().is_some_and(|segment| {
+        matches!(
+            &segment.arguments,
+            PathArguments::AngleBracketed(args) if args.colon2_token.is_none()
+        )
+    })
 }
 
 fn validate_builder_method_syntax(
@@ -461,7 +371,7 @@ fn validate_builder_method_syntax(
 
 fn reserved_builder_method_error(method: ReservedBuilderMethod, method_name: &str) -> String {
     if method.is_builder() {
-        return "`::builder()` is outside Koruma's validator attribute grammar; use dot-chain syntax such as `Validator::<_>.min(value)` or bare `Validator::<_>` for validators without configuration fields"
+        return "`.builder(...)` is outside Koruma's validator attribute grammar; use dot-chain syntax such as `Validator::<_>.min(value)` or bare `Validator::<_>` for validators without configuration fields"
             .to_owned();
     }
 

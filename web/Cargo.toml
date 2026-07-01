@@ -13,10 +13,11 @@ web = [ "dioxus/web", "stayhydated-site/web" ]
 [dependencies]
 bon = { workspace = true }
 dioxus = { features = [ "router", "launch", "lib" ], workspace = true }
-dioxus-free-icons = { workspace = true }
-dioxus-primitives = { workspace = true }
+dioxus-free-icons = { features = [ "lucide" ], workspace = true }
+dioxus-primitives = { features = [ "router" ], workspace = true }
 es-fluent = { workspace = true }
 es-fluent-lang = { workspace = true }
+es-fluent-manager-embedded = { workspace = true }
 es-fluent-manager-dioxus = { features = [ "client", "ssr" ], workspace = true }
 koruma = { features = [ "internal-showcase", "derive", "fluent" ], workspace = true }
 koruma-collection = { features = [ "internal-showcase" ], workspace = true }

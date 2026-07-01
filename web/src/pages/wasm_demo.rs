@@ -3,10 +3,9 @@ use std::collections::HashMap;
 use dioxus::events::FormData;
 use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
-use es_fluent::registry::{StaticFluentDomain, StaticFluentEntryId};
-use es_fluent::{FluentArgs, FluentLocalizer as _};
+use es_fluent::FluentLocalizer as _;
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, DioxusAssetI18nProvider, use_i18n};
-use koruma::showcase::{ValidatorModule, ValidatorShowcase, validators};
+use koruma::showcase::{DynValidator, ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
 use stayhydated_dioxus::{
     StayhydatedSiteLanguage as _, TabContent, TabList, TabTrigger, Tabs, TabsOrientation,
@@ -15,7 +14,7 @@ use stayhydated_dioxus::{
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::pages::DemoLanguageSwitcher;
-use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage};
+use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage, koruma_localizer_for};
 use crate::site::routing::PageKind;
 
 #[derive(Clone, Copy)]
@@ -26,8 +25,7 @@ enum ValidatorState {
 }
 
 struct ValidatorRowMessages {
-    display_message: String,
-    fluent_message: String,
+    validation_message: String,
     error_message: Option<String>,
     input_placeholder: String,
     message_heading: String,
@@ -98,6 +96,7 @@ fn CollectionDioxusShowcase() -> Element {
         i18n.localize_message(&DioxusShowcaseMessage::ValidationPlaceholder),
         i18n.localize_message(&DioxusShowcaseMessage::ErrorPrefix),
     );
+    let koruma_language = i18n.requested_language();
 
     let mut inputs = use_signal(HashMap::<&'static str, String>::new);
 
@@ -159,28 +158,16 @@ fn CollectionDioxusShowcase() -> Element {
                                                 Err(_) => ValidatorState::Error,
                                             };
                                             let message_heading = current_state.message_heading(&i18n);
-                                            let (display_msg, fluent_msg, error_msg) =
+                                            let (validation_message, error_msg) =
                                                 match current_validator {
-                                                    Ok(v) if v.is_valid() => (
-                                                        v.display_string(),
-                                                        v.fluent_string_with(&mut |domain, id, args| {
-                                                            localize_with_args(
-                                                                &i18n, domain, id, args,
-                                                            )
-                                                        }),
-                                                        None,
-                                                    ),
                                                     Ok(v) => (
-                                                        v.display_string(),
-                                                        v.fluent_string_with(&mut |domain, id, args| {
-                                                            localize_with_args(
-                                                                &i18n, domain, id, args,
-                                                            )
-                                                        }),
+                                                        localized_validator_message(
+                                                            v.as_ref(),
+                                                            &koruma_language,
+                                                        ),
                                                         None,
                                                     ),
                                                     Err(error) => (
-                                                        String::new(),
                                                         String::new(),
                                                         Some(format!("{error_prefix} {error}")),
                                                     ),
@@ -203,8 +190,7 @@ fn CollectionDioxusShowcase() -> Element {
                                                 }),
                                                 current_state,
                                                 ValidatorRowMessages {
-                                                    display_message: display_msg,
-                                                    fluent_message: fluent_msg,
+                                                    validation_message,
                                                     error_message: error_msg,
                                                     input_placeholder: validation_placeholder.clone(),
                                                     message_heading,
@@ -258,13 +244,7 @@ fn validator_row(
                         p { class: "validator-message validator-message-error", "{error}" }
                     },
                     None => rsx! {
-                        p { class: "validator-message", "{messages.display_message}" }
-                        if !messages.fluent_message.is_empty() {
-                            p {
-                                class: "validator-message validator-message-subtle",
-                                "{messages.fluent_message}"
-                            }
-                        }
+                        p { class: "validator-message", "{messages.validation_message}" }
                     },
                 }
             }
@@ -272,15 +252,32 @@ fn validator_row(
     }
 }
 
-fn localize_with_args<'a>(
-    i18n: &DioxusAssetI18nHandle,
-    domain: StaticFluentDomain,
-    id: StaticFluentEntryId,
-    args: Option<&FluentArgs<'a>>,
+fn localized_validator_message(
+    validator: &dyn DynValidator,
+    language: &unic_langid::LanguageIdentifier,
 ) -> String {
-    i18n.localize_in_domain(domain, id, args)
-        .unwrap_or_else(|| id.as_str().to_string())
+    let fallback = validator.display_string();
+    let Some(localizer) = koruma_localizer_for(language) else {
+        return fallback;
+    };
+
+    let mut missing = false;
+    let message = validator.fluent_string_with(&mut |domain, id, args| {
+        localizer
+            .localize_in_domain(domain, id, args)
+            .unwrap_or_else(|| {
+                missing = true;
+                String::new()
+            })
+    });
+
+    if missing || message.is_empty() {
+        fallback
+    } else {
+        message
+    }
 }
+
 fn available_modules(all_validators: &[&'static ValidatorShowcase]) -> Vec<ValidatorModule> {
     ValidatorModule::ALL
         .iter()

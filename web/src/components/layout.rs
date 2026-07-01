@@ -1,10 +1,10 @@
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use stayhydated_dioxus::{
-    ContributePanelShell, LinkTarget, Project, ProjectFluentTextLink, ProjectPackage,
-    ProjectPackageTextLink, ProjectPackagesFooterPanelForProject, ProjectSourceTextLink,
-    ProjectSupportLink, ProjectSupportTextLink, StayhydatedProjectHeader,
-    StayhydatedProjectHeaderConfig, contribute_reveal_style, stayhydated_header_labels,
+    ContributePanelShell, LinkTarget, Project, ProjectFluentTextLink, ProjectFooterPanelForProject,
+    ProjectPackage, ProjectPackageTextLink, ProjectSourceTextLink, ProjectSupportLink,
+    ProjectSupportTextLink, StayhydatedProjectHeader, StayhydatedProjectHeaderConfig,
+    contribute_reveal_style, stayhydated_header_labels,
 };
 
 #[component]
@@ -62,12 +62,8 @@ pub(crate) fn ContributePanel() -> Element {
 #[component]
 pub(crate) fn FooterPanel() -> Element {
     rsx! {
-        ProjectPackagesFooterPanelForProject {
+        ProjectFooterPanelForProject {
             project: Project::Koruma,
-            label: "Crates",
-            prefix: "",
-            separator: " and ",
-            suffix: " are published on crates.io.",
         }
     }
 }

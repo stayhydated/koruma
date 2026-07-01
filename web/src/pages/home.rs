@@ -1,9 +1,10 @@
-use crate::components::{ContributePanel, FooterPanel, PageHeader};
+use crate::components::{FooterPanel, PageHeader};
 use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use stayhydated_dioxus::{
-    FeatureCardItem, HeroListPanel, HeroPanelItem, HeroPanelListKind, LinkTarget, Project,
-    ProjectHero, ProjectHeroActions, ProjectHomeShell, SkillFeatureSection, hero_reveal_style,
+    FeatureCard, HeroListPanel, HeroPanelItem, HeroPanelListKind, LinkTarget, ProjectHero,
+    ProjectHeroActions, ProjectHomeShell, ProjectSurfaceSection, feature_card_reveal_style,
+    hero_reveal_style,
 };
 
 #[component]
@@ -40,30 +41,28 @@ pub(crate) fn HomePage() -> Element {
                 }),
             }
 
-            SkillFeatureSection {
+            ProjectSurfaceSection {
                 label: "Core surfaces",
                 title: "A small API with typed failure data",
-                repo: Project::Koruma,
-                items: vec![
-                    FeatureCardItem::new(
-                        "derive",
-                        "Generated accessors",
-                        "Koruma derives field-level error types so application code can match the exact validator that failed.",
-                    ),
-                    FeatureCardItem::new(
-                        "validators",
-                        "Reusable structs",
-                        "Validator definitions stay explicit, testable, and shareable across fields and data models.",
-                    ),
-                    FeatureCardItem::new(
-                        "fluent",
-                        "Fluent-ready output",
-                        "Display messages and Project Fluent messages can be generated from the same validation model.",
-                    ),
-                ],
+                FeatureCard {
+                    label: "derive",
+                    title: "Generated accessors",
+                    body: "Koruma derives field-level error types so application code can match the exact validator that failed.",
+                    style: feature_card_reveal_style(0),
+                }
+                FeatureCard {
+                    label: "validators",
+                    title: "Reusable structs",
+                    body: "Validator definitions stay explicit, testable, and shareable across fields and data models.",
+                    style: feature_card_reveal_style(1),
+                }
+                FeatureCard {
+                    label: "fluent",
+                    title: "Fluent-ready output",
+                    body: "Display messages and Project Fluent messages can be generated from the same validation model.",
+                    style: feature_card_reveal_style(2),
+                }
             }
-
-            ContributePanel {}
         }
     }
 }

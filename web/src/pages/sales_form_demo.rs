@@ -7,20 +7,22 @@ use dioxus_free_icons::{
     icons::ld_icons::{LdClipboardCheck, LdRotateCcw, LdSend, LdTriangleAlert},
 };
 use dioxus_primitives::label::Label;
+use es_fluent::{FluentLocalizerExt as _, FluentMessage};
 use es_fluent_manager_dioxus::{DioxusAssetI18nProvider, use_i18n};
-use koruma::{Koruma, KorumaAllDisplay};
+use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
 use koruma_collection::{collection, format, general, numeric};
 use stayhydated_dioxus::{StayhydatedSiteLanguage as _, surface_reveal_style};
+use unic_langid::LanguageIdentifier;
 
 use crate::components::{FooterPanel, PageHeader};
 use crate::pages::DemoLanguageSwitcher;
-use crate::pages::i18n::{DemoLanguage, SalesFormMessage};
+use crate::pages::i18n::{DemoLanguage, SalesFormMessage, koruma_localizer_for};
 use crate::site::routing::PageKind;
 
 const SALES_STAGES: &[&str] = &["Discovery", "Qualified", "Proposal", "Procurement"];
 const SALES_FIELD_COUNT: usize = 8;
 
-#[derive(Clone, Debug, Koruma, KorumaAllDisplay)]
+#[derive(Clone, Debug, Koruma, KorumaAllDisplay, KorumaAllFluent)]
 struct SalesLeadForm {
     #[koruma(
         collection::NonEmptyValidation::<_>,
@@ -251,7 +253,8 @@ fn SalesFormContent() -> Element {
 
     let mut draft = use_signal(SalesLeadDraft::default);
     let current = draft.read().clone();
-    let feedback = validate_sales_draft(&current);
+    let koruma_language = i18n.requested_language();
+    let feedback = validate_sales_draft(&current, &koruma_language);
     let field_labels = SalesFieldLabels::builder()
         .company(i18n.localize_message(&SalesFormMessage::FieldCompany))
         .contact_name(i18n.localize_message(&SalesFormMessage::FieldContactName))
@@ -701,26 +704,40 @@ fn field_hint_and_errors(hint: Option<String>, errors: Vec<String>) -> Element {
     }
 }
 
-fn validate_sales_draft(draft: &SalesLeadDraft) -> SalesFeedback {
+fn validate_sales_draft(draft: &SalesLeadDraft, language: &LanguageIdentifier) -> SalesFeedback {
     let form = SalesLeadForm::from(draft);
 
     match form.validate() {
         Ok(()) => SalesFeedback::default(),
         Err(errors) => SalesFeedback {
-            company: format_errors(errors.company().all()),
-            contact_name: format_errors(errors.contact_name().all()),
-            email: format_errors(errors.email().all()),
-            phone: format_errors(errors.phone().all()),
-            deal_value: format_errors(errors.deal_value().all()),
-            stage: format_errors(errors.stage().all()),
-            source_url: format_errors(errors.source_url().all()),
-            next_step: format_errors(errors.next_step().all()),
+            company: format_errors(errors.company().all(), language),
+            contact_name: format_errors(errors.contact_name().all(), language),
+            email: format_errors(errors.email().all(), language),
+            phone: format_errors(errors.phone().all(), language),
+            deal_value: format_errors(errors.deal_value().all(), language),
+            stage: format_errors(errors.stage().all(), language),
+            source_url: format_errors(errors.source_url().all(), language),
+            next_step: format_errors(errors.next_step().all(), language),
         },
     }
 }
 
-fn format_errors<T: Display>(errors: impl IntoIterator<Item = T>) -> Vec<String> {
-    errors.into_iter().map(|error| error.to_string()).collect()
+fn format_errors<T>(
+    errors: impl IntoIterator<Item = T>,
+    language: &LanguageIdentifier,
+) -> Vec<String>
+where
+    T: Display + FluentMessage,
+{
+    let localizer = koruma_localizer_for(language);
+    errors
+        .into_iter()
+        .map(|error| {
+            localizer
+                .and_then(|localizer| localizer.try_localize_message(&error))
+                .unwrap_or_else(|| error.to_string())
+        })
+        .collect()
 }
 
 fn field_status(errors: &[String], value: &str, optional: bool) -> FieldStatus {

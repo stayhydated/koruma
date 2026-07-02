@@ -1,5 +1,6 @@
 use attribute_dsl::{
-    AttributeChain, ChainCompletion, SingleTypeArg, split_terminal_single_type_arg,
+    AttributeChain, ChainCompletion, ChainParseOptions, SingleTypeArg,
+    split_terminal_single_type_arg,
 };
 use heck::{ToSnakeCase as _, ToUpperCamelCase as _};
 use quote::ToTokens;
@@ -245,7 +246,8 @@ impl ValidatorAttr {
 impl Parse for ValidatorAttr {
     fn parse(input: ParseStream) -> Result<Self> {
         let fork = input.fork();
-        match fork.parse::<AttributeChain>() {
+        let parse_options = ChainParseOptions::new();
+        match AttributeChain::parse_with_options(&fork, &parse_options) {
             Ok(chain) => {
                 input.advance_to(&fork);
                 ValidatorAttr::try_from_chain(chain)

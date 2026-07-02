@@ -22,9 +22,8 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
     let options = stayhydated_all_language_options::<DemoLanguage>(|language| {
         i18n.localize_message(&language)
     });
-    let i18n_for_select = i18n.clone();
     let on_change = move |next_language: DemoLanguage| {
-        let _ = i18n_for_select.select_language(next_language.language_identifier());
+        let _ = i18n.select_language(next_language.language_identifier());
     };
 
     rsx! {

@@ -8,8 +8,7 @@ use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, DioxusAssetI18nProvider, u
 use koruma::showcase::{DynValidator, ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
 use stayhydated_dioxus::{
-    StayhydatedSiteLanguage as _, TabContent, TabList, TabTrigger, Tabs, TabsOrientation,
-    surface_reveal_style,
+    TabContent, TabList, TabTrigger, Tabs, TabsOrientation, surface_reveal_style,
 };
 
 use crate::components::{ContributePanel, FooterPanel, PageHeader};
@@ -62,7 +61,7 @@ impl ValidatorState {
 pub(crate) fn CollectionDioxusPage() -> Element {
     rsx! {
         DioxusAssetI18nProvider {
-            initial_language: DemoLanguage::default().language_identifier(),
+            initial_language: DemoLanguage::default().into(),
             CollectionDioxusShowcase {}
         }
     }

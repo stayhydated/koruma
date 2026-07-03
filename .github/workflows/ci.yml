@@ -97,7 +97,7 @@ jobs:
         uses: rui314/setup-mold@v1
 
       - name: Lint code
-        run: cargo clippy --workspace --all-features
+        run: cargo clippy --workspace --all-features --all-targets -- -D warnings
 
   machete:
     runs-on: ubuntu-latest

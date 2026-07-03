@@ -11,7 +11,7 @@ use es_fluent::{FluentLocalizerExt as _, FluentMessage};
 use es_fluent_manager_dioxus::{DioxusAssetI18nProvider, use_i18n};
 use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
 use koruma_collection::{collection, format, general, numeric};
-use stayhydated_dioxus::{StayhydatedSiteLanguage as _, surface_reveal_style};
+use stayhydated_dioxus::surface_reveal_style;
 use unic_langid::LanguageIdentifier;
 
 use crate::components::{FooterPanel, PageHeader};
@@ -224,7 +224,7 @@ impl FieldStatus {
 pub(crate) fn SalesFormPage() -> Element {
     rsx! {
         DioxusAssetI18nProvider {
-            initial_language: DemoLanguage::default().language_identifier(),
+            initial_language: DemoLanguage::default().into(),
             SalesFormContent {}
         }
     }

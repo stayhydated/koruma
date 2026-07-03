@@ -316,9 +316,25 @@ textarea.sales-control {
   min-width: 0;
 }
 
+.locale-switcher-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
 .demo-card-controls .locale-switcher-dropdown {
   width: 100%;
   justify-content: flex-end;
+}
+
+.locale-label {
+  flex: 0 0 auto;
+  color: var(--amber);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .demo-card-controls .dx-select {
@@ -327,6 +343,29 @@ textarea.sales-control {
 
 .demo-card-controls .dx-select-trigger {
   width: 100%;
+}
+
+.header-locale-value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.locale-switcher-dropdown .dx-select-list {
+  z-index: 10000;
+}
+
+.locale-switcher-dropdown .dx-select-trigger {
+  border-color: var(--line);
+  background: #000;
+}
+
+.header-locale-option.is-active {
+  color: var(--text);
+  background: rgba(0, 246, 255, 0.16);
+  text-shadow: 0 0 12px rgba(0, 246, 255, 0.46);
 }
 
 .collection-demo-card {

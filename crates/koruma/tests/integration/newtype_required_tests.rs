@@ -1,6 +1,6 @@
 // Tests for newtype fields with RequiredValidation
 
-use koruma::ValidationError;
+use koruma::ValidationError as _;
 
 use super::fixtures::{ContainsNewtypeWithValidators, ContainsRequiredNewtype, PositiveNumber};
 

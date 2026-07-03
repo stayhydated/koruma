@@ -20,3 +20,6 @@ es-fluent-build = { workspace = true }
 
 [package.metadata.cargo-machete]
 ignored = [ "rust-embed" ]
+
+[lints]
+workspace = true

@@ -1,8 +1,8 @@
 //! Test cases for koruma validation.
 
 use koruma::{
-    Validate, ValidationError, ValidationFieldName, ValidationIssueScope, ValidationIssues,
-    ValidatorMetadata, ValidatorParamValue,
+    Validate as _, ValidationError as _, ValidationFieldName, ValidationIssueScope,
+    ValidationIssues as _, ValidatorMetadata, ValidatorParamValue,
 };
 
 use super::fixtures::{

@@ -100,6 +100,7 @@ note: required by a bound in `ValidationError`
   |
   | / pub trait ValidationError {
   | |     /// Returns `true` if there are no validation errors.
+  | |     #[must_use]
   | |     fn is_empty(&self) -> bool;
 ... |
   | | }
@@ -132,6 +133,7 @@ note: required by a bound in `ValidationIssues`
   |
   | / pub trait ValidationIssues {
   | |     /// Return all validation issues represented by this error value.
+  | |     #[must_use]
   | |     fn issues(&self) -> Vec<ValidationIssue>;
   | | }
   | |_^ required by this bound in `ValidationIssues`

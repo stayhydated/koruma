@@ -8,6 +8,7 @@ use core::{borrow::Borrow, fmt};
 /// or `false` if validation fails. The error details are
 /// captured in the validation struct itself.
 pub trait Validate<T> {
+    #[must_use]
     fn validate(&self, value: &T) -> bool;
 }
 
@@ -17,9 +18,11 @@ pub trait Validate<T> {
 /// error structs, allowing easy checking if any validation failed.
 pub trait ValidationError {
     /// Returns `true` if there are no validation errors.
+    #[must_use]
     fn is_empty(&self) -> bool;
 
     /// Returns `true` if there are any validation errors.
+    #[must_use]
     fn has_errors(&self) -> bool {
         !self.is_empty()
     }
@@ -35,6 +38,7 @@ pub struct ValidatorParamDescriptor {
 
 impl ValidatorParamDescriptor {
     /// Describe a validator parameter.
+    #[must_use]
     pub const fn new(name: &'static str, type_name: &'static str, required: bool) -> Self {
         Self {
             name,
@@ -44,16 +48,19 @@ impl ValidatorParamDescriptor {
     }
 
     /// Parameter name as it appears in the validator struct.
+    #[must_use]
     pub const fn name(self) -> &'static str {
         self.name
     }
 
     /// Rust type name recorded for the parameter.
+    #[must_use]
     pub const fn type_name(self) -> &'static str {
         self.type_name
     }
 
     /// Whether this parameter must be supplied before building the validator.
+    #[must_use]
     pub const fn required(self) -> bool {
         self.required
     }
@@ -68,16 +75,19 @@ pub struct ValidatorDescriptor {
 
 impl ValidatorDescriptor {
     /// Describe a validator type and its configurable parameters.
+    #[must_use]
     pub const fn new(type_name: &'static str, params: &'static [ValidatorParamDescriptor]) -> Self {
         Self { type_name, params }
     }
 
     /// Fully qualified Rust type name for the validator.
+    #[must_use]
     pub const fn type_name(self) -> &'static str {
         self.type_name
     }
 
     /// Parameter descriptors for this validator.
+    #[must_use]
     pub const fn params(self) -> &'static [ValidatorParamDescriptor] {
         self.params
     }
@@ -98,6 +108,7 @@ pub enum ValidatorParamValue {
 impl ValidatorParamValue {
     /// Create an opaque value when the parameter cannot be represented without
     /// adding trait bounds to the validator type.
+    #[must_use]
     pub fn opaque<T: ?Sized>(_: &T) -> Self {
         Self::Opaque {
             type_name: ::core::any::type_name::<T>(),
@@ -114,16 +125,19 @@ pub struct ValidatorParam {
 
 impl ValidatorParam {
     /// Pair a validator parameter name with its runtime value.
+    #[must_use]
     pub const fn new(name: &'static str, value: ValidatorParamValue) -> Self {
         Self { name, value }
     }
 
     /// Parameter name.
+    #[must_use]
     pub const fn name(&self) -> &'static str {
         self.name
     }
 
     /// Runtime parameter value.
+    #[must_use]
     pub const fn value(&self) -> &ValidatorParamValue {
         &self.value
     }
@@ -136,9 +150,11 @@ impl ValidatorParam {
 /// [`Validate<T>`] for that runtime contract.
 pub trait ValidatorMetadata<T> {
     /// Static validator descriptor.
+    #[must_use]
     fn validator_descriptor() -> ValidatorDescriptor;
 
     /// Runtime parameter values captured by this validator instance.
+    #[must_use]
     fn validator_params(&self) -> Vec<ValidatorParam>;
 }
 
@@ -156,11 +172,13 @@ pub struct ValidationFieldName(&'static str);
 
 impl ValidationFieldName {
     /// Create a field name from a static source-level field identifier.
+    #[must_use]
     pub const fn new(name: &'static str) -> Self {
         Self(name)
     }
 
     /// Return the field name as a string slice.
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         self.0
     }
@@ -204,6 +222,7 @@ pub struct ValidationIssue {
 
 impl ValidationIssue {
     /// Create a form-scoped issue.
+    #[must_use]
     pub fn form(message: impl Into<String>) -> Self {
         Self {
             field: None,
@@ -217,6 +236,7 @@ impl ValidationIssue {
     }
 
     /// Create a field-scoped issue.
+    #[must_use]
     pub fn field(
         field: impl Into<ValidationFieldName>,
         validator: &'static str,
@@ -236,6 +256,7 @@ impl ValidationIssue {
     }
 
     /// Create an element-scoped issue.
+    #[must_use]
     pub fn element(
         field: impl Into<ValidationFieldName>,
         element_index: usize,
@@ -256,11 +277,13 @@ impl ValidationIssue {
     }
 
     /// Field name, if this issue is field- or element-scoped.
+    #[must_use]
     pub const fn field_name(&self) -> Option<ValidationFieldName> {
         self.field
     }
 
     /// Field name as a string slice, if this issue is field- or element-scoped.
+    #[must_use]
     pub const fn field_name_str(&self) -> Option<&'static str> {
         match self.field {
             Some(field) => Some(field.as_str()),
@@ -269,31 +292,37 @@ impl ValidationIssue {
     }
 
     /// Issue scope.
+    #[must_use]
     pub const fn scope(&self) -> ValidationIssueScope {
         self.scope
     }
 
     /// Validator type name, if known.
+    #[must_use]
     pub const fn validator(&self) -> Option<&'static str> {
         self.validator
     }
 
     /// Validator label from the source attribute, if present.
+    #[must_use]
     pub const fn label(&self) -> Option<&'static str> {
         self.label
     }
 
     /// Collection element index for element-scoped issues.
+    #[must_use]
     pub const fn element_index(&self) -> Option<usize> {
         self.element_index
     }
 
     /// Human-readable validation message.
+    #[must_use]
     pub fn message(&self) -> &str {
         &self.message
     }
 
     /// Runtime validator parameters.
+    #[must_use]
     pub fn params(&self) -> &[ValidatorParam] {
         &self.params
     }
@@ -302,6 +331,7 @@ impl ValidationIssue {
 /// Optional structured issue enumeration for generated validation errors.
 pub trait ValidationIssues {
     /// Return all validation issues represented by this error value.
+    #[must_use]
     fn issues(&self) -> Vec<ValidationIssue>;
 }
 
@@ -586,6 +616,11 @@ pub trait ValidateExt {
     type Error: ValidationError + Default;
 
     /// Validates the struct and returns the error struct if validation fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns the generated validation error when one or more validated fields,
+    /// nested values, or newtype checks fail.
     fn validate(&self) -> Result<(), Self::Error>;
 }
 
@@ -619,6 +654,11 @@ pub trait NewtypeValue: NewtypeValidation {
 
     /// Validate a candidate wrapped value without constructing or cloning the
     /// wrapper.
+    ///
+    /// # Errors
+    ///
+    /// Returns the generated validation error when `value` fails the newtype's
+    /// configured validators or nested validation.
     fn validate_inner(value: &Self::Inner) -> Result<(), Self::Error>;
 }
 
@@ -629,6 +669,11 @@ pub trait NewtypeValue: NewtypeValidation {
 /// controlled by the existing `#[koruma(try_from)]` option.
 pub trait NewtypeTryFromInner: NewtypeValue {
     /// Validate `value` and construct the wrapper when validation succeeds.
+    ///
+    /// # Errors
+    ///
+    /// Returns the generated validation error when `value` fails the newtype's
+    /// configured validators or nested validation.
     fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
     where
         Self: Sized;

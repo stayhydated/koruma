@@ -253,10 +253,10 @@ example_validation = Value { $min } and { $actual }.
         input.chars().filter(|c| !c.is_whitespace()).collect()
     }
 
-    fn nth_message_pattern<'a>(
-        resource: &'a ast::Resource<String>,
+    fn nth_message_pattern(
+        resource: &ast::Resource<String>,
         index: usize,
-    ) -> &'a ast::Pattern<String> {
+    ) -> &ast::Pattern<String> {
         resource
             .body
             .iter()

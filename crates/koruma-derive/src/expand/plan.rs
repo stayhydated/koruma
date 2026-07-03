@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use koruma_derive_core::{
     BuilderMethodCall, FieldInfo, ParsedValidatorUse, StructMode, StructOptions, ValidatorAttr,
     ValidatorLabel, ValidatorSetterArg, ValidatorTargetSelector, contains_infer_type,
@@ -21,7 +19,6 @@ pub(crate) struct ValidationPlan {
     pub struct_plan: StructPlan,
     pub main_error_struct: Ident,
     pub fields: Vec<FieldPlan>,
-    pub known_field_names: Vec<Ident>,
 }
 
 impl ValidationPlan {
@@ -86,12 +83,7 @@ impl ValidationPlan {
             struct_plan,
             main_error_struct: generated_api.main_error_struct,
             fields: planned_fields,
-            known_field_names,
         })
-    }
-
-    pub fn field_plan(&self, name: &Ident) -> Option<&FieldPlan> {
-        self.fields.iter().find(|field| &field.name == name)
     }
 
     pub fn struct_newtype(&self) -> Option<&FieldPlan> {
@@ -99,10 +91,6 @@ impl ValidationPlan {
             StructPlan::Newtype { field_index } => self.fields.get(*field_index),
             StructPlan::Record | StructPlan::Tuple | StructPlan::Unit => None,
         }
-    }
-
-    pub(crate) fn validation_operations(&self) -> Vec<PlannedValidationOperation<'_>> {
-        self.validation_render_plan().operations
     }
 
     pub(crate) fn validation_render_plan(&self) -> ValidationRenderPlan<'_> {
@@ -468,47 +456,6 @@ pub(crate) enum FieldErrorShape {
     RegularFieldAndElement,
 }
 
-impl FieldErrorShape {
-    pub(crate) fn has_field_validators(self) -> bool {
-        matches!(
-            self,
-            Self::NewtypeWithValidatorsRequired
-                | Self::NewtypeWithValidatorsOptional
-                | Self::RegularFieldOnly
-                | Self::RegularFieldAndElement
-        )
-    }
-
-    pub(crate) fn has_element_validators(self) -> bool {
-        matches!(
-            self,
-            Self::RegularElementOnly | Self::RegularFieldAndElement
-        )
-    }
-
-    pub(crate) fn is_newtype(self) -> bool {
-        matches!(
-            self,
-            Self::NewtypeInnerRequired
-                | Self::NewtypeInnerOptional
-                | Self::NewtypeWithValidatorsRequired
-                | Self::NewtypeWithValidatorsOptional
-        )
-    }
-
-    pub(crate) fn newtype_inner_optional(self) -> Option<bool> {
-        match self {
-            Self::NewtypeInnerRequired | Self::NewtypeWithValidatorsRequired => Some(false),
-            Self::NewtypeInnerOptional | Self::NewtypeWithValidatorsOptional => Some(true),
-            _ => None,
-        }
-    }
-
-    pub(crate) fn newtype_inner_deref(self) -> bool {
-        matches!(self, Self::NewtypeInnerRequired)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub(crate) enum PlannedValidationOperation<'a> {
     NestedRequired(PlannedNestedValidation<'a>),
@@ -648,9 +595,15 @@ pub(crate) struct PlannedElementValidatorGroups<'a> {
 
 #[derive(Clone, Debug)]
 pub(crate) struct FieldSource {
-    pub name: Ident,
     pub member: Member,
     pub ty: Type,
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "planner unit tests assert tuple-field source indices"
+        )
+    )]
     pub index: usize,
     pub marker_span: Option<Span>,
 }
@@ -746,7 +699,6 @@ impl FieldPlan {
         Ok(Self {
             name: field.name().clone(),
             source: FieldSource {
-                name: field.name().clone(),
                 member: field.member().clone(),
                 ty: field.ty().clone(),
                 index: field.index(),
@@ -799,6 +751,7 @@ impl FieldPlan {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn element_optional(&self) -> bool {
         self.element_cardinality().is_optional()
     }
@@ -957,6 +910,13 @@ pub(crate) struct PlannedValidator {
     pub source_span: Span,
     pub doc_name: String,
     pub target: ValidationTarget,
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "planner unit tests assert resolved validator type inference"
+        )
+    )]
     pub resolved_type_arg: PlannedValidatorTypeArg,
     pub validator_type: PlannedValidatorType,
     pub builder_type: PlannedValidatorType,
@@ -1213,12 +1173,23 @@ pub(crate) enum TargetBorrow {
 #[derive(Clone, Debug)]
 pub(crate) struct FullFieldTarget {
     pub ty: Type,
+    #[cfg_attr(
+        not(test),
+        expect(dead_code, reason = "planner unit tests assert full-field cardinality")
+    )]
     pub cardinality: Cardinality,
     pub borrow: TargetBorrow,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct UnwrappedFieldTarget {
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "planner unit tests assert raw unwrapped field types"
+        )
+    )]
     pub raw_type: Type,
     pub validate_type: Type,
     pub borrow: TargetBorrow,
@@ -1227,12 +1198,26 @@ pub(crate) struct UnwrappedFieldTarget {
 #[derive(Clone, Debug)]
 pub(crate) struct FullElementTarget {
     pub ty: Type,
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "planner unit tests assert full-element cardinality"
+        )
+    )]
     pub cardinality: Cardinality,
     pub borrow: TargetBorrow,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct UnwrappedElementTarget {
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "planner unit tests assert raw unwrapped element types"
+        )
+    )]
     pub raw_type: Type,
     pub validate_type: Type,
     pub borrow: TargetBorrow,
@@ -1369,15 +1354,6 @@ impl ValidationTarget {
             })
     }
 
-    pub(crate) fn raw_type(&self) -> &Type {
-        match self {
-            Self::FieldFull(target) => &target.ty,
-            Self::FieldUnwrapped(target) => &target.raw_type,
-            Self::ElementFull(target) => &target.ty,
-            Self::ElementUnwrapped(target) => &target.raw_type,
-        }
-    }
-
     pub(crate) fn validate_type(&self) -> &Type {
         match self {
             Self::FieldFull(target) => &target.ty,
@@ -1400,17 +1376,19 @@ impl ValidationTarget {
 #[derive(Clone, Debug)]
 pub(crate) enum PlannedValidatorTypeArg {
     None,
-    Resolved(Box<Type>),
+    Resolved(
+        #[cfg_attr(
+            not(test),
+            expect(
+                dead_code,
+                reason = "planner unit tests inspect resolved type arguments"
+            )
+        )]
+        Box<Type>,
+    ),
 }
 
 impl PlannedValidatorTypeArg {
-    fn as_type(&self) -> Option<&Type> {
-        match self {
-            PlannedValidatorTypeArg::None => None,
-            PlannedValidatorTypeArg::Resolved(ty) => Some(ty.as_ref()),
-        }
-    }
-
     fn for_validator(
         validator: &ValidatorAttr,
         target: &ValidationTarget,
@@ -1434,9 +1412,22 @@ impl PlannedValidatorTypeArg {
 
 #[derive(Clone, Debug)]
 pub(crate) enum ErrorStorage {
-    Nested { cardinality: Cardinality },
-    NewtypeInner { cardinality: Cardinality },
-    NewtypeWithValidators { cardinality: Cardinality },
+    Nested {
+        #[cfg_attr(
+            not(test),
+            expect(
+                dead_code,
+                reason = "planner unit tests assert nested error cardinality"
+            )
+        )]
+        cardinality: Cardinality,
+    },
+    NewtypeInner {
+        cardinality: Cardinality,
+    },
+    NewtypeWithValidators {
+        cardinality: Cardinality,
+    },
     RegularEmpty,
     RegularFieldValidators,
     RegularElementValidators,

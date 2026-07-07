@@ -1644,7 +1644,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
@@ -1657,14 +1657,14 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-build"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent-toml",
 ]
 
 [[package]]
 name = "es-fluent-derive"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "darling 0.23.0",
  "es-fluent-derive-core",
@@ -1676,7 +1676,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive-core"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "bon",
  "darling 0.23.0",
@@ -1694,7 +1694,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1709,7 +1709,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang-macro"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
@@ -1722,7 +1722,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-core"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1740,7 +1740,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-dioxus"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1764,7 +1764,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-embedded"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1776,7 +1776,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-macros"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-shared",
@@ -1790,7 +1790,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-shared"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "camino",
@@ -1812,7 +1812,7 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-toml"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "bon",
  "es-fluent-shared",
@@ -4709,18 +4709,20 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared#42efffd23442a16c20d0deb55f4f3bca6ee81f5d"
+source = "git+https://github.com/stayhydated/shared?rev=12c0941370cc5faf774798b625d840c662930702#12c0941370cc5faf774798b625d840c662930702"
 dependencies = [
- "derive_more",
  "dioxus",
+ "dioxus-free-icons",
+ "dioxus-primitives",
  "stayhydated-dioxus-core",
  "strum 0.28.0",
+ "web-sys",
 ]
 
 [[package]]
 name = "stayhydated-dioxus-core"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared#42efffd23442a16c20d0deb55f4f3bca6ee81f5d"
+source = "git+https://github.com/stayhydated/shared?rev=12c0941370cc5faf774798b625d840c662930702#12c0941370cc5faf774798b625d840c662930702"
 dependencies = [
  "bon",
  "bytemuck",
@@ -4728,6 +4730,7 @@ dependencies = [
  "dioxus",
  "dioxus-free-icons",
  "dioxus-primitives",
+ "strum 0.28.0",
  "wasm-bindgen",
  "web-sys",
  "wgpu",
@@ -4736,7 +4739,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-site"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared#42efffd23442a16c20d0deb55f4f3bca6ee81f5d"
+source = "git+https://github.com/stayhydated/shared?rev=12c0941370cc5faf774798b625d840c662930702#12c0941370cc5faf774798b625d840c662930702"
 dependencies = [
  "bon",
  "dioxus",
@@ -4745,13 +4748,14 @@ dependencies = [
 [[package]]
 name = "stayhydated-xtask"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared#42efffd23442a16c20d0deb55f4f3bca6ee81f5d"
+source = "git+https://github.com/stayhydated/shared?rev=12c0941370cc5faf774798b625d840c662930702#12c0941370cc5faf774798b625d840c662930702"
 dependencies = [
  "anyhow",
  "bon",
  "cargo_metadata",
  "mdbook-driver",
  "path-slash",
+ "strum 0.28.0",
  "walkdir",
 ]
 

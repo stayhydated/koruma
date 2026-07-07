@@ -373,11 +373,6 @@ textarea.sales-control {
   gap: 1rem;
 }
 
-.contribute-panel {
-  box-sizing: border-box;
-  width: 100%;
-}
-
 .contribute-copy {
   max-width: none;
   margin: 0;

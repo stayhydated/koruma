@@ -5,7 +5,7 @@ use readme::{
 };
 use strum::IntoEnumIterator as _;
 
-pub fn main() {
+pub fn main() -> Result<(), i18n::LocalizationError> {
     i18n::init();
 
     println!("Display-based Error Messages \n");
@@ -104,7 +104,7 @@ pub fn main() {
     };
 
     for lang in Languages::iter() {
-        i18n::change_locale(lang).expect("Failed to change locale");
+        i18n::change_locale(lang)?;
 
         println!(
             ">> Current Language: {:?} : {}",
@@ -143,7 +143,7 @@ pub fn main() {
     };
 
     for lang in Languages::iter() {
-        i18n::change_locale(lang).expect("Failed to change locale");
+        i18n::change_locale(lang)?;
 
         println!(
             ">> Current Language: {:?} : {}",
@@ -252,7 +252,7 @@ pub fn main() {
     };
 
     for lang in Languages::iter() {
-        i18n::change_locale(lang).expect("Failed to change locale");
+        i18n::change_locale(lang)?;
 
         println!(
             ">> Current Language: {:?} : {}",
@@ -410,4 +410,6 @@ pub fn main() {
             println!("handle(any): {err}");
         }
     }
+
+    Ok(())
 }

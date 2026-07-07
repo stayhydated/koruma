@@ -113,12 +113,11 @@ jobs:
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.10
 
+      - uses: cargo-bins/cargo-binstall@main
+
       - name: Install cargo-llvm-cov
         shell: bash
-        run: |
-          if ! command -v cargo-llvm-cov &> /dev/null; then
-            cargo install cargo-llvm-cov --locked
-          fi
+        run: cargo binstall cargo-llvm-cov --locked --no-confirm
 
       - name: Run coverage
         shell: bash

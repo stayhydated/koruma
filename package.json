@@ -5,20 +5,12 @@
     "web"
   ],
   "scripts": {
-    "build": "turbo build",
-    "build:book": "cargo xtask build book",
-    "build:llms-txt": "cargo xtask build llms-txt",
-    "build:web": "turbo run build --filter=web",
-    "dev": "turbo dev",
     "fmt": "oxfmt",
     "lint": "oxlint"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.13",
-    "@types/node": "^25.6.0",
-    "oxfmt": "^0.50.0",
-    "oxlint": "^1.65.0",
-    "turbo": "^2.9.14"
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.62.0"
   },
   "packageManager": "bun@1.3.10"
 }

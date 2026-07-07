@@ -5,3 +5,4 @@ node_modules/
 .turbo/
 *.snap.new
 .env
+.rumdl_cache/

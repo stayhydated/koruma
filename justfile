@@ -27,7 +27,6 @@ test-publish:
     cargo xtask release plan
 
 test-docs:
-    cargo clean --doc
     cargo doc --workspace --all-features --no-deps --locked --open
 
 ci: fmt check clippy test cov

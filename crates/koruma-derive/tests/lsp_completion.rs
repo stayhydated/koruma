@@ -436,11 +436,45 @@ fn file_uri(path: &Path) -> Uri {
     let path = path
         .canonicalize()
         .unwrap_or_else(|_| panic!("path should canonicalize: {}", path.display()));
-    let mut path = path.to_string_lossy().replace('\\', "/");
-    if cfg!(windows) && !path.starts_with('/') {
-        path = format!("/{path}");
-    }
+    let path = file_uri_path(&path.to_string_lossy(), cfg!(windows));
     format!("file://{}", path.replace(' ', "%20"))
         .parse()
         .expect("file URI should parse")
+}
+
+fn file_uri_path(path: &str, windows: bool) -> String {
+    let mut path = path.replace('\\', "/");
+    if windows {
+        if let Some(stripped) = path.strip_prefix("//?/") {
+            path = stripped.to_owned();
+        }
+        if !path.starts_with('/') {
+            path = format!("/{path}");
+        }
+    }
+    path
+}
+
+#[test]
+fn file_uri_path_normalizes_windows_drive_paths() {
+    assert_eq!(
+        file_uri_path(r"D:\a\koruma\koruma\crates\koruma", true),
+        "/D:/a/koruma/koruma/crates/koruma"
+    );
+}
+
+#[test]
+fn file_uri_path_normalizes_windows_verbatim_drive_paths() {
+    assert_eq!(
+        file_uri_path(r"\\?\D:\a\koruma\koruma\crates\koruma", true),
+        "/D:/a/koruma/koruma/crates/koruma"
+    );
+}
+
+#[test]
+fn file_uri_path_keeps_unix_paths() {
+    assert_eq!(
+        file_uri_path("/home/runner/work/koruma/koruma", false),
+        "/home/runner/work/koruma/koruma"
+    );
 }

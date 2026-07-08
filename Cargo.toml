@@ -28,7 +28,7 @@ bon = "3.9"
 card-validate = "2.4"
 clap = "4.6"
 dioxus = { default-features = false, version = "0.7" }
-dioxus-free-icons = { default-features = false, version = "0.10.0" }
+dioxus-free-icons = { default-features = false, version = "0.10" }
 dioxus-primitives = { default-features = false, git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
 email_address = "0.2"
 es-fluent = "0.18"
@@ -46,7 +46,7 @@ koruma-collection = { path = "crates/koruma-collection", version = "0.10.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.10.0" }
 koruma-derive = { path = "crates/koruma-derive", version = "0.10.0" }
 koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.10.0" }
-lsp-types = "0.97.0"
+lsp-types = "0.97"
 paste = "1.0"
 phonenumber = "0.3"
 prettyplease = "0.2"

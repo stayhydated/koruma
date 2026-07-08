@@ -180,6 +180,10 @@ trybuild/UI tests, snapshots, root or crate READMEs, the book, and
 - Prefer targeted crate, example, docs, or web checks before full-workspace validation.
 - Use `just check`, `just test`, or a more specific command when the change spans multiple surfaces.
 - For rustdocs, use `just test-docs`; it runs `cargo doc --workspace --all-features --no-deps --open`.
+- For release ordering or package metadata changes, use `just test-publish`; it
+  runs `cargo xtask release plan`, matching the CI package job.
+- CI also runs docs, release package-plan, cargo-machete, coverage, and Codecov
+  publishing from `.github/workflows/ci.yml`.
 - If validation cannot be run, state why and what remains unvalidated.
 - Do not claim a change works unless it was validated or the remaining risk is explicitly documented.
 

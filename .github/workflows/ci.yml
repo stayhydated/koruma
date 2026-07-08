@@ -90,6 +90,34 @@ jobs:
       - name: Lint code
         run: cargo clippy --workspace --all-features --all-targets -- -D warnings
 
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Build documentation
+        run: cargo doc --workspace --all-features --no-deps --locked
+
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Check release package plan
+        run: cargo xtask release plan
+
   machete:
     runs-on: ubuntu-latest
 

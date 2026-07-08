@@ -26,20 +26,20 @@ anyhow = "1.0"
 attribute-dsl = "0.1"
 bon = "3.9"
 card-validate = "2.4"
-clap = "4.5"
+clap = "4.6"
 dioxus = { default-features = false, version = "0.7" }
 dioxus-free-icons = { default-features = false, version = "0.10.0" }
 dioxus-primitives = { default-features = false, git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
 email_address = "0.2"
-es-fluent = "0.17"
-es-fluent-build = "0.17"
-es-fluent-lang = "0.17"
+es-fluent = "0.18"
+es-fluent-build = "0.18"
+es-fluent-lang = "0.18"
 es-fluent-manager-dioxus = { default-features = false, version = "0.7" }
-es-fluent-manager-embedded = "0.17"
+es-fluent-manager-embedded = "0.18"
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"
-insta = "1.46"
+insta = "1.48"
 inventory = "0.3"
 koruma = { path = "crates/koruma", version = "0.10.0" }
 koruma-collection = { path = "crates/koruma-collection", version = "0.10.0" }
@@ -55,8 +55,8 @@ proc-macro-error2 = "2.0"
 proc-macro2 = "1.0"
 quote = "1.0"
 regex = "1.12"
-rust-embed = "8.11"
-rust_decimal = "1.40"
+rust-embed = "8.12"
+rust_decimal = "1.42"
 serde_json = "1.0"
 smallvec = "1.15"
 stayhydated-dioxus = { git = "https://github.com/stayhydated/shared", rev = "efa89e741d33c39d1764daa87d878338ad6551d7" }

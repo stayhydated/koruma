@@ -23,6 +23,11 @@ use serde_json::{Value, json};
 
 #[test]
 fn rust_analyzer_completes_validator_dot_chains() {
+    if cfg!(coverage) {
+        eprintln!("skipping rust-analyzer LSP completion test under coverage");
+        return;
+    }
+
     if Command::new("rust-analyzer")
         .arg("--version")
         .stdout(Stdio::null())

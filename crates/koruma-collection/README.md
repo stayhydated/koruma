@@ -160,6 +160,6 @@ if let Err(errors) = input.validate() {
 }
 ```
 
-Validator configuration uses direct validator setter chains, so IDE completion works after the first
+Validator configuration uses dot-chain validator setter syntax, so IDE completion works after the first
 setter method. Each setter call takes exactly one argument; put generic arguments on the validator
 path, not on the setter method.

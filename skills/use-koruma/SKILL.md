@@ -81,7 +81,7 @@ For localized messages:
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
 koruma-collection = { version = "*", features = ["full-fluent"] }
-es-fluent = "0.16"
+es-fluent = "0.17"
 ```
 
 Prefer collection modules when they match the rule:

@@ -27,6 +27,8 @@ Import with `use koruma_collection::string;`.
 
 - `string::AlphanumericValidation<T>`: input contains only letters and numbers.
 - `string::AsciiValidation<T>`: input is ASCII only.
+- `string::CanonicalFormValidation<T>`: input already satisfies a caller-provided canonical-form
+  predicate. Configure with `string::CanonicalFormValidation::<_>.predicate(is_canonical)`.
 - `string::ContainsValidation<T>`: input contains a substring. Configure with
   `string::ContainsValidation::<_>.substring("abc")`.
 - `string::MatchesValidation<T>`: input equals another value. Configure with
@@ -38,8 +40,9 @@ Import with `use koruma_collection::string;`.
 - `string::SuffixValidation<T>`: input ends with a suffix. Configure with
   `string::SuffixValidation::<_>.suffix(".rs")`.
 
-`MatchesValidation` and `PatternValidation` use generic error messages and do not echo the
-compared value or regex pattern.
+`CanonicalFormValidation` checks only the supplied predicate; keep parsing or normalization outside
+validation. `MatchesValidation` and `PatternValidation` use generic error messages and do not echo
+the compared value or regex pattern.
 
 ## Format Validators
 

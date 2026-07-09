@@ -53,7 +53,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rust-analyzer
+          components: rust-analyzer, rust-src
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -138,7 +138,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rust-analyzer
+          components: rust-analyzer, rust-src
 
       - name: Setup sccache
         uses: mozilla-actions/sccache-action@v0.0.10

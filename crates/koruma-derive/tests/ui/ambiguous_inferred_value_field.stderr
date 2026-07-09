@@ -1,0 +1,5 @@
+error: koruma::validator could infer more than one value field from conventional names: `actual` and `input`. Mark exactly one field with `#[koruma(value)]` or `#[koruma(skip_capture)]`
+ --> tests/ui/ambiguous_inferred_value_field.rs:7:5
+  |
+7 |     input: i32,
+  |     ^^^^^

@@ -1,17 +1,72 @@
 # Newtype Pattern & TryFrom
 
-Use `#[koruma(newtype)]`, adding `try_new` and `newtype(try_from)` as needed, when you want:
+Use `#[koruma(newtype)]`, adding `try_new` and `try_from` as needed, when you want:
 
 - `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
+- `NewtypeValue` / `NewtypeTryFromInner` - public inner-value borrow, consume, validation, and checked reconstruction methods that work even when the wrapper field is private
 - `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
-- `newtype(try_from)` - a `TryFrom<Inner>` impl for checked conversions from the inner type
+- `try_from` - a `TryFrom<Inner>` impl for checked conversions from the inner type
 
 You can layer `derive_more` traits on top for additional wrapper ergonomics (for example, `Deref`
 to inner value).
 
+For normalized string newtypes, keep normalization outside validation. Parse or
+normalize user input before constructing the newtype, then let Koruma validate
+that the stored value is already canonical:
+
+- use `#[koruma(newtype, try_new, try_from)]` when the wrapper should expose
+  checked constructors and `TryFrom<Inner>`;
+- put parsing, trimming, case conversion, or Unicode normalization in an
+  application-owned parser or constructor before calling `try_new` or
+  `try_from`;
+- use `koruma_collection::string::CanonicalFormValidation::<_>.predicate(...)`
+  when a storage or API boundary must reject values that are not already in
+  canonical form;
+- keep `FromStr`, `TryFrom`, serde `try_from`/`into`, `Display`, and localized
+  validation messages aligned so every ingress path accepts the same canonical
+  representation.
+
+```rust,ignore
+use koruma::{Koruma, KorumaAllDisplay};
+use koruma_collection::string::CanonicalFormValidation;
+
+#[derive(Clone, Debug, Koruma, KorumaAllDisplay)]
+#[koruma(newtype, try_from)]
+pub struct ProviderId {
+    #[koruma(CanonicalFormValidation::<_>.predicate(is_provider_id_canonical))]
+    value: String,
+}
+
+fn normalize_provider_id(value: &str) -> String {
+    value.trim().to_ascii_lowercase()
+}
+
+fn is_provider_id_canonical(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+}
+
+let provider_id = ProviderId::try_from(normalize_provider_id(" Provider-1 "))?;
+```
+
+A field can combine `newtype` with ordinary field validators when the wrapper field itself also
+needs rules. The transparent newtype error access is preserved, and the extra validators use the
+same optional, `full(...)`, and `unwrapped(...)` target selection rules as any other field:
+
+```rust
+#[koruma(newtype, koruma_collection::general::RequiredValidation::<Option<_>>)]
+pub email: Option<Email>;
+```
+
+Types produced by `#[derive(Koruma)]` already provide the required error shape.
+If you implement `ValidateExt` by hand for a nested or newtype target, its
+associated `Error` type must implement `ValidationError + Default`.
+
 ```rust
 use es_fluent::EsFluent;
-use koruma::{Koruma, KorumaAllFluent, Validate};
+use koruma::{Koruma, KorumaAllFluent, NewtypeTryFromInner, NewtypeValue, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
 #[koruma(try_new, newtype)]
@@ -80,6 +135,11 @@ if let Err(errors) = Email::try_new("".to_string()) {
         println!("email::try_new validator: {}", i18n::localize(failed));
     }
 }
+
+let email = Email::try_from_inner("hello@example.com".to_string()).unwrap();
+assert_eq!(email.as_inner(), "hello@example.com");
+let raw_email = email.into_inner();
+assert!(Email::validate_inner(&raw_email).is_ok());
 ```
 
 ## Unnamed newtype (tuple struct)
@@ -114,9 +174,11 @@ if let Ok(username) = Username::try_new("alice".to_string()) {
 }
 ```
 
-## TryFrom integration (`#[koruma(newtype(try_from))]`)
+## TryFrom integration (`#[koruma(newtype, try_from)]`)
 
-Add `try_from` inside `newtype(...)` to generate a `TryFrom<Inner>` impl:
+Every struct-level `#[koruma(newtype)]` wrapper implements
+`NewtypeTryFromInner::try_from_inner`. Add flat `try_from` alongside `newtype`
+only when you also want the standard-library `TryFrom<Inner>` impl:
 
 ```rust
 use std::convert::TryFrom;
@@ -124,15 +186,18 @@ use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate};
 
 #[derive(Clone, Koruma, KorumaAllFluent)]
-#[koruma(newtype(try_from))]
+#[koruma(newtype, try_from)]
 pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
 
 match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),
     Err(errors) => {
         for failed in errors.all() {
-        println!("validation failed: {}", i18n::localize(failed));
+            println!("validation failed: {}", i18n::localize(failed));
         }
     }
 }
 ```
+
+For exactly-one-field structs that should keep the regular error surface, use
+`#[koruma(try_from)]` without `newtype`.

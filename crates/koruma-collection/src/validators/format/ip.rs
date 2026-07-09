@@ -3,7 +3,7 @@ use koruma::{Validate, validator};
 /// The type of IP address to validate
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluentChoice))]
-#[cfg_attr(feature = "fluent", fluent_choice(serialize_all = "snake_case"))]
+#[cfg_attr(feature = "fluent", fluent_choice(rename_all = "snake_case"))]
 pub enum IpKind {
     Any,
     V4,
@@ -30,7 +30,7 @@ impl std::fmt::Display for IpKind {
 ///
 /// #[derive(Koruma)]
 /// struct NetworkConfig {
-///     #[koruma(IpValidation::<_>::kind(IpKind::V4))]
+///     #[koruma(IpValidation::<_>.kind(IpKind::V4))]
 ///     ip_address: String,
 /// }
 /// ```
@@ -53,12 +53,12 @@ impl std::fmt::Display for IpKind {
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct IpValidation<T: AsRef<str>> {
     /// The type of IP address to validate
-    #[cfg_attr(feature = "fluent", fluent(choice))]
+    #[cfg_attr(feature = "fluent", fluent(selector))]
     pub kind: IpKind,
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for IpValidation<T> {
@@ -89,7 +89,7 @@ mod tests {
     fn validates_any_ip_kind() {
         let validator = IpValidation {
             kind: IpKind::Any,
-            actual: String::new(),
+            actual: None,
         };
 
         assert!(validator.validate(&"127.0.0.1".to_string()));
@@ -101,14 +101,14 @@ mod tests {
     fn validates_specific_ip_kinds() {
         let v4_validator = IpValidation {
             kind: IpKind::V4,
-            actual: String::new(),
+            actual: None,
         };
         assert!(v4_validator.validate(&"127.0.0.1".to_string()));
         assert!(!v4_validator.validate(&"::1".to_string()));
 
         let v6_validator = IpValidation {
             kind: IpKind::V6,
-            actual: String::new(),
+            actual: None,
         };
         assert!(v6_validator.validate(&"::1".to_string()));
         assert!(!v6_validator.validate(&"127.0.0.1".to_string()));

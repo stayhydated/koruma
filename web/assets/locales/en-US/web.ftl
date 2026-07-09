@@ -1,0 +1,62 @@
+## DioxusShowcaseMessage
+
+dioxus_showcase_message-ErrorPrefix = Error:
+dioxus_showcase_message-MessageHeadingError = Error
+dioxus_showcase_message-MessageHeadingResult = Result
+dioxus_showcase_message-ModuleCollection = Collection
+dioxus_showcase_message-ModuleFormat = Format
+dioxus_showcase_message-ModuleGeneral = General
+dioxus_showcase_message-ModuleNumeric = Numeric
+dioxus_showcase_message-ModuleString = String
+dioxus_showcase_message-ShowcaseIntroBody = Browse validator behavior with locale-aware messages powered by Project Fluent.
+dioxus_showcase_message-ShowcaseIntroTitle = koruma-collection Dioxus demo
+dioxus_showcase_message-ShowcasePanelLabel = interactive showcase
+dioxus_showcase_message-ValidationPlaceholder = Enter value to validate
+
+## SalesFormMessage
+
+sales_form_message-ClearAction = Clear
+sales_form_message-CompanyLabel = Company
+sales_form_message-CompanyPlaceholder = Northwind Robotics
+sales_form_message-ContactNameLabel = Contact name
+sales_form_message-ContactNamePlaceholder = Ava Patel
+sales_form_message-DealValueLabel = Deal value
+sales_form_message-DealValuePlaceholder = 82000
+sales_form_message-EmailLabel = Work email
+sales_form_message-EmailPlaceholder = ava.patel@northwind.example
+sales_form_message-FieldCompany = Company
+sales_form_message-FieldContactName = Contact name
+sales_form_message-FieldDealValue = Deal value
+sales_form_message-FieldEmail = Work email
+sales_form_message-FieldNextStep = Next step
+sales_form_message-FieldPhone = Phone
+sales_form_message-FieldSourceUrl = Source URL
+sales_form_message-FieldStage = Stage
+sales_form_message-FieldStatusInvalid = Invalid
+sales_form_message-FieldStatusOptional = Optional
+sales_form_message-FieldStatusValid = Valid
+sales_form_message-IntroBody = Capture a sales opportunity and see each field report the exact validators that failed.
+sales_form_message-IntroTitle = Sales form demo
+sales_form_message-InvalidSampleAction = Needs work
+sales_form_message-NextStepLabel = Next step
+sales_form_message-NextStepPlaceholder = Send procurement package before Friday.
+sales_form_message-PanelLabel = applied form validation
+sales_form_message-PhoneHint = Optional, but must be valid when present.
+sales_form_message-PhoneLabel = Phone
+sales_form_message-PhonePlaceholder = +14155552671
+sales_form_message-RuleOptional = Phone and source URL may be blank; filled values still validate format.
+sales_form_message-RuleRequired = Company, contact, email, deal value, stage, and next step are required.
+sales_form_message-RulesTitle = Rules
+sales_form_message-SourceUrlHint = Optional source link for the opportunity.
+sales_form_message-SourceUrlLabel = Source URL
+sales_form_message-SourceUrlPlaceholder = https://northwind.example/security-review
+sales_form_message-StageLabel = Stage
+sales_form_message-StagePlaceholder = Select stage
+sales_form_message-SubmitAction = Submit opportunity
+sales_form_message-SummaryInvalidBody = Fix the highlighted fields before the opportunity can move forward.
+sales_form_message-SummaryInvalidTitle = Needs attention
+sales_form_message-SummaryProgressLabel = fields valid
+sales_form_message-SummaryTitle = Validation state
+sales_form_message-SummaryValidBody = The lead payload satisfies the configured koruma validators.
+sales_form_message-SummaryValidTitle = Ready to submit
+sales_form_message-ValidSampleAction = Valid sample

@@ -16,10 +16,11 @@ default = [  ]
 internal-showcase = [  ]
 
 [dependencies]
+attribute-dsl = { workspace = true }
 heck = { workspace = true }
 quote = { workspace = true }
+proc-macro2 = { workspace = true }
 syn = { features = [ "full", "extra-traits" ], workspace = true }
-syn-cfg-attr = { workspace = true }
 
 
 [dev-dependencies]
@@ -27,3 +28,6 @@ insta = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
+
+[lints]
+workspace = true

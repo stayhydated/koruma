@@ -1,0 +1,5 @@
+error: expected validator chain
+ --> tests/ui/invalid_validator_syntax.rs:5:14
+  |
+5 |     #[koruma(Validator(value = 1))]
+  |              ^^^^^^^^^

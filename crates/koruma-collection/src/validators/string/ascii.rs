@@ -31,10 +31,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct AsciiValidation<T: AsRef<str>> {
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for AsciiValidation<T> {
@@ -59,17 +59,13 @@ mod tests {
 
     #[test]
     fn accepts_ascii_input() {
-        let validator = AsciiValidation {
-            actual: String::new(),
-        };
+        let validator = AsciiValidation { actual: None };
         assert!(validator.validate(&"hello123".to_string()));
     }
 
     #[test]
     fn rejects_non_ascii_input() {
-        let validator = AsciiValidation {
-            actual: String::new(),
-        };
+        let validator = AsciiValidation { actual: None };
         assert!(!validator.validate(&"héllo".to_string()));
     }
 }

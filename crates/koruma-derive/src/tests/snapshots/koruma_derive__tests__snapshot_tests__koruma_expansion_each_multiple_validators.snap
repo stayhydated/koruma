@@ -6,39 +6,45 @@ expression: pretty_print(expanded)
     "Element validators for the `", "values", "` field of [`", "Order", "`]: [`",
     "RangeValidation`], `[EvenValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum OrderValuesElementKorumaValidator {
-    RangeValidation(RangeValidation),
-    EvenValidation(EvenValidation),
+pub enum OrderValuesElementKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation),
+    EvenValidation(&'koruma EvenValidation),
 }
 #[doc = concat!(
     "Per-element validation errors for the `", "values", "` field of [`", "Order", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderValuesElementKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
 }
 impl OrderValuesElementKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
-    #[doc = concat!("Returns the failed [`", "EvenValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "EvenValidation", "` validator, if any.")]
     pub fn even_validation(&self) -> Option<&EvenValidation> {
         self.even_validation.as_ref()
     }
     #[doc = concat!("Returns all failed element validators for `", "values", "`.")]
-    pub fn all(&self) -> Vec<OrderValuesElementKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(OrderValuesElementKorumaValidator::RangeValidation(v.clone()));
-        }
-        if let Some(v) = &self.even_validation {
-            result.push(OrderValuesElementKorumaValidator::EvenValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = OrderValuesElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(OrderValuesElementKorumaValidatorRef::RangeValidation),
+            self
+                .even_validation
+                .as_ref()
+                .map(OrderValuesElementKorumaValidatorRef::EvenValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none() && self.even_validation.is_none()
@@ -51,7 +57,7 @@ impl OrderValuesElementKorumaValidationError {
     "Validation errors for the `", "values", "` field of [`", "Order",
     "`] (element validators only)."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderValuesKorumaValidationError {
     element_errors: Vec<(usize, OrderValuesElementKorumaValidationError)>,
 }
@@ -74,7 +80,7 @@ impl OrderValuesKorumaValidationError {
     "Validation errors for [`", "Order", "`].\n\nContains per-field error structs for ",
     "field: `values`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct OrderKorumaValidationError {
     values: OrderValuesKorumaValidationError,
 }
@@ -86,9 +92,47 @@ impl OrderKorumaValidationError {
         &self.values
     }
 }
-impl koruma::ValidationError for OrderKorumaValidationError {
+impl ::renamed_koruma::ValidationError for OrderKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.values.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for OrderKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        for (__koruma_index, __koruma_element_error) in self.values.element_errors() {
+            if __koruma_element_error.range_validation().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "values",
+                            *__koruma_index,
+                            ::core::any::type_name::<RangeValidation>(),
+                            None,
+                            ::std::format!(
+                                "validation failed for `{}`", "RangeValidation"
+                            ),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+            if __koruma_element_error.even_validation().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "values",
+                            *__koruma_index,
+                            ::core::any::type_name::<EvenValidation>(),
+                            None,
+                            ::std::format!(
+                                "validation failed for `{}`", "EvenValidation"
+                            ),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+        }
+        __koruma_issues
     }
 }
 impl Order {
@@ -103,29 +147,54 @@ impl Order {
             },
         };
         let mut has_error = false;
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<Vec<i32>, i32>();
+        }
         for (idx, __item_value) in self.values.iter().enumerate() {
             let mut element_error = OrderValuesElementKorumaValidationError {
                 range_validation: None,
                 even_validation: None,
             };
             let mut element_has_error = false;
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    RangeValidation::min(0).max(100),
-                    __item_value,
-                )
-                .build();
-            if !validator.validate(__item_value) {
-                element_error.range_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = RangeValidation::min(0).max(100);
+                ::renamed_koruma::__private::assert_element_validator_ready::<
+                    _,
+                    i32,
+                    RangeValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<RangeValidation as ::renamed_koruma::Validate<
+                    i32,
+                >>::validate(&validator, __item_value) {
+                    element_error.range_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    EvenValidation::__koruma_builder(),
-                    __item_value,
-                )
-                .build();
-            if !validator.validate(__item_value) {
-                element_error.even_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = EvenValidation::__koruma_builder();
+                ::renamed_koruma::__private::assert_element_validator_ready::<
+                    _,
+                    i32,
+                    EvenValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<EvenValidation as ::renamed_koruma::Validate<
+                    i32,
+                >>::validate(&validator, __item_value) {
+                    element_error.even_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.values.element_errors.push((idx, element_error));
@@ -135,9 +204,10 @@ impl Order {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Order {
+impl ::renamed_koruma::ValidateExt for Order {
     type Error = OrderKorumaValidationError;
     fn validate(&self) -> Result<(), OrderKorumaValidationError> {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Order {}

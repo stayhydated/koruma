@@ -1,0 +1,5 @@
+error: fields marked `#[koruma(nested)]` cannot also use validators or `each(...)`
+ --> tests/ui/nested_with_validator.rs:5:22
+  |
+5 |     #[koruma(nested, RequiredValidation::<_>)]
+  |                      ^^^^^^^^^^^^^^^^^^

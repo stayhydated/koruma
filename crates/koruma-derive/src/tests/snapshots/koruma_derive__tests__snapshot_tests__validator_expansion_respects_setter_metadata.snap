@@ -1,0 +1,448 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 924
+expression: rendered
+---
+#[derive(Clone, Debug)]
+pub struct SetterMetadataValidation<T> {
+    pub title: String,
+    pub optional_title: Option<String>,
+    pub required_limit: Option<usize>,
+    pub optional_limit: Option<usize>,
+    pub defaulted: usize,
+    pub defaulted_optional: Option<usize>,
+    actual: Option<T>,
+}
+#[doc(hidden)]
+pub mod setter_metadata_validation_builder {
+    pub struct Empty;
+    pub struct Set;
+}
+pub struct SetterMetadataValidationBuilder<
+    T,
+    __KorumaTitleState,
+    __KorumaRequiredLimitState,
+    __KorumaActualState,
+> {
+    title: ::std::option::Option<String>,
+    optional_title: ::std::option::Option<Option<String>>,
+    required_limit: ::std::option::Option<Option<usize>>,
+    optional_limit: ::std::option::Option<Option<usize>>,
+    defaulted: ::std::option::Option<usize>,
+    defaulted_optional: ::std::option::Option<Option<usize>>,
+    actual: ::std::option::Option<Option<T>>,
+    _state: ::std::marker::PhantomData<
+        (__KorumaTitleState, __KorumaRequiredLimitState, __KorumaActualState),
+    >,
+}
+impl<
+    T,
+    __KorumaTitleState,
+    __KorumaRequiredLimitState,
+    __KorumaActualState,
+> SetterMetadataValidationBuilder<
+    T,
+    __KorumaTitleState,
+    __KorumaRequiredLimitState,
+    __KorumaActualState,
+> {
+    fn new() -> Self {
+        Self {
+            title: ::std::option::Option::None,
+            optional_title: ::std::option::Option::None,
+            required_limit: ::std::option::Option::None,
+            optional_limit: ::std::option::Option::None,
+            defaulted: ::std::option::Option::None,
+            defaulted_optional: ::std::option::Option::None,
+            actual: ::std::option::Option::None,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn label(
+        self,
+        value: impl ::std::convert::Into<String>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Set,
+        __KorumaRequiredLimitState,
+        __KorumaActualState,
+    > {
+        SetterMetadataValidationBuilder {
+            title: ::std::option::Option::Some(::std::convert::Into::into(value)),
+            optional_title: self.optional_title,
+            required_limit: self.required_limit,
+            optional_limit: self.optional_limit,
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn optional_title(self, value: impl ::std::convert::Into<String>) -> Self {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: ::std::option::Option::Some(
+                ::std::option::Option::Some(::std::convert::Into::into(value)),
+            ),
+            required_limit: self.required_limit,
+            optional_limit: self.optional_limit,
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn maybe_optional_title(self, value: ::std::option::Option<String>) -> Self {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: ::std::option::Option::Some(value),
+            required_limit: self.required_limit,
+            optional_limit: self.optional_limit,
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn required_limit(
+        self,
+        value: Option<usize>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        __KorumaTitleState,
+        setter_metadata_validation_builder::Set,
+        __KorumaActualState,
+    > {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: self.optional_title,
+            required_limit: ::std::option::Option::Some(value),
+            optional_limit: self.optional_limit,
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn optional_limit(self, value: usize) -> Self {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: self.optional_title,
+            required_limit: self.required_limit,
+            optional_limit: ::std::option::Option::Some(
+                ::std::option::Option::Some(value),
+            ),
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn maybe_optional_limit(self, value: ::std::option::Option<usize>) -> Self {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: self.optional_title,
+            required_limit: self.required_limit,
+            optional_limit: ::std::option::Option::Some(value),
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn defaulted(self, value: usize) -> Self {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: self.optional_title,
+            required_limit: self.required_limit,
+            optional_limit: self.optional_limit,
+            defaulted: ::std::option::Option::Some(value),
+            defaulted_optional: self.defaulted_optional,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn defaulted_optional(self, value: Option<usize>) -> Self {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: self.optional_title,
+            required_limit: self.required_limit,
+            optional_limit: self.optional_limit,
+            defaulted: self.defaulted,
+            defaulted_optional: ::std::option::Option::Some(value),
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    #[doc(hidden)]
+    pub fn with_value(
+        self,
+        value: T,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        __KorumaTitleState,
+        __KorumaRequiredLimitState,
+        setter_metadata_validation_builder::Set,
+    > {
+        SetterMetadataValidationBuilder {
+            title: self.title,
+            optional_title: self.optional_title,
+            required_limit: self.required_limit,
+            optional_limit: self.optional_limit,
+            defaulted: self.defaulted,
+            defaulted_optional: self.defaulted_optional,
+            actual: ::std::option::Option::Some(::std::option::Option::Some(value)),
+            _state: ::std::marker::PhantomData,
+        }
+    }
+}
+impl<
+    T,
+> SetterMetadataValidationBuilder<
+    T,
+    setter_metadata_validation_builder::Set,
+    setter_metadata_validation_builder::Set,
+    setter_metadata_validation_builder::Set,
+> {
+    pub fn build(self) -> SetterMetadataValidation<T> {
+        SetterMetadataValidation {
+            title: self
+                .title
+                .expect("required koruma validator builder field should be set"),
+            optional_title: self.optional_title.unwrap_or(::std::option::Option::None),
+            required_limit: self
+                .required_limit
+                .expect("required koruma validator builder field should be set"),
+            optional_limit: self.optional_limit.unwrap_or(::std::option::Option::None),
+            defaulted: self.defaulted.unwrap_or_else(|| 10),
+            defaulted_optional: self.defaulted_optional.unwrap_or_else(|| Some(3)),
+            actual: self
+                .actual
+                .expect("required koruma validator builder field should be set"),
+        }
+    }
+}
+impl<T> ::renamed_koruma::__private::BuildValidator
+for SetterMetadataValidationBuilder<
+    T,
+    setter_metadata_validation_builder::Set,
+    setter_metadata_validation_builder::Set,
+    setter_metadata_validation_builder::Set,
+> {
+    type Validator = SetterMetadataValidation<T>;
+    fn build_validator(self) -> Self::Validator {
+        self.build()
+    }
+}
+impl<
+    T,
+    __KorumaTitleState,
+    __KorumaRequiredLimitState,
+    __KorumaActualState,
+> ::renamed_koruma::__private::CaptureValueRef<T>
+for SetterMetadataValidationBuilder<
+    T,
+    __KorumaTitleState,
+    __KorumaRequiredLimitState,
+    __KorumaActualState,
+>
+where
+    T: ::renamed_koruma::__private::CapturedInputCanBeCloned,
+    SetterMetadataValidationBuilder<
+        T,
+        __KorumaTitleState,
+        __KorumaRequiredLimitState,
+        setter_metadata_validation_builder::Set,
+    >: ::renamed_koruma::__private::BuildValidator,
+{
+    type Output = SetterMetadataValidationBuilder<
+        T,
+        __KorumaTitleState,
+        __KorumaRequiredLimitState,
+        setter_metadata_validation_builder::Set,
+    >;
+    fn capture_value_ref(self, value: &T) -> Self::Output {
+        self.with_value(value.clone())
+    }
+}
+impl<T> SetterMetadataValidation<T> {
+    #[doc(hidden)]
+    pub fn __koruma_builder() -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        SetterMetadataValidationBuilder::new()
+    }
+    #[doc = concat!(
+        "Starts building [`", stringify!(SetterMetadataValidation), "`] with the `",
+        "actual", "` value set."
+    )]
+    pub fn with_value(
+        value: T,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Set,
+    > {
+        Self::__koruma_builder().with_value(value)
+    }
+    #[doc = concat!(
+        "Returns the stored `", "actual", "` value captured during validation."
+    )]
+    pub fn actual(&self) -> &Option<T> {
+        &self.actual
+    }
+    #[doc = concat!("Starts building this validator with `", "label", "` set.")]
+    pub fn label(
+        value: impl ::std::convert::Into<String>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Set,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().label(value)
+    }
+    #[doc = concat!("Starts building this validator with `", "optional_title", "` set.")]
+    pub fn optional_title(
+        value: impl ::std::convert::Into<String>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().optional_title(value)
+    }
+    #[doc = concat!(
+        "Starts building this validator with `", "maybe_optional_title", "` set."
+    )]
+    pub fn maybe_optional_title(
+        value: ::std::option::Option<String>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().maybe_optional_title(value)
+    }
+    #[doc = concat!("Starts building this validator with `", "required_limit", "` set.")]
+    pub fn required_limit(
+        value: Option<usize>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Set,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().required_limit(value)
+    }
+    #[doc = concat!("Starts building this validator with `", "optional_limit", "` set.")]
+    pub fn optional_limit(
+        value: usize,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().optional_limit(value)
+    }
+    #[doc = concat!(
+        "Starts building this validator with `", "maybe_optional_limit", "` set."
+    )]
+    pub fn maybe_optional_limit(
+        value: ::std::option::Option<usize>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().maybe_optional_limit(value)
+    }
+    #[doc = concat!("Starts building this validator with `", "defaulted", "` set.")]
+    pub fn defaulted(
+        value: usize,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().defaulted(value)
+    }
+    #[doc = concat!(
+        "Starts building this validator with `", "defaulted_optional", "` set."
+    )]
+    pub fn defaulted_optional(
+        value: Option<usize>,
+    ) -> SetterMetadataValidationBuilder<
+        T,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+        setter_metadata_validation_builder::Empty,
+    > {
+        Self::__koruma_builder().defaulted_optional(value)
+    }
+}
+impl<T> ::renamed_koruma::ValidatorMetadata<T> for SetterMetadataValidation<T> {
+    fn validator_descriptor() -> ::renamed_koruma::ValidatorDescriptor {
+        const __KORUMA_PARAMS: &[::renamed_koruma::ValidatorParamDescriptor] = &[
+            ::renamed_koruma::ValidatorParamDescriptor::new("title", "String", true),
+            ::renamed_koruma::ValidatorParamDescriptor::new(
+                "optional_title",
+                "String",
+                false,
+            ),
+            ::renamed_koruma::ValidatorParamDescriptor::new(
+                "required_limit",
+                "Option < usize >",
+                true,
+            ),
+            ::renamed_koruma::ValidatorParamDescriptor::new(
+                "optional_limit",
+                "usize",
+                false,
+            ),
+            ::renamed_koruma::ValidatorParamDescriptor::new("defaulted", "usize", false),
+            ::renamed_koruma::ValidatorParamDescriptor::new(
+                "defaulted_optional",
+                "Option < usize >",
+                false,
+            ),
+        ];
+        ::renamed_koruma::ValidatorDescriptor::new(
+            ::core::any::type_name::<Self>(),
+            __KORUMA_PARAMS,
+        )
+    }
+    fn validator_params(&self) -> ::std::vec::Vec<::renamed_koruma::ValidatorParam> {
+        ::std::vec![
+            ::renamed_koruma::ValidatorParam::new("title",
+            ::renamed_koruma::ValidatorParamValue::String(self.title.clone())),
+            ::renamed_koruma::ValidatorParam::new("optional_title", match self
+            .optional_title.as_ref() { Some(__koruma_param_value) =>
+            ::renamed_koruma::ValidatorParamValue::String(__koruma_param_value
+            .to_string()), None => ::renamed_koruma::ValidatorParamValue::None, }),
+            ::renamed_koruma::ValidatorParam::new("required_limit", match self
+            .required_limit.as_ref() { Some(__koruma_param_value) =>
+            ::renamed_koruma::ValidatorParamValue::U64(* __koruma_param_value as u64),
+            None => ::renamed_koruma::ValidatorParamValue::None, }),
+            ::renamed_koruma::ValidatorParam::new("optional_limit", match self
+            .optional_limit.as_ref() { Some(__koruma_param_value) =>
+            ::renamed_koruma::ValidatorParamValue::U64(* __koruma_param_value as u64),
+            None => ::renamed_koruma::ValidatorParamValue::None, }),
+            ::renamed_koruma::ValidatorParam::new("defaulted",
+            ::renamed_koruma::ValidatorParamValue::U64(self.defaulted as u64)),
+            ::renamed_koruma::ValidatorParam::new("defaulted_optional", match self
+            .defaulted_optional.as_ref() { Some(__koruma_param_value) =>
+            ::renamed_koruma::ValidatorParamValue::U64(* __koruma_param_value as u64),
+            None => ::renamed_koruma::ValidatorParamValue::None, })
+        ]
+    }
+}

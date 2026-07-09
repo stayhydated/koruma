@@ -31,10 +31,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct CreditCardValidation<T: AsRef<str>> {
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for CreditCardValidation<T> {
@@ -59,17 +59,13 @@ mod tests {
 
     #[test]
     fn accepts_valid_credit_card_number() {
-        let validator = CreditCardValidation {
-            actual: String::new(),
-        };
+        let validator = CreditCardValidation { actual: None };
         assert!(validator.validate(&"4111111111111111".to_string()));
     }
 
     #[test]
     fn rejects_invalid_credit_card_number() {
-        let validator = CreditCardValidation {
-            actual: String::new(),
-        };
+        let validator = CreditCardValidation { actual: None };
         assert!(!validator.validate(&"4111111111111112".to_string()));
     }
 }

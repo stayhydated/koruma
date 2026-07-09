@@ -1,0 +1,49 @@
+---
+source: crates/koruma-derive-core/src/tests/parse_field_tests.rs
+expression: parse_field_snapshot(&field)
+---
+Some(
+    SnapshotFieldInfo {
+        name: "scores",
+        member: "scores",
+        ty: "Vec < i32 >",
+        validation: SnapshotValidationInfo {
+            shape: "regular",
+            field_validators: [],
+            element_validators: [
+                SnapshotValidator {
+                    label: Some(
+                        "lower_bound",
+                    ),
+                    name: "RangeValidation",
+                    infer_type: false,
+                    explicit_type: None,
+                    builder_methods: [
+                        (
+                            "min",
+                            [
+                                "0",
+                            ],
+                        ),
+                    ],
+                },
+                SnapshotValidator {
+                    label: Some(
+                        "upper_bound",
+                    ),
+                    name: "RangeValidation",
+                    infer_type: false,
+                    explicit_type: None,
+                    builder_methods: [
+                        (
+                            "max",
+                            [
+                                "100",
+                            ],
+                        ),
+                    ],
+                },
+            ],
+        },
+    },
+)

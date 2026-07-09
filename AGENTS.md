@@ -5,25 +5,27 @@ workspace.
 
 Use it to decide:
 
-1. where documentation belongs,
-2. whether a crate or surface is user-facing, public integration, or internal,
-3. which related docs, examples, and skills must change together,
-4. which validation command should run before handoff.
+1. where a change belongs,
+2. whether a crate or surface is user-facing, public integration, generated, or internal,
+3. which code, docs, examples, tests, generated outputs, and skill references must change together,
+4. which narrow validation command should run before handoff.
 
-For most application code, start with `crates/koruma`.
+For most application-facing Rust work, start with `crates/koruma`; use
+`crates/koruma-collection` when built-in validators fit the rule.
 
-Reach for `crates/koruma-collection` when you want built-in validators instead
-of defining your own.
+For local commands, start with `just --list`; the `justfile` is the command
+index for workspace checks, docs, web, and generated-output tasks.
 
 ## Project Summary
 
-`koruma` is a Rust validation ecosystem centered on per-field validation.
+`koruma` is a Rust validation ecosystem centered on strongly typed per-field
+validation, concise validator annotations, optional constructors, nested and
+newtype validation, built-in validators, and i18n.
 
-Its priorities are:
-
-1. **Type safety**: keep validators, derived error types, and validation flows strongly typed.
-2. **Ergonomics**: make validator definitions and field annotations concise.
-3. **Developer experience**: support optional constructors, nested and newtype validation, built-in validators, and i18n.
+The workspace version is pre-1.0. Treat the current implementation, tests,
+examples, rustdocs, READMEs, book, and skill guidance as the source of truth for
+current API shape. Move docs, tests, examples, and guidance to the current shape
+unless a local doc explicitly promises compatibility.
 
 ## Quick Decision Flow
 
@@ -31,86 +33,90 @@ Before editing, classify the change:
 
 1. **Find the surface in the workspace map.** Use its audience label to decide
    how much public explanation the change needs.
-2. **Place documentation by content, not by crate audience.** README files, the
-   book, and the public site are always user-facing. Internal design belongs in
-   the matching `docs/ARCHITECTURE.md`.
+2. **Identify the source of truth.** Public APIs are backed by code, tests,
+   rustdocs, examples, READMEs, the book, and `skills/use-koruma`; generated
+   outputs are backed by their generator commands.
 3. **Sync public workflow changes.** If behavior, validator inventory, feature
    flags, message shape, generated output, or recommended usage changes, update
-   the relevant example, README, book page, and `.agents/skills/*` guidance in
-   the same change when applicable.
+   the relevant example, README, book page, rustdoc, and `skills/use-koruma`
+   guidance in the same change when applicable.
 4. **Validate narrowly.** Run the smallest command that proves the edited
    behavior or documentation surface is still sound.
 
 ## Audience Labels
 
-These labels describe the crate or surface itself, not the documentation file
-being edited:
+These labels describe the crate or surface itself, not every file inside it:
 
 - **User-facing**: normal entry points for application developers.
 - **Public integration**: public crates meant for extensions, tooling, or
   deeper customization. These are usually not the default starting point.
-- **Internal**: workspace plumbing, implementation details, demos, and maintenance tooling.
+- **Internal**: workspace plumbing, implementation details, and maintenance tooling.
+- **Generated**: outputs produced from another source. Change the source or generator first.
 
-## Documentation Placement
+## Documentation Sources
 
 ### User-Facing Documentation
 
 Treat these surfaces as user-facing:
 
-- every `README.md` in the workspace,
-- the mdBook under `book/`,
-- the public site under `web/`.
+- the root `README.md` and crate READMEs under `crates/*/README.md`,
+- the mdBook sources under `book/src/`,
+- the public site under `web/`,
+- `skills/use-koruma` and its `references/` files.
 
-Even README files for public-integration or internal crates should explain:
-
-- who the crate is for,
-- what it does,
-- what most users should use instead.
+Use `xtask/README.md` for maintainer-facing command details for the internal
+task runner.
 
 Keep user-facing documentation example-first. Prefer Rust snippets over
 prose-only explanations when showing behavior changes.
 
-### Internal Documentation
+### Rustdocs And Internal Notes
 
-Use the relevant `docs/ARCHITECTURE.md` file for internal documentation, such
-as the crate-level paths listed in the workspace map.
+Crate rustdocs come from `#![doc = include_str!("../README.md")]` plus public
+item and module doc comments. Keep these in sync with public API, macro, parser,
+trait, and validator changes.
 
-Keep these topics in architecture documents, not in READMEs or the book:
+Internal design notes belong in source module docs, focused code comments,
+tests, snapshots, UI-test fixtures, or a specific design/proposal document when
+a durable narrative is actually needed.
 
-- implementation details,
-- macro expansion and parsing details,
-- subsystem boundaries,
-- data flow,
-- design rationale,
-- internal relationships.
+### Generated Outputs
 
-### Skill Guidance
+Do not hand-edit generated outputs:
 
-`.agents/skills/use-koruma` is hosted in this repository as public `koruma`
-usage guidance for application developers. It is not internal architecture,
-maintenance, CI, release, or contributor-only workflow documentation.
+- `web/public/book/` is generated by `cargo xtask build book`.
+- `web/public/llms.txt`, `web/public/llms-full.txt`, and `web/public/llms/`
+  are generated by `cargo xtask build llms-txt`.
+- `web/dist/` is generated by `cargo xtask build web`.
 
-Update relevant in-repository `.agents/skills/*` guidance when a code change
-alters user-facing workflows, validator behavior, feature flags, generated
-output, i18n integration patterns, or recommended usage.
+When generated output needs to change, edit the source files and run the
+matching generator.
 
 ## Synchronization Rules
 
 When a substantive change modifies a public workflow, public feature, feature
-flag story, validator inventory, validator message shape, or user-visible API
-shape:
+flag story, validator inventory, validator message shape, generated output, or
+user-visible API shape:
 
 1. Update the executable example in `examples/readme` when relevant.
-2. Update the affected user-facing `README.md` files.
+2. Update the affected root or crate `README.md` files.
 3. Update the matching `book/src/*.md` pages.
-4. Update relevant in-repository `.agents/skills/*` guidance.
-5. Keep these surfaces aligned in the same change unless there is a documented reason not to.
+4. Update `skills/use-koruma` and its relevant `references/*.md` files.
+5. Update rustdocs or public item docs when public APIs, macros, parser data,
+   traits, or generated error surfaces change.
+6. Keep these surfaces aligned in the same change unless there is a documented reason not to.
 
-`examples/readme` is the canonical source of truth for usage examples.
+`examples/readme` is the canonical executable source for usage examples.
 
-Keep `crates/koruma-collection/README.md` and
-`book/src/koruma_collection.md` synchronized when validator inventory, feature
-flags, or usage guidance changes.
+Keep `crates/koruma-collection/README.md`,
+`book/src/koruma_collection.md`, and
+`skills/use-koruma/references/validator-catalog.md` synchronized when validator
+inventory, feature flags, or usage guidance changes.
+
+For macro syntax, generated accessors, diagnostics, target selection, nested or
+newtype behavior, constructors, or parser metadata, compare code, rustdocs,
+trybuild/UI tests, snapshots, root or crate READMEs, the book, and
+`skills/use-koruma/references/koruma-feature-map.md`.
 
 ## Workspace Map
 
@@ -118,116 +124,99 @@ flags, or usage guidance changes.
 
 - `crates/koruma`
   Audience: **User-facing**
-  Docs: [Architecture](crates/koruma/docs/ARCHITECTURE.md)
-  Role: workspace facade, default entry point, and home of the public feature gates. Re-exports core traits, derive macros, and the `bon` builder API.
+  Role: workspace facade, default entry point, and home of the public feature gates. Re-exports core traits and derive macros.
 
 - `crates/koruma-collection`
   Audience: **User-facing**
-  Docs: [Architecture](crates/koruma-collection/docs/ARCHITECTURE.md)
   Role: curated validator library organized by domain (`string`, `format`, `numeric`, `collection`, `general`) with optional Fluent-based i18n.
 
 ### Public Integration Crates
 
 - `crates/koruma-core`
   Audience: **Public integration**
-  Docs: [Architecture](crates/koruma-core/docs/ARCHITECTURE.md)
-  Role: foundational validation traits, validation error interfaces, nested and newtype support, and optional showcase registry types. Most application users should start with `koruma` instead.
+  Role: foundational validation traits, validation error interfaces, nested and newtype support, hidden macro glue, and optional showcase registry types. Most application users should start with `koruma` instead.
 
 - `crates/koruma-derive`
   Audience: **Public integration**
-  Docs: [Architecture](crates/koruma-derive/docs/ARCHITECTURE.md)
   Role: proc-macro crate for `#[derive(Koruma)]`, `KorumaAllDisplay`, `KorumaAllFluent`, and `#[koruma::validator]`. Most users should depend on `koruma` instead of this crate directly.
 
 - `crates/koruma-derive-core`
   Audience: **Public integration**
-  Docs: [Architecture](crates/koruma-derive-core/docs/ARCHITECTURE.md)
   Role: parsing layer for `#[koruma(...)]` metadata shared by derive macros and tooling. Most application users should not depend on it directly.
 
-### Internal Crates and Tooling
+### Internal Crates And Tooling
 
 - `xtask`
   Audience: **Internal**
-  Docs: [Architecture](xtask/docs/ARCHITECTURE.md)
-  Role: workspace maintenance tooling.
+  Role: workspace maintenance tooling. See `xtask/README.md` for
+  `sync-display-ftl`, generated-output builds, and release command details.
 
-  Key commands:
-  - `sync-display-ftl`: syncs English FTL message templates with `Display` implementations in `koruma-collection` validators.
-  - `build-book`: builds the mdBook into `web/public/book`.
-  - `build-llms-txt`: concatenates mdBook sources into `web/public/llms.txt`.
-
-### Examples and Web Surfaces
+### Examples, Book, Skill, And Web Surfaces
 
 - `examples/readme`
-  Canonical executable documentation examples. Keep this aligned with the root `README.md` and the book.
+  Audience: **User-facing**
+  Role: canonical executable documentation examples, including shared Fluent assets under `examples/readme/i18n`.
 
-- `examples/shared-lib`
-  Shared example library used by the documentation example and showcase demos.
+- `book/src`
+  Audience: **User-facing**
+  Role: mdBook source for public workflows, validator usage, nested and newtype patterns, i18n integration, and `koruma-collection`.
 
-- `examples/i18n`
-  Shared Fluent translation assets used by the examples.
-
-- `examples/collection-ratatui-core`
-  Shared ratatui showcase logic used by the native and web demos.
-
-- `examples/collection-ratatui-native`
-  Native ratatui showcase app for browsing registered validators.
-
-- `examples/collection-ratatui-web`
-  WebAssembly ratatui showcase app.
-
-- `examples/collection-dioxus-web`
-  Dioxus-based web showcase app.
+- `skills/use-koruma`
+  Audience: **User-facing**
+  Role: application-developer skill guidance. Keep maintainer-only details out of this skill.
 
 - `web`
   Audience: **User-facing**
-  Role: Astro-based GitHub Pages site hosting demos and the mdBook.
+  Role: Dioxus-based GitHub Pages site hosting demos and generated public docs.
 
-- `book`
-  Audience: **User-facing**
-  Role: mdBook for public workflows, validator usage, nested and newtype patterns, i18n integration, and `koruma-collection`.
-
-## Validation and Editing Rules
+## Validation And Editing Rules
 
 ### Validation After Changes
 
 - Validation is the default after code or workflow changes.
 - Run the narrowest command that proves the edited behavior works for the
-  affected crate, docs, example, or web surface.
+  affected crate, docs, example, generator, or web surface.
+- Use the `justfile` as the local command index for workspace checks.
 - Prefer targeted crate, example, docs, or web checks before full-workspace validation.
-- Use `just check`, `just test`, or a more specific `justfile` recipe when the change spans multiple surfaces.
+- Use `just check`, `just test`, or a more specific command when the change spans multiple surfaces.
+- For rustdocs, use `just test-docs`; it runs `cargo doc --workspace --all-features --no-deps --open`.
+- For release ordering or package metadata changes, use `just test-publish`; it
+  runs `cargo xtask release plan`, matching the CI package job.
+- CI also runs docs, release package-plan, cargo-machete, coverage, and Codecov
+  publishing from `.github/workflows/ci.yml`.
 - If validation cannot be run, state why and what remains unvalidated.
-- Do not claim a change works unless it was validated, generated from a source of truth, or the remaining risk is explicitly documented.
-
-### When Editing Docs
-
-- Keep READMEs, the book, and the public site user-facing.
-- Move parsing internals, macro expansion details, and subsystem design into `docs/ARCHITECTURE.md`.
-- Prefer examples over prose-only explanations.
-- Sync `examples/readme`, relevant READMEs, book pages, and `.agents/skills/*` guidance in the same change.
-- For validator catalog or feature-flag changes, update both `crates/koruma-collection/README.md` and `book/src/koruma_collection.md`.
+- Do not claim a change works unless it was validated or the remaining risk is explicitly documented.
 
 ### When Editing Rust Crates
 
-- Use `cargo` for build, test, and run tasks.
-- Keep dependency versions in the workspace root `Cargo.toml`.
-- Use `workspace = true` in member crates.
+- Use `cargo` and the `justfile` for build, test, and run tasks.
+- Keep shared dependency versions and workspace crate paths in the workspace
+  root `Cargo.toml`.
+- Use `workspace = true` in member crates unless the manifest needs an explicit
+  local alias such as `crates/koruma-derive`'s `renamed-koruma` dev-dependency.
 - Let each crate choose its own dependency features in its own `Cargo.toml`.
-- Use `path` dependencies only in the root `Cargo.toml` and in examples.
-- Non-example crates should reference workspace crates with `workspace = true`, not explicit paths.
 
-### When Editing Validators or Validator Messages
+### When Editing Validators Or Validator Messages
 
 - Add validators under `crates/koruma-collection/src/validators/` and re-export them from the appropriate module.
 - Add or update localized messages under `crates/koruma-collection/i18n/` when Fluent support is in use.
 - Keep English FTL message templates and `Display` implementations aligned.
+- Run `cargo xtask sync-display-ftl --check` for Display/FTL sync changes, or `cargo xtask sync-display-ftl` when the source-of-truth templates should update Rust sources.
+- If `koruma-collection` i18n path layout changes, update `crowdin.yml`,
+  `.github/workflows/crowdin-upload.yml`, and `.github/workflows/crowdin-sync.yml`.
 - Keep showcase metadata and showcase demos aligned when `internal-showcase` behavior changes.
+
+### When Editing Macro Or Parser Behavior
+
+- Keep `crates/koruma-derive/src/lib.rs` rustdocs, `crates/koruma-derive/README.md`, and `crates/koruma-derive-core/README.md` aligned with macro and parser behavior.
+- Update trybuild UI tests, pass tests, and insta snapshots when generated syntax, diagnostics, or expanded code behavior changes.
 
 ### When Writing Tests
 
-- Prefer [insta](https://insta.rs/) for snapshot tests when it fits better than assertion-heavy unit tests.
-- Prefer raw multiline strings, or `quote! { ... }` in macro contexts, over escaped single-line literals for embedded Rust code.
+- Prefer `insta` for snapshot tests when it fits better than assertion-heavy unit tests.
+- Use trybuild UI tests for compile-time macro diagnostics and pass/fail macro behavior.
 
-### When Editing JavaScript/Typescript
+### When Editing JavaScript Or TypeScript
 
-- Use [bun](https://bun.com/) for dependency management.
-- Use [turborepo](https://turborepo.org/) as the build system.
+- Use Bun for dependency management.
+- Use Turborepo for package build orchestration.

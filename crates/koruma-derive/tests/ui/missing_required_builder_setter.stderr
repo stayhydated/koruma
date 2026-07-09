@@ -1,0 +1,10 @@
+error[E0599]: no method named `build` found for struct `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>` in the current scope
+  --> tests/ui/missing_required_builder_setter.rs:20:63
+   |
+ 4 | #[validator]
+   | ------------ method `build` not found for this struct
+...
+20 |     let _validator = RequiredSetterValidation::with_value(10).build();
+   |                                                               ^^^^^ method not found in `RequiredSetterValidationBuilder<required_setter_validation_builder::Empty, Set>`
+   |
+   = note: the method was found for `RequiredSetterValidationBuilder<Set, Set>`

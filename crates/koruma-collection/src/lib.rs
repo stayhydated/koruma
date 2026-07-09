@@ -21,13 +21,13 @@ mod tests {
     fn showcase_validators_create_dynamic_validators() {
         use std::collections::BTreeMap;
 
-        use koruma::showcase::{InputType, validators};
+        use koruma::showcase::{InputType, ValidatorModule, validators};
 
         crate::__link_showcase_validators();
 
         struct Case {
             name: &'static str,
-            module: &'static str,
+            module: ValidatorModule,
             input_type: InputType,
             valid_input: &'static str,
         }
@@ -35,115 +35,121 @@ mod tests {
         let cases = [
             Case {
                 name: "Alphanumeric",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "abc123",
             },
             Case {
                 name: "ASCII",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "hello",
             },
             Case {
+                name: "Canonical Form",
+                module: ValidatorModule::String,
+                input_type: InputType::Text,
+                valid_input: "provider-1",
+            },
+            Case {
                 name: "Contains 'test'",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "test-value",
             },
             Case {
                 name: "Matches Value",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "expected",
             },
             Case {
                 name: "Regex Pattern",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "abc_123",
             },
             Case {
                 name: "Prefix 'hello'",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "hello world",
             },
             Case {
                 name: "Suffix '.rs'",
-                module: "string",
+                module: ValidatorModule::String,
                 input_type: InputType::Text,
                 valid_input: "main.rs",
             },
             Case {
                 name: "Credit Card",
-                module: "format",
+                module: ValidatorModule::Format,
                 input_type: InputType::Text,
                 valid_input: "4111111111111111",
             },
             Case {
                 name: "Email",
-                module: "format",
+                module: ValidatorModule::Format,
                 input_type: InputType::Text,
                 valid_input: "user@example.com",
             },
             Case {
                 name: "IP Address",
-                module: "format",
+                module: ValidatorModule::Format,
                 input_type: InputType::Text,
                 valid_input: "127.0.0.1",
             },
             Case {
                 name: "Phone Number",
-                module: "format",
+                module: ValidatorModule::Format,
                 input_type: InputType::Text,
                 valid_input: "+14155552671",
             },
             Case {
                 name: "URL",
-                module: "format",
+                module: ValidatorModule::Format,
                 input_type: InputType::Text,
                 valid_input: "https://example.com",
             },
             Case {
                 name: "Negative Number",
-                module: "numeric",
+                module: ValidatorModule::Numeric,
                 input_type: InputType::Numeric,
                 valid_input: "-1",
             },
             Case {
                 name: "Non-Negative Number",
-                module: "numeric",
+                module: ValidatorModule::Numeric,
                 input_type: InputType::Numeric,
                 valid_input: "0",
             },
             Case {
                 name: "Non-Positive Number",
-                module: "numeric",
+                module: ValidatorModule::Numeric,
                 input_type: InputType::Numeric,
                 valid_input: "0",
             },
             Case {
                 name: "Positive Number",
-                module: "numeric",
+                module: ValidatorModule::Numeric,
                 input_type: InputType::Numeric,
                 valid_input: "1",
             },
             Case {
                 name: "Range [0, 100)",
-                module: "numeric",
+                module: ValidatorModule::Numeric,
                 input_type: InputType::Numeric,
                 valid_input: "42",
             },
             Case {
                 name: "Length",
-                module: "collection",
+                module: ValidatorModule::Collection,
                 input_type: InputType::Text,
                 valid_input: "abc",
             },
             Case {
                 name: "NonEmpty",
-                module: "collection",
+                module: ValidatorModule::Collection,
                 input_type: InputType::Text,
                 valid_input: "x",
             },
@@ -176,11 +182,12 @@ mod tests {
             {
                 assert!(!validator.fluent_string().is_empty());
 
-                let mut localize = |namespace: &str,
-                                    id: &str,
-                                    _args: Option<
-                    &std::collections::HashMap<&str, es_fluent::FluentValue<'_>>,
-                >| { format!("{namespace}:{id}") };
+                let mut localize =
+                    |domain: es_fluent::registry::StaticFluentDomain,
+                     id: es_fluent::registry::StaticFluentEntryId,
+                     _args: Option<&es_fluent::FluentArgs<'_>>| {
+                        format!("{}:{}", domain.as_str(), id.as_str())
+                    };
                 assert!(validator.fluent_string_with(&mut localize).contains(':'));
             }
         }

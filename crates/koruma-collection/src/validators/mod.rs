@@ -9,18 +9,11 @@
 //! - [`collection`]: Collection validators (length, non-empty)
 //! - [`general`]: General-purpose validators (required)
 
+#[cfg(feature = "internal-showcase")]
+koruma_derive::showcase_modules!(collection, format, numeric, string, general);
+
 pub mod collection;
 pub mod format;
 pub mod general;
 pub mod numeric;
 pub mod string;
-
-#[cfg(feature = "internal-showcase")]
-#[doc(hidden)]
-#[inline(never)]
-pub fn __link_showcase_validators() {
-    collection::__link_showcase_validators();
-    format::__link_showcase_validators();
-    numeric::__link_showcase_validators();
-    string::__link_showcase_validators();
-}

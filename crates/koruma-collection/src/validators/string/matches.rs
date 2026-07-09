@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 /// #[derive(Koruma)]
 /// struct User {
 ///     password: String,
-///     #[koruma(MatchesValidation::<_>::other(password))]
+///     #[koruma(MatchesValidation::<_>.other(self.password.clone()))]
 ///     confirm_password: String,
 /// }
 /// ```
@@ -36,10 +36,10 @@ pub struct MatchesValidation<T: PartialEq> {
     /// The value to match against
     #[cfg_attr(feature = "fluent", fluent(skip))]
     pub other: T,
-    /// The value being validated (stored for error context)
-    #[koruma(value)]
+    /// The value being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: PartialEq> Validate<T> for MatchesValidation<T> {
@@ -65,7 +65,7 @@ mod tests {
     fn accepts_when_values_match() {
         let validator = MatchesValidation {
             other: "secret".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(validator.validate(&"secret".to_string()));
     }
@@ -74,7 +74,7 @@ mod tests {
     fn rejects_when_values_do_not_match() {
         let validator = MatchesValidation {
             other: "secret".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(!validator.validate(&"SECRET".to_string()));
     }
@@ -84,7 +84,7 @@ mod tests {
     fn display_does_not_echo_the_other_value() {
         let validator = MatchesValidation {
             other: "super-secret".to_string(),
-            actual: String::new(),
+            actual: None,
         };
 
         assert_eq!(validator.to_string(), "Does not match the expected value.");

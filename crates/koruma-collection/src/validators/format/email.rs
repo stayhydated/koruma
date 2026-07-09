@@ -31,10 +31,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct EmailValidation<T: AsRef<str>> {
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for EmailValidation<T> {
@@ -58,18 +58,14 @@ mod tests {
 
     #[test]
     fn accepts_valid_email() {
-        let validator = EmailValidation {
-            actual: String::new(),
-        };
+        let validator = EmailValidation { actual: None };
 
         assert!(validator.validate(&"user@example.com".to_string()));
     }
 
     #[test]
     fn rejects_invalid_email() {
-        let validator = EmailValidation {
-            actual: String::new(),
-        };
+        let validator = EmailValidation { actual: None };
 
         assert!(!validator.validate(&"invalid@@example.com".to_string()));
         assert!(!validator.validate(&"missing-domain@".to_string()));

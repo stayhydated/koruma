@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context as _, Result, anyhow, bail};
 use quote::ToTokens as _;
 use syn::{
     Block, Expr, ExprLit, ImplItem, ItemImpl, Lit, Macro, Member, Stmt, Type, parse::Parser as _,
@@ -193,7 +193,7 @@ pub fn parse_slot_index(spec: &str, next_arg: usize) -> Result<(usize, bool)> {
         return Ok((index, true));
     }
 
-    bail!("unsupported format slot '{{{spec}}}'")
+    bail!("unrecognized format slot '{{{spec}}}'")
 }
 
 pub fn parse_format_chunks(format_str: &str) -> Result<Vec<FormatChunk>> {

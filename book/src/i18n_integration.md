@@ -6,7 +6,7 @@ and add the matching [es-fluent](https://github.com/stayhydated/es-fluent) depen
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
-es-fluent = { version = "*", features = ["derive"] }
+es-fluent = "0.17"
 ```
 
 This setup assumes:
@@ -22,7 +22,7 @@ examples expose a small `i18n::localize(...)` helper around an app-owned
 state.
 
 Validators intended for localisation derive `EsFluent`. When the validated value needs custom
-conversion, annotate it with `#[fluent(value(|x| ...))]`. Then derive `KorumaAllFluent` on the
+conversion, annotate it with `#[fluent(value = |x| ...)]`. Then derive `KorumaAllFluent` on the
 consumer type.
 
 ```rust
@@ -34,8 +34,7 @@ use koruma::{Koruma, KorumaAllFluent, Validate, validator};
 pub struct IsEvenNumberValidation<
     T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
 > {
-    #[koruma(value)]
-    #[fluent(value(|x: &T| x.to_string()))]
+    #[fluent(value = |x: &T| x.to_string())]
     actual: T,
 }
 
@@ -50,7 +49,6 @@ impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + Partia
 #[validator]
 #[derive(Clone, Debug, EsFluent)]
 pub struct NonEmptyStringValidation {
-    #[koruma(value)]
     input: String,
 }
 

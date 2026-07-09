@@ -6,33 +6,36 @@ expression: pretty_print(expanded)
     "Validators for the `", "value", "` field of [`", "Item", "`]: [`",
     "EvenNumberValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ItemValueKorumaValidator {
-    EvenNumberValidation(EvenNumberValidation),
+pub enum ItemValueKorumaValidatorRef<'koruma> {
+    EvenNumberValidation(&'koruma EvenNumberValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "value", "` field of [`", "Item",
     "`].\n\nValidators: [`", "EvenNumberValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemValueKorumaValidationError {
     even_number_validation: Option<EvenNumberValidation>,
 }
 impl ItemValueKorumaValidationError {
     #[doc = concat!(
-        "Returns the failed [`", "EvenNumberValidation", "`] validator, if any."
+        "Returns the failed `", "EvenNumberValidation", "` validator, if any."
     )]
     pub fn even_number_validation(&self) -> Option<&EvenNumberValidation> {
         self.even_number_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "value", "`.")]
-    pub fn all(&self) -> Vec<ItemValueKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.even_number_validation {
-            result.push(ItemValueKorumaValidator::EvenNumberValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = ItemValueKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .even_number_validation
+                .as_ref()
+                .map(ItemValueKorumaValidatorRef::EvenNumberValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.even_number_validation.is_none()
@@ -45,7 +48,7 @@ impl ItemValueKorumaValidationError {
     "Validation errors for [`", "Item", "`].\n\nContains per-field error structs for ",
     "field: `value`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ItemKorumaValidationError {
     value: ItemValueKorumaValidationError,
 }
@@ -57,9 +60,29 @@ impl ItemKorumaValidationError {
         &self.value
     }
 }
-impl koruma::ValidationError for ItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for ItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.value.even_number_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<EvenNumberValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "EvenNumberValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
     }
 }
 impl Item {
@@ -75,21 +98,33 @@ impl Item {
         };
         let mut has_error = false;
         let __field_value = &self.value;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
-                EvenNumberValidation::__koruma_builder(),
-                __field_value,
-            )
-            .build();
-        if !validator.validate(__field_value) {
-            error.value.even_number_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = EvenNumberValidation::__koruma_builder();
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                i32,
+                EvenNumberValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<EvenNumberValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.value.even_number_validation = Some(validator);
+                has_error = true;
+            }
         }
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Item {
+impl ::renamed_koruma::ValidateExt for Item {
     type Error = ItemKorumaValidationError;
     fn validate(&self) -> Result<(), ItemKorumaValidationError> {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Item {}

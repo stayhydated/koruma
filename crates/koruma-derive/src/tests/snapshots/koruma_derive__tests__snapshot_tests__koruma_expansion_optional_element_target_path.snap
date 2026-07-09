@@ -1,0 +1,182 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+#[doc = concat!(
+    "Element validators for the `", "values", "` field of [`", "OptionalScores",
+    "`]: [`", "GenericRangeValidation", "`]."
+)]
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+pub enum OptionalScoresValuesElementKorumaValidatorRef<'koruma> {
+    GenericRangeValidation(&'koruma GenericRangeValidation<i32>),
+}
+#[doc = concat!(
+    "Per-element validation errors for the `", "values", "` field of [`",
+    "OptionalScores", "`]."
+)]
+#[derive(Debug, Default)]
+pub struct OptionalScoresValuesElementKorumaValidationError {
+    generic_range_validation: Option<GenericRangeValidation<i32>>,
+}
+impl OptionalScoresValuesElementKorumaValidationError {
+    #[doc = concat!(
+        "Returns the failed `", "GenericRangeValidation", "` validator, if any."
+    )]
+    pub fn generic_range_validation(&self) -> Option<&GenericRangeValidation<i32>> {
+        self.generic_range_validation.as_ref()
+    }
+    #[doc = concat!("Returns all failed element validators for `", "values", "`.")]
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = OptionalScoresValuesElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .generic_range_validation
+                .as_ref()
+                .map(
+                    OptionalScoresValuesElementKorumaValidatorRef::GenericRangeValidation,
+                ),
+        ]
+            .into_iter()
+            .flatten()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.generic_range_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for the `", "values", "` field of [`", "OptionalScores",
+    "`] (element validators only)."
+)]
+#[derive(Debug, Default)]
+pub struct OptionalScoresValuesKorumaValidationError {
+    element_errors: Vec<(usize, OptionalScoresValuesElementKorumaValidationError)>,
+}
+impl OptionalScoresValuesKorumaValidationError {
+    #[doc = concat!(
+        "Returns all element validation errors for `", "values", "` of [`",
+        "OptionalScores", "`] with their indices."
+    )]
+    pub fn element_errors(
+        &self,
+    ) -> &[(usize, OptionalScoresValuesElementKorumaValidationError)] {
+        &self.element_errors
+    }
+    pub fn is_empty(&self) -> bool {
+        self.element_errors.is_empty()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for [`", "OptionalScores",
+    "`].\n\nContains per-field error structs for ", "field: `values`", "."
+)]
+#[derive(Debug, Default)]
+pub struct OptionalScoresKorumaValidationError {
+    values: OptionalScoresValuesKorumaValidationError,
+}
+impl OptionalScoresKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "values", "` field of [`",
+        "OptionalScores", "`]."
+    )]
+    pub fn values(&self) -> &OptionalScoresValuesKorumaValidationError {
+        &self.values
+    }
+}
+impl ::renamed_koruma::ValidationError for OptionalScoresKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.values.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for OptionalScoresKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        for (__koruma_index, __koruma_element_error) in self.values.element_errors() {
+            if __koruma_element_error.generic_range_validation().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "values",
+                            *__koruma_index,
+                            ::core::any::type_name::<GenericRangeValidation<i32>>(),
+                            None,
+                            ::std::format!(
+                                "validation failed for `{}`", "GenericRangeValidation"
+                            ),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+        }
+        __koruma_issues
+    }
+}
+impl OptionalScores {
+    #[doc = concat!(
+        "Validates all fields of `", "OptionalScores",
+        "` and returns an error struct containing all validation failures."
+    )]
+    pub fn validate(&self) -> Result<(), OptionalScoresKorumaValidationError> {
+        let mut error = OptionalScoresKorumaValidationError {
+            values: OptionalScoresValuesKorumaValidationError {
+                element_errors: Vec::new(),
+            },
+        };
+        let mut has_error = false;
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<
+                Vec<Option<i32>>,
+                Option<i32>,
+            >();
+        }
+        for (idx, item) in self.values.iter().enumerate() {
+            let mut element_error = OptionalScoresValuesElementKorumaValidationError {
+                generic_range_validation: None,
+            };
+            let mut element_has_error = false;
+            if let Some(__item_value) = item {
+                {
+                    let __koruma_builder = GenericRangeValidation::<i32>::min(0).max(10);
+                    ::renamed_koruma::__private::assert_element_validator_ready::<
+                        _,
+                        i32,
+                        GenericRangeValidation<i32>,
+                    >(&__koruma_builder);
+                    let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                        ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                            __koruma_builder,
+                            __item_value,
+                        ),
+                    );
+                    if !<GenericRangeValidation<
+                        i32,
+                    > as ::renamed_koruma::Validate<
+                        i32,
+                    >>::validate(&validator, __item_value) {
+                        element_error.generic_range_validation = Some(validator);
+                        element_has_error = true;
+                    }
+                }
+            }
+            if element_has_error {
+                error.values.element_errors.push((idx, element_error));
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl ::renamed_koruma::ValidateExt for OptionalScores {
+    type Error = OptionalScoresKorumaValidationError;
+    fn validate(&self) -> Result<(), OptionalScoresKorumaValidationError> {
+        Self::validate(self)
+    }
+}
+impl ::renamed_koruma::__private::KorumaWasDerived for OptionalScores {}

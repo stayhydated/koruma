@@ -9,24 +9,21 @@
 //! # Example
 //!
 //! ```rust
-//! use koruma_derive_core::{ParseFieldResult, parse_field};
+//! use koruma_derive_core::{ParsedDataField, parse_field};
 //! use syn::{Field, parse_quote};
 //!
-//! fn validator_count(field: &Field) -> Option<usize> {
-//!     match parse_field(field, 0) {
-//!         ParseFieldResult::Valid(info) => {
-//!             Some(info.validation.field_validators.len())
-//!         }
-//!         ParseFieldResult::Skip => None,
-//!         ParseFieldResult::Error(error) => panic!("Parse error: {error}"),
-//!     }
+//! fn validator_count(field: &Field) -> syn::Result<Option<usize>> {
+//!     Ok(match parse_field(field, 0)? {
+//!         ParsedDataField::Participating(info) => Some(info.field_validators().len()),
+//!         ParsedDataField::Unannotated(_) | ParsedDataField::Skipped { .. } => None,
+//!     })
 //! }
 //!
 //! let field: Field = parse_quote! {
 //!     #[koruma(NonEmptyValidation)]
 //!     username: String
 //! };
-//! assert_eq!(validator_count(&field), Some(1));
+//! assert_eq!(validator_count(&field).unwrap(), Some(1));
 //! ```
 
 mod parse;
@@ -37,17 +34,23 @@ mod tests;
 
 // Re-export parsing types
 pub use parse::{
-    BuilderMethodCall, FieldInfo, KorumaAttr, ParseFieldResult, StructOptions, ValidationInfo,
-    ValidatorAttr, ValueFieldCapture, ValueFieldInfo, find_value_field, find_value_field_info,
-    find_value_field_info_strict, find_value_field_strict, parse_field, parse_struct_options,
+    BuilderMethodCall, CapturePolicy, ConstructorOptions, DataFieldKorumaAttr, DataFieldKorumaItem,
+    ElementValidationSpec, FieldInfo, FieldModifier, FieldModifierKind, FieldSource,
+    FieldValidationSpec, KorumaAttrContext, ParsedDataField, ParsedFieldSpec, ParsedValidatorUse,
+    SetterDefault, SetterInputPolicy, SetterPresence, SpannedValue, StructKorumaAttr,
+    StructKorumaItem, StructMode, StructOptions, ValidatorAttr, ValidatorFieldKorumaItem,
+    ValidatorFieldRole, ValidatorFieldSpec, ValidatorLabel, ValidatorPath, ValidatorSetterArg,
+    ValidatorSetterSpec, ValidatorStructSpec, ValidatorTargetSelector, ValidatorTypeArg,
+    ValidatorValueSource, ValidatorValueSpec, parse_field, parse_struct_options,
+    parse_validator_struct,
 };
 
 #[cfg(feature = "internal-showcase")]
-pub use parse::{ShowcaseAttr, find_showcase_attr};
+pub use parse::{ShowcaseAttr, ShowcaseInputType, ShowcaseModule, find_showcase_attr};
 
 // Re-export utility functions
 pub use utils::{
-    contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_infer_type,
-    is_option_type, option_inner_type, substitute_infer_type, substitute_infer_type_from_source,
-    type_to_ident, vec_inner_type,
+    KnownTypeShape, contains_infer_type, expr_as_simple_ident, first_generic_arg, is_option_type,
+    option_inner_type, substitute_infer_type, substitute_infer_type_from_source, type_to_ident,
+    vec_inner_type,
 };

@@ -1,11 +1,11 @@
-use koruma_shared_lib::Languages;
+use readme::i18n::Languages;
 use readme::{
     Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8,
     OptionalSignupForm, SignupForm, SignupInput, User, Username, i18n,
 };
 use strum::IntoEnumIterator as _;
 
-pub fn main() {
+pub fn main() -> Result<(), i18n::LocalizationError> {
     i18n::init();
 
     println!("Display-based Error Messages \n");
@@ -104,7 +104,7 @@ pub fn main() {
     };
 
     for lang in Languages::iter() {
-        i18n::change_locale(lang).expect("Failed to change locale");
+        i18n::change_locale(lang)?;
 
         println!(
             ">> Current Language: {:?} : {}",
@@ -116,7 +116,7 @@ pub fn main() {
             Ok(()) => println!("User is valid!"),
             Err(errors) => {
                 if let Some(id_err) = errors.id().is_even_number_validation() {
-                    // This now prints in the language selected above
+                    // Render with the language selected above.
                     println!("  - id: {}", i18n::localize(id_err));
                 }
 
@@ -143,7 +143,7 @@ pub fn main() {
     };
 
     for lang in Languages::iter() {
-        i18n::change_locale(lang).expect("Failed to change locale");
+        i18n::change_locale(lang)?;
 
         println!(
             ">> Current Language: {:?} : {}",
@@ -252,7 +252,7 @@ pub fn main() {
     };
 
     for lang in Languages::iter() {
-        i18n::change_locale(lang).expect("Failed to change locale");
+        i18n::change_locale(lang)?;
 
         println!(
             ">> Current Language: {:?} : {}",
@@ -366,9 +366,9 @@ pub fn main() {
     }
 
     // =========================================================================
-    // TryFrom integration (newtype(try_from))
+    // TryFrom integration (newtype, try_from)
     // =========================================================================
-    println!("TryFrom Integration (#[koruma(newtype(try_from))]) \n");
+    println!("TryFrom Integration (#[koruma(newtype, try_from)]) \n");
 
     match Only67u8::try_from(69) {
         Ok(n) => println!("  - Only67u8::try_from(69) unexpectedly passed: {}!", n.0),
@@ -402,7 +402,7 @@ pub fn main() {
             println!("username: {err}");
         }
 
-        if let Some(err) = errors.handle().ascii_validation() {
+        if let Some(err) = errors.handle().handle_ascii() {
             println!("handle(ascii): {err}");
         }
 
@@ -410,4 +410,6 @@ pub fn main() {
             println!("handle(any): {err}");
         }
     }
+
+    Ok(())
 }

@@ -11,7 +11,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(PatternValidation::<_>::pattern(Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
+///     #[koruma(PatternValidation::<_>.pattern(Regex::new(r"^[a-zA-Z0-9_]+$").unwrap()))]
 ///     username: String,
 /// }
 /// ```
@@ -36,10 +36,10 @@ pub struct PatternValidation<T: AsRef<str>> {
     /// The compiled regex pattern to match against
     #[cfg_attr(feature = "fluent", fluent(skip))]
     pub pattern: regex::Regex,
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for PatternValidation<T> {

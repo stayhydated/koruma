@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context as _, Result, anyhow};
 use fluent_syntax::{ast, parser};
 
 use super::types::TemplatePart;
@@ -53,7 +53,7 @@ pub fn collect_ftl_templates(
 
             let template = template_from_pattern(&pattern).with_context(|| {
                 format!(
-                    "Unsupported message pattern for '{}' in {}",
+                    "Unrecognized message pattern for '{}' in {}",
                     message.id.name,
                     path.display()
                 )

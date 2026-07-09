@@ -6,31 +6,36 @@ expression: pretty_print(expanded)
     "Validators for the `", "age", "` field of [`", "ComplexItem", "`]: [`",
     "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemAgeKorumaValidator {
-    RangeValidation(RangeValidation),
+pub enum ComplexItemAgeKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "age", "` field of [`", "ComplexItem",
     "`].\n\nValidators: [`", "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
 impl ComplexItemAgeKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "age", "`.")]
-    pub fn all(&self) -> Vec<ComplexItemAgeKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(ComplexItemAgeKorumaValidator::RangeValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ComplexItemAgeKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(ComplexItemAgeKorumaValidatorRef::RangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none()
@@ -43,36 +48,36 @@ impl ComplexItemAgeKorumaValidationError {
     "Element validators for the `", "tags", "` field of [`", "ComplexItem", "`]: [`",
     "LengthValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemTagsElementKorumaValidator {
-    LengthValidation(LengthValidation),
+pub enum ComplexItemTagsElementKorumaValidatorRef<'koruma> {
+    LengthValidation(&'koruma LengthValidation),
 }
 #[doc = concat!(
     "Per-element validation errors for the `", "tags", "` field of [`", "ComplexItem",
     "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemTagsElementKorumaValidationError {
     length_validation: Option<LengthValidation>,
 }
 impl ComplexItemTagsElementKorumaValidationError {
-    #[doc = concat!(
-        "Returns the failed [`", "LengthValidation", "`] validator, if any."
-    )]
+    #[doc = concat!("Returns the failed `", "LengthValidation", "` validator, if any.")]
     pub fn length_validation(&self) -> Option<&LengthValidation> {
         self.length_validation.as_ref()
     }
     #[doc = concat!("Returns all failed element validators for `", "tags", "`.")]
-    pub fn all(&self) -> Vec<ComplexItemTagsElementKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.length_validation {
-            result
-                .push(
-                    ComplexItemTagsElementKorumaValidator::LengthValidation(v.clone()),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ComplexItemTagsElementKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .length_validation
+                .as_ref()
+                .map(ComplexItemTagsElementKorumaValidatorRef::LengthValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.length_validation.is_none()
@@ -85,7 +90,7 @@ impl ComplexItemTagsElementKorumaValidationError {
     "Validation errors for the `", "tags", "` field of [`", "ComplexItem",
     "`] (element validators only)."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemTagsKorumaValidationError {
     element_errors: Vec<(usize, ComplexItemTagsElementKorumaValidationError)>,
 }
@@ -110,40 +115,46 @@ impl ComplexItemTagsKorumaValidationError {
     "Validators for the `", "rating", "` field of [`", "ComplexItem", "`]: [`",
     "RangeValidation`], `[EvenValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum ComplexItemRatingKorumaValidator {
-    RangeValidation(RangeValidation),
-    EvenValidation(EvenValidation),
+pub enum ComplexItemRatingKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation),
+    EvenValidation(&'koruma EvenValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "rating", "` field of [`", "ComplexItem",
     "`].\n\nValidators: [`", "RangeValidation`], `[EvenValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemRatingKorumaValidationError {
     range_validation: Option<RangeValidation>,
     even_validation: Option<EvenValidation>,
 }
 impl ComplexItemRatingKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
-    #[doc = concat!("Returns the failed [`", "EvenValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "EvenValidation", "` validator, if any.")]
     pub fn even_validation(&self) -> Option<&EvenValidation> {
         self.even_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "rating", "`.")]
-    pub fn all(&self) -> Vec<ComplexItemRatingKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(ComplexItemRatingKorumaValidator::RangeValidation(v.clone()));
-        }
-        if let Some(v) = &self.even_validation {
-            result.push(ComplexItemRatingKorumaValidator::EvenValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = ComplexItemRatingKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(ComplexItemRatingKorumaValidatorRef::RangeValidation),
+            self
+                .even_validation
+                .as_ref()
+                .map(ComplexItemRatingKorumaValidatorRef::EvenValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none() && self.even_validation.is_none()
@@ -157,7 +168,7 @@ impl ComplexItemRatingKorumaValidationError {
     "`].\n\nContains per-field error structs for ", "fields: `age`, `tags`, `rating`",
     "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct ComplexItemKorumaValidationError {
     age: ComplexItemAgeKorumaValidationError,
     tags: ComplexItemTagsKorumaValidationError,
@@ -186,9 +197,68 @@ impl ComplexItemKorumaValidationError {
         &self.rating
     }
 }
-impl koruma::ValidationError for ComplexItemKorumaValidationError {
+impl ::renamed_koruma::ValidationError for ComplexItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty() && self.tags.is_empty() && self.rating.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for ComplexItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.age.range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "age",
+                        ::core::any::type_name::<RangeValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "RangeValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        for (__koruma_index, __koruma_element_error) in self.tags.element_errors() {
+            if __koruma_element_error.length_validation().is_some() {
+                __koruma_issues
+                    .push(
+                        ::renamed_koruma::ValidationIssue::element(
+                            "tags",
+                            *__koruma_index,
+                            ::core::any::type_name::<LengthValidation>(),
+                            None,
+                            ::std::format!(
+                                "validation failed for `{}`", "LengthValidation"
+                            ),
+                            ::std::vec::Vec::new(),
+                        ),
+                    );
+            }
+        }
+        if self.rating.range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "rating",
+                        ::core::any::type_name::<RangeValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "RangeValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.rating.even_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "rating",
+                        ::core::any::type_name::<EvenValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "EvenValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
     }
 }
 impl ComplexItem {
@@ -211,28 +281,56 @@ impl ComplexItem {
         };
         let mut has_error = false;
         let __field_value = &self.age;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
-                RangeValidation::min(0).max(100),
-                __field_value,
-            )
-            .build();
-        if !validator.validate(__field_value) {
-            error.age.range_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = RangeValidation::min(0).max(100);
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                i32,
+                RangeValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<RangeValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.age.range_validation = Some(validator);
+                has_error = true;
+            }
+        }
+        {
+            ::renamed_koruma::__private::assert_each_collection_ref::<
+                Vec<String>,
+                String,
+            >();
         }
         for (idx, __item_value) in self.tags.iter().enumerate() {
             let mut element_error = ComplexItemTagsElementKorumaValidationError {
                 length_validation: None,
             };
             let mut element_has_error = false;
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    LengthValidation::min(1).max(50),
-                    __item_value,
-                )
-                .build();
-            if !validator.validate(__item_value) {
-                element_error.length_validation = Some(validator);
-                element_has_error = true;
+            {
+                let __koruma_builder = LengthValidation::min(1).max(50);
+                ::renamed_koruma::__private::assert_element_validator_ready::<
+                    _,
+                    String,
+                    LengthValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __item_value,
+                    ),
+                );
+                if !<LengthValidation as ::renamed_koruma::Validate<
+                    String,
+                >>::validate(&validator, __item_value) {
+                    element_error.length_validation = Some(validator);
+                    element_has_error = true;
+                }
             }
             if element_has_error {
                 error.tags.element_errors.push((idx, element_error));
@@ -240,30 +338,53 @@ impl ComplexItem {
             }
         }
         let __field_value = &self.rating;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
-                RangeValidation::min(0).max(10),
-                __field_value,
-            )
-            .build();
-        if !validator.validate(__field_value) {
-            error.rating.range_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = RangeValidation::min(0).max(10);
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                i32,
+                RangeValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<RangeValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.rating.range_validation = Some(validator);
+                has_error = true;
+            }
         }
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
-                EvenValidation::__koruma_builder(),
-                __field_value,
-            )
-            .build();
-        if !validator.validate(__field_value) {
-            error.rating.even_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = EvenValidation::__koruma_builder();
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                i32,
+                EvenValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<EvenValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.rating.even_validation = Some(validator);
+                has_error = true;
+            }
         }
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for ComplexItem {
+impl ::renamed_koruma::ValidateExt for ComplexItem {
     type Error = ComplexItemKorumaValidationError;
     fn validate(&self) -> Result<(), ComplexItemKorumaValidationError> {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for ComplexItem {}

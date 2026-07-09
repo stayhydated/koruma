@@ -1,0 +1,396 @@
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentChildKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required by a bound in `Default`
+ --> $RUST/core/src/default.rs
+  |
+  | pub const trait Default: Sized {
+  |                          ^^^^^ required by this bound in `Default`
+  = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+5 | #[derive(Koruma)]
+  |          ------ in this derive macro expansion
+6 | struct Parent {
+  |        ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^
+note: required by a bound in `Default`
+ --> $RUST/core/src/default.rs
+  |
+  | pub const trait Default: Sized {
+  |                          ^^^^^ required by this bound in `Default`
+  = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^
+note: required by a bound in `ValidationError`
+ --> $WORKSPACE/crates/koruma-core/src/lib.rs
+  |
+  | / pub trait ValidationError {
+  | |     /// Returns `true` if there are no validation errors.
+  | |     #[must_use]
+  | |     fn is_empty(&self) -> bool;
+... |
+  | | }
+  | |_^ required by this bound in `ValidationError`
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^
+note: required by a bound in `ValidationIssues`
+ --> $WORKSPACE/crates/koruma-core/src/lib.rs
+  |
+  | / pub trait ValidationIssues {
+  | |     /// Return all validation issues represented by this error value.
+  | |     #[must_use]
+  | |     fn issues(&self) -> Vec<ValidationIssue>;
+  | | }
+  | |_^ required by this bound in `ValidationIssues`
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^
+  = note: required for `<Parent as ValidateExt>::Error` to implement `ValidationError`
+note: required by a bound in `koruma::ValidateExt::Error`
+ --> $WORKSPACE/crates/koruma-core/src/lib.rs
+  |
+  |     type Error: ValidationError + Default;
+  |                 ^^^^^^^^^^^^^^^ required by this bound in `ValidateExt::Error`
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^
+note: required by an implicit `Sized` bound in `Result`
+ --> $RUST/core/src/result.rs
+  |
+  | pub enum Result<T, E> {
+  |                    ^ required by the implicit `Sized` requirement on this type parameter in `Result`
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentChildKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+  = note: the return type of a function must have a statically known size
+  = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:6:8
+  |
+6 | struct Parent {
+  |        ^^^^^^
+  = note: the return type of a function must have a statically known size
+  = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+  = note: this error originates in the derive macro `Debug` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+  = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentChildKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required by a bound in `default`
+ --> $RUST/core/src/default.rs
+  |
+  | pub const trait Default: Sized {
+  |                          ^^^^^ required by this bound in `Default::default`
+...
+  |     fn default() -> Self;
+  |        ------- required by a bound in this associated function
+  = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0599]: the method `inner` exists for struct `ParentChildKorumaValidationError`, but its trait bounds were not satisfied
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+3 | struct Child(i32);
+  | ------------ doesn't satisfy `Child: ValidateExt`
+4 |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+  |          |
+  |          field, not a method
+  |          method `inner` not found for this struct
+  |
+  = note: the following trait bounds were not satisfied:
+          `Child: ValidateExt`
+note: the trait `ValidateExt` must be implemented
+ --> $WORKSPACE/crates/koruma-core/src/lib.rs
+  |
+  | pub trait ValidateExt {
+  | ^^^^^^^^^^^^^^^^^^^^^
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: ValidateExt` is not satisfied in `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ unsatisfied trait bound
+  |
+help: within `ParentChildKorumaValidationError`, the trait `ValidateExt` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+help: the trait `ValidateExt` is implemented for `Parent`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required because it appears within the type `ParentChildKorumaValidationError`
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^
+note: required by a bound in `default`
+ --> $RUST/core/src/default.rs
+  |
+  | pub const trait Default: Sized {
+  |                          ^^^^^ required by this bound in `Default::default`
+...
+  |     fn default() -> Self;
+  |        ------- required by a bound in this associated function
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `Child: NewtypeValidation` is not satisfied
+ --> tests/ui/newtype_requires_validate_ext.rs:8:12
+  |
+8 |     child: Child,
+  |            ^^^^^ unsatisfied trait bound
+  |
+help: the trait `NewtypeValidation` is not implemented for `Child`
+ --> tests/ui/newtype_requires_validate_ext.rs:3:1
+  |
+3 | struct Child(i32);
+  | ^^^^^^^^^^^^
+note: required by a bound in `koruma::__private::assert_newtype_field_ready`
+ --> $WORKSPACE/crates/koruma-core/src/lib.rs
+  |
+  |     pub fn assert_newtype_field_ready<T>()
+  |            -------------------------- required by a bound in this function
+  |     where
+  |         T: super::NewtypeValidation,
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_newtype_field_ready`
+
+error[E0599]: no method named `validate` found for reference `&Child` in the current scope
+ --> tests/ui/newtype_requires_validate_ext.rs:5:10
+  |
+5 | #[derive(Koruma)]
+  |          ^^^^^^ method not found in `&Child`
+  |
+  = help: items from traits can only be used if the trait is implemented and in scope
+  = note: the following traits define an item `validate`, perhaps you need to implement one of them:
+          candidate #1: `Validate`
+          candidate #2: `ValidateExt`
+  = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)

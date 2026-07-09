@@ -7,16 +7,18 @@ use syn::{DeriveInput, ItemStruct};
 fn test_validator_error_missing_value_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
+            #[koruma(setter)]
             min: i32,
+            #[koruma(setter)]
             max: i32,
-            // Missing #[koruma(value)] field!
+            // Missing an unmarked or explicit value field.
         }
     };
 
     let result = expand_validator(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(err.to_string().contains("koruma(value)"));
+    assert!(err.to_string().contains("requires a value field"));
 }
 
 #[test]
@@ -25,7 +27,6 @@ fn test_validator_error_public_value_field() {
         pub struct BadValidator {
             min: i32,
             max: i32,
-            #[koruma(value)]
             pub actual: i32,
         }
     };
@@ -66,18 +67,14 @@ fn test_validator_error_on_multiple_value_fields() {
     let result = expand_validator(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("requires exactly one `#[koruma(value)]` field")
-    );
+    assert!(err.to_string().contains("requires exactly one value field"));
 }
 
 #[test]
 fn test_validator_error_on_duplicate_value_marker_same_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
-            #[koruma(value)]
-            #[koruma(value)]
+            #[koruma(value, value)]
             actual: i32,
         }
     };
@@ -85,17 +82,14 @@ fn test_validator_error_on_duplicate_value_marker_same_field() {
     let result = expand_validator(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("has multiple `#[koruma(value)]` markers")
-    );
+    assert!(err.to_string().contains("has multiple value markers"));
 }
 
 #[test]
-fn test_validator_error_skip_capture_requires_option_value_field() {
+fn test_validator_error_capture_skip_requires_option_value_field() {
     let input: ItemStruct = syn::parse_quote! {
         pub struct BadValidator {
-            #[koruma(value, skip_capture)]
+            #[koruma(skip_capture)]
             actual: String,
         }
     };
@@ -105,8 +99,221 @@ fn test_validator_error_skip_capture_requires_option_value_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`#[koruma(value, skip_capture)]` currently requires an `Option<T>` field")
+            .contains("`#[koruma(skip_capture)]` requires an `Option<T>` field")
     );
+}
+
+#[test]
+fn test_validator_error_value_field_rejects_setter_metadata() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(value, setter(required))]
+            actual: Option<i32>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("validator value fields cannot also use `#[koruma(setter(...))]`")
+    );
+}
+
+#[test]
+fn test_validator_error_unknown_setter_option() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(setter(skip))]
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("unsupported `#[koruma(setter(skip))]` option")
+    );
+}
+
+#[test]
+fn test_validator_error_required_and_default_setter_options_conflict() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(setter(required, default = 0))]
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    let result = expand_validator(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("`required` and `default` cannot be combined")
+    );
+}
+
+#[test]
+fn test_validator_error_duplicate_setter_options() {
+    for (input, expected) in [
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    #[koruma(setter(name = min_value, name = minimum))]
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "duplicate `setter(name = ...)` option",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    #[koruma(setter(default, default = 1))]
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "duplicate `setter(default)` option",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    #[koruma(setter(required, required))]
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "duplicate `setter(required)` option",
+        ),
+    ] {
+        let err = expand_validator(input).expect_err("expected duplicate setter option error");
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}`, got: {err}"
+        );
+    }
+}
+
+#[test]
+fn test_validator_error_rejects_multiple_field_attrs() {
+    let input: ItemStruct = syn::parse_quote! {
+        pub struct BadValidator {
+            #[koruma(setter(default))]
+            #[koruma(setter(default = 1))]
+            min: i32,
+            #[koruma(value)]
+            actual: Option<i32>,
+        }
+    };
+
+    let err = expand_validator(input).expect_err("expected repeated attribute error");
+    assert!(
+        err.to_string()
+            .contains("only one validator-field `#[koruma(...)]` attribute is allowed"),
+        "expected repeated validator-field attribute error, got: {err}"
+    );
+}
+
+#[test]
+fn test_validator_error_generated_setter_method_collisions() {
+    for (input, expected) in [
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    #[koruma(setter(name = same))]
+                    min: i32,
+                    #[koruma(setter(name = same))]
+                    max: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "setter method `same` collides",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    #[koruma(setter(name = with_value))]
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "setter method name `with_value` is reserved",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    #[koruma(setter(name = __koruma_builder))]
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "setter method name `__koruma_builder` is reserved",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    maybe_min: i32,
+                    min: Option<i32>,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "setter method name `maybe_min` is reserved",
+        ),
+    ] {
+        let err = expand_validator(input).expect_err("expected setter method collision");
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}`, got: {err}"
+        );
+    }
+}
+
+#[test]
+fn test_validator_error_generated_builder_name_collisions() {
+    for (input, expected) in [
+        (
+            syn::parse_quote! {
+                pub struct BadValidator {
+                    _state: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "field name `_state` is reserved",
+        ),
+        (
+            syn::parse_quote! {
+                pub struct BadValidator<__KorumaMinState> {
+                    min: i32,
+                    #[koruma(value)]
+                    actual: Option<i32>,
+                }
+            },
+            "generated required-state generic `__KorumaMinState` collides",
+        ),
+    ] {
+        let err = expand_validator(input).expect_err("expected generated-name collision");
+        assert!(
+            err.to_string().contains(expected),
+            "expected `{expected}`, got: {err}"
+        );
+    }
 }
 
 #[cfg(feature = "internal-showcase")]
@@ -196,7 +403,7 @@ fn test_koruma_error_on_enum() {
 fn test_koruma_error_on_duplicate_validator_same_attr() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateValidatorSameAttr {
-            #[koruma(RangeValidation::min(0).max(100), RangeValidation::min(10).max(50))]
+            #[koruma(RangeValidation.min(0).max(100), RangeValidation.min(10).max(50))]
             pub value: i32,
         }
     };
@@ -205,18 +412,18 @@ fn test_koruma_error_on_duplicate_validator_same_attr() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("duplicate validator"),
-        "expected 'duplicate validator' error, got: {}",
+        err.to_string().contains("add explicit validator labels"),
+        "expected label-required duplicate-name error, got: {}",
         err
     );
 }
 
 #[test]
-fn test_koruma_error_on_duplicate_validator_separate_attrs() {
+fn test_koruma_error_on_repeated_field_attrs() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct DuplicateValidatorSeparateAttrs {
-            #[koruma(RangeValidation::min(0).max(100))]
-            #[koruma(RangeValidation::min(10).max(50))]
+        pub struct RepeatedFieldAttrs {
+            #[koruma(RangeValidation.min(0).max(100))]
+            #[koruma(RangeValidation.min(10).max(50))]
             pub value: i32,
         }
     };
@@ -225,8 +432,9 @@ fn test_koruma_error_on_duplicate_validator_separate_attrs() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("duplicate validator"),
-        "expected 'duplicate validator' error, got: {}",
+        err.to_string()
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {}",
         err
     );
 }
@@ -235,8 +443,7 @@ fn test_koruma_error_on_duplicate_validator_separate_attrs() {
 fn test_koruma_error_on_duplicate_element_validator() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct DuplicateElementValidator {
-            #[koruma(each(RangeValidation::min(0).max(100)))]
-            #[koruma(each(RangeValidation::min(10).max(50)))]
+            #[koruma(each(RangeValidation.min(0).max(100), RangeValidation.min(10).max(50)))]
             pub values: Vec<i32>,
         }
     };
@@ -245,69 +452,17 @@ fn test_koruma_error_on_duplicate_element_validator() {
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
-        err.to_string().contains("duplicate element validator"),
-        "expected 'duplicate element validator' error, got: {}",
+        err.to_string().contains("add explicit validator labels"),
+        "expected label-required duplicate-name error, got: {}",
         err
     );
 }
 
 #[test]
-fn test_koruma_error_on_full_type_option_validator_for_non_optional_field() {
-    let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<_>>)]
-            pub value: i32,
-        }
-    };
-
-    let result = expand_koruma(input);
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
-        ),
-        "expected optional-target diagnostic, got: {}",
-        err
-    );
-    assert!(
-        err.to_string().contains("field `value`"),
-        "expected field name in diagnostic, got: {}",
-        err
-    );
-}
-
-#[test]
-fn test_koruma_error_on_full_type_option_element_validator_for_non_optional_elements() {
-    let input: DeriveInput = syn::parse_quote! {
-        pub struct NonOptionalElementFullTypeValidator {
-            #[koruma(each(RequiredValidation::<Option<_>>))]
-            pub values: Vec<i32>,
-        }
-    };
-
-    let result = expand_koruma(input);
-    assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(
-        err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
-        ),
-        "expected optional-target diagnostic, got: {}",
-        err
-    );
-    assert!(
-        err.to_string().contains("element type of field `values`"),
-        "expected element context in diagnostic, got: {}",
-        err
-    );
-}
-
-#[test]
-fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_elements() {
+fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_target() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitElementFullTypeValidator {
-            #[koruma(each(RequiredValidation::<Option<String>>))]
+            #[koruma(each(GenericValidation::<Option<String>>))]
             pub values: Vec<String>,
         }
     };
@@ -317,23 +472,24 @@ fn test_koruma_error_on_explicit_option_element_validator_for_non_optional_eleme
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
+            "explicit `Option<...>` validator type arguments require an optional validation target"
         ),
-        "expected optional-target diagnostic, got: {}",
+        "expected non-optional option-target diagnostic, got: {}",
         err
     );
     assert!(
-        err.to_string().contains("element type of field `values`"),
+        err.to_string()
+            .contains("element validators on field `values`"),
         "expected element context in diagnostic, got: {}",
         err
     );
 }
 
 #[test]
-fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
+fn test_koruma_error_on_explicit_option_validator_for_non_optional_target() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonOptionalExplicitFullTypeValidator {
-            #[koruma(RequiredValidation::<Option<String>>)]
+            #[koruma(GenericValidation::<Option<String>>)]
             pub value: String,
         }
     };
@@ -343,9 +499,9 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
     let err = result.unwrap_err();
     assert!(
         err.to_string().contains(
-            "explicit `Option<...>` validator types require an optional validation target"
+            "explicit `Option<...>` validator type arguments require an optional validation target"
         ),
-        "expected optional-target diagnostic, got: {}",
+        "expected non-optional option-target diagnostic, got: {}",
         err
     );
     assert!(
@@ -356,10 +512,63 @@ fn test_koruma_error_on_explicit_option_validator_for_non_optional_field() {
 }
 
 #[test]
+fn test_koruma_error_on_explicit_option_validator_with_unwrapped_target() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalExplicitFullTypeValidator {
+            #[koruma(unwrapped(GenericValidation::<Option<_>>))]
+            pub value: Option<String>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string().contains(
+            "explicit `Option<...>` validator type arguments require full-option target selection"
+        ),
+        "expected unwrapped target conflict diagnostic, got: {}",
+        err
+    );
+    assert!(
+        err.to_string().contains("field `value`"),
+        "expected field context in diagnostic, got: {}",
+        err
+    );
+}
+
+#[test]
+fn test_koruma_error_on_explicit_option_element_validator_with_unwrapped_target() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalExplicitFullElementTypeValidator {
+            #[koruma(each(unwrapped(GenericValidation::<Option<_>>)))]
+            pub values: Vec<Option<String>>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string().contains(
+            "explicit `Option<...>` validator type arguments require full-option target selection"
+        ),
+        "expected unwrapped target conflict diagnostic, got: {}",
+        err
+    );
+    assert!(
+        err.to_string()
+            .contains("element validators on field `values`"),
+        "expected element context in diagnostic, got: {}",
+        err
+    );
+}
+
+#[test]
 fn test_koruma_error_on_direct_chain_with_build_call() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct InvalidDirectSyntax {
-            #[koruma(NumberRangeValidation::min(0).max(100).build())]
+            #[koruma(NumberRangeValidation.min(0).max(100).build())]
             pub value: i32,
         }
     };
@@ -376,9 +585,29 @@ fn test_koruma_error_on_direct_chain_with_build_call() {
 }
 
 #[test]
-fn test_koruma_error_on_removed_constructor_style_validator_args() {
+fn test_koruma_error_on_each_validator_with_value_call() {
     let input: DeriveInput = syn::parse_quote! {
-        pub struct RemovedConstructorStyleSyntax {
+        pub struct InvalidElementValueSyntax {
+            #[koruma(each(NumberRangeValidation::<_>.min(1).max(5).with_value(2)))]
+            pub values: Vec<i32>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    let err_text = err.to_string();
+    assert!(
+        err_text.contains("the value is supplied automatically by the field or collection element"),
+        "expected with_value attribute diagnostic, got: {}",
+        err_text
+    );
+}
+
+#[test]
+fn test_koruma_error_on_invalid_validator_call() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct InvalidValidatorSyntax {
             #[koruma(NumberRangeValidation(min = 0, max = 100))]
             pub value: i32,
         }
@@ -387,11 +616,12 @@ fn test_koruma_error_on_removed_constructor_style_validator_args() {
     let result = expand_koruma(input);
     assert!(result.is_err());
     let err = result.unwrap_err();
+    let err_text = err.to_string();
     assert!(
-        err.to_string()
-            .contains("requires a direct validator chain"),
-        "expected direct-chain diagnostic, got: {}",
-        err
+        err_text.contains("requires a direct validator chain")
+            || err_text.contains("expected validator chain"),
+        "expected validator-chain diagnostic, got: {}",
+        err_text
     );
 }
 
@@ -399,7 +629,7 @@ fn test_koruma_error_on_removed_constructor_style_validator_args() {
 fn test_koruma_error_on_each_non_vec_collection() {
     let input: DeriveInput = syn::parse_quote! {
         pub struct NonVecEach {
-            #[koruma(each(RangeValidation::min(0).max(100)))]
+            #[koruma(each(RangeValidation.min(0).max(100)))]
             pub values: std::collections::HashSet<i32>,
         }
     };
@@ -409,8 +639,31 @@ fn test_koruma_error_on_each_non_vec_collection() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("`each(...)` currently only supports `Vec<T>`, slice fields"),
-        "expected unsupported each(...) collection error, got: {err}",
+            .contains("`each(...)` supports syntactic `Vec<T>`, slice fields"),
+        "expected each(...) collection diagnostic, got: {err}",
+    );
+    assert!(
+        err.to_string().contains("the outer field type"),
+        "expected outer field context, got: {err}",
+    );
+}
+
+#[test]
+fn test_koruma_error_on_each_optional_non_collection() {
+    let input: DeriveInput = syn::parse_quote! {
+        pub struct OptionalNonCollectionEach {
+            #[koruma(each(RangeValidation.min(0).max(100)))]
+            pub values: Option<std::collections::HashSet<i32>>,
+        }
+    };
+
+    let result = expand_koruma(input);
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("the unwrapped optional collection"),
+        "expected unwrapped optional context, got: {err}",
     );
 }
 
@@ -419,9 +672,9 @@ fn test_koruma_error_on_struct_level_newtype_with_wrong_field_count() {
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]
         pub struct BadNewtype {
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub a: i32,
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub b: i32,
         }
     };
@@ -441,7 +694,7 @@ fn test_koruma_error_on_struct_level_newtype_with_one_validated_and_one_plain_fi
     let input: DeriveInput = syn::parse_quote! {
         #[koruma(newtype)]
         pub struct BadNewtype {
-            #[koruma(RangeValidation::min(0).max(10))]
+            #[koruma(RangeValidation.min(0).max(10))]
             pub a: i32,
             pub b: i32,
         }
@@ -507,8 +760,8 @@ fn test_koruma_error_on_nested_field_with_split_validators() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("cannot also use validators or `each(...)`"),
-        "expected nested+validator compatibility error, got: {err}"
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {err}"
     );
 }
 
@@ -527,8 +780,8 @@ fn test_koruma_error_on_newtype_field_with_each() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("cannot also use `each(...)`; element validation is not supported"),
-        "expected newtype + each rejection, got: {err}"
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {err}"
     );
 }
 
@@ -547,7 +800,7 @@ fn test_koruma_error_on_field_with_nested_and_newtype() {
     let err = result.unwrap_err();
     assert!(
         err.to_string()
-            .contains("cannot combine `#[koruma(nested)]` and `#[koruma(newtype)]`"),
-        "expected nested + newtype rejection, got: {err}"
+            .contains("only one field-level `#[koruma(...)]` attribute is allowed"),
+        "expected repeated field attribute error, got: {err}"
     );
 }

@@ -6,6 +6,10 @@ alphanumeric_validation = 必须只包含字母和数字。
 
 ascii_validation = 必须只包含 ASCII 字符。
 
+## CanonicalFormValidation
+
+canonical_form_validation = 必须已经是规范形式。
+
 ## ContainsValidation
 
 contains_validation = 必须包含子串 '{ $substring }'。

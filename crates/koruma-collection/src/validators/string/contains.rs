@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     #[koruma(ContainsValidation::<_>::substring("test"))]
+///     #[koruma(ContainsValidation::<_>.substring("test"))]
 ///     email: String,
 /// }
 /// ```
@@ -33,12 +33,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct ContainsValidation<T: AsRef<str>> {
     /// The substring to search for
-    #[builder(into)]
+    #[koruma(setter(into))]
     pub substring: String,
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for ContainsValidation<T> {
@@ -65,7 +65,7 @@ mod tests {
     fn accepts_when_substring_is_present() {
         let validator = ContainsValidation {
             substring: "ell".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(validator.validate(&"hello".to_string()));
     }
@@ -74,7 +74,7 @@ mod tests {
     fn rejects_when_substring_is_missing() {
         let validator = ContainsValidation {
             substring: "ell".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(!validator.validate(&"world".to_string()));
     }

@@ -1,17 +1,20 @@
 //! Test cases for koruma validation.
 
-use koruma::{Validate, ValidationError};
+use koruma::{
+    Validate as _, ValidationError as _, ValidationFieldName, ValidationIssueScope,
+    ValidationIssues as _, ValidatorMetadata, ValidatorParamValue,
+};
 
 use super::fixtures::{
-    Address, AddressWrapper, BorrowedOrder, BorrowedTags, BorrowedUsername, Company,
-    ContainsNewtype, Customer, CustomerWithOptionalAddress, DirectPasswordConfirmation,
-    DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem, Item, MultiAttrItem,
-    MultiValidatorItem, NonCloneSecret, OptionalBorrowedOrder, OptionalElementMixedValidators,
-    OptionalElementPresenceOrder, OptionalOrder, Order, OrderWithLenCheck, PasswordConfirmation,
-    PositiveNumber, PresenceOnlyNonClone, QualifiedPathProfile, StaticSecretConfirmation,
-    UserProfile,
+    Address, AddressWrapper, ArrayOrder, BorrowedOrder, BorrowedTags, BorrowedUsername,
+    BorrowedUsernameExplicitInfer, Company, ContainsNewtype, Customer, CustomerWithOptionalAddress,
+    DirectPasswordConfirmation, DirectSyntaxItem, Employee, ExplicitRequiredProfile, GenericItem,
+    Item, MultiValidatorItem, NonCloneSecret, NonCloneValidatorItem, OptionalBorrowedOrder,
+    OptionalElementMixedValidators, OptionalElementPresenceOrder, OptionalOrder, Order,
+    OrderWithLenCheck, PasswordConfirmation, PositiveNumber, PresenceOnlyNonClone,
+    QualifiedPathProfile, RequiredElementFullTypeOrder, StaticSecretConfirmation, UserProfile,
 };
-use super::validators::{GenericRangeValidation, PrefixBytesValidation};
+use super::validators::{GenericRangeValidation, NumberRangeValidation, PrefixBytesValidation};
 
 #[test]
 fn test_valid_item() {
@@ -108,6 +111,104 @@ fn test_generic_validator_f64() {
     assert!(validator.validate(&0.5));
     assert!(!validator.validate(&1.5));
     assert_eq!(*validator.actual(), 0.5);
+}
+
+#[test]
+fn test_validator_metadata_reports_static_and_runtime_params() {
+    let descriptor = <NumberRangeValidation as ValidatorMetadata<i32>>::validator_descriptor();
+    assert!(descriptor.type_name().ends_with("NumberRangeValidation"));
+    assert_eq!(descriptor.params().len(), 2);
+    assert_eq!(descriptor.params()[0].name(), "min");
+    assert_eq!(descriptor.params()[0].type_name(), "i32");
+    assert!(descriptor.params()[0].required());
+    assert_eq!(descriptor.params()[1].name(), "max");
+
+    let validator = NumberRangeValidation::min(10)
+        .max(20)
+        .with_value(30)
+        .build();
+    let params = validator.validator_params();
+    assert_eq!(params.len(), 2);
+    assert_eq!(params[0].name(), "min");
+    assert_eq!(params[0].value(), &ValidatorParamValue::I64(10));
+    assert_eq!(params[1].name(), "max");
+    assert_eq!(params[1].value(), &ValidatorParamValue::I64(20));
+}
+
+#[test]
+fn test_generic_validator_metadata_uses_opaque_params_without_extra_bounds() {
+    let validator = GenericRangeValidation::<String>::min("a".to_string())
+        .max("m".to_string())
+        .with_value("z".to_string())
+        .build();
+
+    let params = validator.validator_params();
+    assert_eq!(params.len(), 2);
+    assert_eq!(params[0].name(), "min");
+    assert!(matches!(
+        params[0].value(),
+        ValidatorParamValue::Opaque { type_name } if type_name.ends_with("String")
+    ));
+}
+
+#[test]
+fn test_validation_issues_reports_field_failures() {
+    let item = Item {
+        age: 150,
+        name: "".to_string(),
+        internal_id: 123,
+    };
+    let err = item.validate().unwrap_err();
+    let issues = err.issues();
+
+    assert_eq!(issues.len(), 2);
+    assert_eq!(
+        issues[0].field_name(),
+        Some(ValidationFieldName::new("age"))
+    );
+    assert_eq!(issues[0].field_name_str(), Some("age"));
+    assert_eq!(issues[0].scope(), ValidationIssueScope::Field);
+    assert!(
+        issues[0]
+            .validator()
+            .is_some_and(|validator| validator.ends_with("NumberRangeValidation"))
+    );
+    assert_eq!(issues[0].label(), None);
+    assert!(issues[0].message().contains("NumberRangeValidation"));
+    assert!(issues[0].params().is_empty());
+
+    assert_eq!(
+        issues[1].field_name(),
+        Some(ValidationFieldName::new("name"))
+    );
+    assert_eq!(issues[1].scope(), ValidationIssueScope::Field);
+    assert!(
+        issues[1]
+            .validator()
+            .is_some_and(|validator| validator.ends_with("StringLengthValidation"))
+    );
+}
+
+#[test]
+fn test_validation_issues_reports_element_failures() {
+    let order = Order {
+        scores: vec![50.0, 150.0],
+    };
+    let err = order.validate().unwrap_err();
+    let issues = err.issues();
+
+    assert_eq!(issues.len(), 1);
+    assert_eq!(
+        issues[0].field_name(),
+        Some(ValidationFieldName::new("scores"))
+    );
+    assert_eq!(issues[0].scope(), ValidationIssueScope::Element);
+    assert_eq!(issues[0].element_index(), Some(1));
+    assert!(
+        issues[0]
+            .validator()
+            .is_some_and(|validator| validator.ends_with("GenericRangeValidation<f64>"))
+    );
 }
 
 #[test]
@@ -229,44 +330,19 @@ fn test_all_validators() {
     };
     let err = item.validate().unwrap_err();
     let age_errors = err.age().all();
-    assert_eq!(age_errors.len(), 1);
+    assert_eq!(age_errors.count(), 1);
 
     // Multiple validators - both fail
     let item = MultiValidatorItem { value: 151 };
     let err = item.validate().unwrap_err();
     let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 2);
+    assert_eq!(value_errors.count(), 2);
 
     // Multiple validators - one fails
     let item = MultiValidatorItem { value: 150 }; // even but out of range
     let err = item.validate().unwrap_err();
     let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 1);
-}
-
-// Tests for multiple separate #[koruma(...)] attributes per field
-#[test]
-fn test_multi_attr_valid() {
-    let item = MultiAttrItem { value: 50 }; // In range AND even
-    assert!(item.validate().is_ok());
-}
-
-#[test]
-fn test_multi_attr_out_of_range() {
-    let item = MultiAttrItem { value: 150 }; // Out of range, but even
-    let err = item.validate().unwrap_err();
-
-    assert!(err.value().number_range_validation().is_some());
-    assert!(err.value().even_number_validation().is_none()); // 150 is even
-}
-
-#[test]
-fn test_multi_attr_odd() {
-    let item = MultiAttrItem { value: 51 }; // In range, but odd
-    let err = item.validate().unwrap_err();
-
-    assert!(err.value().number_range_validation().is_none()); // 51 is in range
-    assert!(err.value().even_number_validation().is_some());
+    assert_eq!(value_errors.count(), 1);
 }
 
 #[test]
@@ -289,35 +365,16 @@ fn test_required_validation_supports_non_clone_option_payload() {
 }
 
 #[test]
-fn test_multi_attr_both_fail() {
-    let item = MultiAttrItem { value: 151 }; // Out of range AND odd
+fn test_all_borrows_non_clone_failed_validators() {
+    let item = NonCloneValidatorItem { value: 150 };
     let err = item.validate().unwrap_err();
+    let failures: Vec<_> = err.value().all().collect();
 
-    // Both validators should fail (from separate #[koruma] attributes)
-    assert!(err.value().number_range_validation().is_some());
-    assert!(err.value().even_number_validation().is_some());
-
-    // Check the actual values
+    assert_eq!(failures.len(), 1);
     assert_eq!(
-        *err.value().number_range_validation().unwrap().actual(),
-        151
+        failures[0].to_string(),
+        "value must be between 0 and 100, got 150"
     );
-    assert_eq!(*err.value().even_number_validation().unwrap().actual(), 151);
-}
-
-#[test]
-fn test_multi_attr_all_validators() {
-    // Multiple separate attributes - both fail
-    let item = MultiAttrItem { value: 151 };
-    let err = item.validate().unwrap_err();
-    let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 2);
-
-    // Multiple separate attributes - one fails
-    let item = MultiAttrItem { value: 150 }; // even but out of range
-    let err = item.validate().unwrap_err();
-    let value_errors = err.value().all();
-    assert_eq!(value_errors.len(), 1);
 }
 
 // Tests for collection validation with each()
@@ -436,6 +493,27 @@ fn test_each_optional_elements_split_full_type_and_unwrapped_paths() {
 }
 
 #[test]
+fn test_each_required_elements_full_type_validator_uses_element_reference() {
+    let order = RequiredElementFullTypeOrder {
+        values: vec![1, 20, 5],
+    };
+
+    let err = order.validate().unwrap_err();
+    let value_errors = err.values().element_errors();
+
+    assert_eq!(value_errors.len(), 1);
+    assert_eq!(value_errors[0].0, 1);
+    assert_eq!(
+        *value_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing full-type element validator")
+            .actual(),
+        20
+    );
+}
+
+#[test]
 fn test_qualified_option_and_vec_paths_keep_validation_behavior() {
     let profile = QualifiedPathProfile {
         bio: Some(String::new()),
@@ -506,6 +584,35 @@ fn test_each_optional_borrowed_slice_none_skips_validation() {
 }
 
 #[test]
+fn test_each_array_valid() {
+    let order = ArrayOrder {
+        scores: [50, 75, 100],
+    };
+    assert!(order.validate().is_ok());
+}
+
+#[test]
+fn test_each_array_invalid() {
+    let order = ArrayOrder {
+        scores: [50, 150, 75],
+    };
+
+    let err = order.validate().unwrap_err();
+    let score_errors = err.scores().element_errors();
+
+    assert_eq!(score_errors.len(), 1);
+    assert_eq!(score_errors[0].0, 1);
+    assert_eq!(
+        *score_errors[0]
+            .1
+            .generic_range_validation()
+            .expect("expected failing element validator")
+            .actual(),
+        150
+    );
+}
+
+#[test]
 fn test_borrowed_direct_field_valid() {
     let user = BorrowedUsername {
         username: "user:alice",
@@ -525,9 +632,11 @@ fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value()
 }
 
 #[test]
-fn test_validator_builder_preserves_lifetime_and_const_generics_for_with_value_ref() {
+fn test_validator_capture_hook_preserves_lifetime_and_const_generics() {
     let builder = PrefixBytesValidation::prefix(b"ab");
-    let validator = koruma::BuilderWithValueRef::with_value_ref(builder, b"abcd").build();
+    let validator = koruma::__private::BuildValidator::build_validator(
+        koruma::__private::CaptureValueRef::capture_value_ref(builder, b"abcd"),
+    );
 
     assert!(validator.validate(b"abcd"));
     assert!(!validator.validate(b"zzzz"));
@@ -545,10 +654,23 @@ fn test_borrowed_direct_field_invalid() {
         .expect("expected username prefix validation error");
 
     assert_eq!(*validator.actual(), "guest");
-    assert_eq!(
-        err.username().all()[0].to_string(),
-        "Must start with 'user:'"
-    );
+    let failures: Vec<_> = err.username().all().collect();
+    assert_eq!(failures[0].to_string(), "Must start with 'user:'");
+}
+
+#[test]
+fn test_borrowed_direct_field_explicit_reference_infer_invalid() {
+    let user = BorrowedUsernameExplicitInfer { username: "guest" };
+
+    let err = user.validate().unwrap_err();
+    let validator = err
+        .username()
+        .starts_with_validation()
+        .expect("expected username prefix validation error");
+
+    assert_eq!(*validator.actual(), "guest");
+    let failures: Vec<_> = err.username().all().collect();
+    assert_eq!(failures[0].to_string(), "Must start with 'user:'");
 }
 
 #[test]
@@ -569,14 +691,12 @@ fn test_each_borrowed_str_items_invalid() {
             .actual(),
         "bad"
     );
-    assert_eq!(
-        tag_errors[0].1.all()[0].to_string(),
-        "Must start with 'tag:'"
-    );
+    let failures: Vec<_> = tag_errors[0].1.all().collect();
+    assert_eq!(failures[0].to_string(), "Must start with 'tag:'");
 }
 
 #[test]
-fn test_cross_field_arg_identifier_still_rewrites_to_field_access() {
+fn test_cross_field_arg_uses_explicit_field_access() {
     let confirmation = PasswordConfirmation {
         password: "secret".to_string(),
         confirm: "different".to_string(),
@@ -973,7 +1093,7 @@ fn test_newtype_with_validators_invalid() {
 
     // Can also access via Deref - the error struct derefs to the field error struct
     assert!(err.number_range_validation().is_some());
-    assert_eq!(err.all().len(), 1);
+    assert_eq!(err.all().count(), 1);
 }
 
 #[test]
@@ -1027,6 +1147,6 @@ fn test_field_level_newtype_invalid() {
     // Number is invalid - can access via Deref!
     // err.number() returns &ContainsNewtypeNumberKorumaValidationError which derefs to
     // PositiveNumberKorumaValidationError which derefs to PositiveNumberValueKorumaValidationError
-    assert!(err.number().all().len() == 1);
+    assert_eq!(err.number().all().count(), 1);
     assert!(err.number().number_range_validation().is_some());
 }

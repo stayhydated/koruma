@@ -12,7 +12,6 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
-bon = { workspace = true }
 inventory = { optional = true, workspace = true }
 koruma-core = { workspace = true }
 koruma-derive = { optional = true, workspace = true }
@@ -29,3 +28,6 @@ internal-showcase = [
 
 [package.metadata.docs.rs]
 features = [ "derive", "fluent" ]
+
+[lints]
+workspace = true

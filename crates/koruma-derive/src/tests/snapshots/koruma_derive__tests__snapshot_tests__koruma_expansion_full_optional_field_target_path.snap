@@ -1,0 +1,136 @@
+---
+source: crates/koruma-derive/src/tests/snapshot_tests.rs
+expression: pretty_print(expanded)
+---
+#[doc = concat!(
+    "Validators for the `", "value", "` field of [`", "OptionalPresence", "`]: [`",
+    "RequiredValidation", "`]."
+)]
+#[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
+pub enum OptionalPresenceValueKorumaValidatorRef<'koruma> {
+    RequiredValidation(&'koruma RequiredValidation<Option<String>>),
+}
+#[doc = concat!(
+    "Validation errors for the `", "value", "` field of [`", "OptionalPresence",
+    "`].\n\nValidators: [`", "RequiredValidation", "`]."
+)]
+#[derive(Debug, Default)]
+pub struct OptionalPresenceValueKorumaValidationError {
+    required_validation: Option<RequiredValidation<Option<String>>>,
+}
+impl OptionalPresenceValueKorumaValidationError {
+    #[doc = concat!(
+        "Returns the failed `", "RequiredValidation", "` validator, if any."
+    )]
+    pub fn required_validation(&self) -> Option<&RequiredValidation<Option<String>>> {
+        self.required_validation.as_ref()
+    }
+    #[doc = concat!("Returns all failed validators for `", "value", "`.")]
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = OptionalPresenceValueKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .required_validation
+                .as_ref()
+                .map(OptionalPresenceValueKorumaValidatorRef::RequiredValidation),
+        ]
+            .into_iter()
+            .flatten()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.required_validation.is_none()
+    }
+    pub fn has_errors(&self) -> bool {
+        !self.is_empty()
+    }
+}
+#[doc = concat!(
+    "Validation errors for [`", "OptionalPresence",
+    "`].\n\nContains per-field error structs for ", "field: `value`", "."
+)]
+#[derive(Debug, Default)]
+pub struct OptionalPresenceKorumaValidationError {
+    value: OptionalPresenceValueKorumaValidationError,
+}
+impl OptionalPresenceKorumaValidationError {
+    #[doc = concat!(
+        "Returns validation errors for the `", "value", "` field of [`",
+        "OptionalPresence", "`]."
+    )]
+    pub fn value(&self) -> &OptionalPresenceValueKorumaValidationError {
+        &self.value
+    }
+}
+impl ::renamed_koruma::ValidationError for OptionalPresenceKorumaValidationError {
+    fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for OptionalPresenceKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.value.required_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "value",
+                        ::core::any::type_name::<RequiredValidation<Option<String>>>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "RequiredValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
+    }
+}
+impl OptionalPresence {
+    #[doc = concat!(
+        "Validates all fields of `", "OptionalPresence",
+        "` and returns an error struct containing all validation failures."
+    )]
+    pub fn validate(&self) -> Result<(), OptionalPresenceKorumaValidationError> {
+        let mut error = OptionalPresenceKorumaValidationError {
+            value: OptionalPresenceValueKorumaValidationError {
+                required_validation: None,
+            },
+        };
+        let mut has_error = false;
+        {
+            let __koruma_builder = RequiredValidation::<
+                Option<String>,
+            >::__koruma_builder();
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                Option<String>,
+                RequiredValidation<Option<String>>,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    &self.value,
+                ),
+            );
+            if !<RequiredValidation<
+                Option<String>,
+            > as ::renamed_koruma::Validate<
+                Option<String>,
+            >>::validate(&validator, &self.value) {
+                error.value.required_validation = Some(validator);
+                has_error = true;
+            }
+        }
+        if has_error { Err(error) } else { Ok(()) }
+    }
+}
+impl ::renamed_koruma::ValidateExt for OptionalPresence {
+    type Error = OptionalPresenceKorumaValidationError;
+    fn validate(&self) -> Result<(), OptionalPresenceKorumaValidationError> {
+        Self::validate(self)
+    }
+}
+impl ::renamed_koruma::__private::KorumaWasDerived for OptionalPresence {}

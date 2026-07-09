@@ -1,0 +1,5 @@
+error: fields marked `#[koruma(newtype)]` cannot also use `each(...)`; validate elements before wrapping or attach validators to the inner type
+ --> tests/ui/newtype_with_each.rs:5:23
+  |
+5 |     #[koruma(newtype, each(RequiredValidation::<_>))]
+  |                       ^^^^

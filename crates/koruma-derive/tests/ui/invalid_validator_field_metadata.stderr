@@ -1,0 +1,19 @@
+error: `nested` is not valid in a validator field `#[koruma(...)]` attribute; expected `value`, `skip_capture`, `setter`, or `setter(...)`
+ --> tests/ui/invalid_validator_field_metadata.rs:5:14
+  |
+5 |     #[koruma(nested)]
+  |              ^^^^^^
+
+error: `required` and `default` cannot be combined in `#[koruma(setter(...))]`
+  --> tests/ui/invalid_validator_field_metadata.rs:13:5
+   |
+13 | /     #[koruma(setter(required, default = 0))]
+14 | |     limit: usize,
+   | |________________^
+
+error: validator value fields cannot also use `#[koruma(setter(...))]`
+  --> tests/ui/invalid_validator_field_metadata.rs:21:5
+   |
+21 | /     #[koruma(value, setter(required))]
+22 | |     actual: Option<usize>,
+   | |_________________________^

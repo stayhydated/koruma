@@ -4,15 +4,20 @@ When your data model contains structs inside other structs, you can use the `#[k
 
 This attribute tells `koruma` to call `validate()` on the nested field and include its errors in the parent's error type if any occur. This allows the parent struct's `Errors` struct to provide strongly typed access not just to its own fields, but also to the nested struct's fields.
 
+Types produced by `#[derive(Koruma)]` already satisfy the nested validation
+contract. Handwritten `ValidateExt` implementations must use an error type that
+implements both `ValidationError` and `Default`, because parent error structs
+need an empty nested error value while they collect failures.
+
 ```rust
 use koruma::Koruma;
 
 #[derive(Clone, Koruma)]
 pub struct Address {
-    #[koruma(StringLengthValidation::min(1).max(100))]
+    #[koruma(StringLengthValidation.min(1).max(100))]
     pub street: String,
 
-    #[koruma(StringLengthValidation::min(1).max(50))]
+    #[koruma(StringLengthValidation.min(1).max(50))]
     pub city: String,
 
     #[koruma(ZipCodeValidation)]
@@ -21,10 +26,10 @@ pub struct Address {
 
 #[derive(Koruma)]
 pub struct Customer {
-    #[koruma(StringLengthValidation::min(1).max(100))]
+    #[koruma(StringLengthValidation.min(1).max(100))]
     pub name: String,
 
-    #[koruma(NumberRangeValidation::<_>::min(18).max(120))]
+    #[koruma(NumberRangeValidation::<_>.min(18).max(120))]
     pub age: i32,
 
     // Nested struct - validation cascades automatically

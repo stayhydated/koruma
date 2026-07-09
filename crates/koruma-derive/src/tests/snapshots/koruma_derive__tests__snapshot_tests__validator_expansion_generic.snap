@@ -1,22 +1,175 @@
 ---
 source: crates/koruma-derive/src/tests/snapshot_tests.rs
+assertion_line: 50
 expression: pretty_print(expanded)
 ---
-#[derive(koruma::bon::Builder)]
-#[builder(crate = ::koruma::bon, start_fn(name = __koruma_bon_builder, vis = ""))]
 #[derive(Clone, Debug)]
 pub struct GenericRangeValidation<T> {
     pub min: T,
     pub max: T,
     actual: Option<T>,
 }
+#[doc(hidden)]
+pub mod generic_range_validation_builder {
+    pub struct Empty;
+    pub struct Set;
+}
+pub struct GenericRangeValidationBuilder<
+    T,
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> {
+    min: ::std::option::Option<T>,
+    max: ::std::option::Option<T>,
+    actual: ::std::option::Option<Option<T>>,
+    _state: ::std::marker::PhantomData<
+        (__KorumaMinState, __KorumaMaxState, __KorumaActualState),
+    >,
+}
+impl<
+    T,
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> GenericRangeValidationBuilder<
+    T,
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> {
+    fn new() -> Self {
+        Self {
+            min: ::std::option::Option::None,
+            max: ::std::option::Option::None,
+            actual: ::std::option::Option::None,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn min(
+        self,
+        value: T,
+    ) -> GenericRangeValidationBuilder<
+        T,
+        generic_range_validation_builder::Set,
+        __KorumaMaxState,
+        __KorumaActualState,
+    > {
+        GenericRangeValidationBuilder {
+            min: ::std::option::Option::Some(value),
+            max: self.max,
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    pub fn max(
+        self,
+        value: T,
+    ) -> GenericRangeValidationBuilder<
+        T,
+        __KorumaMinState,
+        generic_range_validation_builder::Set,
+        __KorumaActualState,
+    > {
+        GenericRangeValidationBuilder {
+            min: self.min,
+            max: ::std::option::Option::Some(value),
+            actual: self.actual,
+            _state: ::std::marker::PhantomData,
+        }
+    }
+    #[doc(hidden)]
+    pub fn with_value(
+        self,
+        value: T,
+    ) -> GenericRangeValidationBuilder<
+        T,
+        __KorumaMinState,
+        __KorumaMaxState,
+        generic_range_validation_builder::Set,
+    > {
+        GenericRangeValidationBuilder {
+            min: self.min,
+            max: self.max,
+            actual: ::std::option::Option::Some(::std::option::Option::Some(value)),
+            _state: ::std::marker::PhantomData,
+        }
+    }
+}
+impl<
+    T,
+> GenericRangeValidationBuilder<
+    T,
+    generic_range_validation_builder::Set,
+    generic_range_validation_builder::Set,
+    generic_range_validation_builder::Set,
+> {
+    pub fn build(self) -> GenericRangeValidation<T> {
+        GenericRangeValidation {
+            min: self
+                .min
+                .expect("required koruma validator builder field should be set"),
+            max: self
+                .max
+                .expect("required koruma validator builder field should be set"),
+            actual: self
+                .actual
+                .expect("required koruma validator builder field should be set"),
+        }
+    }
+}
+impl<T> ::renamed_koruma::__private::BuildValidator
+for GenericRangeValidationBuilder<
+    T,
+    generic_range_validation_builder::Set,
+    generic_range_validation_builder::Set,
+    generic_range_validation_builder::Set,
+> {
+    type Validator = GenericRangeValidation<T>;
+    fn build_validator(self) -> Self::Validator {
+        self.build()
+    }
+}
+impl<
+    T,
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+> ::renamed_koruma::__private::CaptureValueRef<T>
+for GenericRangeValidationBuilder<
+    T,
+    __KorumaMinState,
+    __KorumaMaxState,
+    __KorumaActualState,
+>
+where
+    T: ::renamed_koruma::__private::CapturedInputCanBeCloned,
+    GenericRangeValidationBuilder<
+        T,
+        __KorumaMinState,
+        __KorumaMaxState,
+        generic_range_validation_builder::Set,
+    >: ::renamed_koruma::__private::BuildValidator,
+{
+    type Output = GenericRangeValidationBuilder<
+        T,
+        __KorumaMinState,
+        __KorumaMaxState,
+        generic_range_validation_builder::Set,
+    >;
+    fn capture_value_ref(self, value: &T) -> Self::Output {
+        self.with_value(value.clone())
+    }
+}
 impl<T> GenericRangeValidation<T> {
     #[doc(hidden)]
     pub fn __koruma_builder() -> GenericRangeValidationBuilder<
         T,
         generic_range_validation_builder::Empty,
+        generic_range_validation_builder::Empty,
+        generic_range_validation_builder::Empty,
     > {
-        Self::__koruma_bon_builder()
+        GenericRangeValidationBuilder::new()
     }
     #[doc = concat!(
         "Starts building [`", stringify!(GenericRangeValidation), "`] with the `",
@@ -26,14 +179,14 @@ impl<T> GenericRangeValidation<T> {
         value: T,
     ) -> GenericRangeValidationBuilder<
         T,
-        generic_range_validation_builder::SetActual<
-            generic_range_validation_builder::Empty,
-        >,
+        generic_range_validation_builder::Empty,
+        generic_range_validation_builder::Empty,
+        generic_range_validation_builder::Set,
     > {
         Self::__koruma_builder().with_value(value)
     }
     #[doc = concat!(
-        "Returns the stored `", "actual", "` value captured by `#[koruma(value)]`."
+        "Returns the stored `", "actual", "` value captured during validation."
     )]
     pub fn actual(&self) -> &Option<T> {
         &self.actual
@@ -43,7 +196,9 @@ impl<T> GenericRangeValidation<T> {
         value: T,
     ) -> GenericRangeValidationBuilder<
         T,
-        generic_range_validation_builder::SetMin<generic_range_validation_builder::Empty>,
+        generic_range_validation_builder::Set,
+        generic_range_validation_builder::Empty,
+        generic_range_validation_builder::Empty,
     > {
         Self::__koruma_builder().min(value)
     }
@@ -52,37 +207,30 @@ impl<T> GenericRangeValidation<T> {
         value: T,
     ) -> GenericRangeValidationBuilder<
         T,
-        generic_range_validation_builder::SetMax<generic_range_validation_builder::Empty>,
+        generic_range_validation_builder::Empty,
+        generic_range_validation_builder::Set,
+        generic_range_validation_builder::Empty,
     > {
         Self::__koruma_builder().max(value)
     }
 }
-impl<T, S: generic_range_validation_builder::State> GenericRangeValidationBuilder<T, S>
-where
-    S::Actual: koruma::bon::IsUnset,
-{
-    /// Sets the value field. This is auto-generated by `#[koruma::validator]`.
-    pub fn with_value(
-        self,
-        value: T,
-    ) -> GenericRangeValidationBuilder<
-        T,
-        generic_range_validation_builder::SetActual<S>,
-    > {
-        self.actual(value)
+impl<T> ::renamed_koruma::ValidatorMetadata<T> for GenericRangeValidation<T> {
+    fn validator_descriptor() -> ::renamed_koruma::ValidatorDescriptor {
+        const __KORUMA_PARAMS: &[::renamed_koruma::ValidatorParamDescriptor] = &[
+            ::renamed_koruma::ValidatorParamDescriptor::new("min", "T", true),
+            ::renamed_koruma::ValidatorParamDescriptor::new("max", "T", true),
+        ];
+        ::renamed_koruma::ValidatorDescriptor::new(
+            ::core::any::type_name::<Self>(),
+            __KORUMA_PARAMS,
+        )
     }
-}
-impl<T, S: generic_range_validation_builder::State> koruma::BuilderWithValueRef<T>
-for GenericRangeValidationBuilder<T, S>
-where
-    S::Actual: koruma::bon::IsUnset,
-    T: ::std::clone::Clone,
-{
-    type Output = GenericRangeValidationBuilder<
-        T,
-        generic_range_validation_builder::SetActual<S>,
-    >;
-    fn with_value_ref(self, value: &T) -> Self::Output {
-        self.with_value(value.clone())
+    fn validator_params(&self) -> ::std::vec::Vec<::renamed_koruma::ValidatorParam> {
+        ::std::vec![
+            ::renamed_koruma::ValidatorParam::new("min",
+            ::renamed_koruma::ValidatorParamValue::opaque(& self.min)),
+            ::renamed_koruma::ValidatorParam::new("max",
+            ::renamed_koruma::ValidatorParamValue::opaque(& self.max))
+        ]
     }
 }

@@ -6,31 +6,34 @@ expression: pretty_print(expanded)
     "Validators for the `", "age", "` field of [`", "Person", "`]: [`",
     "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum PersonAgeKorumaValidator {
-    RangeValidation(RangeValidation),
+pub enum PersonAgeKorumaValidatorRef<'koruma> {
+    RangeValidation(&'koruma RangeValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "age", "` field of [`", "Person",
     "`].\n\nValidators: [`", "RangeValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct PersonAgeKorumaValidationError {
     range_validation: Option<RangeValidation>,
 }
 impl PersonAgeKorumaValidationError {
-    #[doc = concat!("Returns the failed [`", "RangeValidation", "`] validator, if any.")]
+    #[doc = concat!("Returns the failed `", "RangeValidation", "` validator, if any.")]
     pub fn range_validation(&self) -> Option<&RangeValidation> {
         self.range_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "age", "`.")]
-    pub fn all(&self) -> Vec<PersonAgeKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.range_validation {
-            result.push(PersonAgeKorumaValidator::RangeValidation(v.clone()));
-        }
-        result
+    pub fn all(&self) -> impl Iterator<Item = PersonAgeKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .range_validation
+                .as_ref()
+                .map(PersonAgeKorumaValidatorRef::RangeValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.range_validation.is_none()
@@ -43,7 +46,7 @@ impl PersonAgeKorumaValidationError {
     "Validation errors for [`", "Person", "`].\n\nContains per-field error structs for ",
     "field: `age`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct PersonKorumaValidationError {
     age: PersonAgeKorumaValidationError,
 }
@@ -55,9 +58,27 @@ impl PersonKorumaValidationError {
         &self.age
     }
 }
-impl koruma::ValidationError for PersonKorumaValidationError {
+impl ::renamed_koruma::ValidationError for PersonKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for PersonKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.age.range_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "age",
+                        ::core::any::type_name::<RangeValidation>(),
+                        None,
+                        ::std::format!("validation failed for `{}`", "RangeValidation"),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
     }
 }
 impl Person {
@@ -82,21 +103,33 @@ impl Person {
         };
         let mut has_error = false;
         let __field_value = &self.age;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
-                RangeValidation::min(0).max(150),
-                __field_value,
-            )
-            .build();
-        if !validator.validate(__field_value) {
-            error.age.range_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = RangeValidation::min(0).max(150);
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                i32,
+                RangeValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<RangeValidation as ::renamed_koruma::Validate<
+                i32,
+            >>::validate(&validator, __field_value) {
+                error.age.range_validation = Some(validator);
+                has_error = true;
+            }
         }
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for Person {
+impl ::renamed_koruma::ValidateExt for Person {
     type Error = PersonKorumaValidationError;
     fn validate(&self) -> Result<(), PersonKorumaValidationError> {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for Person {}

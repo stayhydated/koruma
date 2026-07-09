@@ -1,16 +1,8 @@
 target/
 .es-fluent/
 .expanded.rs
-.venv
-.ruff_cache
-.ropeproject
-*.snap.new
-.env
-
-# Node/Bun
 node_modules/
 .turbo/
-
-# Astro
-dist/
-.astro/
+*.snap.new
+.env
+.rumdl_cache/

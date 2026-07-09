@@ -6,22 +6,19 @@ use koruma::{Validate, validator};
 /// Uses `Display` for simple string error messages.
 #[validator]
 #[derive(Clone, Debug)]
-pub struct NumberRangeValidation<T: PartialOrd + Copy + std::fmt::Display + Clone> {
+pub struct NumberRangeValidation<T: PartialOrd + std::fmt::Display + Clone> {
     min: T,
     max: T,
-    #[koruma(value)]
     actual: T,
 }
 
-impl<T: PartialOrd + Copy + std::fmt::Display> Validate<T> for NumberRangeValidation<T> {
+impl<T: PartialOrd + std::fmt::Display + Clone> Validate<T> for NumberRangeValidation<T> {
     fn validate(&self, value: &T) -> bool {
-        *value >= self.min && *value <= self.max
+        value >= &self.min && value <= &self.max
     }
 }
 
-impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display
-    for NumberRangeValidation<T>
-{
+impl<T: PartialOrd + std::fmt::Display + Clone> std::fmt::Display for NumberRangeValidation<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -38,7 +35,6 @@ impl<T: PartialOrd + Copy + std::fmt::Display + Clone> std::fmt::Display
 pub struct StringLengthValidation {
     min: usize,
     max: usize,
-    #[koruma(value)]
     input: String,
 }
 
@@ -66,8 +62,7 @@ impl fmt::Display for StringLengthValidation {
 #[validator]
 #[derive(Clone, Debug)]
 pub struct ZipCodeValidation {
-    #[koruma(value)]
-    input: String,
+    candidate: String,
 }
 
 impl Validate<String> for ZipCodeValidation {
@@ -79,7 +74,7 @@ impl Validate<String> for ZipCodeValidation {
 
 impl fmt::Display for ZipCodeValidation {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Zip code '{}' must be exactly 5 digits", self.input)
+        write!(f, "Zip code '{}' must be exactly 5 digits", self.candidate)
     }
 }
 
@@ -88,7 +83,6 @@ impl fmt::Display for ZipCodeValidation {
 #[derive(Clone, Debug)]
 pub struct StartsWithValidation<T: AsRef<str>> {
     prefix: &'static str,
-    #[koruma(value)]
     actual: T,
 }
 

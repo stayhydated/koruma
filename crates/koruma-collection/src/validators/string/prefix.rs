@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct Config {
-///     #[koruma(PrefixValidation::<_>::prefix("config_"))]
+///     #[koruma(PrefixValidation::<_>.prefix("config_"))]
 ///     key: String,
 /// }
 /// ```
@@ -33,12 +33,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct PrefixValidation<T: AsRef<str>> {
     /// The prefix to check for
-    #[builder(into)]
+    #[koruma(setter(into))]
     pub prefix: String,
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for PrefixValidation<T> {
@@ -65,7 +65,7 @@ mod tests {
     fn accepts_when_prefix_matches() {
         let validator = PrefixValidation {
             prefix: "pre".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(validator.validate(&"prefix".to_string()));
     }
@@ -74,7 +74,7 @@ mod tests {
     fn rejects_when_prefix_does_not_match() {
         let validator = PrefixValidation {
             prefix: "pre".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(!validator.validate(&"xprefix".to_string()));
     }

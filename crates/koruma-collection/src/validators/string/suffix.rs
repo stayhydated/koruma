@@ -10,7 +10,7 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct File {
-///     #[koruma(SuffixValidation::<_>::suffix(".txt"))]
+///     #[koruma(SuffixValidation::<_>.suffix(".txt"))]
 ///     name: String,
 /// }
 /// ```
@@ -33,12 +33,12 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", fluent(namespace = "string"))]
 pub struct SuffixValidation<T: AsRef<str>> {
     /// The suffix to check for
-    #[builder(into)]
+    #[koruma(setter(into))]
     pub suffix: String,
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for SuffixValidation<T> {
@@ -65,7 +65,7 @@ mod tests {
     fn accepts_when_suffix_matches() {
         let validator = SuffixValidation {
             suffix: ".rs".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(validator.validate(&"lib.rs".to_string()));
     }
@@ -74,7 +74,7 @@ mod tests {
     fn rejects_when_suffix_does_not_match() {
         let validator = SuffixValidation {
             suffix: ".rs".to_string(),
-            actual: String::new(),
+            actual: None,
         };
         assert!(!validator.validate(&"lib.ts".to_string()));
     }

@@ -19,7 +19,15 @@ if let Err(errors) = item.validate() {
 
 This pattern is useful when a field has multiple rules and you want to show every failure instead of
 only the first one. The order of execution follows the order in which validators are listed in the
-`#[koruma(...)]` attribute, and all configured validators are evaluated.
+`#[koruma(...)]` attribute, and all configured validators are evaluated. `all()` returns borrowed
+failed-validator values, so inspecting every failure does not require the validator types to
+implement `Clone`.
+
+For tooling that wants a generic, field-scoped view instead of strongly typed
+accessors, generated aggregate error structs implement `ValidationIssues`.
+`errors.issues()` returns structured field and element issues with field names,
+available as typed `ValidationFieldName` values, validator type names, labels,
+element indices, and human-readable messages.
 
 You can customise error rendering by implementing `Display` for validators, or localise errors with
 [es-fluent](https://github.com/stayhydated/es-fluent) and `KorumaAllFluent`, which is covered in the next chapter.

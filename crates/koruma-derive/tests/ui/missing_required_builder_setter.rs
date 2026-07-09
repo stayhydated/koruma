@@ -1,0 +1,21 @@
+use koruma_derive::validator;
+use renamed_koruma::Validate;
+
+#[validator]
+#[derive(Debug)]
+pub struct RequiredSetterValidation {
+    #[koruma(setter(required))]
+    min: usize,
+    #[koruma(value)]
+    actual: usize,
+}
+
+impl Validate<usize> for RequiredSetterValidation {
+    fn validate(&self, value: &usize) -> bool {
+        *value >= self.min
+    }
+}
+
+fn main() {
+    let _validator = RequiredSetterValidation::with_value(10).build();
+}

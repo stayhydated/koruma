@@ -1,0 +1,5 @@
+error: explicit `Option<...>` validator type arguments require full-option target selection for element validators on field `values`; remove `unwrapped(...)`, write `GenericValidation::<Option<_>>`, or use `full(GenericValidation::<_>)`
+ --> tests/ui/each_unwrapped_option_target.rs:5:49
+  |
+5 |     #[koruma(each(unwrapped(GenericValidation::<Option<_>>)))]
+  |                                                 ^^^^^^^^^

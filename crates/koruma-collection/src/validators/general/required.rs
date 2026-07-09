@@ -10,19 +10,20 @@ use koruma::{Validate, validator};
 ///
 /// #[derive(Koruma)]
 /// struct User {
-///     // <Option<_>> substitutes `_` with the inner type (String), giving Option<String>
 ///     #[koruma(RequiredValidation::<Option<_>>)]
 ///     name: Option<String>,
 /// }
 /// ```
 ///
-/// Validates that a value is present (not None for Option types).
+/// Validates that a value is present (not `None` for `Option` types). Write it
+/// with `Option<_>` so Koruma passes the whole `Option<T>` to this validator
+/// and `None` can be reported as a missing value.
 #[validator]
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "general"))]
 pub struct RequiredValidation<T> {
     /// Presence-only validation does not need to retain the input in errors.
-    #[koruma(value, skip_capture)]
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
     actual: Option<T>,
 }

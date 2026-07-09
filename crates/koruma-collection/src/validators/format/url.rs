@@ -33,10 +33,10 @@ use koruma::{Validate, validator};
 #[cfg_attr(feature = "fluent", derive(es_fluent::EsFluent))]
 #[cfg_attr(feature = "fluent", fluent(namespace = "format"))]
 pub struct UrlValidation<T: AsRef<str>> {
-    /// The string being validated (stored for error context)
-    #[koruma(value)]
+    /// The string being validated.
+    #[koruma(skip_capture)]
     #[cfg_attr(feature = "fluent", fluent(skip))]
-    actual: T,
+    actual: Option<T>,
 }
 
 impl<T: AsRef<str>> Validate<T> for UrlValidation<T> {
@@ -61,17 +61,13 @@ mod tests {
 
     #[test]
     fn accepts_valid_url() {
-        let validator = UrlValidation {
-            actual: String::new(),
-        };
+        let validator = UrlValidation { actual: None };
         assert!(validator.validate(&"https://example.com".to_string()));
     }
 
     #[test]
     fn rejects_invalid_url() {
-        let validator = UrlValidation {
-            actual: String::new(),
-        };
+        let validator = UrlValidation { actual: None };
         assert!(!validator.validate(&"not a url".to_string()));
     }
 }

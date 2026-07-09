@@ -1,3 +1,6 @@
+.dx-bundle/
+dist/
 public/llms.txt
 public/llms-full.txt
 public/llms
+public/book

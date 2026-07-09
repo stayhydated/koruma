@@ -6,36 +6,38 @@ expression: pretty_print(expanded)
     "Validators for the `", "username", "` field of [`", "UserProfile", "`]: [`",
     "StringLengthValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum UserProfileUsernameKorumaValidator {
-    StringLengthValidation(StringLengthValidation),
+pub enum UserProfileUsernameKorumaValidatorRef<'koruma> {
+    StringLengthValidation(&'koruma StringLengthValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "username", "` field of [`", "UserProfile",
     "`].\n\nValidators: [`", "StringLengthValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct UserProfileUsernameKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
 impl UserProfileUsernameKorumaValidationError {
     #[doc = concat!(
-        "Returns the failed [`", "StringLengthValidation", "`] validator, if any."
+        "Returns the failed `", "StringLengthValidation", "` validator, if any."
     )]
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "username", "`.")]
-    pub fn all(&self) -> Vec<UserProfileUsernameKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.string_length_validation {
-            result
-                .push(
-                    UserProfileUsernameKorumaValidator::StringLengthValidation(v.clone()),
-                );
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = UserProfileUsernameKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .string_length_validation
+                .as_ref()
+                .map(UserProfileUsernameKorumaValidatorRef::StringLengthValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.string_length_validation.is_none()
@@ -48,34 +50,38 @@ impl UserProfileUsernameKorumaValidationError {
     "Validators for the `", "bio", "` field of [`", "UserProfile", "`]: [`",
     "StringLengthValidation", "`]."
 )]
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
-pub enum UserProfileBioKorumaValidator {
-    StringLengthValidation(StringLengthValidation),
+pub enum UserProfileBioKorumaValidatorRef<'koruma> {
+    StringLengthValidation(&'koruma StringLengthValidation),
 }
 #[doc = concat!(
     "Validation errors for the `", "bio", "` field of [`", "UserProfile",
     "`].\n\nValidators: [`", "StringLengthValidation", "`]."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct UserProfileBioKorumaValidationError {
     string_length_validation: Option<StringLengthValidation>,
 }
 impl UserProfileBioKorumaValidationError {
     #[doc = concat!(
-        "Returns the failed [`", "StringLengthValidation", "`] validator, if any."
+        "Returns the failed `", "StringLengthValidation", "` validator, if any."
     )]
     pub fn string_length_validation(&self) -> Option<&StringLengthValidation> {
         self.string_length_validation.as_ref()
     }
     #[doc = concat!("Returns all failed validators for `", "bio", "`.")]
-    pub fn all(&self) -> Vec<UserProfileBioKorumaValidator> {
-        let mut result = Vec::new();
-        if let Some(v) = &self.string_length_validation {
-            result
-                .push(UserProfileBioKorumaValidator::StringLengthValidation(v.clone()));
-        }
-        result
+    pub fn all(
+        &self,
+    ) -> impl Iterator<Item = UserProfileBioKorumaValidatorRef<'_>> + '_ {
+        [
+            self
+                .string_length_validation
+                .as_ref()
+                .map(UserProfileBioKorumaValidatorRef::StringLengthValidation),
+        ]
+            .into_iter()
+            .flatten()
     }
     pub fn is_empty(&self) -> bool {
         self.string_length_validation.is_none()
@@ -88,7 +94,7 @@ impl UserProfileBioKorumaValidationError {
     "Validation errors for [`", "UserProfile",
     "`].\n\nContains per-field error structs for ", "fields: `username`, `bio`", "."
 )]
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Default)]
 pub struct UserProfileKorumaValidationError {
     username: UserProfileUsernameKorumaValidationError,
     bio: UserProfileBioKorumaValidationError,
@@ -109,9 +115,43 @@ impl UserProfileKorumaValidationError {
         &self.bio
     }
 }
-impl koruma::ValidationError for UserProfileKorumaValidationError {
+impl ::renamed_koruma::ValidationError for UserProfileKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.username.is_empty() && self.bio.is_empty()
+    }
+}
+impl ::renamed_koruma::ValidationIssues for UserProfileKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+        let mut __koruma_issues = ::std::vec::Vec::new();
+        if self.username.string_length_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "username",
+                        ::core::any::type_name::<StringLengthValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "StringLengthValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        if self.bio.string_length_validation().is_some() {
+            __koruma_issues
+                .push(
+                    ::renamed_koruma::ValidationIssue::field(
+                        "bio",
+                        ::core::any::type_name::<StringLengthValidation>(),
+                        None,
+                        ::std::format!(
+                            "validation failed for `{}`", "StringLengthValidation"
+                        ),
+                        ::std::vec::Vec::new(),
+                    ),
+                );
+        }
+        __koruma_issues
     }
 }
 impl UserProfile {
@@ -130,32 +170,55 @@ impl UserProfile {
         };
         let mut has_error = false;
         let __field_value = &self.username;
-        let validator = koruma::BuilderWithValueRef::with_value_ref(
-                StringLengthValidation::min(1).max(50),
-                __field_value,
-            )
-            .build();
-        if !validator.validate(__field_value) {
-            error.username.string_length_validation = Some(validator);
-            has_error = true;
+        {
+            let __koruma_builder = StringLengthValidation::min(1).max(50);
+            ::renamed_koruma::__private::assert_field_validator_ready::<
+                _,
+                String,
+                StringLengthValidation,
+            >(&__koruma_builder);
+            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    __koruma_builder,
+                    __field_value,
+                ),
+            );
+            if !<StringLengthValidation as ::renamed_koruma::Validate<
+                String,
+            >>::validate(&validator, __field_value) {
+                error.username.string_length_validation = Some(validator);
+                has_error = true;
+            }
         }
         if let Some(ref __field_value) = self.bio {
-            let validator = koruma::BuilderWithValueRef::with_value_ref(
-                    StringLengthValidation::min(1).max(200),
-                    __field_value,
-                )
-                .build();
-            if !validator.validate(__field_value) {
-                error.bio.string_length_validation = Some(validator);
-                has_error = true;
+            {
+                let __koruma_builder = StringLengthValidation::min(1).max(200);
+                ::renamed_koruma::__private::assert_field_validator_ready::<
+                    _,
+                    String,
+                    StringLengthValidation,
+                >(&__koruma_builder);
+                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
+                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                        __koruma_builder,
+                        __field_value,
+                    ),
+                );
+                if !<StringLengthValidation as ::renamed_koruma::Validate<
+                    String,
+                >>::validate(&validator, __field_value) {
+                    error.bio.string_length_validation = Some(validator);
+                    has_error = true;
+                }
             }
         }
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl koruma::ValidateExt for UserProfile {
+impl ::renamed_koruma::ValidateExt for UserProfile {
     type Error = UserProfileKorumaValidationError;
     fn validate(&self) -> Result<(), UserProfileKorumaValidationError> {
         Self::validate(self)
     }
 }
+impl ::renamed_koruma::__private::KorumaWasDerived for UserProfile {}

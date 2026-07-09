@@ -9,7 +9,6 @@ use std::fmt;
 pub struct NumberRangeValidation {
     min: i32,
     max: i32,
-    #[koruma(value)]
     actual: i32,
 }
 
@@ -26,7 +25,6 @@ impl Validate<i32> for NumberRangeValidation {
 pub struct GenericRangeValidation<T> {
     pub min: T,
     pub max: T,
-    #[koruma(value)]
     actual: T,
 }
 
@@ -43,7 +41,6 @@ impl<T: PartialOrd + Clone> Validate<T> for GenericRangeValidation<T> {
 #[derive(Clone, Debug)]
 pub struct PrefixBytesValidation<'a, const N: usize> {
     pub prefix: &'a [u8],
-    #[koruma(value)]
     actual: [u8; N],
 }
 
@@ -59,7 +56,6 @@ impl<'a, const N: usize> Validate<[u8; N]> for PrefixBytesValidation<'a, N> {
 pub struct StringLengthValidation {
     min: usize,
     max: usize,
-    #[koruma(value)]
     input: String,
 }
 
@@ -74,13 +70,37 @@ impl Validate<String> for StringLengthValidation {
 #[validator]
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct EvenNumberValidation {
-    #[koruma(value)]
     actual: i32,
 }
 
 impl Validate<i32> for EvenNumberValidation {
     fn validate(&self, value: &i32) -> bool {
         value % 2 == 0
+    }
+}
+
+/// A validation rule that intentionally does not implement Clone.
+#[validator]
+#[derive(Debug, Eq, Hash, PartialEq)]
+pub struct NonCloneRangeValidation {
+    min: i32,
+    max: i32,
+    actual: i32,
+}
+
+impl Validate<i32> for NonCloneRangeValidation {
+    fn validate(&self, value: &i32) -> bool {
+        !(*value < self.min || *value > self.max)
+    }
+}
+
+impl fmt::Display for NonCloneRangeValidation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "value must be between {} and {}, got {}",
+            self.min, self.max, self.actual
+        )
     }
 }
 
@@ -96,7 +116,6 @@ pub struct VecLenValidation<T> {
     pub min: usize,
     pub max: usize,
     /// The Vec being validated
-    #[koruma(value)]
     actual: Vec<T>,
 }
 
@@ -118,7 +137,7 @@ impl<T> VecLenValidation<T> {
 /// Works with Option<T> types.
 #[validator]
 pub struct RequiredValidation<T> {
-    #[koruma(value, skip_capture)]
+    #[koruma(skip_capture)]
     #[allow(dead_code)]
     actual: Option<T>,
 }
@@ -148,7 +167,6 @@ impl<T> Validate<Option<T>> for RequiredValidation<Option<T>> {
 #[derive(Clone, Debug)]
 pub struct MatchesStringValidation {
     pub expected: String,
-    #[koruma(value)]
     actual: String,
 }
 
@@ -163,7 +181,6 @@ impl Validate<String> for MatchesStringValidation {
 #[derive(Clone, Debug)]
 pub struct MatchesStaticStrValidation {
     pub expected: &'static str,
-    #[koruma(value)]
     actual: String,
 }
 
@@ -178,7 +195,6 @@ impl Validate<String> for MatchesStaticStrValidation {
 #[derive(Clone, Debug)]
 pub struct StartsWithValidation<T: AsRef<str>> {
     pub prefix: &'static str,
-    #[koruma(value)]
     actual: T,
 }
 

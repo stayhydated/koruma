@@ -1,4 +1,4 @@
 assets_dir = "i18n"
 fallback_language = "en"
-fluent_feature = "full-fluent"
+fluent_feature = [ "full-fluent" ]
 namespaces = [ "collection", "format", "general", "numeric", "string" ]

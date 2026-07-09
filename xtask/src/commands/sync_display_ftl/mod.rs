@@ -10,10 +10,9 @@ use std::{
     path::Path,
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context as _, Result, bail};
 
 use crate::cli::SyncArgs;
-use crate::util::workspace_root;
 use collect::{collect_display_info, collect_rs_files, collect_validator_info};
 use ftl::collect_ftl_templates;
 use template::{
@@ -23,7 +22,7 @@ use template::{
 use types::{DisplayInfo, Replacement, SyncTarget, ValidatorInfo};
 
 pub fn run(options: SyncArgs) -> Result<()> {
-    let workspace_root = workspace_root()?;
+    let workspace_root = stayhydated_xtask::workspace_root_from_xtask_manifest()?;
     let validators_root = workspace_root.join("crates/koruma-collection/src/validators");
     let ftl_root = workspace_root.join("crates/koruma-collection/i18n/en/koruma-collection");
 
@@ -254,10 +253,10 @@ example_validation = Value { $min } and { $actual }.
         input.chars().filter(|c| !c.is_whitespace()).collect()
     }
 
-    fn nth_message_pattern<'a>(
-        resource: &'a ast::Resource<String>,
+    fn nth_message_pattern(
+        resource: &ast::Resource<String>,
         index: usize,
-    ) -> &'a ast::Pattern<String> {
+    ) -> &ast::Pattern<String> {
         resource
             .body
             .iter()
@@ -483,15 +482,15 @@ impl std::fmt::Display for IncludedValidation {
                 .is_none()
         );
 
-        let unsupported_slot_impl: ItemImpl = syn::parse_quote! {
+        let invalid_slot_impl: ItemImpl = syn::parse_quote! {
             impl std::fmt::Display for BrokenValidation {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                     write!(f, "Value {name}", self.actual)
                 }
             }
         };
-        let err = parse_display_impl(&unsupported_slot_impl).expect_err("unsupported slot");
-        assert!(err.to_string().contains("unsupported format slot"));
+        let err = parse_display_impl(&invalid_slot_impl).expect_err("invalid slot");
+        assert!(err.to_string().contains("unrecognized format slot"));
     }
 
     #[test]
@@ -676,7 +675,7 @@ impl std::fmt::Display for IncludedValidation {
         let ftl = r#"
 -term = skip
 simple = Value { $actual }.
-unsupported = { "literal" }
+unrecognized = { "literal" }
 "#;
         let resource = parser::parse(ftl.to_string()).expect("valid ftl");
 
@@ -691,8 +690,8 @@ unsupported = { "literal" }
             ]
         );
 
-        let unsupported_pattern = nth_message_pattern(&resource, 1);
-        assert!(template_from_pattern(unsupported_pattern).is_err());
+        let unrecognized_pattern = nth_message_pattern(&resource, 1);
+        assert!(template_from_pattern(unrecognized_pattern).is_err());
 
         let inline_expr: ast::Expression<String> =
             ast::Expression::Inline(ast::InlineExpression::VariableReference {
@@ -829,9 +828,7 @@ ip_validation =
 
     #[test]
     fn workspace_wrapper_and_root_paths_are_reachable() {
-        use crate::util::workspace_root;
-
-        let root = workspace_root().unwrap();
+        let root = stayhydated_xtask::workspace_root_from_xtask_manifest().unwrap();
         assert!(root.ends_with("koruma"));
         let _ = run(SyncArgs {
             check: true,
@@ -951,22 +948,22 @@ impl std::fmt::Display for DisplayedValidation {
         let parse_err = collect_ftl_templates(parse_err_tmp.path()).expect_err("invalid ftl");
         assert!(parse_err.to_string().contains("Failed to parse FTL AST"));
 
-        let unsupported_tmp = tempfile::tempdir().expect("failed to create temp directory");
+        let unrecognized_tmp = tempfile::tempdir().expect("failed to create temp directory");
         write_file(
-            &unsupported_tmp.path().join("sample.ftl"),
+            &unrecognized_tmp.path().join("sample.ftl"),
             r#"
 -term = keep
 no_value =
     .attr = still ignored
-unsupported = { "literal" }
+unrecognized = { "literal" }
 "#,
         );
-        let unsupported =
-            collect_ftl_templates(unsupported_tmp.path()).expect_err("unsupported pattern");
+        let unrecognized =
+            collect_ftl_templates(unrecognized_tmp.path()).expect_err("unrecognized pattern");
         assert!(
-            unsupported
+            unrecognized
                 .to_string()
-                .contains("Unsupported message pattern")
+                .contains("Unrecognized message pattern")
         );
 
         let skip_tmp = tempfile::tempdir().expect("failed to create temp directory");

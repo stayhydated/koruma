@@ -18,9 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TRUNK_VERSION: "0.21.14"
       DIOXUS_CLI_VERSION: "0.7.9"
-      TRUNK_SKIP_VERSION_CHECK: "true"
     steps:
       - uses: actions/checkout@v7
 
@@ -30,25 +28,16 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Install nightly toolchain for GPUI demo
-        run: |
-          rustup toolchain install nightly --profile minimal
-          rustup target add wasm32-unknown-unknown --toolchain nightly
-
       - uses: cargo-bins/cargo-binstall@main
 
       - name: Install build tools
-        run: |
-          cargo binstall trunk --version "$TRUNK_VERSION" --no-confirm
-          cargo binstall dioxus-cli --version "$DIOXUS_CLI_VERSION" --no-confirm
+        run: cargo binstall dioxus-cli --version "$DIOXUS_CLI_VERSION" --no-confirm
         env:
           SCCACHE_GHA_ENABLED: "true"
           RUSTC_WRAPPER: "sccache"
 
       - name: Build web site
         run: |
-          env -u RUSTC_WRAPPER cargo xtask build bevy-demo
-          env -u RUSTC_WRAPPER cargo xtask build gpui-demo
           cargo xtask build book
           cargo xtask build llms-txt
           cargo xtask build web

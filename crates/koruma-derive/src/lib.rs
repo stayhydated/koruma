@@ -7,7 +7,6 @@ mod showcase_modules;
 mod tests;
 
 use proc_macro::TokenStream;
-use proc_macro_error2::proc_macro_error;
 use proc_macro2::TokenStream as TokenStream2;
 use syn::spanned::Spanned as _;
 use syn::{DeriveInput, Fields, Item};
@@ -74,42 +73,34 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 ///     }
 /// }
 /// ```
-#[proc_macro_error]
 #[proc_macro_attribute]
 pub fn validator(attr: TokenStream, item: TokenStream) -> TokenStream {
-    TokenStream::from(validator_macro(attr.into(), item.into()))
+    into_proc_macro_stream(validator_macro(attr.into(), item.into()))
 }
 
-fn validator_macro(attr: TokenStream2, item: TokenStream2) -> TokenStream2 {
+fn validator_macro(attr: TokenStream2, item: TokenStream2) -> syn::Result<TokenStream2> {
     if !attr.is_empty() {
-        return syn::Error::new_spanned(attr, "koruma::validator does not accept arguments")
-            .to_compile_error();
+        return Err(syn::Error::new_spanned(
+            attr,
+            "koruma::validator does not accept arguments",
+        ));
     }
 
-    let item = match syn::parse2::<Item>(item) {
-        Ok(item) => item,
-        Err(err) => return err.to_compile_error(),
-    };
+    let item = syn::parse2::<Item>(item)?;
 
     let input = match item {
         Item::Struct(input) => input,
         other => {
-            let err = syn::Error::new(
+            return Err(syn::Error::new(
                 other.span(),
                 "koruma::validator can only be applied to structs",
-            );
-            return err.to_compile_error();
+            ));
         },
     };
 
-    if let Err(err) = validate_validator_macro_input(&input) {
-        return err.to_compile_error();
-    }
+    validate_validator_macro_input(&input)?;
 
-    match expand_validator(input) {
-        Ok(tokens) => tokens,
-        Err(e) => e.to_compile_error(),
-    }
+    expand_validator(input)
 }
 
 fn validate_validator_macro_input(input: &syn::ItemStruct) -> syn::Result<()> {
@@ -165,13 +156,12 @@ fn validate_validator_macro_input(input: &syn::ItemStruct) -> syn::Result<()> {
 /// `unwrapped(...)` target selectors for optional values, plus `skip`, `nested`,
 /// and field-level `newtype` modifiers. Struct-level options include `try_new`,
 /// `try_from`, and `newtype`.
-#[proc_macro_error]
 #[proc_macro_derive(Koruma, attributes(koruma))]
 pub fn derive_koruma(input: TokenStream) -> TokenStream {
-    TokenStream::from(derive_koruma_macro(input.into()))
+    into_proc_macro_stream(derive_koruma_macro(input.into()))
 }
 
-fn derive_koruma_macro(input: TokenStream2) -> TokenStream2 {
+fn derive_koruma_macro(input: TokenStream2) -> syn::Result<TokenStream2> {
     expand_derive_macro(input, expand_koruma)
 }
 
@@ -197,13 +187,12 @@ fn derive_koruma_macro(input: TokenStream2) -> TokenStream2 {
 ///     println!("{}", err);  // Uses Display
 /// }
 /// ```
-#[proc_macro_error]
 #[proc_macro_derive(KorumaAllDisplay, attributes(koruma))]
 pub fn derive_koruma_all_display(input: TokenStream) -> TokenStream {
-    TokenStream::from(derive_koruma_all_display_macro(input.into()))
+    into_proc_macro_stream(derive_koruma_all_display_macro(input.into()))
 }
 
-fn derive_koruma_all_display_macro(input: TokenStream2) -> TokenStream2 {
+fn derive_koruma_all_display_macro(input: TokenStream2) -> syn::Result<TokenStream2> {
     expand_derive_macro(input, expand_koruma_all_display)
 }
 
@@ -233,62 +222,51 @@ fn derive_koruma_all_display_macro(input: TokenStream2) -> TokenStream2 {
 /// }
 /// ```
 #[cfg(feature = "fluent")]
-#[proc_macro_error]
 #[proc_macro_derive(KorumaAllFluent, attributes(koruma))]
 pub fn derive_koruma_all_fluent(input: TokenStream) -> TokenStream {
-    TokenStream::from(derive_koruma_all_fluent_macro(input.into()))
+    into_proc_macro_stream(derive_koruma_all_fluent_macro(input.into()))
 }
 
 #[cfg(feature = "fluent")]
-fn derive_koruma_all_fluent_macro(input: TokenStream2) -> TokenStream2 {
+fn derive_koruma_all_fluent_macro(input: TokenStream2) -> syn::Result<TokenStream2> {
     expand_derive_macro(input, expand_koruma_all_fluent)
 }
 
 fn expand_derive_macro(
     input: TokenStream2,
     expand: impl FnOnce(DeriveInput) -> syn::Result<TokenStream2>,
-) -> TokenStream2 {
-    let input = match syn::parse2::<DeriveInput>(input) {
-        Ok(input) => input,
-        Err(err) => return err.to_compile_error(),
-    };
+) -> syn::Result<TokenStream2> {
+    let input = syn::parse2::<DeriveInput>(input)?;
 
-    match expand(input) {
-        Ok(tokens) => tokens,
-        Err(err) => err.to_compile_error(),
-    }
+    expand(input)
 }
 
 /// Internal helper macro for generating showcase module declarations and linker functions.
 #[cfg(feature = "internal-showcase")]
-#[proc_macro_error]
 #[proc_macro]
 pub fn showcase_modules(input: TokenStream) -> TokenStream {
-    TokenStream::from(showcase_modules_macro(input.into()))
+    into_proc_macro_stream(showcase_modules_macro(input.into()))
 }
 
 /// Internal helper macro for generating `ValidatorModule`.
 #[cfg(feature = "internal-showcase")]
-#[proc_macro_error]
 #[proc_macro]
 pub fn showcase_module_enum(input: TokenStream) -> TokenStream {
-    TokenStream::from(showcase_module_enum_macro(input.into()))
+    into_proc_macro_stream(showcase_module_enum_macro(input.into()))
 }
 
 #[cfg(feature = "internal-showcase")]
-fn showcase_modules_macro(input: TokenStream2) -> TokenStream2 {
-    match expand_showcase_modules_macro(input) {
-        Ok(tokens) => tokens,
-        Err(err) => err.to_compile_error(),
-    }
+fn showcase_modules_macro(input: TokenStream2) -> syn::Result<TokenStream2> {
+    expand_showcase_modules_macro(input)
 }
 
 #[cfg(feature = "internal-showcase")]
-fn showcase_module_enum_macro(input: TokenStream2) -> TokenStream2 {
-    match expand_showcase_module_enum_macro(input) {
-        Ok(tokens) => tokens,
-        Err(err) => err.to_compile_error(),
-    }
+fn showcase_module_enum_macro(input: TokenStream2) -> syn::Result<TokenStream2> {
+    expand_showcase_module_enum_macro(input)
+}
+
+fn into_proc_macro_stream(result: syn::Result<TokenStream2>) -> TokenStream {
+    TokenStream::from(result.unwrap_or_else(|err| err.to_compile_error()))
 }
 
 #[cfg(test)]
@@ -313,7 +291,8 @@ mod macro_entrypoint_tests {
                     actual: Option<String>,
                 }
             },
-        );
+        )
+        .expect("valid validator macro input expands");
         assert!(!valid.to_string().contains("compile_error"));
 
         let with_args = validator_macro(
@@ -323,7 +302,8 @@ mod macro_entrypoint_tests {
                     actual: Option<String>,
                 }
             },
-        );
+        )
+        .expect_err("validator macro arguments are rejected");
         assert!(with_args.to_string().contains("does not accept arguments"));
 
         let non_struct = validator_macro(
@@ -331,7 +311,8 @@ mod macro_entrypoint_tests {
             quote!(
                 enum Demo {}
             ),
-        );
+        )
+        .expect_err("validator macro only accepts structs");
         assert!(
             non_struct
                 .to_string()
@@ -343,7 +324,8 @@ mod macro_entrypoint_tests {
             quote!(
                 struct Demo {}
             ),
-        );
+        )
+        .expect_err("validator macro requires fields");
         assert!(
             empty_named
                 .to_string()
@@ -355,7 +337,8 @@ mod macro_entrypoint_tests {
             quote!(
                 struct Demo;
             ),
-        );
+        )
+        .expect_err("validator macro requires fields");
         assert!(
             unit_struct
                 .to_string()
@@ -367,7 +350,8 @@ mod macro_entrypoint_tests {
             quote!(
                 struct Demo(String);
             ),
-        );
+        )
+        .expect_err("validator macro requires named fields");
         assert!(
             tuple_struct
                 .to_string()
@@ -382,7 +366,8 @@ mod macro_entrypoint_tests {
                     checked: Option<String>,
                 }
             },
-        );
+        )
+        .expect_err("invalid validator struct metadata is rejected");
         assert!(expansion_error.to_string().contains("koruma::validator"));
     }
 
@@ -393,17 +378,19 @@ mod macro_entrypoint_tests {
                 #[koruma(RequiredValidation)]
                 value: String,
             }
-        });
+        })
+        .expect("valid derive macro input expands");
         assert!(!valid.to_string().contains("compile_error"));
 
         let parse_error = derive_koruma_macro(quote!(not rust tokens));
-        assert!(parse_error.to_string().contains("compile_error"));
+        assert!(parse_error.is_err());
 
         let expansion_error = derive_koruma_macro(quote! {
             pub enum Demo {
                 Value,
             }
-        });
+        })
+        .expect_err("Koruma derive rejects enums");
         assert!(expansion_error.to_string().contains("structs"));
 
         let display = derive_koruma_all_display_macro(quote! {
@@ -411,7 +398,8 @@ mod macro_entrypoint_tests {
                 #[koruma(RequiredValidation)]
                 value: String,
             }
-        });
+        })
+        .expect("valid display derive input expands");
         assert!(compact(display).contains("DisplayforDemoValueKorumaValidatorRef"));
 
         #[cfg(feature = "fluent")]
@@ -421,7 +409,8 @@ mod macro_entrypoint_tests {
                     #[koruma(RequiredValidation)]
                     value: String,
                 }
-            });
+            })
+            .expect("valid fluent derive input expands");
             assert!(compact(fluent).contains("FluentMessageforDemoValueKorumaValidatorRef"));
         }
     }
@@ -429,16 +418,19 @@ mod macro_entrypoint_tests {
     #[cfg(feature = "internal-showcase")]
     #[test]
     fn showcase_macro_helpers_cover_success_and_error_paths() {
-        let modules = showcase_modules_macro(quote!(string, numeric));
+        let modules =
+            showcase_modules_macro(quote!(string, numeric)).expect("valid showcase modules expand");
         assert!(compact(modules).contains("__link_showcase_validators"));
 
-        let module_enum = showcase_module_enum_macro(quote!(string, numeric));
+        let module_enum =
+            showcase_module_enum_macro(quote!(string, numeric)).expect("valid module enum expands");
         let compact_enum = compact(module_enum);
         assert!(compact_enum.contains("enumValidatorModule"));
         assert!(compact_enum.contains("String"));
         assert!(compact_enum.contains("Numeric"));
 
-        let empty = showcase_modules_macro(TokenStream2::new());
+        let empty = showcase_modules_macro(TokenStream2::new())
+            .expect_err("empty showcase module list is rejected");
         assert!(
             empty
                 .to_string()

@@ -27,7 +27,7 @@ For tooling that wants a generic, field-scoped view instead of strongly typed
 accessors, generated aggregate error structs implement `ValidationIssues`.
 `errors.issues()` returns structured field and element issues with field names,
 available as typed `ValidationFieldName` values, validator type names, labels,
-element indices, and human-readable messages.
+element indices, human-readable messages, and runtime validator parameters.
 
 You can customise error rendering by implementing `Display` for validators, or localise errors with
 [es-fluent](https://github.com/stayhydated/es-fluent) and `KorumaAllFluent`, which is covered in the next chapter.

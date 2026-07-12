@@ -293,8 +293,8 @@ generators:
   when `KorumaAllDisplay` or `KorumaAllFluent` is derived.
 - aggregate error structs implement `ValidationIssues`, which returns
   structured field and element issues with typed `ValidationFieldName` values,
-  validator type names, labels, element indices, and messages for tooling that
-  does not need the strongly typed accessor surface.
+  validator type names, labels, element indices, messages, and runtime validator
+  parameters for tooling that does not need the strongly typed accessor surface.
 
 For display-based UI, derive `KorumaAllDisplay` and make every stored validator
 implement `Display`. For localized UI, derive `KorumaAllFluent` and make every
@@ -307,7 +307,7 @@ so generated UIs can render errors without cloning validator state.
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
-es-fluent = "0.17"
+es-fluent = "0.18"
 ```
 
 This setup assumes:

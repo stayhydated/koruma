@@ -81,7 +81,7 @@ For localized messages:
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
 koruma-collection = { version = "*", features = ["full-fluent"] }
-es-fluent = "0.17"
+es-fluent = "0.18"
 ```
 
 Prefer collection modules when they match the rule:
@@ -202,7 +202,8 @@ order listed, and all configured validators are evaluated.
 Generated aggregate error structs implement `ValidationIssues` for generic
 field and element issue enumeration. Prefer the strongly typed accessors for
 normal app code, and use `ValidationIssues` when building tooling that needs
-field names, validator type names, labels, element indices, and messages.
+field names, validator type names, labels, element indices, messages, and
+runtime validator parameters.
 
 Common patterns:
 

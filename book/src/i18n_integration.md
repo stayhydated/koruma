@@ -6,7 +6,7 @@ and add the matching [es-fluent](https://github.com/stayhydated/es-fluent) depen
 ```toml
 [dependencies]
 koruma = { version = "*", features = ["derive", "fluent"] }
-es-fluent = "0.17"
+es-fluent = "0.18"
 ```
 
 This setup assumes:

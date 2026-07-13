@@ -31,11 +31,11 @@ dioxus = { default-features = false, version = "0.7" }
 dioxus-free-icons = { default-features = false, version = "0.10" }
 dioxus-primitives = { default-features = false, git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
 email_address = "0.2"
-es-fluent = "0.18"
-es-fluent-build = "0.18"
-es-fluent-lang = "0.18"
-es-fluent-manager-dioxus = { default-features = false, version = "0.7" }
-es-fluent-manager-embedded = "0.18"
+es-fluent = { git = "https://github.com/stayhydated/es-fluent" }
+es-fluent-build = { git = "https://github.com/stayhydated/es-fluent" }
+es-fluent-lang = { git = "https://github.com/stayhydated/es-fluent" }
+es-fluent-manager-dioxus = { default-features = false, git = "https://github.com/stayhydated/es-fluent" }
+es-fluent-manager-embedded = { git = "https://github.com/stayhydated/es-fluent" }
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"

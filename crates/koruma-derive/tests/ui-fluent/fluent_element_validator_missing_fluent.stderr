@@ -17,11 +17,6 @@ help: the following other types implement trait `FluentMessage`
    |                  |
    |                  `ItemKorumaValidationError`
    |                  `ItemValuesElementKorumaValidatorRef<'koruma>`
-   |
-  ::: $CARGO/es-fluent-$VERSION/src/traits/fluent_message.rs
-   |
-   | impl<T: FluentMessage + ?Sized> FluentMessage for &T {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&T`
    = note: this error originates in the derive macro `KorumaAllFluent` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `ItemValuesKorumaValidationError: FluentMessage` is not satisfied
@@ -43,9 +38,4 @@ help: the following other types implement trait `FluentMessage`
    |                  |
    |                  `ItemKorumaValidationError`
    |                  `ItemValuesElementKorumaValidatorRef<'koruma>`
-   |
-  ::: $CARGO/es-fluent-$VERSION/src/traits/fluent_message.rs
-   |
-   | impl<T: FluentMessage + ?Sized> FluentMessage for &T {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `&T`
    = note: this error originates in the derive macro `KorumaAllFluent` (in Nightly builds, run with -Z macro-backtrace for more info)

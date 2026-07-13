@@ -313,7 +313,7 @@ version = "3.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dee98b0db6a962de883bf5d20362dee4d7ca0d12fe39a7c6c73c844e1cd7c1f"
 dependencies = [
- "darling 0.23.0",
+ "darling 0.20.11",
  "ident_case",
  "prettyplease",
  "proc-macro2",
@@ -1655,23 +1655,20 @@ dependencies = [
 [[package]]
 name = "es-fluent"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ddbc41e43442c1fde3a43cc052b8287e04f295072fba208171a313d545d9280"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
  "es-fluent-shared",
  "fluent-bundle",
  "inventory",
- "tracing",
  "unic-langid",
 ]
 
 [[package]]
 name = "es-fluent-build"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "344ecd8ece6d0ce441a9b8b853136baf82592730766242d316ea2a98f5334511"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent-toml",
 ]
@@ -1679,8 +1676,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92c891c2bf3894907ab1f53edafbd25dd0b3fd8e1dbcb6879811c5147fe04085"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "darling 0.23.0",
  "es-fluent-derive-core",
@@ -1693,8 +1689,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive-core"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c09c6532cc5fc3683f69c49d15598355fc5184229c791632179d1ca14e52f9bc"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "bon",
  "darling 0.23.0",
@@ -1713,8 +1708,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "980099327a1a7c25ff2cce4953d4b210f31cef7d9ec2098ab1ac1b9c4dc818b6"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1730,8 +1724,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb966d5eb5e4c6363b9c2ca21240e88b87520c59dcbd57876737337123102f12"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
@@ -1745,8 +1738,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d428c52252f96eaefff8358f15495161e392a457cab05cf9ab593dc12abd91c6"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1765,8 +1757,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-dioxus"
 version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae5d51c2d0466b06c397e8b96559b28743bea92332538ebb6bdeebd08bc62941"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1791,8 +1782,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1cdcbe9131084c935a3826b4b3fd8699a570d648efb1407eb097a5fc97ea103"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1805,8 +1795,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43a32687d9d2ee4b99723d2c28cf10dbb2cc5fd2193dff722334742d5615759e"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-shared",
@@ -1821,8 +1810,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-shared"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ecefb31b992b63784a0a9ed25669c9b666c94c2627e7118e01837aae1e4e461"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "anyhow",
  "camino",
@@ -1845,8 +1833,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.18.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e33bc08e59f6891c1c930f885a378e59759169d774bf2cc15e447517e3c8681"
+source = "git+https://github.com/stayhydated/es-fluent#d7766591402ea94af885abf5f4b333925b8a0560"
 dependencies = [
  "bon",
  "es-fluent-shared",

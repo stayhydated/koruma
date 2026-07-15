@@ -78,11 +78,11 @@ if let Err(errors) = user.validate() {
     }
 
     for failed in errors.id().all() {
-        println!("{}", i18n::localize(failed));
+        println!("{}", i18n::localize(&failed));
     }
 
     for failed in errors.username().all() {
-        println!("{}", i18n::localize(failed));
+        println!("{}", i18n::localize(&failed));
     }
 }
 ```

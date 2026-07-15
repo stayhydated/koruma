@@ -18,8 +18,9 @@ instead of using this crate directly.
   `#[koruma(value)]` for explicitly named captured value fields,
   plus `#[koruma(skip_capture)]` on `Option<T>` value fields that should not retain the
   validated input during derived validation. It also emits `ValidatorMetadata<T>` with a
-  static descriptor and runtime parameter values; primitive, string, and `Option` parameters are
-  represented directly, while generic or otherwise unconstrained values are reported as opaque.
+  static descriptor and runtime parameter values. Syntactically recognized booleans, integers
+  through 64 bits, `isize`/`usize`, floats, `String`/`&str`, and one `Option` layer around those
+  types use concrete `ValidatorParamValue` variants; other parameter types are reported as opaque.
 - `#[derive(Koruma)]`: generates validation error structs and `validate()`, accepting
   dot-chain validator syntax like `RangeValidation::<_>.min(0).max(10)`, lower-snake labels,
   `each(...)` element validators, `full(...)` and `unwrapped(...)` target selectors, `skip`,

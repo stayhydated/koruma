@@ -4,10 +4,27 @@
 
 /// Trait for types that have a measurable length.
 pub trait HasLen {
+    /// Return the number of elements in this value.
+    ///
+    /// String implementations count Unicode scalar values rather than UTF-8
+    /// bytes.
     fn len(&self) -> usize;
 
+    /// Return whether this value has a length of zero.
     fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl<T: HasLen + ?Sized> HasLen for &T {
+    fn len(&self) -> usize {
+        T::len(*self)
+    }
+}
+
+impl<T: HasLen + ?Sized> HasLen for &mut T {
+    fn len(&self) -> usize {
+        T::len(*self)
     }
 }
 
@@ -140,6 +157,20 @@ mod tests {
     fn string_len_counts_unicode_scalar_values() {
         assert_eq!(HasLen::len("a💀é"), 3);
         assert_eq!(HasLen::len(&"a💀é".to_string()), 3);
+    }
+
+    #[test]
+    fn borrowed_strings_and_slices_delegate_to_their_referents() {
+        let string = "a💀é".to_string();
+        let borrowed_string: &str = &string;
+        assert_eq!(HasLen::len(&borrowed_string), 3);
+
+        let mut values = [1_u8, 2, 3];
+        let borrowed_slice: &[u8] = &values;
+        assert_eq!(HasLen::len(&borrowed_slice), 3);
+
+        let borrowed_slice_mut: &mut [u8] = &mut values;
+        assert_eq!(HasLen::len(&borrowed_slice_mut), 3);
     }
 
     #[cfg(feature = "smallvec")]

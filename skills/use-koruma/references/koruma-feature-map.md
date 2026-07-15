@@ -56,7 +56,9 @@ recommend it for normal application validation.
   field and element issue enumeration.
 - `ValidationIssue`, `ValidationIssueScope`, and `ValidationFieldName`: the
   structured scope, field, validator, label, element index, message, and
-  runtime parameter values returned by `ValidationIssues`.
+  optional parameter storage used by structured issues. Generated issues use
+  fallback messages; read runtime validator params from a typed failed
+  validator through `ValidatorMetadata`.
 - `ValidateExt`: implemented by `#[derive(Koruma)]`. Handwritten nested
   integrations must use `type Error: ValidationError + Default`.
 - `NewtypeValidation`: marker implemented for struct-level `#[koruma(newtype)]`
@@ -98,10 +100,11 @@ Use `#[validator]` on a named-field struct, then implement `Validate<T>`.
 - Reserved setter names include `new`, `build`, `with_value`, `builder`,
   `__koruma_builder`, `build_validator`, `capture_value_ref`, and the
   generated `maybe_` prefix.
-- `#[validator]` emits `ValidatorMetadata<T>`. Bool, numeric, string, and
-  optional runtime params are represented directly; generic or otherwise
-  unconstrained params are opaque so metadata does not introduce additional
-  trait bounds.
+- `#[validator]` emits `ValidatorMetadata<T>`. Syntactically recognized
+  booleans, integers through 64 bits, `isize`/`usize`, floats, `String`/`&str`,
+  and one `Option` layer around those types use concrete `ValidatorParamValue`
+  variants. Other parameter types are opaque so metadata does not introduce
+  additional trait bounds.
 
 ## Field Validation Attributes
 
@@ -152,14 +155,16 @@ structs.
   field validator.
 - `errors.field().element_errors()` returns indexed element errors for
   `each(...)`, usually as `(index, element_error)`.
-- `errors.field().all()` returns borrowed failed-validator enum values for that
-  field when `KorumaAllDisplay` or `KorumaAllFluent` is derived.
-- `errors.all()` returns borrowed top-level validator refs when companion
-  rendering derives are present.
+- For a field with direct validators, `errors.field().all()` returns borrowed
+  failed-validator enum values. `KorumaAllDisplay` and `KorumaAllFluent` add
+  rendering traits to those enum values.
+- A struct-level `#[koruma(newtype)]` error dereferences to its inner field
+  error, so `errors.all()` resolves through that transparent surface when the
+  inner error exposes `all()`.
 - `errors.issues()` is available through `ValidationIssues` on aggregate error
   structs and returns field/element issues with validator type names, labels,
-  element indices, messages, and runtime validator parameters for generic
-  tooling.
+  element indices, and fallback messages. Use typed failed-validator
+  getters with `ValidatorMetadata::validator_params()` for runtime parameters.
 - All configured validators run in attribute order. Failed-validator inspection
   borrows stored validators and does not require validator types to implement
   `Clone`.
@@ -189,7 +194,9 @@ structs.
   `NewtypeValidation` value. Optional newtype fields return optional nested
   error access. Newtype fields may also include ordinary field validators;
   those validators use the normal optional, `full(...)`, and `unwrapped(...)`
-  target rules.
+  target rules. With additional validators, the generated field error
+  container exposes the delegated error through `inner()` and yields a
+  non-empty inner error as the `Inner` variant from `all()`.
 - `#[koruma(try_new)]` generates a checked `try_new(...)` constructor that
   takes the struct fields, validates the instance, and returns
   `Result<Self, Error>`.

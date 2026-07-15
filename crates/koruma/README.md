@@ -150,10 +150,11 @@ still derives traits like `Clone` or `Debug` through that field, use manual impl
 reintroducing type bounds.
 
 `#[validator]` also emits `ValidatorMetadata<T>` for tooling. The metadata
-descriptor lists configurable setter fields, and runtime params expose bool,
-numeric, string, and optional values directly. Generic or otherwise
-unconstrained values are reported as opaque so metadata does not add trait
-bounds to your validator.
+descriptor lists configurable setter fields. Runtime params use concrete
+`ValidatorParamValue` variants for syntactically recognized booleans, integers
+through 64 bits, `isize`/`usize`, floats, `String`/`&str`, and one `Option`
+layer around those types. Other parameter types are reported as opaque so
+metadata does not add trait bounds to your validator.
 
 ### 2. Use `#[derive(Koruma)]` on a struct + individual validator getters
 
@@ -288,13 +289,17 @@ generators:
   `each(...)` validation.
 - nested fields use the nested type's generated error container, and newtype
   validation exposes the inner field error through the generated newtype error.
-- `errors.field().all()` returns borrowed `*ValidatorRef<'_>` enum values for
-  that field, while `errors.all()` returns borrowed top-level validator refs
-  when `KorumaAllDisplay` or `KorumaAllFluent` is derived.
+- For a field with direct validators, `errors.field().all()` returns borrowed
+  `*ValidatorRef<'_>` enum values. `KorumaAllDisplay` and `KorumaAllFluent` add
+  rendering traits to those enum values.
+- a struct-level `#[koruma(newtype)]` error dereferences to its inner field error,
+  so `errors.all()` resolves through that transparent surface when the inner
+  error exposes `all()`.
 - aggregate error structs implement `ValidationIssues`, which returns
   structured field and element issues with typed `ValidationFieldName` values,
-  validator type names, labels, element indices, messages, and runtime validator
-  parameters for tooling that does not need the strongly typed accessor surface.
+  validator type names, labels, element indices, and fallback messages.
+  Tooling that needs runtime validator parameters can use the strongly typed
+  failed-validator getter with `ValidatorMetadata::validator_params()`.
 
 For display-based UI, derive `KorumaAllDisplay` and make every stored validator
 implement `Display`. For localized UI, derive `KorumaAllFluent` and make every
@@ -379,11 +384,11 @@ if let Err(errors) = user.validate() {
     }
 
     for failed in errors.id().all() {
-        println!("{}", i18n::localize(failed));
+        println!("{}", i18n::localize(&failed));
     }
 
     for failed in errors.username().all() {
-        println!("{}", i18n::localize(failed));
+        println!("{}", i18n::localize(&failed));
     }
 }
 ```
@@ -441,8 +446,10 @@ let provider_id = ProviderId::try_from(normalize_provider_id(" Provider-1 "))?;
 ```
 
 A field can combine `newtype` with ordinary field validators when the wrapper field itself also
-needs rules. The transparent newtype error access is preserved, and the extra validators use the
-same optional, `full(...)`, and `unwrapped(...)` target selection rules as any other field:
+needs rules. In that shape, the generated field error container exposes the delegated newtype
+error through `inner()` and includes a non-empty inner error as the `Inner` variant from `all()`.
+The extra validators use the same optional, `full(...)`, and `unwrapped(...)` target selection
+rules as any other field:
 
 ```rs
 #[koruma(newtype, koruma_collection::general::RequiredValidation::<Option<_>>)]
@@ -490,7 +497,7 @@ if let Err(errors) = form.validate() {
     }
 
     for failed in errors.email().all() {
-        println!("email validator: {}", i18n::localize(failed));
+        println!("email validator: {}", i18n::localize(&failed));
     }
 }
 
@@ -515,7 +522,7 @@ if let Err(errors) = Email::try_new("".to_string()) {
         println!("email::try_new failed: {}", i18n::localize(email_err));
     }
     for failed in errors.all() {
-        println!("email::try_new validator: {}", i18n::localize(failed));
+        println!("email::try_new validator: {}", i18n::localize(&failed));
     }
 }
 
@@ -578,7 +585,7 @@ match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),
     Err(errors) => {
         for failed in errors.all() {
-            println!("validation failed: {}", i18n::localize(failed));
+            println!("validation failed: {}", i18n::localize(&failed));
         }
     }
 }

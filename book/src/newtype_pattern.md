@@ -52,8 +52,10 @@ let provider_id = ProviderId::try_from(normalize_provider_id(" Provider-1 "))?;
 ```
 
 A field can combine `newtype` with ordinary field validators when the wrapper field itself also
-needs rules. The transparent newtype error access is preserved, and the extra validators use the
-same optional, `full(...)`, and `unwrapped(...)` target selection rules as any other field:
+needs rules. In that shape, the generated field error container exposes the delegated newtype
+error through `inner()` and includes a non-empty inner error as the `Inner` variant from `all()`.
+The extra validators use the same optional, `full(...)`, and `unwrapped(...)` target selection
+rules as any other field:
 
 ```rust
 #[koruma(newtype, koruma_collection::general::RequiredValidation::<Option<_>>)]
@@ -107,7 +109,7 @@ if let Err(errors) = form.validate() {
     }
 
     for failed in errors.email().all() {
-        println!("email validator: {}", i18n::localize(failed));
+        println!("email validator: {}", i18n::localize(&failed));
     }
 }
 
@@ -132,7 +134,7 @@ if let Err(errors) = Email::try_new("".to_string()) {
     }
 
     for failed in errors.all() {
-        println!("email::try_new validator: {}", i18n::localize(failed));
+        println!("email::try_new validator: {}", i18n::localize(&failed));
     }
 }
 
@@ -193,7 +195,7 @@ match Only67u8::try_from(69) {
     Ok(n) => println!("{}!", n.0),
     Err(errors) => {
         for failed in errors.all() {
-            println!("validation failed: {}", i18n::localize(failed));
+            println!("validation failed: {}", i18n::localize(&failed));
         }
     }
 }

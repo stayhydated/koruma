@@ -47,10 +47,10 @@ adds `koruma-collection` when built-in validators fit the rule:
    Add lower-snake labels with `label_name = Validator::<_>` when you need
    descriptive stable accessors or when validators would otherwise generate the
    same getter/variant name; labels work inside `each(...)` too.
-6. Derive `Koruma` on the validated type. Add `KorumaAllDisplay` for `all()`
-   iterators over borrowed `Display`-renderable validators, or `KorumaAllFluent`
-   for localized borrowed `FluentMessage` values. Failed-validator inspection
-   does not require validator types to implement `Clone`.
+6. Derive `Koruma` on the validated type. Add `KorumaAllDisplay` when borrowed
+   values returned by `all()` should implement `Display`, or `KorumaAllFluent`
+   when they should implement `FluentMessage`. Failed-validator inspection does
+   not require validator types to implement `Clone`.
 7. For Fluent, derive `EsFluent` on validators and render messages through an
    app-owned `es-fluent` localizer.
 
@@ -152,7 +152,10 @@ failing input use this pattern internally.
 
 `#[validator]` also emits `ValidatorMetadata<T>` for tooling. Use it when a
 generic integration needs validator descriptors or runtime parameter values;
-generic values may be reported as opaque to avoid adding trait bounds.
+syntactically recognized booleans, integers through 64 bits, `isize`/`usize`,
+floats, `String`/`&str`, and one `Option` layer around those types use concrete
+`ValidatorParamValue` variants. Other parameter types are reported as opaque to
+avoid adding trait bounds.
 
 Unannotated configuration fields on custom validators generate direct setters.
 Koruma infers an unmarked value field named `actual`, `input`, or `value`, and
@@ -202,8 +205,10 @@ order listed, and all configured validators are evaluated.
 Generated aggregate error structs implement `ValidationIssues` for generic
 field and element issue enumeration. Prefer the strongly typed accessors for
 normal app code, and use `ValidationIssues` when building tooling that needs
-field names, validator type names, labels, element indices, messages, and
-runtime validator parameters.
+field names, validator type names, labels, element indices, and fallback
+messages. Use a strongly typed failed-validator getter together with
+`ValidatorMetadata::validator_params()` when the tooling also needs runtime
+validator parameters.
 
 Common patterns:
 
@@ -216,7 +221,9 @@ Common patterns:
   A `newtype` field may also include ordinary field validators, such as
   `#[koruma(newtype, general::RequiredValidation::<Option<_>>)]`; those
   validators use the normal optional, `full(...)`, and `unwrapped(...)` target
-  rules. Struct-level newtypes also implement `NewtypeValue` and
+  rules. With additional field validators, use the generated container's
+  `inner()` accessor for the delegated newtype error; `all()` also yields a
+  non-empty inner error as `Inner`. Struct-level newtypes also implement `NewtypeValue` and
   `NewtypeTryFromInner` so integration code can borrow, consume, validate, and
   checked-reconstruct inner values even when wrapper fields are private.
 - Add `#[koruma(try_new)]` to generate a checked constructor that takes the struct fields,

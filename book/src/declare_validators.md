@@ -80,10 +80,11 @@ error messages. External callers can read the captured value through the generat
 
 `#[validator]` also emits `ValidatorMetadata<T>`. The descriptor reports the
 validator type and configurable setter fields, while `validator_params()` reads
-runtime parameter values from a validator instance. Bool, numeric, string, and
-optional values are represented directly; generic or otherwise unconstrained
-values are reported as opaque so metadata does not add trait bounds to the
-validator.
+runtime parameter values from a validator instance. Syntactically recognized
+booleans, integers through 64 bits, `isize`/`usize`, floats, `String`/`&str`,
+and one `Option` layer around those types use concrete `ValidatorParamValue`
+variants. Other parameter types are reported as opaque so metadata does not add
+trait bounds to the validator.
 
 Unannotated configuration fields generate direct setters. Use bare `#[koruma(setter)]`
 when a configuration field is named `actual`, `input`, or `value`, or when marking configuration

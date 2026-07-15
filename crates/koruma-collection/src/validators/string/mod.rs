@@ -2,7 +2,7 @@
 //!
 //! This module contains validators for string-based validation scenarios.
 
-/// Trait alias for types that can be treated as string references.
+/// Marker trait for types that can be borrowed as string slices.
 pub trait StringLike: AsRef<str> {}
 
 impl<T: AsRef<str>> StringLike for T {}

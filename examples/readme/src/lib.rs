@@ -47,7 +47,7 @@ pub struct Item {
 }
 
 /// Example struct using EsFluent-based validators.
-#[derive(Koruma)]
+#[derive(Koruma, koruma::KorumaAllFluent)]
 pub struct User {
     #[koruma(IsEvenNumberValidation::<_>)]
     pub id: i32,
@@ -179,8 +179,8 @@ pub struct SignupInput {
     pub username: String,
 
     #[koruma(
-        handle_ascii = string::AsciiValidation::<_>,
-        handle_alphanumeric = string::AlphanumericValidation::<_>,
+        string::AsciiValidation::<_>,
+        string::AlphanumericValidation::<_>,
     )]
     pub handle: String,
 

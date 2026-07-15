@@ -123,6 +123,14 @@ pub fn main() -> Result<(), i18n::LocalizationError> {
                 if let Some(username_err) = errors.username().non_empty_string_validation() {
                     println!("  - username: {}", i18n::localize(username_err));
                 }
+
+                for failed in errors.id().all() {
+                    println!("  - id (all): {}", i18n::localize(&failed));
+                }
+
+                for failed in errors.username().all() {
+                    println!("  - username (all): {}", i18n::localize(&failed));
+                }
             },
         }
         println!();
@@ -402,7 +410,7 @@ pub fn main() -> Result<(), i18n::LocalizationError> {
             println!("username: {err}");
         }
 
-        if let Some(err) = errors.handle().handle_ascii() {
+        if let Some(err) = errors.handle().ascii_validation() {
             println!("handle(ascii): {err}");
         }
 

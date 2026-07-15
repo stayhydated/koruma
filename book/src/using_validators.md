@@ -115,6 +115,7 @@ pub struct BorrowedOrder<'a> {
 }
 ```
 
-For fields with more than one validator, `koruma` generates accessors for each validator as well as
-an `all()` iterator when you derive `KorumaAllDisplay` or `KorumaAllFluent`. The next chapter
-covers that multi-validator case in more detail.
+For fields with direct validators, `koruma` generates an accessor for each validator and an
+`all()` iterator over the failures. `KorumaAllDisplay` and `KorumaAllFluent` add the corresponding
+rendering trait to the borrowed enum values returned by `all()`. The next chapter covers the
+multi-validator case in more detail.

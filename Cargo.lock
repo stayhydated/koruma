@@ -4697,22 +4697,18 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=a7de17a2c58dd312bc4a236b0a364e19d11f1185#a7de17a2c58dd312bc4a236b0a364e19d11f1185"
 dependencies = [
  "dioxus",
  "dioxus-free-icons",
  "dioxus-primitives",
  "stayhydated-dioxus-core",
- "strum 0.28.0",
  "web-sys",
 ]
 
 [[package]]
 name = "stayhydated-dioxus-core"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=a7de17a2c58dd312bc4a236b0a364e19d11f1185#a7de17a2c58dd312bc4a236b0a364e19d11f1185"
 dependencies = [
- "bon",
  "bytemuck",
  "derive_more",
  "dioxus",

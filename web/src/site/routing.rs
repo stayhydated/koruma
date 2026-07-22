@@ -1,8 +1,10 @@
 use crate::pages;
 use dioxus::cli_config;
 use dioxus::prelude::*;
-use stayhydated_dioxus::{Project, ProjectNavItem, StayhydatedProjectPageMetadata};
+use stayhydated_dioxus::StayhydatedProjectPageMetadata;
 use stayhydated_site::routing::{BaseHref, BasePath, Href, RoutePath};
+
+use crate::site::constants::PROJECT;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PageKind {
@@ -28,13 +30,6 @@ impl PageKind {
             Self::Demos => "demos",
             Self::CollectionDioxus => "demos/koruma-collection",
             Self::SalesForm => "demos/sales-form",
-        }
-    }
-
-    pub(crate) const fn project_nav_item(self) -> ProjectNavItem {
-        match self {
-            Self::Home => ProjectNavItem::Home,
-            Self::Demos | Self::CollectionDioxus | Self::SalesForm => ProjectNavItem::Demos,
         }
     }
 
@@ -110,10 +105,6 @@ pub(crate) fn app_base_href() -> BaseHref {
     stayhydated_site::routing::base_href(base_path.as_ref())
 }
 
-pub(crate) fn page_href(page: PageKind) -> Href {
-    stayhydated_site::routing::href(&app_base_href(), &relative_path(page))
-}
-
 pub(crate) fn book_href() -> Href {
     stayhydated_site::routing::href(&app_base_href(), &RoutePath::new("book"))
 }
@@ -125,7 +116,7 @@ fn relative_path(page: PageKind) -> RoutePath {
 fn route_element(route: SiteRoute) -> Element {
     rsx! {
         StayhydatedProjectPageMetadata {
-            project: Project::Koruma,
+            project: PROJECT,
             page_title: route.page.title(),
             description: route.page.description(),
         }

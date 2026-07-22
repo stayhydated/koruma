@@ -1,38 +1,60 @@
-use crate::components::{FooterPanel, PageHeader};
-use crate::site::routing::PageKind;
 use dioxus::prelude::*;
 use stayhydated_dioxus::{
-    DemoCard, DemoCardGrid, GridColumns, ProjectPageShell, page_entry_reveal_style,
+    NavigationTarget, StayhydatedProjectPortalShell, page_entry_reveal_style,
+};
+
+use crate::site::{
+    constants::{PROJECT, VERSION},
+    routing::{AppRoute, PageKind},
 };
 
 #[component]
+fn DemoCardLink(route: AppRoute, title: &'static str) -> Element {
+    let aria_label = format!("Open {title} demo");
+
+    if try_router().is_some() {
+        rsx! {
+            Link {
+                class: "demo-card",
+                to: route,
+                aria_label,
+                h2 { class: "demo-card-title", "{title}" }
+            }
+        }
+    } else {
+        rsx! {
+            a {
+                class: "demo-card",
+                href: route.to_string(),
+                aria_label,
+                h2 { class: "demo-card-title", "{title}" }
+            }
+        }
+    }
+}
+
+#[component]
 pub(crate) fn DemosPage() -> Element {
-    let demos_style = page_entry_reveal_style();
+    let demos_style = page_entry_reveal_style().into_string();
 
     rsx! {
-        ProjectPageShell {
-            header: rsx!(PageHeader { current_page: PageKind::Demos }),
-            footer: Some(rsx!(FooterPanel {})),
-            DemoCardGrid::<crate::site::routing::AppRoute> {
-                cards: vec![
-                    DemoCard::route(
-                        crate::site::routing::app_route(PageKind::CollectionDioxus),
-                        "web",
-                        "koruma-collection - web",
-                        "Interactive Dioxus UI showcasing validator behavior and localized error messages.",
-                        "Open Dioxus demo",
-                    ),
-                    DemoCard::route(
-                        crate::site::routing::app_route(PageKind::SalesForm),
-                        "form",
-                        "Sales intake form",
-                        "A live sales intake form that validates a realistic lead payload with typed koruma errors.",
-                        "Open sales form",
-                    ),
-                ],
-                columns: GridColumns::Two,
-                extra_class: "motion-reveal",
-                style: demos_style,
+        StayhydatedProjectPortalShell {
+            project: PROJECT,
+            version: VERSION,
+            home: NavigationTarget::Internal(crate::site::routing::app_route(PageKind::Home)),
+            div { class: "demo-page demo-gallery",
+                section {
+                    class: "grid columns-2 demo-example-cards motion-reveal",
+                    style: demos_style,
+                    DemoCardLink {
+                        route: crate::site::routing::app_route(PageKind::CollectionDioxus),
+                        title: "koruma-collection",
+                    }
+                    DemoCardLink {
+                        route: crate::site::routing::app_route(PageKind::SalesForm),
+                        title: "Sales form",
+                    }
+                }
             }
         }
     }

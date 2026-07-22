@@ -11,13 +11,15 @@ use es_fluent::{FluentLocalizerExt as _, FluentMessage};
 use es_fluent_manager_dioxus::{DioxusAssetI18nProvider, use_i18n};
 use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
 use koruma_collection::{collection, format, general, numeric};
-use stayhydated_dioxus::surface_reveal_style;
+use stayhydated_dioxus::{NavigationTarget, StayhydatedProjectPortalShell, surface_reveal_style};
 use unic_langid::LanguageIdentifier;
 
-use crate::components::{FooterPanel, PageHeader};
 use crate::pages::DemoLanguageSwitcher;
 use crate::pages::i18n::{DemoLanguage, SalesFormMessage, koruma_localizer_for};
-use crate::site::routing::PageKind;
+use crate::site::{
+    constants::{PROJECT, VERSION},
+    routing::PageKind,
+};
 
 const SALES_STAGES: &[&str] = &["Discovery", "Qualified", "Proposal", "Procurement"];
 const SALES_FIELD_COUNT: usize = 8;
@@ -236,16 +238,17 @@ fn SalesFormContent() -> Element {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
-                div { class: "page-shell",
-                    PageHeader { current_page: PageKind::SalesForm }
-                    main { class: "stack",
-                        section { class: "page-title-band",
+                StayhydatedProjectPortalShell {
+                    project: PROJECT,
+                    version: VERSION,
+                    home: NavigationTarget::Internal(crate::site::routing::app_route(PageKind::Home)),
+                    div { class: "demo-page",
+                        section { class: "section-band",
                             span { class: "panel-label", "i18n load failure" }
                             h1 { "Sales form demo" }
                             p { "Failed to initialize i18n: {error}" }
                         }
                     }
-                    FooterPanel {}
                 }
             };
         },
@@ -275,9 +278,11 @@ fn SalesFormContent() -> Element {
     let demo_style = surface_reveal_style();
 
     rsx! {
-        div { class: "page-shell",
-            PageHeader { current_page: PageKind::SalesForm }
-            main { class: "stack",
+        StayhydatedProjectPortalShell {
+            project: PROJECT,
+            version: VERSION,
+            home: NavigationTarget::Internal(crate::site::routing::app_route(PageKind::Home)),
+            div { class: "demo-page",
                 section { class: "sales-demo-shell motion-reveal",
                     style: demo_style.as_str(),
                     div { class: "demo-card-header sales-demo-header",
@@ -517,7 +522,6 @@ fn SalesFormContent() -> Element {
                     }
                 }
             }
-            FooterPanel {}
         }
     }
 }

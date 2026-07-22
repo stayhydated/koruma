@@ -8,13 +8,16 @@ use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, DioxusAssetI18nProvider, u
 use koruma::showcase::{DynValidator, ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
 use stayhydated_dioxus::{
-    TabContent, TabList, TabTrigger, Tabs, TabsOrientation, surface_reveal_style,
+    NavigationTarget, StayhydatedProjectPortalShell, TabContent, TabList, TabTrigger, Tabs,
+    TabsOrientation, surface_reveal_style,
 };
 
-use crate::components::{ContributePanel, FooterPanel, PageHeader};
 use crate::pages::DemoLanguageSwitcher;
 use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage, koruma_localizer_for};
-use crate::site::routing::PageKind;
+use crate::site::{
+    constants::{PROJECT, VERSION},
+    routing::PageKind,
+};
 
 #[derive(Clone, Copy)]
 enum ValidatorState {
@@ -74,16 +77,17 @@ fn CollectionDioxusShowcase() -> Element {
         Ok(i18n) => i18n,
         Err(error) => {
             return rsx! {
-                div { class: "page-shell",
-                    PageHeader { current_page: PageKind::CollectionDioxus }
-                    main { class: "stack",
-                        section { class: "page-title-band",
+                StayhydatedProjectPortalShell {
+                    project: PROJECT,
+                    version: VERSION,
+                    home: NavigationTarget::Internal(crate::site::routing::app_route(PageKind::Home)),
+                    div { class: "demo-page",
+                        section { class: "section-band",
                             span { class: "panel-label", "i18n load failure" }
                             h1 { "koruma-collection Dioxus demo" }
                             p { "Failed to initialize i18n: {error}" }
                         }
                     }
-                    FooterPanel {}
                 }
             };
         },
@@ -108,9 +112,11 @@ fn CollectionDioxusShowcase() -> Element {
         .unwrap_or("string");
 
     rsx! {
-        div { class: "page-shell",
-            PageHeader { current_page: PageKind::CollectionDioxus }
-            main { class: "stack",
+        StayhydatedProjectPortalShell {
+            project: PROJECT,
+            version: VERSION,
+            home: NavigationTarget::Internal(crate::site::routing::app_route(PageKind::Home)),
+            div { class: "demo-page",
                 section { class: "section-band collection-demo-card motion-reveal",
                     style: showcase_style.as_str(),
                     div { class: "demo-card-header",
@@ -202,9 +208,7 @@ fn CollectionDioxusShowcase() -> Element {
                         }
                     }
                 }
-                ContributePanel {}
             }
-            FooterPanel {}
         }
     }
 }

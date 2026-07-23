@@ -1,9 +1,10 @@
 # Multiple Validators & Error Handling
 
 A field can have more than one validator. After deriving `Koruma`, calling `validate()` runs all
-configured validators and returns `Result<(), Errors>`. On failure, the generated `Errors` type
-provides strongly typed field accessors, and each field error group exposes accessors for the
-individual validators that failed.
+configured validators and returns a generated error type named after the validated struct. For an
+`Item`, this is `Result<(), ItemKorumaValidationError>`. The generated error type provides strongly
+typed field accessors, and each field error group exposes accessors for the individual validators
+that failed.
 
 ```rust
 if let Err(errors) = item.validate() {

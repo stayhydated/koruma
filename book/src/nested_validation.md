@@ -2,7 +2,10 @@
 
 When your data model contains structs inside other structs, you can use the `#[koruma(nested)]` attribute to validate them hierarchically.
 
-This attribute tells `koruma` to call `validate()` on the nested field and include its errors in the parent's error type if any occur. This allows the parent struct's `Errors` struct to provide strongly typed access not just to its own fields, but also to the nested struct's fields.
+This attribute tells `koruma` to call `validate()` on the nested field and include its errors in the
+parent's generated error type if any occur. For example, `Customer` produces
+`CustomerKorumaValidationError`, with strongly typed access not just to its own fields, but also to
+the nested struct's fields.
 
 Types produced by `#[derive(Koruma)]` already satisfy the nested validation
 contract. Handwritten `ValidateExt` implementations must use an error type that
@@ -81,7 +84,10 @@ match customer.validate() {
 
 1. Both the parent (`Customer`) and nested (`Address`) structs must derive `Koruma`.
 2. When `customer.validate()` is called, it verifies `name` and `age` normally and also calls `address.validate()`.
-3. If `address.validate()` fails, the resulting errors are wrapped inside `customer`'s overall `Errors` struct.
-4. You access the nested errors using the corresponding accessor (`errors.address()`), which returns an `Option<AddressErrors>`. If there are any errors in the `address`, this returns `Some`, containing the exact error tree of the nested type.
+3. If `address.validate()` fails, the resulting `AddressKorumaValidationError` is stored inside the
+   customer's `CustomerKorumaValidationError`.
+4. You access the nested errors using the corresponding accessor (`errors.address()`), which
+   returns `Option<&AddressKorumaValidationError>`. If the address has errors, this returns `Some`
+   with the exact error tree of the nested type.
 
 This nested pattern seamlessly integrates with all `koruma` features including [es-fluent](https://github.com/stayhydated/es-fluent) localisation and `newtype` validation.

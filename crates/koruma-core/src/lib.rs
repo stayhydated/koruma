@@ -715,7 +715,7 @@ pub mod showcase {
 
         #[cfg(feature = "fluent")]
         fn fluent_string(&self) -> String {
-            self.fluent_string_with(&mut |_, id, _| id.as_str().to_string())
+            self.fluent_string_with(&mut |key, _| key.id().as_str().to_string())
         }
 
         #[cfg(not(feature = "fluent"))]

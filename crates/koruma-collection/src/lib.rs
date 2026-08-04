@@ -183,10 +183,9 @@ mod tests {
                 assert!(!validator.fluent_string().is_empty());
 
                 let mut localize =
-                    |domain: es_fluent::registry::StaticFluentDomain,
-                     id: es_fluent::registry::StaticFluentEntryId,
+                    |key: es_fluent::registry::StaticFluentMessageKey,
                      _args: Option<&es_fluent::FluentArgs<'_>>| {
-                        format!("{}:{}", domain.as_str(), id.as_str())
+                        format!("{}:{}", key.domain().as_str(), key.id().as_str())
                     };
                 assert!(validator.fluent_string_with(&mut localize).contains(':'));
             }

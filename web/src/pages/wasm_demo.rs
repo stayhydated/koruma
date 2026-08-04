@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use dioxus::events::FormData;
 use dioxus::prelude::*;
 use dioxus_primitives::label::Label;
-use es_fluent::FluentLocalizer as _;
 use es_fluent_manager_dioxus::{DioxusAssetI18nHandle, DioxusAssetI18nProvider, use_i18n};
 use koruma::showcase::{DynValidator, ValidatorModule, ValidatorShowcase, validators};
 use koruma_collection::__link_showcase_validators;
@@ -265,13 +264,11 @@ fn localized_validator_message(
     };
 
     let mut missing = false;
-    let message = validator.fluent_string_with(&mut |domain, id, args| {
-        localizer
-            .localize_in_domain(domain, id, args)
-            .unwrap_or_else(|| {
-                missing = true;
-                String::new()
-            })
+    let message = validator.fluent_string_with(&mut |key, args| {
+        es_fluent::FluentLocalizer::localize(localizer, key, args).unwrap_or_else(|| {
+            missing = true;
+            String::new()
+        })
     });
 
     if missing || message.is_empty() {

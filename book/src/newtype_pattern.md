@@ -1,205 +1,97 @@
-# Newtype Pattern & TryFrom
+# Validate newtypes and construct checked values
 
-Use `#[koruma(newtype)]`, adding `try_new` and `try_from` as needed, when you want:
+Use struct-level `#[koruma(newtype)]` for an exactly-one-field wrapper whose validation errors
+should be exposed through the wrapped field. Add a checked-construction option that matches the API
+your callers need.
 
-- `newtype` - transparent error access to the inner field's error (`Deref` for non-optional fields, `Option<&InnerError>` accessors for `Option<Newtype>` fields)
-- `NewtypeValue` / `NewtypeTryFromInner` - public inner-value borrow, consume, validation, and checked reconstruction methods that work even when the wrapper field is private
-- `try_new` - a checked constructor function (`fn try_new(value: Inner) -> Result<Self, Error>`)
-- `try_from` - a `TryFrom<Inner>` impl for checked conversions from the inner type
+## Choose the construction API
 
-You can layer `derive_more` traits on top for additional wrapper ergonomics (for example, `Deref`
-to inner value).
+| Option or trait | Result |
+| --- | --- |
+| `#[koruma(newtype)]` | Transparent inner validation errors plus the newtype traits |
+| `#[koruma(try_new)]` | An inherent `try_new(...)` that validates all struct fields |
+| `#[koruma(try_from)]` | A standard `TryFrom<Inner>` implementation for a one-field struct |
+| `NewtypeValue` | `as_inner`, `into_inner`, and `validate_inner` |
+| `NewtypeTryFromInner` | Generic checked reconstruction with `try_from_inner` |
 
-For normalized string newtypes, keep normalization outside validation. Parse or
-normalize user input before constructing the newtype, then let Koruma validate
-that the stored value is already canonical:
+Struct-level `newtype` implements `NewtypeValue` and `NewtypeTryFromInner`, including for
+private fields.
 
-- use `#[koruma(newtype, try_new, try_from)]` when the wrapper should expose
-  checked constructors and `TryFrom<Inner>`;
-- put parsing, trimming, case conversion, or Unicode normalization in an
-  application-owned parser or constructor before calling `try_new` or
-  `try_from`;
-- use `koruma_collection::string::CanonicalFormValidation::<_>.predicate(...)`
-  when a storage or API boundary must reject values that are not already in
-  canonical form;
-- keep `FromStr`, `TryFrom`, serde `try_from`/`into`, `Display`, and localized
-  validation messages aligned so every ingress path accepts the same canonical
-  representation.
+## Define a checked newtype
+
+Give the single field a validator, `nested`, or `newtype` rule:
 
 ```rust,ignore
-use koruma::{Koruma, KorumaAllDisplay};
-use koruma_collection::string::CanonicalFormValidation;
+use koruma::{
+    Koruma, KorumaAllDisplay, NewtypeTryFromInner as _, NewtypeValue as _,
+};
+use koruma_collection::collection;
 
-#[derive(Clone, Debug, Koruma, KorumaAllDisplay)]
+#[derive(Debug, Koruma, KorumaAllDisplay)]
 #[koruma(newtype, try_from)]
-pub struct ProviderId {
-    #[koruma(CanonicalFormValidation::<_>.predicate(is_provider_id_canonical))]
-    value: String,
-}
+pub struct Username(
+    #[koruma(collection::NonEmptyValidation::<_>)]
+    String,
+);
 
-fn normalize_provider_id(value: &str) -> String {
-    value.trim().to_ascii_lowercase()
-}
+let errors = Username::try_from(String::new())
+    .expect_err("empty username should fail");
+assert!(errors.non_empty_validation().is_some());
 
-fn is_provider_id_canonical(value: &str) -> bool {
-    !value.is_empty()
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
-}
+let username = Username::try_from_inner("alice".to_string())?;
+assert_eq!(username.as_inner(), "alice");
 
-let provider_id = ProviderId::try_from(normalize_provider_id(" Provider-1 "))?;
+let raw = username.into_inner();
+assert!(Username::validate_inner(&raw).is_ok());
 ```
 
-A field can combine `newtype` with ordinary field validators when the wrapper field itself also
-needs rules. In that shape, the generated field error container exposes the delegated newtype
-error through `inner()` and includes a non-empty inner error as the `Inner` variant from `all()`.
-The extra validators use the same optional, `full(...)`, and `unwrapped(...)` target selection
-rules as any other field:
+Import `NewtypeValue` and `NewtypeTryFromInner` before calling their trait methods. Use
+`try_new` instead when an inherent constructor is preferable; for a one-field wrapper it accepts
+the inner value and returns `Result<Self, Error>`.
 
-```rust
-#[koruma(newtype, koruma_collection::general::RequiredValidation::<Option<_>>)]
-pub email: Option<Email>;
-```
+An unannotated field on a struct-level newtype delegates validation to its inner type, so that type
+must implement `NewtypeValidation`.
 
-Types produced by `#[derive(Koruma)]` already provide the required error shape.
-If you implement `ValidateExt` by hand for a nested or newtype target, its
-associated `Error` type must implement `ValidationError + Default`.
+## Use the newtype in another struct
 
-```rust
-use es_fluent::EsFluent;
-use koruma::{Koruma, KorumaAllFluent, NewtypeTryFromInner, NewtypeValue, Validate};
+Field-level `#[koruma(newtype)]` validates the wrapper and exposes its inner errors directly:
 
-#[derive(Clone, Koruma, KorumaAllFluent)]
-#[koruma(try_new, newtype)]
-pub struct Email {
-    #[koruma(NonEmptyStringValidation)]
-    pub value: String,
-}
-
-#[derive(Koruma, KorumaAllFluent)]
-pub struct SignupForm {
-    #[koruma(NonEmptyStringValidation)]
-    pub username: String,
-
-    #[koruma(newtype)]
-    pub email: Email,
-}
-
-#[derive(Koruma, KorumaAllFluent)]
-pub struct OptionalSignupForm {
-    #[koruma(newtype)]
-    pub email: Option<Email>,
-}
-
-let form = SignupForm {
-    username: "".to_string(),
-    email: Email {
-        value: "".to_string(),
-    },
-};
-
-if let Err(errors) = form.validate() {
-    if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("username failed: {}", i18n::localize(username_err));
-    }
-
-    if let Some(email_err) = errors.email().non_empty_string_validation() {
-        println!("email failed: {}", i18n::localize(email_err));
-    }
-
-    for failed in errors.email().all() {
-        println!("email validator: {}", i18n::localize(&failed));
-    }
-}
-
-let optional_form = OptionalSignupForm { email: None };
-assert!(optional_form.validate().is_ok());
-
-let invalid_optional_form = OptionalSignupForm {
-    email: Some(Email {
-        value: "".to_string(),
-    }),
-};
-if let Err(errors) = invalid_optional_form.validate()
-    && let Some(email_errors) = errors.email()
-    && let Some(email_err) = email_errors.non_empty_string_validation()
-{
-    println!("optional email failed: {}", i18n::localize(email_err));
-}
-
-if let Err(errors) = Email::try_new("".to_string()) {
-    if let Some(email_err) = errors.non_empty_string_validation() {
-        println!("email::try_new failed: {}", i18n::localize(email_err));
-    }
-
-    for failed in errors.all() {
-        println!("email::try_new validator: {}", i18n::localize(&failed));
-    }
-}
-
-let email = Email::try_from_inner("hello@example.com".to_string()).unwrap();
-assert_eq!(email.as_inner(), "hello@example.com");
-let raw_email = email.into_inner();
-assert!(Email::validate_inner(&raw_email).is_ok());
-```
-
-## Unnamed newtype (tuple struct)
-
-The same pattern works with tuple structs:
-
-```rust
-use es_fluent::EsFluent;
-use koruma::{Koruma, KorumaAllFluent, Validate};
-
-#[derive(Clone, Koruma, KorumaAllFluent)]
-#[koruma(try_new, newtype)]
-pub struct Username(#[koruma(NonEmptyStringValidation)] pub String);
-
-#[derive(Koruma, KorumaAllFluent)]
-pub struct LoginForm {
+```rust,ignore
+#[derive(Koruma)]
+pub struct Login {
     #[koruma(newtype)]
     pub username: Username,
 }
 
-let login = LoginForm {
-    username: Username("".to_string()),
-};
-if let Err(errors) = login.validate() {
-    if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("username failed: {}", i18n::localize(username_err));
-    }
+let errors = Login {
+    username: Username(String::new()),
 }
+.validate()
+.expect_err("username should fail");
 
-if let Ok(username) = Username::try_new("alice".to_string()) {
-    println!("username created: {}", username.0);
-}
+assert!(errors.username().non_empty_validation().is_some());
 ```
 
-## TryFrom integration (`#[koruma(newtype, try_from)]`)
+For `Option<Newtype>`, `None` is skipped and the generated accessor returns
+`Option<&InnerError>`. A newtype field can also have direct validators:
 
-Every struct-level `#[koruma(newtype)]` wrapper implements
-`NewtypeTryFromInner::try_from_inner`. Add flat `try_from` alongside `newtype`
-only when you also want the standard-library `TryFrom<Inner>` impl:
-
-```rust
-use std::convert::TryFrom;
-use es_fluent::EsFluent;
-use koruma::{Koruma, KorumaAllFluent, Validate};
-
-#[derive(Clone, Koruma, KorumaAllFluent)]
-#[koruma(newtype, try_from)]
-pub struct Only67u8(#[koruma(Only67Validation::<_>)] u8);
-
-match Only67u8::try_from(69) {
-    Ok(n) => println!("{}!", n.0),
-    Err(errors) => {
-        for failed in errors.all() {
-            println!("validation failed: {}", i18n::localize(&failed));
-        }
-    }
-}
+```rust,ignore
+#[koruma(
+    newtype,
+    koruma_collection::general::RequiredValidation::<Option<_>>,
+)]
+pub email: Option<Email>;
 ```
 
-For exactly-one-field structs that should keep the regular error surface, use
-`#[koruma(try_from)]` without `newtype`.
+With direct validators, the field error container exposes delegated errors through `inner()`;
+`all()` includes a non-empty delegated error as `Inner`.
+
+## Keep normalization outside validation
+
+Normalize or parse external text before checked construction. Use
+`string::CanonicalFormValidation::<_>.predicate(...)` when a storage or API boundary must reject
+a value that is not already canonical. Keep every ingress path, including `FromStr`, `TryFrom`,
+serde conversions, and application constructors, aligned on the same representation.
+
+Named-field and tuple wrappers are both supported, but a struct-level newtype must contain exactly
+one field.

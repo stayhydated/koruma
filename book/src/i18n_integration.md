@@ -1,92 +1,95 @@
-# i18n Integration with [es-fluent](https://github.com/stayhydated/es-fluent)
+# Localize errors with es-fluent
 
-`koruma` can integrate with [es-fluent](https://github.com/stayhydated/es-fluent) to localise validation errors. Enable the `fluent` feature
-and add the matching [es-fluent](https://github.com/stayhydated/es-fluent) dependency:
+Derive `KorumaAllFluent` to make generated validation failures implement `FluentMessage`, then
+render them with the es-fluent localizer owned by your application. Koruma does not select or store
+the active locale.
+
+This guide assumes the application already has an
+[es-fluent](https://github.com/stayhydated/es-fluent) localizer such as `EmbeddedI18n`.
+
+## Enable Fluent support
 
 ```toml
 [dependencies]
-koruma = { version = "*", features = ["derive", "fluent"] }
+koruma = { version = "0.10", features = ["derive", "fluent"] }
 es-fluent = "0.18"
 ```
 
-This setup assumes:
+For localized built-in validators, also add `koruma-collection` with `fluent`, or use
+`full-fluent` when the optional validators are needed.
 
-- `koruma` is built with `derive` + `fluent`.
-- your application owns an `es-fluent` localizer, such as `EmbeddedI18n`.
-- a locale is selected on that localizer before rendering messages.
+## Define a localized validator
 
-Rendering is explicit: `KorumaAllFluent` produces `FluentMessage` values, and
-your application chooses the localizer used to turn them into strings. The
-examples expose a small `i18n::localize(...)` helper around an app-owned
-`EmbeddedI18n`; an application can instead pass that localizer through its own
-state.
+`EsFluent` derives a snake-case message ID from the validator type. This validator uses the
+message ID `even_validation`:
 
-Validators intended for localisation derive `EsFluent`. When the validated value needs custom
-conversion, annotate it with `#[fluent(value = |x| ...)]`. Then derive `KorumaAllFluent` on the
-consumer type.
+```fluent
+even_validation = The value { $actual } must be even.
+```
 
-```rust
+Add the message to each locale in the application's es-fluent asset layout, then derive
+`EsFluent` on the validator and `KorumaAllFluent` on the validated type:
+
+```rust,ignore
 use es_fluent::EsFluent;
 use koruma::{Koruma, KorumaAllFluent, Validate, validator};
 
 #[validator]
 #[derive(Clone, Debug, EsFluent)]
-pub struct IsEvenNumberValidation<
-    T: Clone + Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq,
-> {
-    #[fluent(value = |x: &T| x.to_string())]
-    actual: T,
+pub struct EvenValidation {
+    #[fluent(value = |value: &i32| value.to_string())]
+    actual: i32,
 }
 
-impl<T: Copy + std::fmt::Display + std::ops::Rem<Output = T> + From<u8> + PartialEq> Validate<T>
-    for IsEvenNumberValidation<T>
-{
-    fn validate(&self, value: &T) -> bool {
-        *value % T::from(2u8) == T::from(0u8)
-    }
-}
-
-#[validator]
-#[derive(Clone, Debug, EsFluent)]
-pub struct NonEmptyStringValidation {
-    input: String,
-}
-
-impl Validate<String> for NonEmptyStringValidation {
-    fn validate(&self, value: &String) -> bool {
-        !value.is_empty()
+impl Validate<i32> for EvenValidation {
+    fn validate(&self, value: &i32) -> bool {
+        *value % 2 == 0
     }
 }
 
 #[derive(Koruma, KorumaAllFluent)]
 pub struct User {
-    #[koruma(IsEvenNumberValidation::<_>)]
+    #[koruma(EvenValidation)]
     pub id: i32,
-
-    #[koruma(NonEmptyStringValidation)]
-    pub username: String,
 }
+```
 
-let user = User { id: 3, username: "".to_string() };
+Use the application's selected localizer to render either a typed validator failure or the
+aggregate generated error:
+
+```rust,ignore
+let user = User { id: 3 };
+
 if let Err(errors) = user.validate() {
-    if let Some(id_err) = errors.id().is_even_number_validation() {
-        println!("{}", i18n::localize(id_err));
+    println!("{}", i18n::localize(&errors));
+
+    if let Some(error) = errors.id().even_validation() {
+        println!("{}", i18n::localize(error));
     }
 
-    if let Some(username_err) = errors.username().non_empty_string_validation() {
-        println!("{}", i18n::localize(username_err));
-    }
-
-    for failed in errors.id().all() {
-        println!("{}", i18n::localize(&failed));
-    }
-
-    for failed in errors.username().all() {
-        println!("{}", i18n::localize(&failed));
+    for error in errors.id().all() {
+        println!("{}", i18n::localize(&error));
     }
 }
 ```
 
-`KorumaAllFluent` gives you an `all()` iterator whose elements can be converted with
-`FluentMessage` + `FluentLocalizer`. Use the app-owned localizer directly, or
-wrap it in a small helper function, after selecting the locale you want to render.
+Here, `i18n::localize(...)` is an application helper around the selected `EmbeddedI18n`.
+Passing the localizer through application state works the same way.
+
+## Render element failures
+
+Aggregate Fluent rendering joins direct, nested, and newtype messages with newlines. It does not
+include failures produced by `each(...)`, because those messages need their element indices.
+Enumerate and localize them directly:
+
+```rust,ignore
+for (index, element_errors) in errors.quantities().element_errors() {
+    for error in element_errors.all() {
+        println!("quantities[{index}]: {}", i18n::localize(&error));
+    }
+}
+```
+
+When a field has only `each(...)` rules, localize its element error values directly rather than
+deriving aggregate `KorumaAllFluent` for the containing type. If aggregate rendering is required,
+add a meaningful direct field rule as well.

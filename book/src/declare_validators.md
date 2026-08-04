@@ -1,16 +1,15 @@
-# Declaring Validators
+# Declare custom validators
 
-Validators are regular Rust types that describe a validation rule. To define one, annotate the
-struct with `#[validator]` and implement `Validate<T>` for the input type you want to check. The
-`#[validator]` macro infers an unmarked private field named `actual`, `input`, or `value` as
-the captured input value used for error reporting, and generates a getter with the same name. If no
-conventional name exists, it can infer the value field when exactly one field is unmarked. Use
-`#[koruma(value)]` when multiple unmarked fields remain. Keep that field private and use the
-generated getter for external reads.
+Define a custom validator when a rule is specific to your domain or needs its own error data or
+rendering. Annotate a named-field struct with `#[validator]`, store the input that failed, and
+implement `Validate<T>` for the input type.
 
-For example, a generic range validator:
+## Define a generic validator
 
-```rust
+This validator captures the invalid value in `actual` and exposes it through the generated
+`actual()` getter:
+
+```rust,ignore
 use koruma::{Validate, validator};
 use std::fmt;
 
@@ -39,9 +38,11 @@ impl<T: PartialOrd + fmt::Display + Clone> fmt::Display for NumberRangeValidatio
 }
 ```
 
-You can also write type-specific validators. For example, a validator for string length:
+## Define a type-specific validator
 
-```rust
+A validator can target one concrete type:
+
+```rust,ignore
 use koruma::{Validate, validator};
 use std::fmt;
 
@@ -73,26 +74,45 @@ impl fmt::Display for StringLengthValidation {
 }
 ```
 
-The core pattern stays the same: define any configuration fields you need, keep one inferred or
-explicit value field, implement `Validate<T>`, and optionally implement `Display` for friendly
-error messages. External callers can read the captured value through the generated getter
-(`validator.actual()`, `validator.input()`, and so on).
+The core pattern stays the same: define the configuration fields, keep one inferred or explicit
+value field, implement `Validate<T>`, and implement `Display` when callers need display messages.
 
-`#[validator]` also emits `ValidatorMetadata<T>`. The descriptor reports the
-validator type and configurable setter fields, while `validator_params()` reads
-runtime parameter values from a validator instance. Syntactically recognized
-booleans, integers through 64 bits, `isize`/`usize`, floats, `String`/`&str`,
-and one `Option` layer around those types use concrete `ValidatorParamValue`
-variants. Other parameter types are reported as opaque so metadata does not add
-trait bounds to the validator.
+## Select the captured value field
+
+`#[validator]` first looks for an unmarked private field named `actual`, `input`, or `value`. If no
+conventional name exists, it can infer the captured value when exactly one field remains unmarked.
+Use `#[koruma(value)]` when multiple unmarked fields remain:
+
+```rust,ignore
+#[validator]
+pub struct ThresholdValidation {
+    minimum: i32,
+    #[koruma(value)]
+    observed: i32,
+}
+```
+
+Keep the captured field private. External code can read it through the generated getter, such as
+`validator.observed()`.
+
+## Configure generated setters
 
 Unannotated configuration fields generate direct setters. Use bare `#[koruma(setter)]`
 when a configuration field is named `actual`, `input`, or `value`, or when marking configuration
 fields lets Koruma infer the only remaining unmarked value field. Use `#[koruma(setter(...))]`
 when a setter needs options.
-Supported setter options are `into`, `required`, `name`, and `default`:
 
-```rust
+| Option | Effect |
+| --- | --- |
+| `into` | Accepts a value that implements `Into<FieldType>` |
+| `required` | Requires an explicit setter call, including an explicit `Some(...)` or `None` for `Option<T>` |
+| `name = custom_name` | Generates `custom_name(...)` instead of a setter named after the field |
+| `default` | Uses `Default::default()` when the setter is omitted |
+| `default = expression` | Uses the expression when the setter is omitted |
+
+```rust,ignore
+use koruma::validator;
+
 #[validator]
 pub struct PrefixValidation<T> {
     #[koruma(setter(into))]
@@ -110,8 +130,20 @@ For optional non-required configuration fields, `Option<T>` setters take `T` dir
 in `Some(...)`. Use the generated `maybe_*` setter when you already have an `Option<T>`. Mark an
 `Option<T>` setter as `required` when `None` is a meaningful explicit configuration value.
 
+## Skip input capture
+
 For validators that do not need to retain the failing input, use
 `#[koruma(skip_capture)]` on an `Option<T>` field. During derived validation, koruma leaves
 that field at `None` instead of cloning the input into the error value. If the validator still
 needs `Clone` or `Debug`, implement those manually so the skipped field does not reintroduce type
 bounds.
+
+## Expose metadata to tooling
+
+`#[validator]` also implements `ValidatorMetadata<T>`. Generic form builders and other tooling can
+use the descriptor to list configurable setters and `validator_params()` to inspect configured
+runtime values.
+
+Booleans, integers through 64 bits, `isize`/`usize`, floats, `String`/`&str`, and one `Option`
+layer around those types use concrete `ValidatorParamValue` variants. Other parameter types are
+reported as opaque, so enabling metadata does not add trait bounds to the validator.

@@ -7,7 +7,6 @@ fmt:
     cargo sort-derives
     cargo fmt
     cargo es-fluent fmt --all
-    bun run fmt
     taplo fmt
     rumdl fmt .
 
@@ -43,4 +42,4 @@ web: web-build
     dx serve --package web
 
 web-preview: web-build
-    cd web && bun run preview
+    cargo xtask preview web

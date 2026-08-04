@@ -21,6 +21,11 @@ pub enum Command {
         #[command(subcommand)]
         target: BuildCommand,
     },
+    /// Preview generated workspace artifacts
+    Preview {
+        #[command(subcommand)]
+        target: PreviewCommand,
+    },
     /// Release workspace crates in registry dependency order
     Release {
         #[command(subcommand)]
@@ -35,6 +40,12 @@ pub enum BuildCommand {
     /// Build llms.txt from mdBook sources to web/public/llms.txt
     LlmsTxt,
     /// Build the Dioxus site into web/dist for GitHub Pages
+    Web,
+}
+
+#[derive(Debug, Subcommand)]
+pub enum PreviewCommand {
+    /// Preview the generated static site with its GitHub Pages base path
     Web,
 }
 

@@ -94,12 +94,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
-name = "askama_escape"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3df27b8d5ddb458c5fb1bbc1ce172d4a38c614a97d550b0ac89003897fb01de4"
-
-[[package]]
 name = "async-stream"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1029,7 +1023,6 @@ dependencies = [
  "dioxus-logger",
  "dioxus-router",
  "dioxus-signals",
- "dioxus-ssr",
  "dioxus-stores",
  "dioxus-web",
  "manganis",
@@ -1474,18 +1467,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dioxus-ssr"
-version = "0.7.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d261c5c9907b84fb1ed52f59f46d68c84a4ae860a65cc5effd0cea740ee428af"
-dependencies = [
- "askama_escape",
- "dioxus-core",
- "dioxus-core-types",
- "rustc-hash 2.1.3",
-]
-
-[[package]]
 name = "dioxus-stores"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1765,12 +1746,10 @@ dependencies = [
  "dioxus-core-macro",
  "dioxus-hooks",
  "dioxus-signals",
- "dioxus-ssr",
  "es-fluent",
  "es-fluent-manager-core",
  "es-fluent-manager-macros",
  "fluent-bundle",
- "futures",
  "inventory",
  "parking_lot",
  "serde_json",
@@ -3558,6 +3537,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e91099d4268b0e11973f036e885d652fb0b21fedcf69738c627f94db6a44f42"
 
 [[package]]
+name = "pathdiff"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
+
+[[package]]
 name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4698,25 +4683,26 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=0bd510bacbed798ac361469085cd8921eaa40361#0bd510bacbed798ac361469085cd8921eaa40361"
 dependencies = [
+ "bon",
  "dioxus",
  "dioxus-free-icons",
  "dioxus-primitives",
  "stayhydated-dioxus-core",
+ "stayhydated-site",
  "web-sys",
 ]
 
 [[package]]
 name = "stayhydated-dioxus-core"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=0bd510bacbed798ac361469085cd8921eaa40361#0bd510bacbed798ac361469085cd8921eaa40361"
 dependencies = [
  "bytemuck",
  "derive_more",
  "dioxus",
  "dioxus-free-icons",
  "dioxus-primitives",
+ "stayhydated-site",
  "strum 0.28.0",
  "wasm-bindgen",
  "web-sys",
@@ -4726,22 +4712,22 @@ dependencies = [
 [[package]]
 name = "stayhydated-site"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=0bd510bacbed798ac361469085cd8921eaa40361#0bd510bacbed798ac361469085cd8921eaa40361"
 dependencies = [
- "bon",
+ "derive_more",
  "dioxus",
 ]
 
 [[package]]
 name = "stayhydated-xtask"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=0bd510bacbed798ac361469085cd8921eaa40361#0bd510bacbed798ac361469085cd8921eaa40361"
 dependencies = [
  "anyhow",
  "bon",
  "cargo_metadata",
  "mdbook-driver",
  "path-slash",
+ "pathdiff",
+ "stayhydated-site",
  "strum 0.28.0",
  "walkdir",
 ]

@@ -215,8 +215,3 @@ trybuild/UI tests, snapshots, root or crate READMEs, the book, and
 
 - Prefer `insta` for snapshot tests when it fits better than assertion-heavy unit tests.
 - Use trybuild UI tests for compile-time macro diagnostics and pass/fail macro behavior.
-
-### When Editing JavaScript Or TypeScript
-
-- Use Bun for dependency management.
-- Use Turborepo for package build orchestration.

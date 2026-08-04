@@ -1,9 +1,18 @@
-# koruma-collection Validator Catalog
+# koruma-collection validator catalog
 
 Use this reference when selecting built-in validators for application code. Configure feature
 flags on the application's `koruma-collection` dependency.
 
-## Feature Flags
+## Contents
+
+- [Feature flags](#feature-flags)
+- [String validators](#string-validators)
+- [Format validators](#format-validators)
+- [Numeric validators](#numeric-validators)
+- [Collection validators](#collection-validators)
+- [General validators](#general-validators)
+
+## Feature flags
 
 - `fmt` (default): enables `Display` messages for validators.
 - `full`: enables optional validator dependencies: `url`, `credit-card`, `phone-number`, `email`,
@@ -21,11 +30,11 @@ Validator-specific optional flags:
 - `smallvec` for `collection::HasLen` support on `SmallVec`
 - `rust_decimal` for `numeric::Numeric` support on `rust_decimal::Decimal`
 
-## String Validators
+## String validators
 
 Import with `use koruma_collection::string;`.
 
-- `string::AlphanumericValidation<T>`: input contains only letters and numbers.
+- `string::AlphanumericValidation<T>`: input contains only Unicode letters and numbers.
 - `string::AsciiValidation<T>`: input is ASCII only.
 - `string::CanonicalFormValidation<T>`: input already satisfies a caller-provided canonical-form
   predicate. Configure with `string::CanonicalFormValidation::<_>.predicate(is_canonical)`.
@@ -42,9 +51,12 @@ Import with `use koruma_collection::string;`.
 
 `CanonicalFormValidation` checks only the supplied predicate; keep parsing or normalization outside
 validation. `MatchesValidation` and `PatternValidation` use generic error messages and do not echo
-the compared value or regex pattern.
+the compared value or regex pattern. `PatternValidation` accepts a compiled `regex::Regex`, so an
+invalid pattern fails when the regex is constructed. `AlphanumericValidation` uses
+`char::is_alphanumeric`; combine it with `AsciiValidation` for ASCII-only identifiers and with
+`collection::NonEmptyValidation` when an empty value must fail.
 
-## Format Validators
+## Format validators
 
 Import with `use koruma_collection::format;`.
 
@@ -54,10 +66,13 @@ Import with `use koruma_collection::format;`.
   `format::IpValidation::<_>.kind(format::IpKind::V6)`.
 - `format::EmailValidation<T>`: valid email address; requires `email`.
 - `format::PhoneNumberValidation<T>`: valid phone number; requires `phone-number`.
-- `format::UrlValidation<T>`: valid URL; requires `url`.
+- `format::UrlValidation<T>`: parses as a URL; requires `url`.
 - `format::CreditCardValidation<T>`: valid credit card number; requires `credit-card`.
 
-## Numeric Validators
+`UrlValidation` accepts any scheme supported by `url::Url::parse`. Add a separate application rule
+when only schemes such as `https` are allowed.
+
+## Numeric validators
 
 Import with `use koruma_collection::numeric;`.
 
@@ -76,7 +91,7 @@ Primitive integers and floats implement `numeric::Numeric` out of the box. Imple
 `numeric::Numeric::zero()` for custom numeric-like types. Enable `rust_decimal` for
 `rust_decimal::Decimal`.
 
-## Collection Validators
+## Collection validators
 
 Import with `use koruma_collection::collection;`.
 
@@ -88,7 +103,7 @@ Import with `use koruma_collection::collection;`.
 optionally `SmallVec`. For `String` and `str`, length counts Unicode scalar values (`char`s), not
 UTF-8 bytes.
 
-## General Validators
+## General validators
 
 Import with `use koruma_collection::general;`.
 
@@ -96,6 +111,6 @@ Import with `use koruma_collection::general;`.
   `#[koruma(general::RequiredValidation::<Option<_>>)]` on optional fields.
 
 `RequiredValidation` reports missing values, not empty strings or empty collections. Use
-`collection::NonEmptyValidation<_>` for emptiness checks. Its `skip_capture` behavior means
+`collection::NonEmptyValidation::<_>` for emptiness checks. Its `skip_capture` behavior means
 `Option<NonCloneType>` fields do not require `Clone` just to report a missing-value error. Write it
 with `Option<_>` so Koruma validates the whole `Option<T>` and can report `None` as a missing value.

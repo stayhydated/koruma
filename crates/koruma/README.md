@@ -8,7 +8,7 @@ core validation traits and, by default, the derives and `#[validator]` attribute
 
 ```toml
 [dependencies]
-koruma = "0.10"
+koruma = "0.11"
 ```
 
 ## Features

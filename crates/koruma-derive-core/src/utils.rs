@@ -33,13 +33,13 @@ pub fn substitute_infer_type(ty: &Type, infer_ty: &Type) -> Type {
             array.elem = Box::new(substitute_infer_type(&array.elem, infer_ty));
             Type::Array(array)
         },
-        Type::BareFn(bare_fn) => {
-            let mut bare_fn = bare_fn.clone();
-            for input in &mut bare_fn.inputs {
+        Type::FnPtr(fn_ptr) => {
+            let mut fn_ptr = fn_ptr.clone();
+            for input in &mut fn_ptr.inputs {
                 input.ty = substitute_infer_type(&input.ty, infer_ty);
             }
-            substitute_return_type(&mut bare_fn.output, infer_ty);
-            Type::BareFn(bare_fn)
+            substitute_return_type(&mut fn_ptr.output, infer_ty);
+            Type::FnPtr(fn_ptr)
         },
         Type::Group(group) => {
             let mut group = group.clone();
@@ -118,7 +118,7 @@ fn substitute_angle_args(args: &mut AngleBracketedGenericArguments, infer_ty: &T
 
 fn substitute_parenthesized_args(args: &mut ParenthesizedGenericArguments, infer_ty: &Type) {
     for input in &mut args.inputs {
-        *input = substitute_infer_type(input, infer_ty);
+        input.ty = substitute_infer_type(&input.ty, infer_ty);
     }
     substitute_return_type(&mut args.output, infer_ty);
 }
@@ -237,14 +237,14 @@ fn substitute_infer_type_from_source_inner(ty: &Type, source_ty: &Type) -> Optio
             )?);
             Some(Type::Array(array))
         },
-        Type::BareFn(bare_fn) => {
-            let mut bare_fn = bare_fn.clone();
+        Type::FnPtr(fn_ptr) => {
+            let mut fn_ptr = fn_ptr.clone();
             let source_fn = match source_ty {
-                Type::BareFn(source) if source.inputs.len() == bare_fn.inputs.len() => Some(source),
+                Type::FnPtr(source) if source.inputs.len() == fn_ptr.inputs.len() => Some(source),
                 _ => None,
             };
 
-            for (index, input) in bare_fn.inputs.iter_mut().enumerate() {
+            for (index, input) in fn_ptr.inputs.iter_mut().enumerate() {
                 let child_source = source_fn
                     .and_then(|source| source.inputs.iter().nth(index))
                     .map(|arg| &arg.ty)
@@ -252,8 +252,8 @@ fn substitute_infer_type_from_source_inner(ty: &Type, source_ty: &Type) -> Optio
                 input.ty = substitute_infer_type_from_source_inner(&input.ty, child_source)?;
             }
 
-            substitute_return_type_from_source(&mut bare_fn.output, source_ty, source_fn)?;
-            Some(Type::BareFn(bare_fn))
+            substitute_return_type_from_source(&mut fn_ptr.output, source_ty, source_fn)?;
+            Some(Type::FnPtr(fn_ptr))
         },
         Type::Group(group) => {
             let mut group = group.clone();
@@ -481,8 +481,9 @@ fn substitute_parenthesized_args_from_source(
     for (index, input) in args.inputs.iter_mut().enumerate() {
         let child_source = structural_source_args
             .and_then(|source| source.inputs.iter().nth(index))
+            .map(|arg| &arg.ty)
             .unwrap_or(source_ty);
-        *input = substitute_infer_type_from_source_inner(input, child_source)?;
+        input.ty = substitute_infer_type_from_source_inner(&input.ty, child_source)?;
     }
 
     let source_output = structural_source_args.and_then(|source| match &source.output {
@@ -649,7 +650,7 @@ fn substitute_bounds_from_source(
 fn substitute_return_type_from_source(
     return_type: &mut ReturnType,
     source_ty: &Type,
-    source_fn: Option<&syn::TypeBareFn>,
+    source_fn: Option<&syn::TypeFnPtr>,
 ) -> Option<()> {
     let source_output = source_fn.and_then(|source| match &source.output {
         ReturnType::Type(_, ty) => Some(ty.as_ref()),
@@ -739,12 +740,9 @@ pub fn first_generic_arg(ty: &Type) -> Option<&Type> {
 pub fn contains_infer_type(ty: &Type) -> bool {
     match ty {
         Type::Array(array) => contains_infer_type(&array.elem),
-        Type::BareFn(bare_fn) => {
-            bare_fn
-                .inputs
-                .iter()
-                .any(|arg| contains_infer_type(&arg.ty))
-                || return_type_contains_infer(&bare_fn.output)
+        Type::FnPtr(fn_ptr) => {
+            fn_ptr.inputs.iter().any(|arg| contains_infer_type(&arg.ty))
+                || return_type_contains_infer(&fn_ptr.output)
         },
         Type::Group(group) => contains_infer_type(&group.elem),
         Type::ImplTrait(impl_trait) => bounds_contain_infer(&impl_trait.bounds),
@@ -779,7 +777,8 @@ fn path_arguments_contain_infer(arguments: &PathArguments) -> bool {
             args.args.iter().any(generic_argument_contains_infer)
         },
         PathArguments::Parenthesized(args) => {
-            args.inputs.iter().any(contains_infer_type) || return_type_contains_infer(&args.output)
+            args.inputs.iter().any(|arg| contains_infer_type(&arg.ty))
+                || return_type_contains_infer(&args.output)
         },
     }
 }

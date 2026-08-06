@@ -706,6 +706,7 @@ fn infer_substitution_covers_syntax_only_type_shapes() {
     let infer_target: syn::Type = syn::parse_quote!(usize);
 
     let grouped = syn::Type::Group(syn::TypeGroup {
+        attrs: Vec::new(),
         group_token: Default::default(),
         elem: Box::new(syn::parse_quote!(Option<_>)),
     });
@@ -748,10 +749,12 @@ fn infer_substitution_covers_syntax_only_type_shapes() {
 #[test]
 fn source_infer_substitution_covers_structural_and_fallback_shapes() {
     let grouped = syn::Type::Group(syn::TypeGroup {
+        attrs: Vec::new(),
         group_token: Default::default(),
         elem: Box::new(syn::parse_quote!(_)),
     });
     let source_group = syn::Type::Group(syn::TypeGroup {
+        attrs: Vec::new(),
         group_token: Default::default(),
         elem: Box::new(syn::parse_quote!(String)),
     });
@@ -830,7 +833,11 @@ fn infer_substitution_covers_qself_parenthesized_args_and_clone_fallbacks() {
     );
 
     let mut inputs = syn::punctuated::Punctuated::new();
-    inputs.push(syn::parse_quote!(_));
+    inputs.push(syn::NamedArg {
+        attrs: Vec::new(),
+        name: None,
+        ty: syn::parse_quote!(_),
+    });
     let output: syn::ReturnType = syn::parse_quote!(-> _);
     let mut path: syn::Path = syn::parse_quote!(FnOnce);
     path.segments.last_mut().expect("segment").arguments =
@@ -839,7 +846,11 @@ fn infer_substitution_covers_qself_parenthesized_args_and_clone_fallbacks() {
             inputs,
             output,
         });
-    let parenthesized_path = syn::Type::Path(syn::TypePath { qself: None, path });
+    let parenthesized_path = syn::Type::Path(syn::TypePath {
+        attrs: Vec::new(),
+        qself: None,
+        path,
+    });
 
     let substituted = substitute_infer_type(&parenthesized_path, &infer_target);
     assert_eq!(
@@ -874,6 +885,7 @@ fn source_infer_substitution_covers_fallback_sources_and_qself() {
         ),
         (
             syn::Type::Group(syn::TypeGroup {
+                attrs: Vec::new(),
                 group_token: Default::default(),
                 elem: Box::new(syn::parse_quote!(_)),
             }),
@@ -918,7 +930,11 @@ fn source_infer_substitution_covers_fallback_sources_and_qself() {
 fn source_infer_substitution_covers_parenthesized_path_arguments() {
     fn fn_once_type(input: syn::Type, output: syn::ReturnType) -> syn::Type {
         let mut inputs = syn::punctuated::Punctuated::new();
-        inputs.push(input);
+        inputs.push(syn::NamedArg {
+            attrs: Vec::new(),
+            name: None,
+            ty: input,
+        });
         let mut path: syn::Path = syn::parse_quote!(FnOnce);
         path.segments.last_mut().expect("segment").arguments =
             syn::PathArguments::Parenthesized(syn::ParenthesizedGenericArguments {
@@ -926,7 +942,11 @@ fn source_infer_substitution_covers_parenthesized_path_arguments() {
                 inputs,
                 output,
             });
-        syn::Type::Path(syn::TypePath { qself: None, path })
+        syn::Type::Path(syn::TypePath {
+            attrs: Vec::new(),
+            qself: None,
+            path,
+        })
     }
 
     let explicit = fn_once_type(syn::parse_quote!(_), syn::parse_quote!(-> _));
@@ -969,6 +989,7 @@ fn infer_detection_covers_remaining_generic_argument_and_return_paths() {
 #[test]
 fn infer_detection_and_known_type_shape_cover_public_accessors() {
     let grouped = syn::Type::Group(syn::TypeGroup {
+        attrs: Vec::new(),
         group_token: Default::default(),
         elem: Box::new(syn::parse_quote!(_)),
     });

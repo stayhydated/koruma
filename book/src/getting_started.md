@@ -14,8 +14,8 @@ Add the facade and built-in validator collection:
 
 ```toml
 [dependencies]
-koruma = "0.10"
-koruma-collection = "0.10"
+koruma = "0.11"
+koruma-collection = "0.11"
 ```
 
 The default features enable Koruma's derives and `Display` messages for the validators used here.

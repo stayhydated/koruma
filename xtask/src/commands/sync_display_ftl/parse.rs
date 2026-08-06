@@ -50,7 +50,7 @@ pub fn parse_display_impl(item_impl: &ItemImpl) -> Result<Option<ParsedDisplay>>
 }
 
 pub fn display_impl_type_name(item_impl: &ItemImpl) -> Option<String> {
-    let Some((_, trait_path, _)) = &item_impl.trait_ else {
+    let Some((trait_path, _)) = &item_impl.trait_ else {
         return None;
     };
 

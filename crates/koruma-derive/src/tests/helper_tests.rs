@@ -237,6 +237,7 @@ fn test_each_collection_accepts_arrays_groups_and_parentheses() {
     assert_eq!(quote!(#paren_element_ty).to_string(), "i32");
 
     let group_ty = syn::Type::Group(syn::TypeGroup {
+        attrs: Vec::new(),
         group_token: Default::default(),
         elem: Box::new(syn::parse_quote!(Vec<i32>)),
     });

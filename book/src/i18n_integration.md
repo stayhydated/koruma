@@ -11,7 +11,7 @@ This guide assumes the application already has an
 
 ```toml
 [dependencies]
-koruma = { version = "0.10", features = ["derive", "fluent"] }
+koruma = { version = "0.11", features = ["derive", "fluent"] }
 es-fluent = "0.18"
 ```
 

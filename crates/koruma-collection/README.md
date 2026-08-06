@@ -9,8 +9,8 @@ optional values.
 
 ```toml
 [dependencies]
-koruma = "0.10"
-koruma-collection = "0.10"
+koruma = "0.11"
+koruma-collection = "0.11"
 ```
 
 ```rust

@@ -160,7 +160,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 [[package]]
 name = "attribute-dsl"
 version = "0.2.0"
-source = "git+https://github.com/stayhydated/attribute-dsl?rev=bb69a6ee0a6772895d180113515fbb6cb46acc9d#bb69a6ee0a6772895d180113515fbb6cb46acc9d"
+source = "git+https://github.com/stayhydated/attribute-dsl?rev=8b04f86977802d5e8039ca0d14c81e8440771f08#8b04f86977802d5e8039ca0d14c81e8440771f08"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -306,7 +306,7 @@ version = "3.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dee98b0db6a962de883bf5d20362dee4d7ca0d12fe39a7c6c73c844e1cd7c1f"
 dependencies = [
- "darling 0.23.0",
+ "darling 0.20.11",
  "ident_case",
  "prettyplease 0.2.37",
  "proc-macro2",
@@ -843,16 +843,6 @@ dependencies = [
 
 [[package]]
 name = "darling"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25ae13da2f202d56bd7f91c25fba009e7717a1e4a1cc98a76d844b65ae912e9d"
-dependencies = [
- "darling_core 0.23.0",
- "darling_macro 0.23.0",
-]
-
-[[package]]
-name = "darling"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88490bf1b990d87eaaa7ac8aa887f629a08e7359765b4911faf63c3763347d23"
@@ -890,19 +880,6 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9865a50f7c335f53564bb694ef660825eb8610e0a53d3e11bf1b0d3df31e03b0"
-dependencies = [
- "ident_case",
- "proc-macro2",
- "quote",
- "strsim",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "darling_core"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "084e274f91c482280130e1e34e0b8d6e66776a060d7b6de7b84289ca778868c4"
@@ -932,17 +909,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d38308df82d1080de0afee5d069fa14b0326a88c14f15c5ccda35b4a6c414c81"
 dependencies = [
  "darling_core 0.21.3",
- "quote",
- "syn 2.0.119",
-]
-
-[[package]]
-name = "darling_macro"
-version = "0.23.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac3984ec7bd6cfa798e62b4a642426a5be0e68f9401cfc2a01e3fa9ea2fcdb8d"
-dependencies = [
- "darling_core 0.23.0",
  "quote",
  "syn 2.0.119",
 ]
@@ -1680,7 +1646,7 @@ dependencies = [
 [[package]]
 name = "es-fluent"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
@@ -1693,7 +1659,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-build"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent-toml",
 ]
@@ -1701,7 +1667,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "darling 0.24.0",
  "es-fluent-derive-core",
@@ -1714,7 +1680,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive-core"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "bon",
  "darling 0.24.0",
@@ -1733,7 +1699,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1749,7 +1715,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
@@ -1763,7 +1729,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1782,7 +1748,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-dioxus"
 version = "0.7.3"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1805,7 +1771,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1818,7 +1784,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-shared",
@@ -1834,7 +1800,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-shared"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "anyhow",
  "camino",
@@ -1857,7 +1823,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=be9ccf8d9fc5e417e2605af3b648a6199cb39f8d#be9ccf8d9fc5e417e2605af3b648a6199cb39f8d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9#8ff586b958c3e17bfc530b2ddf7b7a5c87b716b9"
 dependencies = [
  "bon",
  "es-fluent-shared",

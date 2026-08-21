@@ -160,7 +160,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 [[package]]
 name = "attribute-dsl"
 version = "0.2.0"
-source = "git+https://github.com/stayhydated/attribute-dsl?rev=c2592b94ee76c070c6733c2fc33c15572f333742#c2592b94ee76c070c6733c2fc33c15572f333742"
+source = "git+https://github.com/stayhydated/attribute-dsl?rev=503bebaa926e750005e80b03ee4a801052b79d47#503bebaa926e750005e80b03ee4a801052b79d47"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1680,7 +1680,7 @@ dependencies = [
 [[package]]
 name = "es-fluent"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
@@ -1693,7 +1693,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-build"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent-toml",
 ]
@@ -1701,7 +1701,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "darling 0.24.1",
  "es-fluent-derive-core",
@@ -1714,7 +1714,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive-core"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "bon",
  "darling 0.24.1",
@@ -1733,7 +1733,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1749,7 +1749,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
@@ -1763,7 +1763,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1782,7 +1782,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-dioxus"
 version = "0.7.3"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1805,7 +1805,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1818,7 +1818,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-shared",
@@ -1834,7 +1834,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-shared"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "anyhow",
  "camino",
@@ -1857,7 +1857,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.18.1"
-source = "git+https://github.com/stayhydated/es-fluent?rev=1b65a06860da8a08282220b92d69ad30ae6664f1#1b65a06860da8a08282220b92d69ad30ae6664f1"
+source = "git+https://github.com/stayhydated/es-fluent?rev=69aeaa62c03b23317be13d0ce0661f3160d62db7#69aeaa62c03b23317be13d0ce0661f3160d62db7"
 dependencies = [
  "bon",
  "es-fluent-shared",
@@ -4708,7 +4708,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=74aec628e81fc4cc04b2f34ef22c63ba95847334#74aec628e81fc4cc04b2f34ef22c63ba95847334"
+source = "git+https://github.com/stayhydated/shared?rev=809946144fe13b04a57ba17677c4c699143f4786#809946144fe13b04a57ba17677c4c699143f4786"
 dependencies = [
  "bon",
  "dioxus",
@@ -4722,7 +4722,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-dioxus-core"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=74aec628e81fc4cc04b2f34ef22c63ba95847334#74aec628e81fc4cc04b2f34ef22c63ba95847334"
+source = "git+https://github.com/stayhydated/shared?rev=809946144fe13b04a57ba17677c4c699143f4786#809946144fe13b04a57ba17677c4c699143f4786"
 dependencies = [
  "bytemuck",
  "derive_more",
@@ -4739,7 +4739,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-site"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=74aec628e81fc4cc04b2f34ef22c63ba95847334#74aec628e81fc4cc04b2f34ef22c63ba95847334"
+source = "git+https://github.com/stayhydated/shared?rev=809946144fe13b04a57ba17677c4c699143f4786#809946144fe13b04a57ba17677c4c699143f4786"
 dependencies = [
  "derive_more",
  "dioxus",
@@ -4748,7 +4748,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-xtask"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=74aec628e81fc4cc04b2f34ef22c63ba95847334#74aec628e81fc4cc04b2f34ef22c63ba95847334"
+source = "git+https://github.com/stayhydated/shared?rev=809946144fe13b04a57ba17677c4c699143f4786#809946144fe13b04a57ba17677c4c699143f4786"
 dependencies = [
  "anyhow",
  "bon",

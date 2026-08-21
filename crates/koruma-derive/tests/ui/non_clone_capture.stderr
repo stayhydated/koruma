@@ -17,11 +17,11 @@ error[E0277]: the trait bound `NonClone: Clone` is not satisfied
 22 |     #[koruma(NonCloneValidation)]
    |              ^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `NonClone`
    |
-help: the trait `koruma::__private::CaptureValueRef<NonClone>` is implemented for `NonCloneValidationBuilder<__KorumaActualState>`
+help: the trait `koruma::__private::CaptureValueRef<NonClone>` is conditionally implemented for `NonCloneValidationBuilder<__KorumaActualState>`
   --> tests/ui/non_clone_capture.rs:7:1
    |
  7 | #[validator]
-   | ^^^^^^^^^^^^
+   | ^^^^^^^^^^^^ unsatisfied requirement introduced here: `NonClone: koruma::__private::CapturedInputCanBeCloned`
    = note: required for `NonClone` to implement `koruma::__private::CapturedInputCanBeCloned`
 note: required for `NonCloneValidationBuilder<non_clone_validation_builder::Empty>` to implement `koruma::__private::CaptureValueRef<NonClone>`
   --> tests/ui/non_clone_capture.rs:7:1
@@ -49,11 +49,11 @@ error[E0277]: the trait bound `NonClone: koruma::__private::CapturedInputCanBeCl
 20 | #[derive(Koruma)]
    |          ^^^^^^ the trait `Clone` is not implemented for `NonClone`
    |
-help: the trait `koruma::__private::CaptureValueRef<NonClone>` is implemented for `NonCloneValidationBuilder<__KorumaActualState>`
+help: the trait `koruma::__private::CaptureValueRef<NonClone>` is conditionally implemented for `NonCloneValidationBuilder<__KorumaActualState>`
   --> tests/ui/non_clone_capture.rs:7:1
    |
  7 | #[validator]
-   | ^^^^^^^^^^^^
+   | ^^^^^^^^^^^^ unsatisfied requirement introduced here: `NonClone: koruma::__private::CapturedInputCanBeCloned`
    = note: required for `NonClone` to implement `koruma::__private::CapturedInputCanBeCloned`
 note: required for `NonCloneValidationBuilder<non_clone_validation_builder::Empty>` to implement `koruma::__private::CaptureValueRef<NonClone>`
   --> tests/ui/non_clone_capture.rs:7:1

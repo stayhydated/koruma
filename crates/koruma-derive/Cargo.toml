@@ -33,7 +33,7 @@ lsp-types = { workspace = true }
 prettyplease = { workspace = true }
 renamed-koruma = { default-features = false, features = [
   "fluent",
-], package = "koruma", path = "../koruma" }
+], package = "koruma", path = "../koruma", version = "0.11.0" }
 serde_json = { workspace = true }
 trybuild = { workspace = true }
 

@@ -1,6 +1,7 @@
 # koruma
 
 [![Build status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/github/stayhydated/koruma/graph/badge.svg)](https://codecov.io/github/stayhydated/koruma)
 [![Book](https://img.shields.io/badge/docs-book-black)](https://stayhydated.github.io/koruma/book/)
 [![API docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)

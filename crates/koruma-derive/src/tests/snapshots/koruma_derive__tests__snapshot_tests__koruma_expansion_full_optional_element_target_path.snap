@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/optional_collection.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -94,20 +94,19 @@ impl OptionalElementPresenceKorumaValidationError {
         &self.values
     }
 }
-impl ::renamed_koruma::ValidationError for OptionalElementPresenceKorumaValidationError {
+impl ::koruma::ValidationError for OptionalElementPresenceKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.values.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues
-for OptionalElementPresenceKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for OptionalElementPresenceKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         for (__koruma_index, __koruma_element_error) in self.values.element_errors() {
             if __koruma_element_error.required_validation().is_some() {
                 __koruma_issues
                     .push(
-                        ::renamed_koruma::ValidationIssue::element(
+                        ::koruma::ValidationIssue::element(
                             "values",
                             *__koruma_index,
                             ::core::any::type_name::<RequiredValidation<Option<i32>>>(),
@@ -136,7 +135,7 @@ impl OptionalElementPresence {
         };
         let mut has_error = false;
         {
-            ::renamed_koruma::__private::assert_each_collection_ref::<
+            ::koruma::__private::assert_each_collection_ref::<
                 Vec<Option<i32>>,
                 Option<i32>,
             >();
@@ -150,22 +149,20 @@ impl OptionalElementPresence {
                 let __koruma_builder = RequiredValidation::<
                     Option<i32>,
                 >::__koruma_builder();
-                ::renamed_koruma::__private::assert_element_validator_ready::<
+                ::koruma::__private::assert_element_validator_ready::<
                     _,
                     Option<i32>,
                     RequiredValidation<Option<i32>>,
                 >(&__koruma_builder);
-                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                let validator = ::koruma::__private::BuildValidator::build_validator(
+                    ::koruma::__private::CaptureValueRef::capture_value_ref(
                         __koruma_builder,
                         item,
                     ),
                 );
                 if !<RequiredValidation<
                     Option<i32>,
-                > as ::renamed_koruma::Validate<
-                    Option<i32>,
-                >>::validate(&validator, item) {
+                > as ::koruma::Validate<Option<i32>>>::validate(&validator, item) {
                     element_error.required_validation = Some(validator);
                     element_has_error = true;
                 }
@@ -179,10 +176,10 @@ impl OptionalElementPresence {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for OptionalElementPresence {
+impl ::koruma::ValidateExt for OptionalElementPresence {
     type Error = OptionalElementPresenceKorumaValidationError;
     fn validate(&self) -> Result<(), OptionalElementPresenceKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for OptionalElementPresence {}
+impl ::koruma::__private::KorumaWasDerived for OptionalElementPresence {}

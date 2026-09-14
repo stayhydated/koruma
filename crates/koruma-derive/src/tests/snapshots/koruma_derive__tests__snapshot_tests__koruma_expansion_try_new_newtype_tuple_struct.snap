@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/constructors.rs
 expression: rendered
 ---
 #[doc = concat!(
@@ -66,18 +66,18 @@ impl core::ops::Deref for UsernameKorumaValidationError {
         &self._0
     }
 }
-impl ::renamed_koruma::ValidationError for UsernameKorumaValidationError {
+impl ::koruma::ValidationError for UsernameKorumaValidationError {
     fn is_empty(&self) -> bool {
         self._0.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for UsernameKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for UsernameKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self._0.non_empty_string_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "_0",
                         ::core::any::type_name::<NonEmptyStringValidation>(),
                         None,
@@ -115,18 +115,18 @@ impl Username {
         let __field_value = &self.0;
         {
             let __koruma_builder = NonEmptyStringValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 NonEmptyStringValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<NonEmptyStringValidation as ::renamed_koruma::Validate<
+            if !<NonEmptyStringValidation as ::koruma::Validate<
                 String,
             >>::validate(&validator, __field_value) {
                 error._0.non_empty_string_validation = Some(validator);
@@ -136,15 +136,15 @@ impl Username {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for Username {
+impl ::koruma::ValidateExt for Username {
     type Error = UsernameKorumaValidationError;
     fn validate(&self) -> Result<(), UsernameKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for Username {}
-impl ::renamed_koruma::NewtypeValidation for Username {}
-impl ::renamed_koruma::NewtypeValue for Username {
+impl ::koruma::__private::KorumaWasDerived for Username {}
+impl ::koruma::NewtypeValidation for Username {}
+impl ::koruma::NewtypeValue for Username {
     type Inner = String;
     fn as_inner(&self) -> &Self::Inner {
         &self.0
@@ -167,18 +167,18 @@ impl ::renamed_koruma::NewtypeValue for Username {
         let __field_value = __koruma_newtype_inner_value;
         {
             let __koruma_builder = NonEmptyStringValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 NonEmptyStringValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<NonEmptyStringValidation as ::renamed_koruma::Validate<
+            if !<NonEmptyStringValidation as ::koruma::Validate<
                 String,
             >>::validate(&validator, __field_value) {
                 error._0.non_empty_string_validation = Some(validator);
@@ -188,12 +188,12 @@ impl ::renamed_koruma::NewtypeValue for Username {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::NewtypeTryFromInner for Username {
+impl ::koruma::NewtypeTryFromInner for Username {
     fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
-        <Self as ::renamed_koruma::NewtypeValue>::validate_inner(&value)?;
+        <Self as ::koruma::NewtypeValue>::validate_inner(&value)?;
         Ok(Self(value))
     }
 }

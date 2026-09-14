@@ -9,14 +9,14 @@ Default features include `Display` messages and every validator marked `default`
 
 ```toml
 [dependencies]
-koruma = "0.11"
-koruma-collection = "0.11"
+koruma = "0.12"
+koruma-collection = "0.12"
 ```
 
 Enable every optional validator and type integration with `full`:
 
 ```toml
-koruma-collection = { version = "0.11", features = ["full"] }
+koruma-collection = { version = "0.12", features = ["full"] }
 ```
 
 ## Choose features

@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/constructors.rs
 expression: rendered
 ---
 #[doc = concat!(
@@ -67,20 +67,18 @@ impl<T: Clone> core::ops::Deref for BoundedWrapperKorumaValidationError<T> {
         &self._0
     }
 }
-impl<T: Clone> ::renamed_koruma::ValidationError
-for BoundedWrapperKorumaValidationError<T> {
+impl<T: Clone> ::koruma::ValidationError for BoundedWrapperKorumaValidationError<T> {
     fn is_empty(&self) -> bool {
         self._0.is_empty()
     }
 }
-impl<T: Clone> ::renamed_koruma::ValidationIssues
-for BoundedWrapperKorumaValidationError<T> {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl<T: Clone> ::koruma::ValidationIssues for BoundedWrapperKorumaValidationError<T> {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self._0.generic_range().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "_0",
                         ::core::any::type_name::<GenericRange<T>>(),
                         None,
@@ -107,20 +105,20 @@ impl<T: Clone> BoundedWrapper<T> {
         let __field_value = &self.0;
         {
             let __koruma_builder = GenericRange::<T>::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 T,
                 GenericRange<T>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<GenericRange<
                 T,
-            > as ::renamed_koruma::Validate<T>>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<T>>::validate(&validator, __field_value) {
                 error._0.generic_range = Some(validator);
                 has_error = true;
             }
@@ -128,15 +126,15 @@ impl<T: Clone> BoundedWrapper<T> {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl<T: Clone> ::renamed_koruma::ValidateExt for BoundedWrapper<T> {
+impl<T: Clone> ::koruma::ValidateExt for BoundedWrapper<T> {
     type Error = BoundedWrapperKorumaValidationError<T>;
     fn validate(&self) -> Result<(), BoundedWrapperKorumaValidationError<T>> {
         Self::validate(self)
     }
 }
-impl<T: Clone> ::renamed_koruma::__private::KorumaWasDerived for BoundedWrapper<T> {}
-impl<T: Clone> ::renamed_koruma::NewtypeValidation for BoundedWrapper<T> {}
-impl<T: Clone> ::renamed_koruma::NewtypeValue for BoundedWrapper<T> {
+impl<T: Clone> ::koruma::__private::KorumaWasDerived for BoundedWrapper<T> {}
+impl<T: Clone> ::koruma::NewtypeValidation for BoundedWrapper<T> {}
+impl<T: Clone> ::koruma::NewtypeValue for BoundedWrapper<T> {
     type Inner = T;
     fn as_inner(&self) -> &Self::Inner {
         &self.0
@@ -159,20 +157,20 @@ impl<T: Clone> ::renamed_koruma::NewtypeValue for BoundedWrapper<T> {
         let __field_value = __koruma_newtype_inner_value;
         {
             let __koruma_builder = GenericRange::<T>::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 T,
                 GenericRange<T>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<GenericRange<
                 T,
-            > as ::renamed_koruma::Validate<T>>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<T>>::validate(&validator, __field_value) {
                 error._0.generic_range = Some(validator);
                 has_error = true;
             }
@@ -180,12 +178,12 @@ impl<T: Clone> ::renamed_koruma::NewtypeValue for BoundedWrapper<T> {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl<T: Clone> ::renamed_koruma::NewtypeTryFromInner for BoundedWrapper<T> {
+impl<T: Clone> ::koruma::NewtypeTryFromInner for BoundedWrapper<T> {
     fn try_from_inner(value: Self::Inner) -> Result<Self, Self::Error>
     where
         Self: Sized,
     {
-        <Self as ::renamed_koruma::NewtypeValue>::validate_inner(&value)?;
+        <Self as ::koruma::NewtypeValue>::validate_inner(&value)?;
         Ok(Self(value))
     }
 }

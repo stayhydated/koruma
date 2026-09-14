@@ -11,8 +11,8 @@ This guide assumes the application already has an
 
 ```toml
 [dependencies]
-koruma = { version = "0.11", features = ["derive", "fluent"] }
-es-fluent = "0.18"
+koruma = { version = "0.12", features = ["derive", "fluent"] }
+es-fluent = "0.19"
 ```
 
 For localized built-in validators, also add `koruma-collection` with `fluent`, or use

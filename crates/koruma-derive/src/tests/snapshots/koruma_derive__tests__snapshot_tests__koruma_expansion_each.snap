@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/koruma.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -84,19 +84,19 @@ impl OrderKorumaValidationError {
         &self.scores
     }
 }
-impl ::renamed_koruma::ValidationError for OrderKorumaValidationError {
+impl ::koruma::ValidationError for OrderKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.scores.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for OrderKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for OrderKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         for (__koruma_index, __koruma_element_error) in self.scores.element_errors() {
             if __koruma_element_error.generic_range_validation().is_some() {
                 __koruma_issues
                     .push(
-                        ::renamed_koruma::ValidationIssue::element(
+                        ::koruma::ValidationIssue::element(
                             "scores",
                             *__koruma_index,
                             ::core::any::type_name::<GenericRangeValidation<f64>>(),
@@ -125,7 +125,7 @@ impl Order {
         };
         let mut has_error = false;
         {
-            ::renamed_koruma::__private::assert_each_collection_ref::<Vec<f64>, f64>();
+            ::koruma::__private::assert_each_collection_ref::<Vec<f64>, f64>();
         }
         for (idx, __item_value) in self.scores.iter().enumerate() {
             let mut element_error = OrderScoresElementKorumaValidationError {
@@ -135,22 +135,20 @@ impl Order {
             {
                 let __koruma_builder = GenericRangeValidation::<f64>::min(0.0)
                     .max(100.0);
-                ::renamed_koruma::__private::assert_element_validator_ready::<
+                ::koruma::__private::assert_element_validator_ready::<
                     _,
                     f64,
                     GenericRangeValidation<f64>,
                 >(&__koruma_builder);
-                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                let validator = ::koruma::__private::BuildValidator::build_validator(
+                    ::koruma::__private::CaptureValueRef::capture_value_ref(
                         __koruma_builder,
                         __item_value,
                     ),
                 );
                 if !<GenericRangeValidation<
                     f64,
-                > as ::renamed_koruma::Validate<
-                    f64,
-                >>::validate(&validator, __item_value) {
+                > as ::koruma::Validate<f64>>::validate(&validator, __item_value) {
                     element_error.generic_range_validation = Some(validator);
                     element_has_error = true;
                 }
@@ -163,10 +161,10 @@ impl Order {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for Order {
+impl ::koruma::ValidateExt for Order {
     type Error = OrderKorumaValidationError;
     fn validate(&self) -> Result<(), OrderKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for Order {}
+impl ::koruma::__private::KorumaWasDerived for Order {}

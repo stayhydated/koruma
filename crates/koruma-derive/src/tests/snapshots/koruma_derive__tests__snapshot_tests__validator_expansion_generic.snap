@@ -1,6 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 50
+source: crates/koruma-derive/src/tests/snapshot_tests/validator.rs
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -118,7 +117,7 @@ impl<
         }
     }
 }
-impl<T> ::renamed_koruma::__private::BuildValidator
+impl<T> ::koruma::__private::BuildValidator
 for GenericRangeValidationBuilder<
     T,
     generic_range_validation_builder::Set,
@@ -135,7 +134,7 @@ impl<
     __KorumaMinState,
     __KorumaMaxState,
     __KorumaActualState,
-> ::renamed_koruma::__private::CaptureValueRef<T>
+> ::koruma::__private::CaptureValueRef<T>
 for GenericRangeValidationBuilder<
     T,
     __KorumaMinState,
@@ -143,13 +142,13 @@ for GenericRangeValidationBuilder<
     __KorumaActualState,
 >
 where
-    T: ::renamed_koruma::__private::CapturedInputCanBeCloned,
+    T: ::koruma::__private::CapturedInputCanBeCloned,
     GenericRangeValidationBuilder<
         T,
         __KorumaMinState,
         __KorumaMaxState,
         generic_range_validation_builder::Set,
-    >: ::renamed_koruma::__private::BuildValidator,
+    >: ::koruma::__private::BuildValidator,
 {
     type Output = GenericRangeValidationBuilder<
         T,
@@ -214,23 +213,22 @@ impl<T> GenericRangeValidation<T> {
         Self::__koruma_builder().max(value)
     }
 }
-impl<T> ::renamed_koruma::ValidatorMetadata<T> for GenericRangeValidation<T> {
-    fn validator_descriptor() -> ::renamed_koruma::ValidatorDescriptor {
-        const __KORUMA_PARAMS: &[::renamed_koruma::ValidatorParamDescriptor] = &[
-            ::renamed_koruma::ValidatorParamDescriptor::new("min", "T", true),
-            ::renamed_koruma::ValidatorParamDescriptor::new("max", "T", true),
+impl<T> ::koruma::ValidatorMetadata<T> for GenericRangeValidation<T> {
+    fn validator_descriptor() -> ::koruma::ValidatorDescriptor {
+        const __KORUMA_PARAMS: &[::koruma::ValidatorParamDescriptor] = &[
+            ::koruma::ValidatorParamDescriptor::new("min", "T", true),
+            ::koruma::ValidatorParamDescriptor::new("max", "T", true),
         ];
-        ::renamed_koruma::ValidatorDescriptor::new(
+        ::koruma::ValidatorDescriptor::new(
             ::core::any::type_name::<Self>(),
             __KORUMA_PARAMS,
         )
     }
-    fn validator_params(&self) -> ::std::vec::Vec<::renamed_koruma::ValidatorParam> {
+    fn validator_params(&self) -> ::std::vec::Vec<::koruma::ValidatorParam> {
         ::std::vec![
-            ::renamed_koruma::ValidatorParam::new("min",
-            ::renamed_koruma::ValidatorParamValue::opaque(& self.min)),
-            ::renamed_koruma::ValidatorParam::new("max",
-            ::renamed_koruma::ValidatorParamValue::opaque(& self.max))
+            ::koruma::ValidatorParam::new("min", ::koruma::ValidatorParamValue::opaque(&
+            self.min)), ::koruma::ValidatorParam::new("max",
+            ::koruma::ValidatorParamValue::opaque(& self.max))
         ]
     }
 }

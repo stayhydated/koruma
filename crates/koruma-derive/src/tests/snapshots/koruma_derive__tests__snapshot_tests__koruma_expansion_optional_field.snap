@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/optional_collection.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -115,18 +115,18 @@ impl UserProfileKorumaValidationError {
         &self.bio
     }
 }
-impl ::renamed_koruma::ValidationError for UserProfileKorumaValidationError {
+impl ::koruma::ValidationError for UserProfileKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.username.is_empty() && self.bio.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for UserProfileKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for UserProfileKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self.username.string_length_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "username",
                         ::core::any::type_name::<StringLengthValidation>(),
                         None,
@@ -140,7 +140,7 @@ impl ::renamed_koruma::ValidationIssues for UserProfileKorumaValidationError {
         if self.bio.string_length_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "bio",
                         ::core::any::type_name::<StringLengthValidation>(),
                         None,
@@ -172,18 +172,18 @@ impl UserProfile {
         let __field_value = &self.username;
         {
             let __koruma_builder = StringLengthValidation::min(1).max(50);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 StringLengthValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<StringLengthValidation as ::renamed_koruma::Validate<
+            if !<StringLengthValidation as ::koruma::Validate<
                 String,
             >>::validate(&validator, __field_value) {
                 error.username.string_length_validation = Some(validator);
@@ -193,18 +193,18 @@ impl UserProfile {
         if let Some(ref __field_value) = self.bio {
             {
                 let __koruma_builder = StringLengthValidation::min(1).max(200);
-                ::renamed_koruma::__private::assert_field_validator_ready::<
+                ::koruma::__private::assert_field_validator_ready::<
                     _,
                     String,
                     StringLengthValidation,
                 >(&__koruma_builder);
-                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                let validator = ::koruma::__private::BuildValidator::build_validator(
+                    ::koruma::__private::CaptureValueRef::capture_value_ref(
                         __koruma_builder,
                         __field_value,
                     ),
                 );
-                if !<StringLengthValidation as ::renamed_koruma::Validate<
+                if !<StringLengthValidation as ::koruma::Validate<
                     String,
                 >>::validate(&validator, __field_value) {
                     error.bio.string_length_validation = Some(validator);
@@ -215,10 +215,10 @@ impl UserProfile {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for UserProfile {
+impl ::koruma::ValidateExt for UserProfile {
     type Error = UserProfileKorumaValidationError;
     fn validate(&self) -> Result<(), UserProfileKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for UserProfile {}
+impl ::koruma::__private::KorumaWasDerived for UserProfile {}

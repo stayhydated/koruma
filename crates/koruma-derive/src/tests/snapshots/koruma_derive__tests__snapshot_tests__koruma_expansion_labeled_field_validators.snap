@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/koruma.rs
 expression: printed
 ---
 #[doc = concat!(
@@ -65,18 +65,18 @@ impl LabeledItemKorumaValidationError {
         &self.value
     }
 }
-impl ::renamed_koruma::ValidationError for LabeledItemKorumaValidationError {
+impl ::koruma::ValidationError for LabeledItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for LabeledItemKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for LabeledItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self.value.min_len().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "value",
                         ::core::any::type_name::<LengthValidation<String>>(),
                         Some("min_len"),
@@ -88,7 +88,7 @@ impl ::renamed_koruma::ValidationIssues for LabeledItemKorumaValidationError {
         if self.value.max_len().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "value",
                         ::core::any::type_name::<LengthValidation<String>>(),
                         Some("max_len"),
@@ -116,44 +116,40 @@ impl LabeledItem {
         let __field_value = &self.value;
         {
             let __koruma_builder = LengthValidation::<String>::min(3);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 LengthValidation<String>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<LengthValidation<
                 String,
-            > as ::renamed_koruma::Validate<
-                String,
-            >>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<String>>::validate(&validator, __field_value) {
                 error.value.min_len = Some(validator);
                 has_error = true;
             }
         }
         {
             let __koruma_builder = LengthValidation::<String>::max(30);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 String,
                 LengthValidation<String>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<LengthValidation<
                 String,
-            > as ::renamed_koruma::Validate<
-                String,
-            >>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<String>>::validate(&validator, __field_value) {
                 error.value.max_len = Some(validator);
                 has_error = true;
             }
@@ -161,10 +157,10 @@ impl LabeledItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for LabeledItem {
+impl ::koruma::ValidateExt for LabeledItem {
     type Error = LabeledItemKorumaValidationError;
     fn validate(&self) -> Result<(), LabeledItemKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for LabeledItem {}
+impl ::koruma::__private::KorumaWasDerived for LabeledItem {}

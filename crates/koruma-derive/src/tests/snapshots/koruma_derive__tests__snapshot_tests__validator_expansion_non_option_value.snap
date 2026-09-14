@@ -1,6 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 186
+source: crates/koruma-derive/src/tests/snapshot_tests/validator.rs
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -72,7 +71,7 @@ impl DirectValueValidationBuilder<
         }
     }
 }
-impl ::renamed_koruma::__private::BuildValidator
+impl ::koruma::__private::BuildValidator
 for DirectValueValidationBuilder<
     direct_value_validation_builder::Set,
     direct_value_validation_builder::Set,
@@ -82,17 +81,14 @@ for DirectValueValidationBuilder<
         self.build()
     }
 }
-impl<
-    __KorumaMinState,
-    __KorumaActualState,
-> ::renamed_koruma::__private::CaptureValueRef<i32>
+impl<__KorumaMinState, __KorumaActualState> ::koruma::__private::CaptureValueRef<i32>
 for DirectValueValidationBuilder<__KorumaMinState, __KorumaActualState>
 where
-    i32: ::renamed_koruma::__private::CapturedInputCanBeCloned,
+    i32: ::koruma::__private::CapturedInputCanBeCloned,
     DirectValueValidationBuilder<
         __KorumaMinState,
         direct_value_validation_builder::Set,
-    >: ::renamed_koruma::__private::BuildValidator,
+    >: ::koruma::__private::BuildValidator,
 {
     type Output = DirectValueValidationBuilder<
         __KorumaMinState,
@@ -138,20 +134,20 @@ impl DirectValueValidation {
         Self::__koruma_builder().min(value)
     }
 }
-impl ::renamed_koruma::ValidatorMetadata<i32> for DirectValueValidation {
-    fn validator_descriptor() -> ::renamed_koruma::ValidatorDescriptor {
-        const __KORUMA_PARAMS: &[::renamed_koruma::ValidatorParamDescriptor] = &[
-            ::renamed_koruma::ValidatorParamDescriptor::new("min", "i32", true),
+impl ::koruma::ValidatorMetadata<i32> for DirectValueValidation {
+    fn validator_descriptor() -> ::koruma::ValidatorDescriptor {
+        const __KORUMA_PARAMS: &[::koruma::ValidatorParamDescriptor] = &[
+            ::koruma::ValidatorParamDescriptor::new("min", "i32", true),
         ];
-        ::renamed_koruma::ValidatorDescriptor::new(
+        ::koruma::ValidatorDescriptor::new(
             ::core::any::type_name::<Self>(),
             __KORUMA_PARAMS,
         )
     }
-    fn validator_params(&self) -> ::std::vec::Vec<::renamed_koruma::ValidatorParam> {
+    fn validator_params(&self) -> ::std::vec::Vec<::koruma::ValidatorParam> {
         ::std::vec![
-            ::renamed_koruma::ValidatorParam::new("min",
-            ::renamed_koruma::ValidatorParamValue::I64(self.min as i64))
+            ::koruma::ValidatorParam::new("min", ::koruma::ValidatorParamValue::I64(self
+            .min as i64))
         ]
     }
 }

@@ -1,6 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 200
+source: crates/koruma-derive/src/tests/snapshot_tests/validator.rs
 expression: pretty_print(expanded)
 ---
 #[derive(Clone, Debug)]
@@ -38,17 +37,15 @@ impl<T> PresenceOnlyValidationBuilder<T> {
         }
     }
 }
-impl<T> ::renamed_koruma::__private::BuildValidator
-for PresenceOnlyValidationBuilder<T> {
+impl<T> ::koruma::__private::BuildValidator for PresenceOnlyValidationBuilder<T> {
     type Validator = PresenceOnlyValidation<T>;
     fn build_validator(self) -> Self::Validator {
         self.build()
     }
 }
-impl<T> ::renamed_koruma::__private::CaptureValueRef<T>
-for PresenceOnlyValidationBuilder<T>
+impl<T> ::koruma::__private::CaptureValueRef<T> for PresenceOnlyValidationBuilder<T>
 where
-    PresenceOnlyValidationBuilder<T>: ::renamed_koruma::__private::BuildValidator,
+    PresenceOnlyValidationBuilder<T>: ::koruma::__private::BuildValidator,
 {
     type Output = Self;
     fn capture_value_ref(self, _value: &T) -> Self::Output {
@@ -74,15 +71,15 @@ impl<T> PresenceOnlyValidation<T> {
         &self.actual
     }
 }
-impl<T> ::renamed_koruma::ValidatorMetadata<T> for PresenceOnlyValidation<T> {
-    fn validator_descriptor() -> ::renamed_koruma::ValidatorDescriptor {
-        const __KORUMA_PARAMS: &[::renamed_koruma::ValidatorParamDescriptor] = &[];
-        ::renamed_koruma::ValidatorDescriptor::new(
+impl<T> ::koruma::ValidatorMetadata<T> for PresenceOnlyValidation<T> {
+    fn validator_descriptor() -> ::koruma::ValidatorDescriptor {
+        const __KORUMA_PARAMS: &[::koruma::ValidatorParamDescriptor] = &[];
+        ::koruma::ValidatorDescriptor::new(
             ::core::any::type_name::<Self>(),
             __KORUMA_PARAMS,
         )
     }
-    fn validator_params(&self) -> ::std::vec::Vec<::renamed_koruma::ValidatorParam> {
+    fn validator_params(&self) -> ::std::vec::Vec<::koruma::ValidatorParam> {
         ::std::vec![]
     }
 }

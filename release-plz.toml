@@ -1,0 +1,9 @@
+[workspace]
+repo_url = "https://github.com/stayhydated/koruma"
+release_always = true
+release = false
+git_tag_name = "{{ package }}-v{{ version }}"
+
+[[package]]
+name = "koruma-derive-core"
+release = true

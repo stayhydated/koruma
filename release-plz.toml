@@ -7,3 +7,19 @@ git_tag_name = "{{ package }}-v{{ version }}"
 [[package]]
 name = "koruma-derive-core"
 release = true
+
+[[package]]
+name = "koruma-derive"
+release = true
+
+[[package]]
+name = "koruma-core"
+release = true
+
+[[package]]
+name = "koruma"
+release = true
+
+[[package]]
+name = "koruma-collection"
+release = true

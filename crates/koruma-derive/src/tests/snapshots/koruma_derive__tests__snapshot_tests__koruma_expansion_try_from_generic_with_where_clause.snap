@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/constructors.rs
 expression: rendered
 ---
 #[doc = concat!(
@@ -71,7 +71,7 @@ where
         &self._0
     }
 }
-impl<T> ::renamed_koruma::ValidationError for WhereWrapperKorumaValidationError<T>
+impl<T> ::koruma::ValidationError for WhereWrapperKorumaValidationError<T>
 where
     T: Default,
 {
@@ -79,16 +79,16 @@ where
         self._0.is_empty()
     }
 }
-impl<T> ::renamed_koruma::ValidationIssues for WhereWrapperKorumaValidationError<T>
+impl<T> ::koruma::ValidationIssues for WhereWrapperKorumaValidationError<T>
 where
     T: Default,
 {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self._0.generic_range().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "_0",
                         ::core::any::type_name::<GenericRange<T>>(),
                         None,
@@ -118,20 +118,20 @@ where
         let __field_value = &self.0;
         {
             let __koruma_builder = GenericRange::<T>::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 T,
                 GenericRange<T>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<GenericRange<
                 T,
-            > as ::renamed_koruma::Validate<T>>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<T>>::validate(&validator, __field_value) {
                 error._0.generic_range = Some(validator);
                 has_error = true;
             }
@@ -139,7 +139,7 @@ where
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl<T> ::renamed_koruma::ValidateExt for WhereWrapper<T>
+impl<T> ::koruma::ValidateExt for WhereWrapper<T>
 where
     T: Default,
 {
@@ -148,15 +148,15 @@ where
         Self::validate(self)
     }
 }
-impl<T> ::renamed_koruma::__private::KorumaWasDerived for WhereWrapper<T>
+impl<T> ::koruma::__private::KorumaWasDerived for WhereWrapper<T>
 where
     T: Default,
 {}
-impl<T> ::renamed_koruma::NewtypeValidation for WhereWrapper<T>
+impl<T> ::koruma::NewtypeValidation for WhereWrapper<T>
 where
     T: Default,
 {}
-impl<T> ::renamed_koruma::NewtypeValue for WhereWrapper<T>
+impl<T> ::koruma::NewtypeValue for WhereWrapper<T>
 where
     T: Default,
 {
@@ -182,20 +182,20 @@ where
         let __field_value = __koruma_newtype_inner_value;
         {
             let __koruma_builder = GenericRange::<T>::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 T,
                 GenericRange<T>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<GenericRange<
                 T,
-            > as ::renamed_koruma::Validate<T>>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<T>>::validate(&validator, __field_value) {
                 error._0.generic_range = Some(validator);
                 has_error = true;
             }
@@ -203,7 +203,7 @@ where
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl<T> ::renamed_koruma::NewtypeTryFromInner for WhereWrapper<T>
+impl<T> ::koruma::NewtypeTryFromInner for WhereWrapper<T>
 where
     T: Default,
 {
@@ -211,7 +211,7 @@ where
     where
         Self: Sized,
     {
-        <Self as ::renamed_koruma::NewtypeValue>::validate_inner(&value)?;
+        <Self as ::koruma::NewtypeValue>::validate_inner(&value)?;
         Ok(Self(value))
     }
 }

@@ -27,7 +27,7 @@ fn test_koruma_expansion_newtype_optional_without_field_validators() {
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
     assert!(compact.contains("ifletSome(ref__newtype_value)=self.wrapped"));
-    assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
+    assert!(compact.contains("inner:Option<<WrappedValueas::koruma::ValidateExt>::Error>"));
     assert!(compact.contains("self.wrapped.inner.as_ref()"));
     assert!(
         !compact.contains("implstd::ops::DerefforOptionalNewtypeFieldWrappedKorumaValidationError")
@@ -45,11 +45,11 @@ fn test_koruma_expansion_newtype_with_full_and_unwrapped_validators() {
 
     let expanded = expand_koruma(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("::renamed_koruma::Validate<Option<WrappedValue>,>"));
+    assert!(compact.contains("::koruma::Validate<Option<WrappedValue>,>"));
     assert!(compact.contains("::validate(&validator,&self.wrapped)"));
     assert!(compact.contains("__private::CaptureValueRef::capture_value_ref("));
     assert!(compact.contains("PlainValidation::min(1)"));
-    assert!(compact.contains("inner:Option<<WrappedValueas::renamed_koruma::ValidateExt>::Error>"));
+    assert!(compact.contains("inner:Option<<WrappedValueas::koruma::ValidateExt>::Error>"));
     assert!(compact.contains("self.inner.as_ref()"));
     assert!(compact.contains("error.wrapped.inner=Some(newtype_err);"));
     assert!(compact.contains("inner:None"));

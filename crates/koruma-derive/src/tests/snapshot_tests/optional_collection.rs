@@ -133,7 +133,7 @@ fn test_koruma_expansion_optional_field_with_concrete_full_type_validator() {
             "__private::CaptureValueRef::capture_value_ref(__koruma_builder,&self.value,)"
         )
     );
-    assert!(compact.contains("::renamed_koruma::Validate<Option<String>,>"));
+    assert!(compact.contains("::koruma::Validate<Option<String>>"));
     assert!(compact.contains("::validate(&validator,&self.value)"));
     assert!(!compact.contains("ifletSome(ref__field_value)=self.value"));
 }
@@ -154,7 +154,7 @@ fn test_koruma_expansion_each_optional_element_with_full_type_validator() {
         compact.contains("__private::CaptureValueRef::capture_value_ref(__koruma_builder,item,)")
     );
     assert!(
-        compact.contains("as::renamed_koruma::Validate<Option<i32>,>>::validate(&validator,item)")
+        compact.contains("as::koruma::Validate<Option<i32>>>::validate(&validator,item)")
     );
     assert!(!compact.contains("__koruma_assert_validate_values_required_validation_element"));
 }

@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/koruma.rs
 expression: printed
 ---
 #[doc = concat!(
@@ -86,19 +86,19 @@ impl LabeledTagsKorumaValidationError {
         &self.tags
     }
 }
-impl ::renamed_koruma::ValidationError for LabeledTagsKorumaValidationError {
+impl ::koruma::ValidationError for LabeledTagsKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.tags.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for LabeledTagsKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for LabeledTagsKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         for (__koruma_index, __koruma_element_error) in self.tags.element_errors() {
             if __koruma_element_error.tag_prefix().is_some() {
                 __koruma_issues
                     .push(
-                        ::renamed_koruma::ValidationIssue::element(
+                        ::koruma::ValidationIssue::element(
                             "tags",
                             *__koruma_index,
                             ::core::any::type_name::<PrefixValidation<String>>(),
@@ -125,10 +125,7 @@ impl LabeledTags {
         };
         let mut has_error = false;
         {
-            ::renamed_koruma::__private::assert_each_collection_ref::<
-                Vec<String>,
-                String,
-            >();
+            ::koruma::__private::assert_each_collection_ref::<Vec<String>, String>();
         }
         for (idx, __item_value) in self.tags.iter().enumerate() {
             let mut element_error = LabeledTagsTagsElementKorumaValidationError {
@@ -137,22 +134,20 @@ impl LabeledTags {
             let mut element_has_error = false;
             {
                 let __koruma_builder = PrefixValidation::<String>::prefix("tag:");
-                ::renamed_koruma::__private::assert_element_validator_ready::<
+                ::koruma::__private::assert_element_validator_ready::<
                     _,
                     String,
                     PrefixValidation<String>,
                 >(&__koruma_builder);
-                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                let validator = ::koruma::__private::BuildValidator::build_validator(
+                    ::koruma::__private::CaptureValueRef::capture_value_ref(
                         __koruma_builder,
                         __item_value,
                     ),
                 );
                 if !<PrefixValidation<
                     String,
-                > as ::renamed_koruma::Validate<
-                    String,
-                >>::validate(&validator, __item_value) {
+                > as ::koruma::Validate<String>>::validate(&validator, __item_value) {
                     element_error.tag_prefix = Some(validator);
                     element_has_error = true;
                 }
@@ -165,10 +160,10 @@ impl LabeledTags {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for LabeledTags {
+impl ::koruma::ValidateExt for LabeledTags {
     type Error = LabeledTagsKorumaValidationError;
     fn validate(&self) -> Result<(), LabeledTagsKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for LabeledTags {}
+impl ::koruma::__private::KorumaWasDerived for LabeledTags {}

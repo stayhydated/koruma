@@ -2848,7 +2848,6 @@ dependencies = [
  "es-fluent",
  "heck",
  "insta",
- "koruma",
  "koruma-derive-core",
  "lsp-types",
  "prettyplease",
@@ -2857,7 +2856,6 @@ dependencies = [
  "quote",
  "serde_json",
  "syn 3.0.5",
- "trybuild",
 ]
 
 [[package]]
@@ -2870,6 +2868,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.5",
+]
+
+[[package]]
+name = "koruma-derive-fixtures"
+version = "0.12.0"
+dependencies = [
+ "es-fluent",
+ "koruma",
+ "koruma-derive",
+ "trybuild",
 ]
 
 [[package]]
@@ -3841,9 +3849,9 @@ dependencies = [
 
 [[package]]
 name = "quinn"
-version = "0.11.11"
+version = "0.11.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c1a41e437b6bbd489372cd4971de128e85c855f56c57f283d20ff016cf7c0a8"
+checksum = "4051e23e9185c255a7e33ef59cdbca87a22d359052eecd22fc6b901fb37d9d11"
 dependencies = [
  "bytes",
  "cfg_aliases",
@@ -3861,9 +3869,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.17"
+version = "0.11.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04759210543be93709136e28212294a659ef5001836ff4eab4d663e4529bba83"
+checksum = "a9746dbde176634f4f2f1faf2404e30a31b2bc1e9cafb5329c95d8177a18c9fc"
 dependencies = [
  "bytes",
  "getrandom 0.4.3",

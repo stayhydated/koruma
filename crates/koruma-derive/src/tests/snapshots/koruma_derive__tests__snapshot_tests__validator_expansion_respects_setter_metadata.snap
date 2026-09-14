@@ -1,6 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 924
+source: crates/koruma-derive/src/tests/snapshot_tests/validator.rs
 expression: rendered
 ---
 #[derive(Clone, Debug)]
@@ -222,7 +221,7 @@ impl<
         }
     }
 }
-impl<T> ::renamed_koruma::__private::BuildValidator
+impl<T> ::koruma::__private::BuildValidator
 for SetterMetadataValidationBuilder<
     T,
     setter_metadata_validation_builder::Set,
@@ -239,7 +238,7 @@ impl<
     __KorumaTitleState,
     __KorumaRequiredLimitState,
     __KorumaActualState,
-> ::renamed_koruma::__private::CaptureValueRef<T>
+> ::koruma::__private::CaptureValueRef<T>
 for SetterMetadataValidationBuilder<
     T,
     __KorumaTitleState,
@@ -247,13 +246,13 @@ for SetterMetadataValidationBuilder<
     __KorumaActualState,
 >
 where
-    T: ::renamed_koruma::__private::CapturedInputCanBeCloned,
+    T: ::koruma::__private::CapturedInputCanBeCloned,
     SetterMetadataValidationBuilder<
         T,
         __KorumaTitleState,
         __KorumaRequiredLimitState,
         setter_metadata_validation_builder::Set,
-    >: ::renamed_koruma::__private::BuildValidator,
+    >: ::koruma::__private::BuildValidator,
 {
     type Output = SetterMetadataValidationBuilder<
         T,
@@ -390,59 +389,51 @@ impl<T> SetterMetadataValidation<T> {
         Self::__koruma_builder().defaulted_optional(value)
     }
 }
-impl<T> ::renamed_koruma::ValidatorMetadata<T> for SetterMetadataValidation<T> {
-    fn validator_descriptor() -> ::renamed_koruma::ValidatorDescriptor {
-        const __KORUMA_PARAMS: &[::renamed_koruma::ValidatorParamDescriptor] = &[
-            ::renamed_koruma::ValidatorParamDescriptor::new("title", "String", true),
-            ::renamed_koruma::ValidatorParamDescriptor::new(
-                "optional_title",
-                "String",
-                false,
-            ),
-            ::renamed_koruma::ValidatorParamDescriptor::new(
+impl<T> ::koruma::ValidatorMetadata<T> for SetterMetadataValidation<T> {
+    fn validator_descriptor() -> ::koruma::ValidatorDescriptor {
+        const __KORUMA_PARAMS: &[::koruma::ValidatorParamDescriptor] = &[
+            ::koruma::ValidatorParamDescriptor::new("title", "String", true),
+            ::koruma::ValidatorParamDescriptor::new("optional_title", "String", false),
+            ::koruma::ValidatorParamDescriptor::new(
                 "required_limit",
                 "Option < usize >",
                 true,
             ),
-            ::renamed_koruma::ValidatorParamDescriptor::new(
-                "optional_limit",
-                "usize",
-                false,
-            ),
-            ::renamed_koruma::ValidatorParamDescriptor::new("defaulted", "usize", false),
-            ::renamed_koruma::ValidatorParamDescriptor::new(
+            ::koruma::ValidatorParamDescriptor::new("optional_limit", "usize", false),
+            ::koruma::ValidatorParamDescriptor::new("defaulted", "usize", false),
+            ::koruma::ValidatorParamDescriptor::new(
                 "defaulted_optional",
                 "Option < usize >",
                 false,
             ),
         ];
-        ::renamed_koruma::ValidatorDescriptor::new(
+        ::koruma::ValidatorDescriptor::new(
             ::core::any::type_name::<Self>(),
             __KORUMA_PARAMS,
         )
     }
-    fn validator_params(&self) -> ::std::vec::Vec<::renamed_koruma::ValidatorParam> {
+    fn validator_params(&self) -> ::std::vec::Vec<::koruma::ValidatorParam> {
         ::std::vec![
-            ::renamed_koruma::ValidatorParam::new("title",
-            ::renamed_koruma::ValidatorParamValue::String(self.title.clone())),
-            ::renamed_koruma::ValidatorParam::new("optional_title", match self
-            .optional_title.as_ref() { Some(__koruma_param_value) =>
-            ::renamed_koruma::ValidatorParamValue::String(__koruma_param_value
-            .to_string()), None => ::renamed_koruma::ValidatorParamValue::None, }),
-            ::renamed_koruma::ValidatorParam::new("required_limit", match self
-            .required_limit.as_ref() { Some(__koruma_param_value) =>
-            ::renamed_koruma::ValidatorParamValue::U64(* __koruma_param_value as u64),
-            None => ::renamed_koruma::ValidatorParamValue::None, }),
-            ::renamed_koruma::ValidatorParam::new("optional_limit", match self
-            .optional_limit.as_ref() { Some(__koruma_param_value) =>
-            ::renamed_koruma::ValidatorParamValue::U64(* __koruma_param_value as u64),
-            None => ::renamed_koruma::ValidatorParamValue::None, }),
-            ::renamed_koruma::ValidatorParam::new("defaulted",
-            ::renamed_koruma::ValidatorParamValue::U64(self.defaulted as u64)),
-            ::renamed_koruma::ValidatorParam::new("defaulted_optional", match self
+            ::koruma::ValidatorParam::new("title",
+            ::koruma::ValidatorParamValue::String(self.title.clone())),
+            ::koruma::ValidatorParam::new("optional_title", match self.optional_title
+            .as_ref() { Some(__koruma_param_value) =>
+            ::koruma::ValidatorParamValue::String(__koruma_param_value.to_string()), None
+            => ::koruma::ValidatorParamValue::None, }),
+            ::koruma::ValidatorParam::new("required_limit", match self.required_limit
+            .as_ref() { Some(__koruma_param_value) =>
+            ::koruma::ValidatorParamValue::U64(* __koruma_param_value as u64), None =>
+            ::koruma::ValidatorParamValue::None, }),
+            ::koruma::ValidatorParam::new("optional_limit", match self.optional_limit
+            .as_ref() { Some(__koruma_param_value) =>
+            ::koruma::ValidatorParamValue::U64(* __koruma_param_value as u64), None =>
+            ::koruma::ValidatorParamValue::None, }),
+            ::koruma::ValidatorParam::new("defaulted",
+            ::koruma::ValidatorParamValue::U64(self.defaulted as u64)),
+            ::koruma::ValidatorParam::new("defaulted_optional", match self
             .defaulted_optional.as_ref() { Some(__koruma_param_value) =>
-            ::renamed_koruma::ValidatorParamValue::U64(* __koruma_param_value as u64),
-            None => ::renamed_koruma::ValidatorParamValue::None, })
+            ::koruma::ValidatorParamValue::U64(* __koruma_param_value as u64), None =>
+            ::koruma::ValidatorParamValue::None, })
         ]
     }
 }

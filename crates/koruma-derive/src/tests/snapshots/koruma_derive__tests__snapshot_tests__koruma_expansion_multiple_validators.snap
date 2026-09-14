@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/koruma.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -75,18 +75,18 @@ impl MultiValidatorItemKorumaValidationError {
         &self.value
     }
 }
-impl ::renamed_koruma::ValidationError for MultiValidatorItemKorumaValidationError {
+impl ::koruma::ValidationError for MultiValidatorItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for MultiValidatorItemKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for MultiValidatorItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self.value.number_range_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "value",
                         ::core::any::type_name::<NumberRangeValidation>(),
                         None,
@@ -100,7 +100,7 @@ impl ::renamed_koruma::ValidationIssues for MultiValidatorItemKorumaValidationEr
         if self.value.even_number_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "value",
                         ::core::any::type_name::<EvenNumberValidation>(),
                         None,
@@ -130,18 +130,18 @@ impl MultiValidatorItem {
         let __field_value = &self.value;
         {
             let __koruma_builder = NumberRangeValidation::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 NumberRangeValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<NumberRangeValidation as ::renamed_koruma::Validate<
+            if !<NumberRangeValidation as ::koruma::Validate<
                 i32,
             >>::validate(&validator, __field_value) {
                 error.value.number_range_validation = Some(validator);
@@ -150,18 +150,18 @@ impl MultiValidatorItem {
         }
         {
             let __koruma_builder = EvenNumberValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 EvenNumberValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<EvenNumberValidation as ::renamed_koruma::Validate<
+            if !<EvenNumberValidation as ::koruma::Validate<
                 i32,
             >>::validate(&validator, __field_value) {
                 error.value.even_number_validation = Some(validator);
@@ -171,10 +171,10 @@ impl MultiValidatorItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for MultiValidatorItem {
+impl ::koruma::ValidateExt for MultiValidatorItem {
     type Error = MultiValidatorItemKorumaValidationError;
     fn validate(&self) -> Result<(), MultiValidatorItemKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for MultiValidatorItem {}
+impl ::koruma::__private::KorumaWasDerived for MultiValidatorItem {}

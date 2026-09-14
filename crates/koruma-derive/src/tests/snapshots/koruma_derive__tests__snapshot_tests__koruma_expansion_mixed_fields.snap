@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/koruma.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -197,18 +197,18 @@ impl ComplexItemKorumaValidationError {
         &self.rating
     }
 }
-impl ::renamed_koruma::ValidationError for ComplexItemKorumaValidationError {
+impl ::koruma::ValidationError for ComplexItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty() && self.tags.is_empty() && self.rating.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for ComplexItemKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for ComplexItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self.age.range_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "age",
                         ::core::any::type_name::<RangeValidation>(),
                         None,
@@ -221,7 +221,7 @@ impl ::renamed_koruma::ValidationIssues for ComplexItemKorumaValidationError {
             if __koruma_element_error.length_validation().is_some() {
                 __koruma_issues
                     .push(
-                        ::renamed_koruma::ValidationIssue::element(
+                        ::koruma::ValidationIssue::element(
                             "tags",
                             *__koruma_index,
                             ::core::any::type_name::<LengthValidation>(),
@@ -237,7 +237,7 @@ impl ::renamed_koruma::ValidationIssues for ComplexItemKorumaValidationError {
         if self.rating.range_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "rating",
                         ::core::any::type_name::<RangeValidation>(),
                         None,
@@ -249,7 +249,7 @@ impl ::renamed_koruma::ValidationIssues for ComplexItemKorumaValidationError {
         if self.rating.even_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "rating",
                         ::core::any::type_name::<EvenValidation>(),
                         None,
@@ -283,18 +283,18 @@ impl ComplexItem {
         let __field_value = &self.age;
         {
             let __koruma_builder = RangeValidation::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 RangeValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<RangeValidation as ::renamed_koruma::Validate<
+            if !<RangeValidation as ::koruma::Validate<
                 i32,
             >>::validate(&validator, __field_value) {
                 error.age.range_validation = Some(validator);
@@ -302,10 +302,7 @@ impl ComplexItem {
             }
         }
         {
-            ::renamed_koruma::__private::assert_each_collection_ref::<
-                Vec<String>,
-                String,
-            >();
+            ::koruma::__private::assert_each_collection_ref::<Vec<String>, String>();
         }
         for (idx, __item_value) in self.tags.iter().enumerate() {
             let mut element_error = ComplexItemTagsElementKorumaValidationError {
@@ -314,18 +311,18 @@ impl ComplexItem {
             let mut element_has_error = false;
             {
                 let __koruma_builder = LengthValidation::min(1).max(50);
-                ::renamed_koruma::__private::assert_element_validator_ready::<
+                ::koruma::__private::assert_element_validator_ready::<
                     _,
                     String,
                     LengthValidation,
                 >(&__koruma_builder);
-                let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                    ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                let validator = ::koruma::__private::BuildValidator::build_validator(
+                    ::koruma::__private::CaptureValueRef::capture_value_ref(
                         __koruma_builder,
                         __item_value,
                     ),
                 );
-                if !<LengthValidation as ::renamed_koruma::Validate<
+                if !<LengthValidation as ::koruma::Validate<
                     String,
                 >>::validate(&validator, __item_value) {
                     element_error.length_validation = Some(validator);
@@ -340,18 +337,18 @@ impl ComplexItem {
         let __field_value = &self.rating;
         {
             let __koruma_builder = RangeValidation::min(0).max(10);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 RangeValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<RangeValidation as ::renamed_koruma::Validate<
+            if !<RangeValidation as ::koruma::Validate<
                 i32,
             >>::validate(&validator, __field_value) {
                 error.rating.range_validation = Some(validator);
@@ -360,18 +357,18 @@ impl ComplexItem {
         }
         {
             let __koruma_builder = EvenValidation::__koruma_builder();
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 EvenValidation,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
-            if !<EvenValidation as ::renamed_koruma::Validate<
+            if !<EvenValidation as ::koruma::Validate<
                 i32,
             >>::validate(&validator, __field_value) {
                 error.rating.even_validation = Some(validator);
@@ -381,10 +378,10 @@ impl ComplexItem {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for ComplexItem {
+impl ::koruma::ValidateExt for ComplexItem {
     type Error = ComplexItemKorumaValidationError;
     fn validate(&self) -> Result<(), ComplexItemKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for ComplexItem {}
+impl ::koruma::__private::KorumaWasDerived for ComplexItem {}

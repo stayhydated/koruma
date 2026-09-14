@@ -89,14 +89,14 @@ fn test_validator_expansion_showcase_with_generics_and_where_clause() {
 
     let expanded = expand_validator(input).unwrap();
     let compact = compact_ws(&pretty_print(expanded));
-    assert!(compact.contains("input_type:::renamed_koruma::showcase::InputType::Text"));
-    assert!(compact.contains("module:::renamed_koruma::showcase::ValidatorModule::General"));
+    assert!(compact.contains("input_type:::koruma::showcase::InputType::Text"));
+    assert!(compact.contains("module:::koruma::showcase::ValidatorModule::General"));
     assert!(compact.contains("ShowcaseValidationBuilder<"));
-    assert!(!compact.contains("::renamed_koruma::bon"));
+    assert!(!compact.contains("::koruma::bon"));
     assert!(compact.contains("DynValidatorforShowcaseValidation"));
     assert!(compact.contains("whereU:Default"));
     assert!(compact.contains("Self:::std::marker::Send+::std::marker::Sync"));
-    assert!(compact.contains("Self:::renamed_koruma::Validate<Option<T>>"));
+    assert!(compact.contains("Self:::koruma::Validate<Option<T>>"));
     assert!(compact.contains("Self:::std::fmt::Display"));
     assert!(!compact.contains("feature=\"internal-showcase\""));
     assert!(!compact.contains("feature=\"fmt\""));

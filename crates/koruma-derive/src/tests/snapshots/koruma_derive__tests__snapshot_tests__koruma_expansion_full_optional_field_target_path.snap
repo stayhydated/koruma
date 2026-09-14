@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/optional_collection.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -63,18 +63,18 @@ impl OptionalPresenceKorumaValidationError {
         &self.value
     }
 }
-impl ::renamed_koruma::ValidationError for OptionalPresenceKorumaValidationError {
+impl ::koruma::ValidationError for OptionalPresenceKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.value.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for OptionalPresenceKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for OptionalPresenceKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self.value.required_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "value",
                         ::core::any::type_name::<RequiredValidation<Option<String>>>(),
                         None,
@@ -104,22 +104,20 @@ impl OptionalPresence {
             let __koruma_builder = RequiredValidation::<
                 Option<String>,
             >::__koruma_builder();
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 Option<String>,
                 RequiredValidation<Option<String>>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     &self.value,
                 ),
             );
             if !<RequiredValidation<
                 Option<String>,
-            > as ::renamed_koruma::Validate<
-                Option<String>,
-            >>::validate(&validator, &self.value) {
+            > as ::koruma::Validate<Option<String>>>::validate(&validator, &self.value) {
                 error.value.required_validation = Some(validator);
                 has_error = true;
             }
@@ -127,10 +125,10 @@ impl OptionalPresence {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for OptionalPresence {
+impl ::koruma::ValidateExt for OptionalPresence {
     type Error = OptionalPresenceKorumaValidationError;
     fn validate(&self) -> Result<(), OptionalPresenceKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for OptionalPresence {}
+impl ::koruma::__private::KorumaWasDerived for OptionalPresence {}

@@ -1,6 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
-assertion_line: 76
+source: crates/koruma-derive/src/tests/snapshot_tests/koruma.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -61,18 +60,18 @@ impl ItemKorumaValidationError {
         &self.age
     }
 }
-impl ::renamed_koruma::ValidationError for ItemKorumaValidationError {
+impl ::koruma::ValidationError for ItemKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.age.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for ItemKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for ItemKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         if self.age.number_range_validation().is_some() {
             __koruma_issues
                 .push(
-                    ::renamed_koruma::ValidationIssue::field(
+                    ::koruma::ValidationIssue::field(
                         "age",
                         ::core::any::type_name::<NumberRangeValidation<i32>>(),
                         None,
@@ -101,20 +100,20 @@ impl Item {
         let __field_value = &self.age;
         {
             let __koruma_builder = NumberRangeValidation::<i32>::min(0).max(100);
-            ::renamed_koruma::__private::assert_field_validator_ready::<
+            ::koruma::__private::assert_field_validator_ready::<
                 _,
                 i32,
                 NumberRangeValidation<i32>,
             >(&__koruma_builder);
-            let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+            let validator = ::koruma::__private::BuildValidator::build_validator(
+                ::koruma::__private::CaptureValueRef::capture_value_ref(
                     __koruma_builder,
                     __field_value,
                 ),
             );
             if !<NumberRangeValidation<
                 i32,
-            > as ::renamed_koruma::Validate<i32>>::validate(&validator, __field_value) {
+            > as ::koruma::Validate<i32>>::validate(&validator, __field_value) {
                 error.age.number_range_validation = Some(validator);
                 has_error = true;
             }
@@ -122,10 +121,10 @@ impl Item {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for Item {
+impl ::koruma::ValidateExt for Item {
     type Error = ItemKorumaValidationError;
     fn validate(&self) -> Result<(), ItemKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for Item {}
+impl ::koruma::__private::KorumaWasDerived for Item {}

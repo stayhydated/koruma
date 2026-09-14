@@ -1,5 +1,5 @@
 ---
-source: crates/koruma-derive/src/tests/snapshot_tests.rs
+source: crates/koruma-derive/src/tests/snapshot_tests/optional_collection.rs
 expression: pretty_print(expanded)
 ---
 #[doc = concat!(
@@ -90,19 +90,19 @@ impl OptionalScoresKorumaValidationError {
         &self.values
     }
 }
-impl ::renamed_koruma::ValidationError for OptionalScoresKorumaValidationError {
+impl ::koruma::ValidationError for OptionalScoresKorumaValidationError {
     fn is_empty(&self) -> bool {
         self.values.is_empty()
     }
 }
-impl ::renamed_koruma::ValidationIssues for OptionalScoresKorumaValidationError {
-    fn issues(&self) -> ::std::vec::Vec<::renamed_koruma::ValidationIssue> {
+impl ::koruma::ValidationIssues for OptionalScoresKorumaValidationError {
+    fn issues(&self) -> ::std::vec::Vec<::koruma::ValidationIssue> {
         let mut __koruma_issues = ::std::vec::Vec::new();
         for (__koruma_index, __koruma_element_error) in self.values.element_errors() {
             if __koruma_element_error.generic_range_validation().is_some() {
                 __koruma_issues
                     .push(
-                        ::renamed_koruma::ValidationIssue::element(
+                        ::koruma::ValidationIssue::element(
                             "values",
                             *__koruma_index,
                             ::core::any::type_name::<GenericRangeValidation<i32>>(),
@@ -131,7 +131,7 @@ impl OptionalScores {
         };
         let mut has_error = false;
         {
-            ::renamed_koruma::__private::assert_each_collection_ref::<
+            ::koruma::__private::assert_each_collection_ref::<
                 Vec<Option<i32>>,
                 Option<i32>,
             >();
@@ -144,22 +144,20 @@ impl OptionalScores {
             if let Some(__item_value) = item {
                 {
                     let __koruma_builder = GenericRangeValidation::<i32>::min(0).max(10);
-                    ::renamed_koruma::__private::assert_element_validator_ready::<
+                    ::koruma::__private::assert_element_validator_ready::<
                         _,
                         i32,
                         GenericRangeValidation<i32>,
                     >(&__koruma_builder);
-                    let validator = ::renamed_koruma::__private::BuildValidator::build_validator(
-                        ::renamed_koruma::__private::CaptureValueRef::capture_value_ref(
+                    let validator = ::koruma::__private::BuildValidator::build_validator(
+                        ::koruma::__private::CaptureValueRef::capture_value_ref(
                             __koruma_builder,
                             __item_value,
                         ),
                     );
                     if !<GenericRangeValidation<
                         i32,
-                    > as ::renamed_koruma::Validate<
-                        i32,
-                    >>::validate(&validator, __item_value) {
+                    > as ::koruma::Validate<i32>>::validate(&validator, __item_value) {
                         element_error.generic_range_validation = Some(validator);
                         element_has_error = true;
                     }
@@ -173,10 +171,10 @@ impl OptionalScores {
         if has_error { Err(error) } else { Ok(()) }
     }
 }
-impl ::renamed_koruma::ValidateExt for OptionalScores {
+impl ::koruma::ValidateExt for OptionalScores {
     type Error = OptionalScoresKorumaValidationError;
     fn validate(&self) -> Result<(), OptionalScoresKorumaValidationError> {
         Self::validate(self)
     }
 }
-impl ::renamed_koruma::__private::KorumaWasDerived for OptionalScores {}
+impl ::koruma::__private::KorumaWasDerived for OptionalScores {}

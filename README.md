@@ -9,14 +9,14 @@ Koruma adds reusable validators to Rust struct fields and generates strongly typ
 errors. Use `koruma` for derives and core traits, then add `koruma-collection` for built-in
 string, format, numeric, collection, and presence rules.
 
-Koruma 0.10 requires Rust 1.96 or newer.
+Koruma 0.12 requires Rust 1.98 or newer.
 
 ## Quick start
 
 ```toml
 [dependencies]
-koruma = "0.11"
-koruma-collection = "0.11"
+koruma = "0.12"
+koruma-collection = "0.12"
 ```
 
 ```rust

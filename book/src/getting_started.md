@@ -5,7 +5,7 @@ field-specific errors.
 
 ## Prerequisites
 
-Install Rust 1.96 or newer and start in a Rust package where you can edit `Cargo.toml` and
+Install Rust 1.98 or newer and start in a Rust package where you can edit `Cargo.toml` and
 `src/main.rs`.
 
 ## Add Koruma
@@ -14,8 +14,8 @@ Add the facade and built-in validator collection:
 
 ```toml
 [dependencies]
-koruma = "0.11"
-koruma-collection = "0.11"
+koruma = "0.12"
+koruma-collection = "0.12"
 ```
 
 The default features enable Koruma's derives and `Display` messages for the validators used here.

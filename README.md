@@ -1,8 +1,8 @@
 # koruma
 
-[![Build status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
-[![Book](https://img.shields.io/badge/docs-book-black)](https://stayhydated.github.io/koruma/book/)
-[![API docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
+[![CI](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg)](https://codecov.io/gh/stayhydated/koruma)
+[![Book](https://img.shields.io/badge/book-online-blue)](https://stayhydated.github.io/koruma/book/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 
 Koruma adds reusable validators to Rust struct fields and generates strongly typed validation
@@ -11,13 +11,7 @@ string, format, numeric, collection, and presence rules.
 
 Koruma 0.12 requires Rust 1.98 or newer.
 
-## Quick start
-
-```toml
-[dependencies]
-koruma = "0.12"
-koruma-collection = "0.12"
-```
+## Example
 
 ```rust
 use koruma::Koruma;
@@ -45,12 +39,7 @@ fn main() {
 }
 ```
 
-## Documentation
-
-- [Get started](https://stayhydated.github.io/koruma/book/getting_started.html)
-- [Choose built-in validators](https://stayhydated.github.io/koruma/book/koruma_collection.html)
-- [Define custom validators](https://stayhydated.github.io/koruma/book/declare_validators.html)
-- [API reference](https://docs.rs/koruma/)
+## Crates
 
 Most applications depend only on `koruma` and optionally `koruma-collection`.
 `koruma-core`, `koruma-derive`, and `koruma-derive-core` are public integration crates for

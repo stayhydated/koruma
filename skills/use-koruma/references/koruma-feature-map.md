@@ -45,8 +45,9 @@ Annotate a named-field struct with `#[validator]`, then implement `Validate<T>`.
 - Unannotated configuration fields generate direct setters.
 - Setter options are `into`, `required`, `name = ...`, `default`, and
   `default = expression`.
-- A non-required `Option<T>` configuration setter accepts `T`; its `maybe_*` form accepts
-  `Option<T>`. Use `required` when callers must explicitly choose `Some` or `None`.
+- An `Option<T>` configuration field without `required` or `default` accepts `T` through its
+  setter and `Option<T>` through `maybe_*`. Omission leaves `None`. Required and defaulted
+  option setters accept the complete `Option<T>`; use `required` to require an explicit choice.
 - `#[validator]` also implements `ValidatorMetadata<T>` for static descriptors and runtime
   parameter values. Unsupported parameter representations remain opaque instead of adding bounds.
 

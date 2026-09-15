@@ -1,17 +1,13 @@
 # koruma-collection
 
-[![API docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
+[![CI](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg)](https://codecov.io/gh/stayhydated/koruma)
+[![Book](https://img.shields.io/badge/book-online-blue)](https://stayhydated.github.io/koruma/book/)
 [![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
 [![Crowdin](https://badges.crowdin.net/koruma-collection/localized.svg)](https://crowdin.com/project/koruma-collection)
 
 `koruma-collection` provides reusable validators for strings, formats, numbers, collections, and
 optional values.
-
-```toml
-[dependencies]
-koruma = "0.12"
-koruma-collection = "0.12"
-```
 
 ```rust
 use koruma::Koruma;
@@ -37,7 +33,3 @@ struct Signup {
 Optional validators can also be enabled individually with `credit-card`, `email`,
 `phone-number`, `regex`, or `url`. The `smallvec` and `rust_decimal` features add support
 for those value types.
-
-See the [validator catalog](https://stayhydated.github.io/koruma/book/koruma_collection.html) for
-rules, configuration syntax, and feature requirements, or browse the
-[API reference](https://docs.rs/koruma-collection/).

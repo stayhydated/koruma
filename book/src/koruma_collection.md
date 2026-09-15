@@ -50,21 +50,45 @@ Import these validators from `koruma_collection::string`.
 | `PrefixValidation<T>` | Starts with a prefix | default |
 | `SuffixValidation<T>` | Ends with a suffix | default |
 
-Configure rules with their dot-chain setters:
+Configure each validator with its dot-chain setter:
 
-```rust,ignore
-#[koruma(string::CanonicalFormValidation::<_>.predicate(is_canonical))]
-#[koruma(string::ContainsValidation::<_>.substring("abc"))]
-#[koruma(string::MatchesValidation::<_>.other("expected".to_string()))]
-#[koruma(string::PatternValidation::<_>.pattern(regex::Regex::new(r"^[a-z0-9_]+$")?))]
-#[koruma(string::PrefixValidation::<_>.prefix("usr_"))]
-#[koruma(string::SuffixValidation::<_>.suffix(".rs"))]
+| Validator | Configuration |
+| --- | --- |
+| `CanonicalFormValidation::<_>` | `.predicate(is_canonical)` |
+| `ContainsValidation::<_>` | `.substring("abc")` |
+| `MatchesValidation::<_>` | `.other("expected".to_string())` |
+| `PatternValidation::<_>` | `.pattern(compiled_regex)` |
+| `PrefixValidation::<_>` | `.prefix("usr_")` |
+| `SuffixValidation::<_>` | `.suffix(".rs")` |
+
+Put multiple rules for a field in one attribute:
+
+```rust
+# extern crate koruma;
+# extern crate koruma_collection;
+use koruma::Koruma;
+use koruma_collection::{collection, string};
+
+#[derive(Koruma)]
+struct Handle {
+    #[koruma(
+        collection::NonEmptyValidation::<_>,
+        string::AsciiValidation::<_>,
+        string::AlphanumericValidation::<_>,
+    )]
+    value: String,
+}
+
+assert!(Handle { value: "alice42".to_string() }.validate().is_ok());
+assert!(Handle { value: "alice-42".to_string() }.validate().is_err());
 ```
 
 `CanonicalFormValidation` checks the predicate without modifying the value.
 `AlphanumericValidation` is Unicode-aware and accepts an empty string; combine it with
 `AsciiValidation` or `collection::NonEmptyValidation` when those are separate requirements.
-Invalid regular expressions fail when constructing `regex::Regex`, before validation runs.
+`PatternValidation` takes a compiled `regex::Regex`. Handle invalid user-supplied patterns when
+constructing the regex. For a fixed pattern in an attribute, use a construction expression such
+as `regex::Regex::new(r"^[a-z0-9_]+$").expect("valid handle pattern")`.
 
 ## Format validators
 
@@ -74,7 +98,7 @@ Import these validators from `koruma_collection::format`.
 | --- | --- | --- |
 | `IpValidation<T>` | Parses as any, IPv4, or IPv6 address | default |
 | `EmailValidation<T>` | Parses as an email address | `email` |
-| `PhoneNumberValidation<T>` | Parses as a phone number | `phone-number` |
+| `PhoneNumberValidation<T>` | Parses as a phone number and passes its validity check | `phone-number` |
 | `UrlValidation<T>` | Parses as a URL | `url` |
 | `CreditCardValidation<T>` | Passes credit-card validation | `credit-card` |
 
@@ -120,7 +144,7 @@ Import `RequiredValidation` from `koruma_collection::general` and target the who
 
 ```rust,ignore
 #[koruma(general::RequiredValidation::<Option<_>>)]
-pub display_name: Option<String>;
+pub display_name: Option<String>,
 ```
 
 This rule rejects `None`; it does not reject an empty string or collection. Combine it with

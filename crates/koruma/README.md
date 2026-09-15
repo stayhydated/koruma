@@ -1,15 +1,12 @@
 # koruma
 
-[![API docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
+[![CI](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
+[![Codecov](https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg)](https://codecov.io/gh/stayhydated/koruma)
+[![Book](https://img.shields.io/badge/book-online-blue)](https://stayhydated.github.io/koruma/book/)
 [![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
 
 `koruma` is the application-facing facade for strongly typed field validation. It re-exports the
 core validation traits and, by default, the derives and `#[validator]` attribute.
-
-```toml
-[dependencies]
-koruma = "0.12"
-```
 
 ## Features
 
@@ -19,6 +16,3 @@ koruma = "0.12"
 
 Add [`koruma-collection`](https://crates.io/crates/koruma-collection) when its built-in validators
 fit your rules.
-
-See the [getting-started guide](https://stayhydated.github.io/koruma/book/getting_started.html) for
-a runnable example, or use the [API reference](https://docs.rs/koruma/) for trait and macro details.

@@ -1,23 +1,27 @@
 # koruma
 
-[![Build status](https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg)](https://github.com/stayhydated/koruma/actions/workflows/ci.yml)
-[![Book](https://img.shields.io/badge/docs-book-black)](https://stayhydated.github.io/koruma/book/)
-[![API docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
-[![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
+[![CI][ci-badge]][ci]
+[![Codecov][codecov-badge]][codecov]
+[![Book][book-badge]][book]
+[![crates.io: koruma][koruma-badge]][koruma-crate]
 
 Koruma adds reusable validators to Rust struct fields and generates strongly typed validation
 errors. Use `koruma` for derives and core traits, then add `koruma-collection` for built-in
 string, format, numeric, collection, and presence rules.
 
-Koruma 0.12 requires Rust 1.98 or newer.
+Koruma requires Rust 1.98 or newer.
 
-## Quick start
+## Crates
 
-```toml
-[dependencies]
-koruma = "0.12"
-koruma-collection = "0.12"
-```
+| Crate | Purpose | Source |
+| --- | --- | --- |
+| `koruma` | Application-facing derives and validation traits | [README][koruma-readme] |
+| `koruma-collection` | Reusable validators and optional localization support | [README][koruma-collection-readme] |
+| `koruma-core` | Integration traits and validation error types | [README][koruma-core-readme] |
+| `koruma-derive` | Procedural macros and generated validation APIs | [README][koruma-derive-readme] |
+| `koruma-derive-core` | Attribute parsers and typed models for tooling and macros | [README][koruma-derive-core-readme] |
+
+## Example
 
 ```rust
 use koruma::Koruma;
@@ -45,17 +49,16 @@ fn main() {
 }
 ```
 
-## Documentation
-
-- [Get started](https://stayhydated.github.io/koruma/book/getting_started.html)
-- [Choose built-in validators](https://stayhydated.github.io/koruma/book/koruma_collection.html)
-- [Define custom validators](https://stayhydated.github.io/koruma/book/declare_validators.html)
-- [API reference](https://docs.rs/koruma/)
-
-Most applications depend only on `koruma` and optionally `koruma-collection`.
-`koruma-core`, `koruma-derive`, and `koruma-derive-core` are public integration crates for
-tooling and macro authors.
-
-## License
-
-Licensed under either Apache-2.0 or MIT.
+[ci-badge]: https://github.com/stayhydated/koruma/actions/workflows/ci.yml/badge.svg?branch=master
+[ci]: https://github.com/stayhydated/koruma/actions/workflows/ci.yml
+[codecov-badge]: https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg
+[codecov]: https://codecov.io/gh/stayhydated/koruma
+[book-badge]: https://img.shields.io/badge/Book-mdBook-blue
+[book]: https://stayhydated.github.io/koruma/book/
+[koruma-badge]: https://img.shields.io/crates/v/koruma.svg?label=koruma
+[koruma-crate]: https://crates.io/crates/koruma
+[koruma-readme]: crates/koruma/README.md
+[koruma-collection-readme]: crates/koruma-collection/README.md
+[koruma-core-readme]: crates/koruma-core/README.md
+[koruma-derive-readme]: crates/koruma-derive/README.md
+[koruma-derive-core-readme]: crates/koruma-derive-core/README.md

@@ -80,7 +80,7 @@ For `Option<Newtype>`, `None` is skipped and the generated accessor returns
     newtype,
     koruma_collection::general::RequiredValidation::<Option<_>>,
 )]
-pub email: Option<Email>;
+pub email: Option<Email>,
 ```
 
 With direct validators, the field error container exposes delegated errors through `inner()`;

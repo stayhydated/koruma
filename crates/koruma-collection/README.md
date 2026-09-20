@@ -1,17 +1,18 @@
 # koruma-collection
 
-[![API docs](https://docs.rs/koruma-collection/badge.svg)](https://docs.rs/koruma-collection/)
-[![Crates.io](https://img.shields.io/crates/v/koruma-collection.svg)](https://crates.io/crates/koruma-collection)
-[![Crowdin](https://badges.crowdin.net/koruma-collection/localized.svg)](https://crowdin.com/project/koruma-collection)
+[![Codecov: koruma-collection][codecov-badge]][codecov]
+[![crates.io: koruma-collection][crate-badge]][crate]
 
-`koruma-collection` provides reusable validators for strings, formats, numbers, collections, and
-optional values.
+`koruma-collection` provides reusable string, format, numeric, collection, and presence validators
+for applications built with the [Koruma project][project].
 
-```toml
-[dependencies]
-koruma = "0.12"
-koruma-collection = "0.12"
-```
+## Overview
+
+The default `fmt` feature provides `Display` implementations for validator errors. Use `full` for
+all optional validators and value-type integrations, `fluent` for localized messages through
+es-fluent, or `full-fluent` for both; individual integrations can be enabled separately.
+
+## Example
 
 ```rust
 use koruma::Koruma;
@@ -25,19 +26,22 @@ struct Signup {
     #[koruma(numeric::RangeValidation::<_>.min(13_u8).max(120_u8))]
     age: u8,
 }
+
+fn main() {
+    let errors = Signup {
+        username: String::new(),
+        age: 8,
+    }
+    .validate()
+    .expect_err("invalid signup should fail");
+
+    assert!(errors.username().non_empty_validation().is_some());
+    assert!(errors.age().range_validation().is_some());
+}
 ```
 
-## Features
-
-- `fmt` (default): implements `Display` for validator errors.
-- `full`: enables all optional validators and type integrations.
-- `fluent`: enables localized messages through es-fluent.
-- `full-fluent`: combines `full` and `fluent`.
-
-Optional validators can also be enabled individually with `credit-card`, `email`,
-`phone-number`, `regex`, or `url`. The `smallvec` and `rust_decimal` features add support
-for those value types.
-
-See the [validator catalog](https://stayhydated.github.io/koruma/book/koruma_collection.html) for
-rules, configuration syntax, and feature requirements, or browse the
-[API reference](https://docs.rs/koruma-collection/).
+[codecov-badge]: https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg?component=koruma-collection
+[codecov]: https://codecov.io/gh/stayhydated/koruma
+[crate-badge]: https://img.shields.io/crates/v/koruma-collection.svg?label=koruma-collection
+[crate]: https://crates.io/crates/koruma-collection
+[project]: https://github.com/stayhydated/koruma

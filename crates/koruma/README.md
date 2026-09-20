@@ -1,24 +1,20 @@
 # koruma
 
-[![API docs](https://docs.rs/koruma/badge.svg)](https://docs.rs/koruma/)
-[![Crates.io](https://img.shields.io/crates/v/koruma.svg)](https://crates.io/crates/koruma)
+[![crates.io: koruma][crate-badge]][crate]
 
-`koruma` is the application-facing facade for strongly typed field validation. It re-exports the
-core validation traits and, by default, the derives and `#[validator]` attribute.
+`koruma` is the application-facing facade for strongly typed field validation in the
+[Koruma project][project]. It re-exports the core validation traits and, by default, the derives
+and `#[validator]` attribute.
 
-```toml
-[dependencies]
-koruma = "0.12"
-```
+## Overview
 
-## Features
-
-- `derive` (default): enables `Koruma`, `KorumaAllDisplay`, and `#[validator]`.
-- `fluent`: enables `KorumaAllFluent` when used with `derive` and
-  [es-fluent](https://github.com/stayhydated/es-fluent).
-
-Add [`koruma-collection`](https://crates.io/crates/koruma-collection) when its built-in validators
+The default `derive` feature enables `Koruma`, `KorumaAllDisplay`, and `#[validator]`. The
+`fluent` feature adds `KorumaAllFluent` when used with `derive` and
+[es-fluent][es-fluent]. Add [`koruma-collection`][koruma-collection] when its built-in validators
 fit your rules.
 
-See the [getting-started guide](https://stayhydated.github.io/koruma/book/getting_started.html) for
-a runnable example, or use the [API reference](https://docs.rs/koruma/) for trait and macro details.
+[crate-badge]: https://img.shields.io/crates/v/koruma.svg?label=koruma
+[crate]: https://crates.io/crates/koruma
+[project]: https://github.com/stayhydated/koruma
+[es-fluent]: https://github.com/stayhydated/es-fluent
+[koruma-collection]: https://crates.io/crates/koruma-collection

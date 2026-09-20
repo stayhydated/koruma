@@ -16,7 +16,7 @@ description: >
    patterns. Preserve compatible dependency versions and feature choices.
 2. Depend on `koruma` as the facade. Add `koruma-collection` when a built-in rule matches the
    requirement.
-3. Define a custom `#[validator]` only for domain-specific behavior, custom error data, or custom
+3. Use a custom `#[validator]` for domain-specific behavior, custom error data, or custom
    rendering.
 4. Put every validator and modifier for a field in one `#[koruma(...)]` attribute. Configure
    validators with dot-chain setters and derive `Koruma` on the containing type.
@@ -47,8 +47,8 @@ description: >
   Newtype field access is transparent when no direct field validators are added.
 - Aggregate Fluent rendering omits `each(...)` failures. Enumerate element errors so messages keep
   their indices.
-- Normalize external input before validation. Use `CanonicalFormValidation` to reject a stored
-  value that is not already canonical, not to transform it.
+- When input needs normalization, do it before checked construction. `CanonicalFormValidation`
+  checks whether a stored value is already canonical; it leaves the value unchanged.
 - Prefer typed failed-validator accessors when tooling needs runtime
   `ValidatorMetadata::validator_params()`; structured issues are the generic reporting view.
 

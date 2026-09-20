@@ -25,6 +25,8 @@ The default features enable Koruma's derives and `Display` messages for the vali
 Replace `src/main.rs` with:
 
 ```rust
+# extern crate koruma;
+# extern crate koruma_collection;
 use koruma::Koruma;
 use koruma_collection::{collection, numeric};
 

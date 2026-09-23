@@ -43,7 +43,7 @@ Import with `use koruma_collection::string;`.
 - `string::MatchesValidation<T>`: input equals another value. Configure with
   `string::MatchesValidation::<_>.other("secret".to_string())`.
 - `string::PatternValidation<T>`: input matches a compiled regex; requires `regex`. Configure with
-  `string::PatternValidation::<_>.pattern(regex::Regex::new("...").unwrap())`.
+  `string::PatternValidation::<_>.pattern(compiled_regex)`.
 - `string::PrefixValidation<T>`: input starts with a prefix. Configure with
   `string::PrefixValidation::<_>.prefix("usr_")`.
 - `string::SuffixValidation<T>`: input ends with a suffix. Configure with
@@ -55,6 +55,10 @@ the compared value or regex pattern. `PatternValidation` accepts a compiled `reg
 invalid pattern fails when the regex is constructed. `AlphanumericValidation` uses
 `char::is_alphanumeric`; combine it with `AsciiValidation` for ASCII-only identifiers and with
 `collection::NonEmptyValidation` when an empty value must fail.
+
+Handle errors from user-supplied regex patterns before validating input. For a fixed pattern in
+an attribute, a construction expression such as
+`regex::Regex::new(r"^[a-z0-9_]+$").expect("valid handle pattern")` supplies the compiled regex.
 
 ## Format validators
 

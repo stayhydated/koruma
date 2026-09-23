@@ -1,17 +1,24 @@
 # koruma-core
 
-[![API docs](https://docs.rs/koruma-core/badge.svg)](https://docs.rs/koruma-core/)
-[![Crates.io](https://img.shields.io/crates/v/koruma-core.svg)](https://crates.io/crates/koruma-core)
+[![Codecov: koruma-core][codecov-badge]][codecov]
+[![crates.io: koruma-core][crate-badge]][crate]
 
-`koruma-core` contains the public traits and data types shared by Koruma derives and integrations.
-Application code should normally depend on [`koruma`](https://crates.io/crates/koruma), which
-re-exports this crate's application-facing API.
+`koruma-core` provides integration traits and typed validation-error data for validator and tooling
+authors in the [Koruma project][project]. Application code normally uses [`koruma`][koruma], which
+re-exports its application-facing API.
+
+## Overview
 
 Integration authors can use:
 
-- `Validate<T>` and `ValidatorMetadata<T>` for validators;
-- `ValidateExt`, `ValidationError`, and `ValidationIssues` for validated types and errors;
+- `Validate<T>` and `ValidatorMetadata<T>` to define validators and expose their metadata;
+- `ValidateExt`, `ValidationError`, and `ValidationIssues` to work with validated types and errors;
 - `ValidationIssue` and related types for generic issue reporting; and
 - `NewtypeValidation`, `NewtypeValue`, and `NewtypeTryFromInner` for validated wrappers.
 
-See the [API reference](https://docs.rs/koruma-core/) for contracts and examples.
+[codecov-badge]: https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg?component=koruma-core
+[codecov]: https://codecov.io/gh/stayhydated/koruma
+[crate-badge]: https://img.shields.io/crates/v/koruma-core.svg?label=koruma-core
+[crate]: https://crates.io/crates/koruma-core
+[project]: https://github.com/stayhydated/koruma
+[koruma]: https://crates.io/crates/koruma

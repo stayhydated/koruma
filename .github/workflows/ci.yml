@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Check FTL files
-        uses: stayhydated/es-fluent/crates/es-fluent-cli@es-fluent-cli-v0.19.0
+        uses: stayhydated/es-fluent/crates/es-fluent-cli@es-fluent-cli-v0.20.1
         with:
           path: .
           all_locales: true
@@ -128,8 +128,8 @@ jobs:
         with:
           version: "v0.16.0"
 
-      - name: Check release package plan
-        run: cargo xtask release plan
+      - name: Check package contents
+        run: cargo package --workspace --list
 
   machete:
     runs-on: ubuntu-latest

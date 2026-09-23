@@ -126,9 +126,10 @@ Setter names that collide with generated builder APIs are rejected, including `n
 `with_value`, `builder`, `__koruma_builder`, `build_validator`, `capture_value_ref`, and the
 generated `maybe_` prefix.
 
-For optional non-required configuration fields, `Option<T>` setters take `T` directly and wrap it
-in `Some(...)`. Use the generated `maybe_*` setter when you already have an `Option<T>`. Mark an
-`Option<T>` setter as `required` when `None` is a meaningful explicit configuration value.
+For an `Option<T>` configuration field without `required` or `default`, the setter takes `T`
+and wraps it in `Some(...)`. Omission leaves `None`; the generated `maybe_*` setter accepts an
+`Option<T>`. A `required` or defaulted `Option<T>` setter accepts the complete option. Use
+`required` when callers must explicitly choose `Some(...)` or `None`.
 
 ## Skip input capture
 

@@ -1,4 +1,5 @@
 [workspace]
+changelog_update = false
 repo_url = "https://github.com/stayhydated/koruma"
 release_always = true
 release = false

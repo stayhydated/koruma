@@ -20,11 +20,11 @@ publish = true
 readme = "README.md"
 repository = "https://github.com/stayhydated/koruma"
 rust-version = "1.98"
-version = "0.12.0"
+version = "0.12.1"
 
 [workspace.dependencies]
 anyhow = "1.0"
-attribute-dsl = "0.2.0"
+attribute-dsl = "0.2.1"
 bon = "3.10"
 card-validate = "2.4"
 clap = "4.6"
@@ -32,21 +32,21 @@ dioxus = { default-features = false, version = "0.7" }
 dioxus-free-icons = { default-features = false, version = "0.10" }
 dioxus-primitives = { default-features = false, git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
 email_address = "0.2"
-es-fluent = "0.19.0"
-es-fluent-build = "0.19.0"
-es-fluent-lang = "0.19.0"
-es-fluent-manager-dioxus = { default-features = false, version = "0.8.0" }
-es-fluent-manager-embedded = "0.19.0"
+es-fluent = "0.20.1"
+es-fluent-build = "0.20.1"
+es-fluent-lang = "0.20.1"
+es-fluent-manager-dioxus = { default-features = false, version = "0.20.1" }
+es-fluent-manager-embedded = "0.20.1"
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"
 insta = "1.48"
 inventory = "0.3"
-koruma = { path = "crates/koruma", version = "0.12.0" }
-koruma-collection = { path = "crates/koruma-collection", version = "0.12.0" }
-koruma-core = { path = "crates/koruma-core", version = "0.12.0" }
-koruma-derive = { path = "crates/koruma-derive", version = "0.12.0" }
-koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.12.0" }
+koruma = { path = "crates/koruma", version = "0.12.1" }
+koruma-collection = { path = "crates/koruma-collection", version = "0.12.1" }
+koruma-core = { path = "crates/koruma-core", version = "0.12.1" }
+koruma-derive = { path = "crates/koruma-derive", version = "0.12.1" }
+koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.12.1" }
 lsp-types = "0.97"
 paste = "1.0"
 phonenumber = "0.3"
@@ -59,9 +59,9 @@ rust-embed = "8.12"
 rust_decimal = "1.43"
 serde_json = "1.0"
 smallvec = "1.16"
-stayhydated-dioxus = { git = "https://github.com/stayhydated/shared", rev = "809946144fe13b04a57ba17677c4c699143f4786" }
-stayhydated-site = { git = "https://github.com/stayhydated/shared", rev = "809946144fe13b04a57ba17677c4c699143f4786" }
-stayhydated-xtask = { git = "https://github.com/stayhydated/shared", rev = "809946144fe13b04a57ba17677c4c699143f4786" }
+stayhydated-dioxus = { git = "https://github.com/stayhydated/shared", rev = "14df45a56f8fa847f816cf297c7b36dffb77ea1e" }
+stayhydated-site = { git = "https://github.com/stayhydated/shared", rev = "14df45a56f8fa847f816cf297c7b36dffb77ea1e" }
+stayhydated-xtask = { git = "https://github.com/stayhydated/shared", rev = "14df45a56f8fa847f816cf297c7b36dffb77ea1e" }
 strum = "0.28"
 syn = "3.0"
 tempfile = "3"

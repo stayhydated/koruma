@@ -15,7 +15,7 @@ es-fluent = { workspace = true }
 koruma-derive = { features = ["fluent"], workspace = true }
 renamed-koruma = { default-features = false, features = [
   "fluent",
-], package = "koruma", path = "../../crates/koruma", version = "0.12.1" }
+], package = "koruma", path = "../../crates/koruma", version = "0.12.2" }
 trybuild = { workspace = true }
 
 [lints]

@@ -17,12 +17,16 @@ dioxus_showcase_message-ValidationPlaceholder = 输入待校验内容
 
 sales_form_message-ClearAction = 清空
 sales_form_message-CompanyLabel = 公司
+# es-fluent: same-as-fallback
 sales_form_message-CompanyPlaceholder = Northwind Robotics
 sales_form_message-ContactNameLabel = 联系人姓名
+# es-fluent: same-as-fallback
 sales_form_message-ContactNamePlaceholder = Ava Patel
 sales_form_message-DealValueLabel = 交易金额
+# es-fluent: same-as-fallback
 sales_form_message-DealValuePlaceholder = 82000
 sales_form_message-EmailLabel = 工作邮箱
+# es-fluent: same-as-fallback
 sales_form_message-EmailPlaceholder = ava.patel@northwind.example
 sales_form_message-FieldCompany = 公司
 sales_form_message-FieldContactName = 联系人姓名
@@ -43,12 +47,14 @@ sales_form_message-NextStepPlaceholder = 周五前发送采购资料。
 sales_form_message-PanelLabel = 应用表单验证
 sales_form_message-PhoneHint = 可选；填写时必须是有效号码。
 sales_form_message-PhoneLabel = 电话
+# es-fluent: same-as-fallback
 sales_form_message-PhonePlaceholder = +14155552671
 sales_form_message-RuleOptional = 电话和来源 URL 可以留空；填写后仍会验证格式。
 sales_form_message-RuleRequired = 公司、联系人、邮箱、交易金额、阶段和下一步为必填。
 sales_form_message-RulesTitle = 规则
 sales_form_message-SourceUrlHint = 销售机会的可选来源链接。
 sales_form_message-SourceUrlLabel = 来源 URL
+# es-fluent: same-as-fallback
 sales_form_message-SourceUrlPlaceholder = https://northwind.example/security-review
 sales_form_message-StageLabel = 阶段
 sales_form_message-StagePlaceholder = 选择阶段

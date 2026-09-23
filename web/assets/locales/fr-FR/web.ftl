@@ -3,7 +3,9 @@
 dioxus_showcase_message-ErrorPrefix = Erreur :
 dioxus_showcase_message-MessageHeadingError = Erreur
 dioxus_showcase_message-MessageHeadingResult = Résultat
+# es-fluent: same-as-fallback
 dioxus_showcase_message-ModuleCollection = Collection
+# es-fluent: same-as-fallback
 dioxus_showcase_message-ModuleFormat = Format
 dioxus_showcase_message-ModuleGeneral = Général
 dioxus_showcase_message-ModuleNumeric = Numérique
@@ -17,12 +19,16 @@ dioxus_showcase_message-ValidationPlaceholder = Saisir une valeur à valider
 
 sales_form_message-ClearAction = Effacer
 sales_form_message-CompanyLabel = Société
+# es-fluent: same-as-fallback
 sales_form_message-CompanyPlaceholder = Northwind Robotics
 sales_form_message-ContactNameLabel = Nom du contact
+# es-fluent: same-as-fallback
 sales_form_message-ContactNamePlaceholder = Ava Patel
 sales_form_message-DealValueLabel = Montant
+# es-fluent: same-as-fallback
 sales_form_message-DealValuePlaceholder = 82000
 sales_form_message-EmailLabel = E-mail professionnel
+# es-fluent: same-as-fallback
 sales_form_message-EmailPlaceholder = ava.patel@northwind.example
 sales_form_message-FieldCompany = Société
 sales_form_message-FieldContactName = Nom du contact
@@ -43,12 +49,14 @@ sales_form_message-NextStepPlaceholder = Envoyer le dossier d'achat avant vendre
 sales_form_message-PanelLabel = validation appliquée
 sales_form_message-PhoneHint = Facultatif, mais doit être valide quand il est renseigné.
 sales_form_message-PhoneLabel = Téléphone
+# es-fluent: same-as-fallback
 sales_form_message-PhonePlaceholder = +14155552671
 sales_form_message-RuleOptional = Téléphone et URL source peuvent être vides ; les valeurs saisies valident quand même leur format.
 sales_form_message-RuleRequired = Société, contact, e-mail, montant, étape et prochaine action sont requis.
 sales_form_message-RulesTitle = Règles
 sales_form_message-SourceUrlHint = Lien source facultatif pour l'opportunité.
 sales_form_message-SourceUrlLabel = URL source
+# es-fluent: same-as-fallback
 sales_form_message-SourceUrlPlaceholder = https://northwind.example/security-review
 sales_form_message-StageLabel = Étape
 sales_form_message-StagePlaceholder = Sélectionner une étape

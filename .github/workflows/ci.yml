@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Check FTL files
-        uses: stayhydated/es-fluent/crates/es-fluent-cli@es-fluent-cli-v0.20.1
+        uses: stayhydated/es-fluent/crates/es-fluent-cli@es-fluent-cli-v0.20.3
         with:
           path: .
           all_locales: true

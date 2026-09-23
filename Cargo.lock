@@ -148,9 +148,9 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "attribute-dsl"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "118ba8d18025376ad3d22d745ee7a6edb0adce34f26cfdb7eb3b2dd429f36a5d"
+checksum = "4ba4ae4c97f89eaa9121d345c22dd5d8475486cf08e105b08a07ba6524e110f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1613,14 +1613,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
 name = "es-fluent"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa834e517e697c8f3b238a2ef56c270e7342e14403bb412ac593f28ef8ac67ef"
+checksum = "6b8e10615a8c0be687d678668201434627ec89ae23ea2204a8b45ea21aeff230"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
@@ -1632,9 +1632,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-build"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea082ef4444522045bb7e4b35e5a22801b3344156d7b2328cfddc764d302e740"
+checksum = "a044d8294de1ab81713048f6ec88ebca9e269d685b9b1cde856466a32388d419"
 dependencies = [
  "es-fluent-shared",
  "es-fluent-toml",
@@ -1642,9 +1642,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf95bce64eb6e581591efb0e10f77557500f13fa21205f06804a892b466aff60"
+checksum = "c02967251dcbee6e67e38d03632d850a80328e733ee408141b379f366e78b254"
 dependencies = [
  "darling 0.24.1",
  "es-fluent-derive-core",
@@ -1656,9 +1656,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-derive-core"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "980efec2cc0660d6acfbc13e79852314156e21e03bebdd2e76719d5e77f9451f"
+checksum = "111844b368a89f59586244b75fab1afea778a996cc5e8ca760673c924812a93d"
 dependencies = [
  "bon",
  "darling 0.24.1",
@@ -1677,9 +1677,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed48eaf19f9526cff2af607423ea25d32736c285bc211e1abac066845d214748"
+checksum = "4483ed879db1aa9835915ab7e68727b29d399bc2dbd1f755f5129fe5c474ed66"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1694,9 +1694,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-lang-macro"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c47ffb7378982be47025a86ae84e4f5c20e34df64aba4eb989a4d8562be78a51"
+checksum = "7322e2f51631980e929ba8e2a6ac1a40f0b73ceae7bbf0c0d16ee2006b1e0004"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
@@ -1709,9 +1709,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-core"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70f3817851b0000be9551f462e191d98f51c15f73c33b8145c39bde76bc233d1"
+checksum = "cbd82255cbce1ffa6dbb1fea6ab10607913e3a3f899ae6fe1f6a5c1492ab6d30"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1729,9 +1729,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-dioxus"
-version = "0.8.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "756b159a643e606631169a0e0bcba7d20bc577f19b1baf5b8750c88fca3033ac"
+checksum = "1551b91e77beb9e05a09fa7e3c6811772fc1b8fac285e79095ffc18b50845df2"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1753,9 +1753,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-embedded"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d39430820179df9a79fa2563ab0ec4bd3eda32ac9a4ddf4118930c890d421294"
+checksum = "17475e39aaa25be6b6f9a4085034c9db7c6bc0ae8acb57beb58900bc025954ef"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1767,9 +1767,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-manager-macros"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0011e776fb56ce7b3c8c234e0e0f4f9a08e3f0766c60be207251cce82f4b4119"
+checksum = "78ef28ad96e8c3c4c0cbdb062c921ccf94b92a966fb838740f241626706edd2d"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-shared",
@@ -1784,9 +1784,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-shared"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "00e737b3b5e6efdc6b1530ee9c7a1072f9f62092b08be50713f10f9ab3c67876"
+checksum = "d6e31a4b02f3396b07ffa07f77faee45f7bd4467ff622980d89bd17c1985560a"
 dependencies = [
  "anyhow",
  "camino",
@@ -1808,9 +1808,9 @@ dependencies = [
 
 [[package]]
 name = "es-fluent-toml"
-version = "0.19.0"
+version = "0.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa83f4354f6ad2ba31106dede29e239e4c199a6e8dee5c2c4604373cf1fb71e2"
+checksum = "05bd4899d477cf204864ec0f747a4c39370e0f33eb6be5c021b468a828fdef09"
 dependencies = [
  "bon",
  "es-fluent-shared",
@@ -3996,7 +3996,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4329,7 +4329,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -4895,7 +4895,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -5763,7 +5763,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

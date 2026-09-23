@@ -24,7 +24,7 @@ version = "0.12.1"
 
 [workspace.dependencies]
 anyhow = "1.0"
-attribute-dsl = "0.2.0"
+attribute-dsl = "0.2.1"
 bon = "3.10"
 card-validate = "2.4"
 clap = "4.6"
@@ -32,11 +32,11 @@ dioxus = { default-features = false, version = "0.7" }
 dioxus-free-icons = { default-features = false, version = "0.10" }
 dioxus-primitives = { default-features = false, git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
 email_address = "0.2"
-es-fluent = "0.19.0"
-es-fluent-build = "0.19.0"
-es-fluent-lang = "0.19.0"
-es-fluent-manager-dioxus = { default-features = false, version = "0.8.0" }
-es-fluent-manager-embedded = "0.19.0"
+es-fluent = "0.20.1"
+es-fluent-build = "0.20.1"
+es-fluent-lang = "0.20.1"
+es-fluent-manager-dioxus = { default-features = false, version = "0.20.1" }
+es-fluent-manager-embedded = "0.20.1"
 fluent-syntax = "0.12"
 heck = "0.5"
 idna = "1.1"

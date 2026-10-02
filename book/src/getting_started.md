@@ -5,7 +5,7 @@ field-specific errors.
 
 ## Prerequisites
 
-Install Rust 1.98 or newer and start in a Rust package where you can edit `Cargo.toml` and
+Install Rust 1.99 or newer and start in a Rust package where you can edit `Cargo.toml` and
 `src/main.rs`.
 
 ## Add Koruma

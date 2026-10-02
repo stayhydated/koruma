@@ -45,5 +45,6 @@ note: required for `ItemValueKorumaValidationError` to implement `FluentMessage`
    |
 17 | #[derive(Koruma, KorumaAllFluent)]
    |                  ^^^^^^^^^^^^^^^ type parameter would need to implement `FluentMessage`
-   = help: consider manually implementing `FluentMessage` to avoid undesired bounds
+   = help: consider manually implementing `FluentMessage` to avoid undesired bounds caused by "imperfect derives"
+   = note: to learn more, visit <https://github.com/rust-lang/rust/issues/26925>
    = note: this error originates in the derive macro `KorumaAllFluent` (in Nightly builds, run with -Z macro-backtrace for more info)

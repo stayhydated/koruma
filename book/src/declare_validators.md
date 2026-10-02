@@ -148,3 +148,5 @@ runtime values.
 Booleans, integers through 64 bits, `isize`/`usize`, floats, `String`/`&str`, and one `Option`
 layer around those types use concrete `ValidatorParamValue` variants. Other parameter types are
 reported as opaque, so enabling metadata does not add trait bounds to the validator.
+Borrowed scalar parameters, including nested references and optional borrowed scalars, report the
+referenced value through the same concrete variants.

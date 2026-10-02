@@ -16,6 +16,9 @@ The package provides:
 - `#[derive(KorumaAllDisplay)]` for displayable failed-validator views; and
 - `#[derive(KorumaAllFluent)]` with the `fluent` feature for localized views.
 
+Validator metadata reports borrowed scalar configuration values through the same concrete variants
+as owned scalars, including nested references and optional borrowed scalar parameters.
+
 [codecov-badge]: https://codecov.io/gh/stayhydated/koruma/branch/master/graph/badge.svg?component=koruma-derive
 [codecov]: https://codecov.io/gh/stayhydated/koruma
 [crate-badge]: https://img.shields.io/crates/v/koruma-derive.svg?label=koruma-derive

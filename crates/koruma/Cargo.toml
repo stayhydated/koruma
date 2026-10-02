@@ -29,5 +29,8 @@ internal-showcase = [
 [package.metadata.docs.rs]
 features = [ "derive", "fluent" ]
 
+[dev-dependencies]
+proptest = { workspace = true }
+
 [lints]
 workspace = true

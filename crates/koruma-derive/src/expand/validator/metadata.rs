@@ -76,15 +76,16 @@ pub(super) fn validator_param_value_expr(
         };
     }
 
+    let scalar_value = dereference_scalar_value(value.clone(), ty);
     match simple_type_name(ty).as_deref() {
-        Some("bool") => quote! { #koruma::ValidatorParamValue::Bool(#value) },
+        Some("bool") => quote! { #koruma::ValidatorParamValue::Bool(#scalar_value) },
         Some("i8" | "i16" | "i32" | "i64" | "isize") => {
-            quote! { #koruma::ValidatorParamValue::I64(#value as i64) }
+            quote! { #koruma::ValidatorParamValue::I64(#scalar_value as i64) }
         },
         Some("u8" | "u16" | "u32" | "u64" | "usize") => {
-            quote! { #koruma::ValidatorParamValue::U64(#value as u64) }
+            quote! { #koruma::ValidatorParamValue::U64(#scalar_value as u64) }
         },
-        Some("f32" | "f64") => quote! { #koruma::ValidatorParamValue::F64(#value as f64) },
+        Some("f32" | "f64") => quote! { #koruma::ValidatorParamValue::F64(#scalar_value as f64) },
         Some("String") => quote! { #koruma::ValidatorParamValue::String(#value.clone()) },
         Some("str") if matches!(ty, Type::Reference(_)) => {
             quote! { #koruma::ValidatorParamValue::String(#value.to_string()) }
@@ -98,20 +99,30 @@ pub(super) fn validator_param_ref_value_expr(
     ty: &Type,
     koruma: &TokenStream2,
 ) -> TokenStream2 {
+    let scalar_value = dereference_scalar_value(quote! { *#value }, ty);
     match simple_type_name(ty).as_deref() {
-        Some("bool") => quote! { #koruma::ValidatorParamValue::Bool(*#value) },
+        Some("bool") => quote! { #koruma::ValidatorParamValue::Bool(#scalar_value) },
         Some("i8" | "i16" | "i32" | "i64" | "isize") => {
-            quote! { #koruma::ValidatorParamValue::I64(*#value as i64) }
+            quote! { #koruma::ValidatorParamValue::I64(#scalar_value as i64) }
         },
         Some("u8" | "u16" | "u32" | "u64" | "usize") => {
-            quote! { #koruma::ValidatorParamValue::U64(*#value as u64) }
+            quote! { #koruma::ValidatorParamValue::U64(#scalar_value as u64) }
         },
-        Some("f32" | "f64") => quote! { #koruma::ValidatorParamValue::F64(*#value as f64) },
+        Some("f32" | "f64") => quote! { #koruma::ValidatorParamValue::F64(#scalar_value as f64) },
         Some("String") | Some("str") => {
             quote! { #koruma::ValidatorParamValue::String(#value.to_string()) }
         },
         _ => quote! { #koruma::ValidatorParamValue::opaque(#value) },
     }
+}
+
+fn dereference_scalar_value(mut value: TokenStream2, mut ty: &Type) -> TokenStream2 {
+    // Metadata owns Copy scalars even when the configuration stores references.
+    while let Type::Reference(reference) = ty {
+        value = quote! { (*#value) };
+        ty = &reference.elem;
+    }
+    value
 }
 
 pub(super) fn simple_type_name(ty: &Type) -> Option<String> {

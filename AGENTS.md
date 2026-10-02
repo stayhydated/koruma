@@ -26,6 +26,8 @@ in `crates/koruma-collection`. Use `just --list` for the local command index.
   `skills/use-koruma` reference in the same change.
 - Crate READMEs are included in rustdocs with `include_str!`. Treat their Rust
   snippets as crate documentation examples.
+- The root README and `crates/koruma-collection/README.md` share the `Signup`
+  example. Keep them aligned; the collection crate's doctest checks that example.
 - Keep application documentation example-first. Keep implementation rationale
   close to source module docs, comments, tests, snapshots, and UI fixtures.
 - When validator inventory or feature requirements change, synchronize
@@ -36,6 +38,11 @@ in `crates/koruma-collection`. Use `just --list` for the local command index.
   `crates/koruma-derive/README.md`, `crates/koruma-derive-core/README.md`, the
   relevant book pages, and `skills/use-koruma/references/koruma-feature-map.md`.
   Update the affected trybuild fixtures and expansion snapshots with the code.
+- Validator metadata values are exercised by
+  `tests/koruma-derive-fixtures/tests/borrowed_metadata.rs`, which runs the
+  `ui-pass/borrowed_metadata.rs` fixture. Keep this runtime check alongside the
+  compile-pass coverage when changing scalar references, optional values, or
+  opaque parameter handling.
 
 ## Validators and localization
 
@@ -69,14 +76,22 @@ when changes span the workspace.
 | Change | Check |
 | --- | --- |
 | Runtime behavior or built-in validators | `cargo test -p koruma --all-features --locked` or `cargo test -p koruma-collection --all-features --locked` |
+| Optional-element and Unicode-length properties | `cargo test -p koruma -p koruma-collection --all-features --locked` |
 | Macro expansion or parsing | `cargo test -p koruma-derive -p koruma-derive-core --all-features --locked` |
 | Compile-time macro contracts | `cargo test -p koruma-derive-fixtures --all-features --locked` |
 | Executable usage examples | `cargo run -p readme --locked` |
 | Rustdoc rendering and links | `cargo doc --workspace --all-features --no-deps --locked` |
-| Crate README or rustdoc examples | `cargo test -p koruma -p koruma-collection --doc --all-features --locked` |
+| Crate README or rustdoc examples | `cargo test -p koruma -p koruma-collection -p koruma-core -p koruma-derive -p koruma-derive-core --doc --all-features --locked` |
 | Book rendering | `MDBOOK_BUILD__CREATE_MISSING=false mdbook build book` |
 | Markdown formatting | `rumdl check .` |
 | Display/FTL synchronization | `cargo xtask sync-display-ftl --check` |
 
 Report which checks ran and their results. Distinguish static review, failed
 attempts, and successful validation.
+
+Property tests use bounded generators in
+`crates/koruma/tests/integration/tests/properties.rs` and
+`crates/koruma-collection/tests/length_properties.rs`. Recompute expected element
+indices after shrinking collections. Keep minimized failures as focused
+regressions or reviewed proptest regression files. Criterion is not part of this
+workspace's validation strategy.

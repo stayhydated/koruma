@@ -34,7 +34,8 @@ use showcase_modules::{expand_showcase_module_enum_macro, expand_showcase_module
 ///   configuration field is named `actual`, `input`, or `value`, or when
 ///   marking setters leaves exactly one unmarked value field
 /// - Emits `ValidatorMetadata<T>` with static parameter descriptors and runtime
-///   parameter values for tooling
+///   parameter values for tooling, including the values of borrowed scalar
+///   parameters and optional borrowed scalars
 ///
 /// # Example (non-generic)
 ///

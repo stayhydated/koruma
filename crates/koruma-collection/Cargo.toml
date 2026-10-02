@@ -29,6 +29,9 @@ smallvec = { optional = true, workspace = true }
 [build-dependencies]
 es-fluent-build = { workspace = true }
 
+[dev-dependencies]
+proptest = { workspace = true }
+
 [features]
 default = [ "fmt" ]
 full = [ "url", "credit-card", "phone-number", "email", "regex", "smallvec", "rust_decimal" ]

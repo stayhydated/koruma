@@ -24,3 +24,4 @@ include!("tests/borrowing.rs");
 include!("tests/optional_full_targets.rs");
 include!("tests/nesting.rs");
 include!("tests/newtypes.rs");
+include!("tests/properties.rs");

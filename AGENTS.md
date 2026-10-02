@@ -76,6 +76,7 @@ when changes span the workspace.
 | Change | Check |
 | --- | --- |
 | Runtime behavior or built-in validators | `cargo test -p koruma --all-features --locked` or `cargo test -p koruma-collection --all-features --locked` |
+| Optional-element and Unicode-length properties | `cargo test -p koruma -p koruma-collection --all-features --locked` |
 | Macro expansion or parsing | `cargo test -p koruma-derive -p koruma-derive-core --all-features --locked` |
 | Compile-time macro contracts | `cargo test -p koruma-derive-fixtures --all-features --locked` |
 | Executable usage examples | `cargo run -p readme --locked` |
@@ -87,3 +88,10 @@ when changes span the workspace.
 
 Report which checks ran and their results. Distinguish static review, failed
 attempts, and successful validation.
+
+Property tests use bounded generators in
+`crates/koruma/tests/integration/tests/properties.rs` and
+`crates/koruma-collection/tests/length_properties.rs`. Recompute expected element
+indices after shrinking collections. Keep minimized failures as focused
+regressions or reviewed proptest regression files. Criterion is not part of this
+workspace's validation strategy.

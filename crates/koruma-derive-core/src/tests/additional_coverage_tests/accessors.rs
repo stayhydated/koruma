@@ -1,4 +1,5 @@
 use super::support::*;
+use std::assert_matches;
 
 #[test]
 fn parsed_semantic_nodes_keep_actionable_source_markers() {
@@ -14,10 +15,10 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
         field_spec.validator().label().map(ToString::to_string),
         Some("required".to_owned())
     );
-    assert!(matches!(
+    assert_matches!(
         field_spec.validator().target(),
         ValidatorTargetSelector::Full { .. }
-    ));
+    );
 
     let DataFieldKorumaItem::ElementValidation(element_spec) = &data_attr.items()[1] else {
         panic!("expected element validator");
@@ -29,10 +30,10 @@ fn parsed_semantic_nodes_keep_actionable_source_markers() {
             .map(ToString::to_string),
         Some("item_required".to_owned())
     );
-    assert!(matches!(
+    assert_matches!(
         element_spec.validators()[0].target(),
         ValidatorTargetSelector::Unwrapped { .. }
-    ));
+    );
 }
 
 #[test]

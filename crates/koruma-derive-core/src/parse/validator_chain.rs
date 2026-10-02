@@ -197,8 +197,7 @@ impl ValidatorAttr {
             .segments
             .iter()
             .map(|segment| segment.ident.to_string().to_upper_camel_case())
-            .collect::<Vec<_>>()
-            .join("")
+            .collect()
     }
 
     /// Returns whether this validator has any arguments.

@@ -2,3 +2,8 @@
 
 [files]
 extend-exclude = [ "*.ftl", "*.snap" ]
+
+# Intentional unknown-attribute diagnostics and whitespace-stripped Rust tokens.
+[default.extend-words]
+inself = "inself"
+modul = "modul"

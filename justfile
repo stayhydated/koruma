@@ -10,6 +10,16 @@ fmt:
     taplo fmt
     rumdl fmt .
 
+quality:
+    cargo fmt --all -- --check
+    cargo fmt --manifest-path ci/feature-consumer/Cargo.toml -- --check
+    taplo fmt --check
+    rumdl check .
+    cargo sort-derives --check
+    typos
+    actionlint
+    git ls-files -z '*.sh' '*.bash' | xargs -0 --no-run-if-empty shellcheck
+
 clippy:
     cargo clippy --workspace --all-features --all-targets --locked -- -D warnings
 
@@ -25,7 +35,7 @@ cov:
 test-docs:
     cargo doc --workspace --all-features --no-deps --locked --open
 
-ci: fmt check clippy test cov
+ci: quality check clippy test cov
 
 book:
     mdbook serve book

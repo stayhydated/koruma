@@ -29,8 +29,7 @@ field. This complete example accepts ages of at least 13 and inspects an invalid
 age through the generated accessor.
 
 ```rust
-# use koruma::*;
-use koruma::{Koruma, Validate, validator};
+use koruma::*;
 
 #[validator]
 #[derive(Debug)]

@@ -26,8 +26,7 @@ The five public packages below require Rust 1.99 or newer.
 
 This complete example uses `koruma` with its default `derive` feature and
 `koruma-collection`; these two validators need no optional integration features.
-An empty username and an age below 13 produce separate typed failures. The same
-example is checked as a doctest in the collection package.
+An empty username and an age below 13 produce separate typed failures.
 
 ```rust
 use koruma::Koruma;

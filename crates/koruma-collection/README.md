@@ -37,8 +37,7 @@ when default features are disabled.
 
 This complete example uses `koruma` with its default `derive` feature and
 `koruma-collection`; these two validators need no optional integration features.
-An empty username and an age below 13 produce separate typed failures. This
-example is also shown in the workspace README and checked by this crate's doctests.
+An empty username and an age below 13 produce separate typed failures.
 
 ```rust
 use koruma::Koruma;

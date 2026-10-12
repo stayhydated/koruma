@@ -111,7 +111,7 @@ mod tests {
         let fr = koruma_localizer_for(&langid!("fr-FR")).expect("fr-FR should be supported");
         assert_eq!(
             fr.try_localize_message(&validator).as_deref(),
-            Some("Ne doit pas \u{00ea}tre vide.")
+            Some("Ne doit pas être vide.")
         );
 
         let zh = koruma_localizer_for(&langid!("zh-CN")).expect("zh-CN should be supported");

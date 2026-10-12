@@ -1,0 +1,31 @@
+[package]
+name = "koruma-feature-consumer"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# A separate workspace prevents the main workspace from enabling these features.
+[workspace]
+
+[dependencies]
+koruma = { default-features = false, optional = true, path = "../../crates/koruma" }
+koruma-collection = { default-features = false, optional = true, path = "../../crates/koruma-collection" }
+koruma-core = { default-features = false, optional = true, path = "../../crates/koruma-core" }
+rust_decimal = { optional = true, version = "1.43" }
+
+[features]
+collection-default = [ "dep:koruma", "dep:koruma-collection", "koruma-collection/default" ]
+collection-fluent = [ "dep:koruma", "dep:koruma-collection", "koruma-collection/fluent" ]
+collection-minimal = [ "dep:koruma", "dep:koruma-collection" ]
+collection-selected = [
+  "dep:koruma",
+  "dep:koruma-collection",
+  "koruma-collection/email",
+  "koruma-collection/rust_decimal",
+  "dep:rust_decimal",
+]
+core-fluent = [ "dep:koruma-core", "koruma-core/fluent" ]
+core-minimal = [ "dep:koruma-core" ]
+facade-default = [ "dep:koruma", "koruma/default" ]
+facade-fluent = [ "dep:koruma", "koruma/fluent" ]
+facade-minimal = [ "dep:koruma" ]

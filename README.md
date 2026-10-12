@@ -5,23 +5,29 @@
 [![Book][book-badge]][book]
 [![crates.io: koruma][koruma-badge]][koruma-crate]
 
-Koruma adds reusable validators to Rust struct fields and generates strongly typed validation
-errors. Use `koruma` for derives and core traits, then add `koruma-collection` for built-in
-string, format, numeric, collection, and presence rules.
+Koruma adds reusable validators to Rust struct fields and generates typed validation errors.
+Applications start with [`koruma`][koruma-readme] for derives and core traits, then use
+[`koruma-collection`][koruma-collection-readme] for built-in string, format, numeric, collection,
+and presence rules.
 
-Koruma requires Rust 1.99 or newer.
+The five public packages below require Rust 1.99 or newer.
 
 ## Crates
 
-| Crate | Purpose | Source |
-| --- | --- | --- |
-| `koruma` | Application-facing derives and validation traits | [README][koruma-readme] |
-| `koruma-collection` | Reusable validators and optional localization support | [README][koruma-collection-readme] |
-| `koruma-core` | Integration traits and validation error types | [README][koruma-core-readme] |
-| `koruma-derive` | Procedural macros and generated validation APIs | [README][koruma-derive-readme] |
-| `koruma-derive-core` | Attribute parsers and typed models for tooling and macros | [README][koruma-derive-core-readme] |
+| Crate | Purpose |
+| --- | --- |
+| [`koruma`][koruma-readme] | Application facade with validation traits and optional macro re-exports. |
+| [`koruma-collection`][koruma-collection-readme] | Built-in validators with optional format, value-type, and localization integrations. |
+| [`koruma-core`][koruma-core-readme] | Runtime contracts and error types for handwritten integrations. |
+| [`koruma-derive`][koruma-derive-readme] | Procedural macros, normally accessed through `koruma`'s `derive` feature. |
+| [`koruma-derive-core`][koruma-derive-core-readme] | Attribute parsers and typed models for macro and analysis tooling. |
 
 ## Example
+
+This complete example uses `koruma` with its default `derive` feature and
+`koruma-collection`; these two validators need no optional integration features.
+An empty username and an age below 13 produce separate typed failures. The same
+example is checked as a doctest in the collection package.
 
 ```rust
 use koruma::Koruma;
@@ -37,15 +43,18 @@ struct Signup {
 }
 
 fn main() {
-    let errors = Signup {
+    let signup = Signup {
         username: String::new(),
         age: 8,
-    }
-    .validate()
-    .expect_err("invalid signup should fail");
+    };
 
-    assert!(errors.username().non_empty_validation().is_some());
-    assert!(errors.age().range_validation().is_some());
+    match signup.validate() {
+        Ok(()) => println!("Signup is valid"),
+        Err(errors) => {
+            assert!(errors.username().non_empty_validation().is_some());
+            assert!(errors.age().range_validation().is_some());
+        }
+    }
 }
 ```
 

@@ -1,7 +1,16 @@
 # xtask
 
-This crate is the repository's internal maintenance CLI. Run commands from the workspace root and
-use `cargo xtask --help` for the complete argument reference.
+`xtask` is the repository's internal maintenance CLI for synchronizing validator
+messages and generating the public documentation and site.
+
+Requires Rust 1.99 or newer.
+
+## Commands
+
+Run these commands from the workspace root. The synchronization command reads
+English templates under `crates/koruma-collection/i18n/`; the documentation
+generators read `book/src`, and the site build reads `web`. Use
+`cargo xtask --help` for the complete argument reference.
 
 | Command | Purpose |
 | --- | --- |

@@ -8,7 +8,7 @@ non_empty_string_validation = 输入字符串“{ $input }”不能为空。
 
 ## Only67Validation
 
-only67_validation = 值 { $actual } 不是67 :(
+only67_validation = 值 { $actual } 不是 67 :(
 
 ## PositiveNumberValidation
 

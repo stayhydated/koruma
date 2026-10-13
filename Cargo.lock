@@ -1619,8 +1619,7 @@ dependencies = [
 [[package]]
 name = "es-fluent"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dfc5b493c8f211fd856cdba007ba661c3c33ebec01002147bc051998c71d81ca"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent-derive",
  "es-fluent-manager-core",
@@ -1633,8 +1632,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-build"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdcc5aff663f7564897eb9d1d862065310a120f85ea7fb0aca89fb4a1920b12b"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent-shared",
  "es-fluent-toml",
@@ -1643,8 +1641,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3dd52ac3bf46ad093dedf468e8bc7b622d1ad6d7a88bdfdd9dbbfb573463919"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "darling 0.24.1",
  "es-fluent-derive-core",
@@ -1657,8 +1654,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-derive-core"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e61e344185449cc524bd118c7e8118a6a9ea4dee2869695dd0d24d8d2c3a30d"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "bon",
  "darling 0.24.1",
@@ -1678,8 +1674,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "377c7034a7ad5e652a4d3c90c4b0a86c4c6bf3366f7b379fff3722df1ec5f7dc"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent-lang-macro",
  "es-fluent-manager-core",
@@ -1695,8 +1690,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-lang-macro"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8039a898d07abd7c084239570b38c4392ad17c9e503746101e8f0132c797a2aa"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-toml",
@@ -1710,8 +1704,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-core"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "22725c5bcbb6390187c4688de4b442a06eb0e60b72c4ae8ddd2f0bdf265ba6f9"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent-shared",
  "fluent-bundle",
@@ -1730,8 +1723,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-dioxus"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81180c48badecbf46984a2c31ae2bfd9452735f446dbbbe35beaf174c9552ac3"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1754,8 +1746,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-embedded"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec0e47e25f32ba7c314fd1c971bec63a5125b76e905ab1155245a37a24039655"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent",
  "es-fluent-manager-core",
@@ -1768,8 +1759,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-manager-macros"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c6355df2d85cbdd8c31f44cb421073d4f6786783f20a00056fd231fb16f0c86"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "es-fluent-derive-core",
  "es-fluent-shared",
@@ -1785,8 +1775,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-shared"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a99228b13659e7809740d69f7b2415d4ffba773fa7d24ecf6f9fd573a4050097"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "anyhow",
  "camino",
@@ -1809,8 +1798,7 @@ dependencies = [
 [[package]]
 name = "es-fluent-toml"
 version = "0.21.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b36cb1a297eff2c6798d065fa914b3fbd0e6b8d2d38262c60311c8be4b261d31"
+source = "git+https://github.com/stayhydated/es-fluent?rev=6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c#6eeb6057ae4796916ab5adfc1f1b4badd5b76a6c"
 dependencies = [
  "bon",
  "es-fluent-shared",
@@ -4022,7 +4010,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4282,9 +4270,9 @@ dependencies = [
 
 [[package]]
 name = "rust-embed"
-version = "8.12.0"
+version = "8.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9e7760e252aaba7b09f4be00e36476cf585bdb68a53552ac954cdf504ab4bc9"
+checksum = "19afa5b4b6a611de00bd1bdae6ae6f39084c9399f0679c3f52d8469cf335cc23"
 dependencies = [
  "rust-embed-impl",
  "rust-embed-utils",
@@ -4293,9 +4281,9 @@ dependencies = [
 
 [[package]]
 name = "rust-embed-impl"
-version = "8.12.0"
+version = "8.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bcfc4d6f53af43755f7a723e4b6b8794fcce052a178dd8c6c1dadc5f5343097"
+checksum = "e0d8afda6374eac59e066abee06d265247ebbaf3006cf878e2879e8356e34053"
 dependencies = [
  "mime_guess",
  "proc-macro2",
@@ -4307,9 +4295,9 @@ dependencies = [
 
 [[package]]
 name = "rust-embed-utils"
-version = "8.12.0"
+version = "8.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42ffa149f6aa81b58a5b3011d01a857c4ed12c7a732d2c51947a4c7c692185f0"
+checksum = "0d84e8ba78bd384263e5922f084cbe1b081c3b7e69add59c8fb097b879ba968a"
 dependencies = [
  "globset",
  "sha2 0.11.0",
@@ -4713,7 +4701,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "stayhydated-dioxus"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=d9c54bbb850b58b822458a6a15eb75ba64034a31#d9c54bbb850b58b822458a6a15eb75ba64034a31"
+source = "git+https://github.com/stayhydated/shared?rev=75a8361e55f9e435c7f7484924ac4486a61e38e7#75a8361e55f9e435c7f7484924ac4486a61e38e7"
 dependencies = [
  "bon",
  "dioxus",
@@ -4727,7 +4715,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-dioxus-core"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=d9c54bbb850b58b822458a6a15eb75ba64034a31#d9c54bbb850b58b822458a6a15eb75ba64034a31"
+source = "git+https://github.com/stayhydated/shared?rev=75a8361e55f9e435c7f7484924ac4486a61e38e7#75a8361e55f9e435c7f7484924ac4486a61e38e7"
 dependencies = [
  "bytemuck",
  "derive_more",
@@ -4744,7 +4732,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-site"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=d9c54bbb850b58b822458a6a15eb75ba64034a31#d9c54bbb850b58b822458a6a15eb75ba64034a31"
+source = "git+https://github.com/stayhydated/shared?rev=75a8361e55f9e435c7f7484924ac4486a61e38e7#75a8361e55f9e435c7f7484924ac4486a61e38e7"
 dependencies = [
  "derive_more",
  "dioxus",
@@ -4754,7 +4742,7 @@ dependencies = [
 [[package]]
 name = "stayhydated-xtask"
 version = "0.1.0"
-source = "git+https://github.com/stayhydated/shared?rev=d9c54bbb850b58b822458a6a15eb75ba64034a31#d9c54bbb850b58b822458a6a15eb75ba64034a31"
+source = "git+https://github.com/stayhydated/shared?rev=75a8361e55f9e435c7f7484924ac4486a61e38e7#75a8361e55f9e435c7f7484924ac4486a61e38e7"
 dependencies = [
  "anyhow",
  "bon",
@@ -5806,7 +5794,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

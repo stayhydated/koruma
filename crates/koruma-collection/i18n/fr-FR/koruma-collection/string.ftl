@@ -12,7 +12,7 @@ canonical_form_validation = Doit déjà être sous forme canonique.
 
 ## ContainsValidation
 
-contains_validation = Doit contenir la sous-chaîne « { $substring } ».
+contains_validation = Doit contenir la sous-chaîne « { $substring } ».
 
 ## MatchesValidation
 
@@ -24,8 +24,8 @@ pattern_validation = Ne correspond pas au motif requis.
 
 ## PrefixValidation
 
-prefix_validation = Doit commencer par « { $prefix } ».
+prefix_validation = Doit commencer par « { $prefix } ».
 
 ## SuffixValidation
 
-suffix_validation = Doit se terminer par « { $suffix } ».
+suffix_validation = Doit se terminer par « { $suffix } ».

@@ -21,7 +21,12 @@ use crate::site::{
     routing::PageKind,
 };
 
-const SALES_STAGES: &[&str] = &["Discovery", "Qualified", "Proposal", "Procurement"];
+const SALES_STAGES: &[(&str, SalesFormMessage)] = &[
+    ("Discovery", SalesFormMessage::StageDiscovery),
+    ("Qualified", SalesFormMessage::StageQualified),
+    ("Proposal", SalesFormMessage::StageProposal),
+    ("Procurement", SalesFormMessage::StageProcurement),
+];
 const SALES_FIELD_COUNT: usize = 8;
 
 #[derive(Clone, Debug, Koruma, KorumaAllDisplay, KorumaAllFluent)]
@@ -77,7 +82,7 @@ struct SalesLeadDraft {
 }
 
 impl SalesLeadDraft {
-    fn valid_sample() -> Self {
+    fn valid_sample(next_step: impl Into<String>) -> Self {
         Self::builder()
             .company("Northwind Robotics")
             .contact_name("Ava Patel")
@@ -86,7 +91,7 @@ impl SalesLeadDraft {
             .deal_value("82000")
             .stage("Proposal")
             .source_url("https://northwind.example/security-review")
-            .next_step("Send procurement package before Friday.")
+            .next_step(next_step)
             .build()
     }
 
@@ -120,6 +125,29 @@ impl SalesLeadDraft {
 impl Default for SalesLeadDraft {
     fn default() -> Self {
         Self::invalid_sample()
+    }
+}
+
+/// UI state for the simulated submission. Every edit starts a new draft.
+#[derive(Default)]
+struct SalesDemoState {
+    draft: SalesLeadDraft,
+    submitted: bool,
+}
+
+impl SalesDemoState {
+    fn edit(&mut self) -> &mut SalesLeadDraft {
+        self.submitted = false;
+        &mut self.draft
+    }
+
+    fn replace(&mut self, draft: SalesLeadDraft) {
+        self.draft = draft;
+        self.submitted = false;
+    }
+
+    fn submit(&mut self) {
+        self.submitted = SalesLeadForm::from(&self.draft).validate().is_ok();
     }
 }
 
@@ -254,8 +282,14 @@ fn SalesFormContent() -> Element {
         },
     };
 
-    let mut draft = use_signal(SalesLeadDraft::default);
-    let current = draft.read().clone();
+    let mut demo = use_signal(SalesDemoState::default);
+    let current = demo.read().draft.clone();
+    let submitted = demo.read().submitted;
+    let sample_next_step = i18n.localize_message(&SalesFormMessage::NextStepPlaceholder);
+    let stage_options = SALES_STAGES
+        .iter()
+        .map(|(value, message)| (*value, i18n.localize_message(message)))
+        .collect();
     let koruma_language = i18n.requested_language();
     let feedback = validate_sales_draft(&current, &koruma_language);
     let field_labels = SalesFieldLabels::builder()
@@ -302,7 +336,7 @@ fn SalesFormContent() -> Element {
                             button {
                                 class: "sales-sample-button",
                                 r#type: "button",
-                                onclick: move |_| draft.set(SalesLeadDraft::valid_sample()),
+                                onclick: move |_| demo.write().replace(SalesLeadDraft::valid_sample(sample_next_step.clone())),
                                 Icon {
                                     class: "sales-button-icon".to_string(),
                                     width: 17,
@@ -314,7 +348,7 @@ fn SalesFormContent() -> Element {
                             button {
                                 class: "sales-sample-button",
                                 r#type: "button",
-                                onclick: move |_| draft.set(SalesLeadDraft::invalid_sample()),
+                                onclick: move |_| demo.write().replace(SalesLeadDraft::invalid_sample()),
                                 Icon {
                                     class: "sales-button-icon".to_string(),
                                     width: 17,
@@ -326,7 +360,7 @@ fn SalesFormContent() -> Element {
                             button {
                                 class: "sales-sample-button",
                                 r#type: "button",
-                                onclick: move |_| draft.set(SalesLeadDraft::empty()),
+                                onclick: move |_| demo.write().replace(SalesLeadDraft::empty()),
                                 Icon {
                                     class: "sales-button-icon".to_string(),
                                     width: 17,
@@ -350,7 +384,7 @@ fn SalesFormContent() -> Element {
                                 input_type: "text",
                                 hint: None,
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().company = event.value();
+                                    demo.write().edit().company = event.value();
                                 }),
                             })}
                             {sales_text_field(SalesTextField {
@@ -366,7 +400,7 @@ fn SalesFormContent() -> Element {
                                 input_type: "text",
                                 hint: None,
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().contact_name = event.value();
+                                    demo.write().edit().contact_name = event.value();
                                 }),
                             })}
                             {sales_text_field(SalesTextField {
@@ -382,7 +416,7 @@ fn SalesFormContent() -> Element {
                                 input_type: "email",
                                 hint: None,
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().email = event.value();
+                                    demo.write().edit().email = event.value();
                                 }),
                             })}
                             {sales_text_field(SalesTextField {
@@ -398,7 +432,7 @@ fn SalesFormContent() -> Element {
                                 input_type: "tel",
                                 hint: Some(i18n.localize_message(&SalesFormMessage::PhoneHint)),
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().phone = event.value();
+                                    demo.write().edit().phone = event.value();
                                 }),
                             })}
                             {sales_text_field(SalesTextField {
@@ -414,10 +448,11 @@ fn SalesFormContent() -> Element {
                                 input_type: "number",
                                 hint: None,
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().deal_value = event.value();
+                                    demo.write().edit().deal_value = event.value();
                                 }),
                             })}
                             {sales_select_field(SalesSelectField {
+                                options: stage_options,
                                 ui: SalesFieldUi::new(
                                     "sales-stage",
                                     i18n.localize_message(&SalesFormMessage::StageLabel),
@@ -428,7 +463,7 @@ fn SalesFormContent() -> Element {
                                     feedback.stage.clone(),
                                 ),
                                 on_change: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().stage = event.value();
+                                    demo.write().edit().stage = event.value();
                                 }),
                             })}
                             {sales_text_field(SalesTextField {
@@ -444,7 +479,7 @@ fn SalesFormContent() -> Element {
                                 input_type: "url",
                                 hint: Some(i18n.localize_message(&SalesFormMessage::SourceUrlHint)),
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().source_url = event.value();
+                                    demo.write().edit().source_url = event.value();
                                 }),
                             })}
                             {sales_text_area(SalesTextArea {
@@ -458,7 +493,7 @@ fn SalesFormContent() -> Element {
                                     feedback.next_step.clone(),
                                 ),
                                 on_input: EventHandler::new(move |event: Event<FormData>| {
-                                    draft.write().next_step = event.value();
+                                    demo.write().edit().next_step = event.value();
                                 }),
                             })}
                         }
@@ -469,14 +504,19 @@ fn SalesFormContent() -> Element {
                                 "{i18n.localize_message(&SalesFormMessage::SummaryTitle)}"
                             }
                             h2 {
-                                if is_valid {
+                                if submitted {
+                                    "{i18n.localize_message(&SalesFormMessage::SummarySubmittedTitle)}"
+                                } else if is_valid {
                                     "{i18n.localize_message(&SalesFormMessage::SummaryValidTitle)}"
                                 } else {
                                     "{i18n.localize_message(&SalesFormMessage::SummaryInvalidTitle)}"
                                 }
                             }
                             p {
-                                if is_valid {
+                                role: "status",
+                                if submitted {
+                                    "{i18n.localize_message(&SalesFormMessage::SummarySubmittedBody)}"
+                                } else if is_valid {
                                     "{i18n.localize_message(&SalesFormMessage::SummaryValidBody)}"
                                 } else {
                                     "{i18n.localize_message(&SalesFormMessage::SummaryInvalidBody)}"
@@ -510,14 +550,19 @@ fn SalesFormContent() -> Element {
                         button {
                             class: "sales-submit-button",
                             r#type: "button",
-                            disabled: !is_valid,
+                            disabled: !is_valid || submitted,
+                            onclick: move |_| demo.write().submit(),
                             Icon {
                                 class: "sales-button-icon".to_string(),
                                 width: 17,
                                 height: 17,
                                 icon: LdSend,
                             }
-                            "{i18n.localize_message(&SalesFormMessage::SubmitAction)}"
+                            if submitted {
+                                "{i18n.localize_message(&SalesFormMessage::SubmittedAction)}"
+                            } else {
+                                "{i18n.localize_message(&SalesFormMessage::SubmitAction)}"
+                            }
                         }
                     }
                 }
@@ -566,6 +611,7 @@ struct SalesTextField {
 }
 
 struct SalesSelectField {
+    options: Vec<(&'static str, String)>,
     ui: SalesFieldUi,
     on_change: EventHandler<Event<FormData>>,
 }
@@ -618,7 +664,11 @@ fn sales_text_field(field: SalesTextField) -> Element {
 }
 
 fn sales_select_field(field: SalesSelectField) -> Element {
-    let SalesSelectField { ui, on_change } = field;
+    let SalesSelectField {
+        ui,
+        options,
+        on_change,
+    } = field;
     let SalesFieldUi {
         input_id,
         status,
@@ -647,8 +697,8 @@ fn sales_select_field(field: SalesSelectField) -> Element {
                 value,
                 onchange: on_change,
                 option { value: "", "{placeholder}" }
-                for stage in SALES_STAGES {
-                    option { value: "{stage}", "{stage}" }
+                for (stage, label) in options {
+                    option { value: "{stage}", "{label}" }
                 }
             }
             {field_hint_and_errors(None, errors)}
@@ -782,5 +832,52 @@ fn parse_deal_value(value: &str) -> Option<f64> {
         None
     } else {
         value.parse().ok()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use unic_langid::langid;
+
+    #[test]
+    fn localized_valid_sample_keeps_stable_payload_values() {
+        let sample = SalesLeadDraft::valid_sample("Envoyer le dossier d’achat avant vendredi.");
+        assert_eq!(
+            sample.next_step,
+            "Envoyer le dossier d’achat avant vendredi."
+        );
+        assert_eq!(sample.stage, "Proposal");
+        assert!(validate_sales_draft(&sample, &langid!("fr-FR")).is_valid());
+        assert_eq!(
+            SALES_STAGES
+                .iter()
+                .map(|(value, _)| *value)
+                .collect::<Vec<_>>(),
+            ["Discovery", "Qualified", "Proposal", "Procurement"]
+        );
+    }
+
+    #[test]
+    fn submission_requires_valid_data_and_clears_on_edit_or_reset() {
+        let mut demo = SalesDemoState::default();
+        demo.submit();
+        assert!(!demo.submitted);
+        demo.replace(SalesLeadDraft::valid_sample(
+            "Send procurement package before Friday.",
+        ));
+        demo.submit();
+        assert!(demo.submitted);
+        demo.edit().company.clear();
+        assert!(!demo.submitted);
+        demo.submit();
+        assert!(!demo.submitted);
+        demo.replace(SalesLeadDraft::valid_sample(
+            "Send procurement package before Friday.",
+        ));
+        demo.submit();
+        assert!(demo.submitted);
+        demo.replace(SalesLeadDraft::empty());
+        assert!(!demo.submitted);
     }
 }

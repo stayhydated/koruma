@@ -1,10 +1,10 @@
 ## AlphanumericValidation
 
-alphanumeric_validation = 必须只包含字母和数字。
+alphanumeric_validation = 只能包含字母和数字。
 
 ## AsciiValidation
 
-ascii_validation = 必须只包含 ASCII 字符。
+ascii_validation = 只能包含 ASCII 字符。
 
 ## CanonicalFormValidation
 
@@ -20,7 +20,7 @@ matches_validation = 与期望值不匹配。
 
 ## PatternValidation
 
-pattern_validation = 不匹配所需的模式。
+pattern_validation = 与要求的模式不匹配。
 
 ## PrefixValidation
 

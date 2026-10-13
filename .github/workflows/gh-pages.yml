@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   deploy:
-    uses: stayhydated/shared/.github/workflows/deploy-pages.yml@d9c54bbb850b58b822458a6a15eb75ba64034a31
+    uses: stayhydated/shared/.github/workflows/deploy-pages.yml@75a8361e55f9e435c7f7484924ac4486a61e38e7
     with:
       build-command: |
         cargo xtask build book

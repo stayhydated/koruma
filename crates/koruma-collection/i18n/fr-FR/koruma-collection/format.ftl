@@ -1,24 +1,24 @@
 ## CreditCardValidation
 
-credit_card_validation = N'est pas un numéro de carte de crédit valide.
+credit_card_validation = Le numéro de carte de crédit n'est pas valide.
 
 ## EmailValidation
 
-email_validation = N'est pas une adresse e-mail valide.
+email_validation = L'adresse e-mail n'est pas valide.
 
 ## IpValidation
 
 ip_validation =
-    Ce n'est pas une adresse { $kind ->
+    L'adresse { $kind ->
         [v4] IPv4
         [v6] IPv6
        *[other] IP
-    } valide.
+    } n'est pas valide.
 
 ## PhoneNumberValidation
 
-phone_number_validation = N'est pas un numéro de téléphone valide.
+phone_number_validation = Le numéro de téléphone n'est pas valide.
 
 ## UrlValidation
 
-url_validation = N'est pas une URL valide.
+url_validation = L'URL n'est pas valide.

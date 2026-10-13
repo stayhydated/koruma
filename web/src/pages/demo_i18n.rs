@@ -1,4 +1,4 @@
-use crate::pages::i18n::DemoLanguage;
+use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage};
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
 use stayhydated_dioxus::select;
@@ -15,6 +15,7 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
         },
     };
 
+    let language_label = i18n.localize_message(&DioxusShowcaseMessage::LanguageLabel);
     let requested_language = i18n.requested_language();
     let selected = DemoLanguage::try_from(&requested_language).unwrap_or_default();
     let mut selected_value = use_signal(move || Some(selected));
@@ -44,14 +45,14 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
 
     rsx! {
         div { class: "locale-switcher-dropdown",
-            span { class: "locale-label", "Language" }
+            span { class: "locale-label", "{language_label}" }
             select::Select::<DemoLanguage> {
                 value: Some(selected_value.into()),
                 on_value_change,
                 select::SelectTrigger {
-                    aria_label: "Language",
+                    aria_label: language_label.clone(),
                     select::SelectValue {
-                        placeholder: "Language",
+                        placeholder: language_label,
                         class: Some("header-locale-value".to_string()),
                     }
                 }

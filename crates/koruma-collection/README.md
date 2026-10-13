@@ -2,6 +2,7 @@
 
 [![Codecov: koruma-collection][codecov-badge]][codecov]
 [![crates.io: koruma-collection][crate-badge]][crate]
+[![Crowdin][crowdin-badge]][crowdin]
 
 `koruma-collection` provides reusable string, format, numeric, collection, and presence validators
 for applications built with the [Koruma project][project]. Depend on it directly alongside
@@ -72,6 +73,8 @@ fn main() {
 [codecov]: https://codecov.io/gh/stayhydated/koruma
 [crate-badge]: https://img.shields.io/crates/v/koruma-collection.svg?label=koruma-collection
 [crate]: https://crates.io/crates/koruma-collection
+[crowdin-badge]: https://badges.crowdin.net/koruma-collection/localized.svg
+[crowdin]: https://crowdin.com/project/koruma-collection
 [project]: https://github.com/stayhydated/koruma
 [koruma]: https://crates.io/crates/koruma
 [api]: https://docs.rs/koruma-collection/latest/koruma_collection/

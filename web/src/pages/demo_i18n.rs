@@ -16,6 +16,9 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
     };
 
     let language_label = i18n.localize_message(&DioxusShowcaseMessage::LanguageLabel);
+    let search_placeholder =
+        i18n.localize_message(&DioxusShowcaseMessage::SearchLanguagesPlaceholder);
+    let empty_message = i18n.localize_message(&DioxusShowcaseMessage::NoMatchingLanguages);
     let requested_language = i18n.requested_language();
     let selected = DemoLanguage::try_from(&requested_language).unwrap_or_default();
     let mut selected_value = use_signal(move || Some(selected));
@@ -27,8 +30,8 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
         }
     });
 
-    let options = DemoLanguage::iter()
-        .map(|language| (language, i18n.localize_message(&language)))
+    let items = DemoLanguage::iter()
+        .map(|language| select::SelectItem::new(language, i18n.localize_message(&language)))
         .collect::<Vec<_>>();
     let on_value_change = move |next_language: Option<DemoLanguage>| {
         let Some(next_language) = next_language else {
@@ -46,41 +49,13 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
     rsx! {
         div { class: "locale-switcher-dropdown",
             span { class: "locale-label", "{language_label}" }
-            select::Select::<DemoLanguage> {
+            select::SearchableSelect::<DemoLanguage> {
+                items,
+                aria_label: language_label,
+                placeholder: search_placeholder,
+                empty_message,
                 value: Some(selected_value.into()),
                 on_value_change,
-                select::SelectTrigger {
-                    aria_label: language_label.clone(),
-                    select::SelectValue {
-                        placeholder: language_label,
-                        class: Some("header-locale-value".to_string()),
-                    }
-                }
-                select::SelectList {
-                    for (index, (language, option_label)) in options.iter().enumerate() {
-                        {
-                            let active = Some(*language) == selected_value();
-                            let option_class = if active {
-                                "header-locale-option is-active".to_string()
-                            } else {
-                                "header-locale-option".to_string()
-                            };
-                            rsx! {
-                                select::SelectOption::<DemoLanguage> {
-                                    key: "{language:?}",
-                                    index,
-                                    value: *language,
-                                    text_value: Some(option_label.clone()),
-                                    class: Some(option_class),
-                                    "{option_label}"
-                                    if active {
-                                        select::SelectItemIndicator {}
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }

@@ -40,6 +40,8 @@ pub(crate) enum DioxusShowcaseMessage {
     ErrorPrefix,
     ValidationPassed,
     LanguageLabel,
+    SearchLanguagesPlaceholder,
+    NoMatchingLanguages,
 }
 
 #[derive(Clone, Copy, Debug, EsFluent)]

@@ -12,6 +12,8 @@ dioxus_showcase_message-ModuleGeneral = General
 # es-fluent: same-as-fallback
 dioxus_showcase_message-ModuleNumeric = Numeric
 dioxus_showcase_message-ModuleString = Șiruri
+dioxus_showcase_message-NoMatchingLanguages = Nicio limbă corespunzătoare.
+dioxus_showcase_message-SearchLanguagesPlaceholder = Căutați limbi…
 dioxus_showcase_message-ShowcaseIntroBody = Explorați comportamentul validatorilor cu mesaje în limba aleasă, oferite de Project Fluent.
 dioxus_showcase_message-ShowcaseIntroTitle = Demonstrație Dioxus koruma-collection
 dioxus_showcase_message-ShowcasePanelLabel = prezentare interactivă

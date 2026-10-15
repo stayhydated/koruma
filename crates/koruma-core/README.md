@@ -26,7 +26,6 @@ No features are enabled by default.
 
 | Feature | Default | Purpose |
 | --- | --- | --- |
-| `default` | Yes | Enables no additional features. |
 | `fluent` | No | Enables `es-fluent` contracts used by localized validation and showcase rendering. |
 | `internal-showcase` | No | Internal site support: enables dynamic validator registration with `anyhow`, `inventory`, and `koruma-derive/internal-showcase`. |
 

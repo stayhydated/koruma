@@ -9,4 +9,5 @@
 - [Validate nested data](nested_validation.md)
 - [Validate newtypes and construct checked values](newtype_pattern.md)
 - [koruma-collection](koruma_collection.md)
+- [Build integrations and attribute tooling](integrations.md)
 - [Troubleshooting](troubleshooting.md)

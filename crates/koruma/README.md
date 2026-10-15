@@ -17,7 +17,6 @@ The default feature set is `derive`. Runtime traits remain available without it.
 
 | Feature | Default | Purpose |
 | --- | --- | --- |
-| `default` | Yes | Enables `derive`. |
 | `derive` | Yes | Re-exports `Koruma`, `KorumaAllDisplay`, and `#[validator]` from `koruma-derive`. |
 | `fluent` | No | Enables `koruma-core/fluent` and forwards `fluent` to an enabled derive dependency; `KorumaAllFluent` also requires `derive`. |
 | `internal-showcase` | No | Internal site support: enables `inventory`, `koruma-core/internal-showcase`, and showcase support in an enabled derive dependency. |
@@ -51,14 +50,14 @@ struct Signup {
 }
 
 fn main() {
-    match (Signup { age: 8 }).validate() {
-        Ok(()) => println!("Signup is valid"),
-        Err(errors) => {
-            if let Some(failure) = errors.age().minimum_age() {
-                assert_eq!(*failure.actual(), 8);
-            }
-        }
-    }
+    let errors = (Signup { age: 8 })
+        .validate()
+        .expect_err("age 8 is below the minimum of 13");
+    let failure = errors
+        .age()
+        .minimum_age()
+        .expect("the minimum-age rule must fail");
+    assert_eq!(*failure.actual(), 8);
 }
 ```
 

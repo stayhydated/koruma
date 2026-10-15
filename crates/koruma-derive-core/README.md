@@ -23,7 +23,6 @@ No features are enabled by default.
 
 | Feature | Default | Purpose |
 | --- | --- | --- |
-| `default` | Yes | Enables no additional features. |
 | `internal-showcase` | No | Internal site support: exposes showcase attribute parsers, input kinds, and module metadata. |
 
 ## Example

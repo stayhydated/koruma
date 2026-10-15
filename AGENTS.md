@@ -14,7 +14,7 @@ in `crates/koruma-collection`. Use `just --list` for the local command index.
 | `crates/koruma-derive-core` | Public parsers and typed models for Koruma attributes |
 | `tests/koruma-derive-fixtures` | Compile-pass and compile-fail validation of macro contracts |
 | `examples/readme` | Canonical executable usage examples and shared Fluent assets |
-| `book/src` | Application-developer guides and validator reference |
+| `book/src` | Application and integration guides, attribute-tooling workflow, and validator reference |
 | `skills/use-koruma` | Application-developer skill and its feature and validator references |
 | `web` | Public Dioxus site and showcase demos |
 | `xtask` | Internal generation and maintenance commands; see `xtask/README.md` |

@@ -11,7 +11,7 @@ publish = false
 koruma = { default-features = false, optional = true, path = "../../crates/koruma" }
 koruma-collection = { default-features = false, optional = true, path = "../../crates/koruma-collection" }
 koruma-core = { default-features = false, optional = true, path = "../../crates/koruma-core" }
-rust_decimal = { optional = true, version = "1.43" }
+rust_decimal = { optional = true, version = "1.43.0" }
 
 [features]
 collection-default = [ "dep:koruma", "dep:koruma-collection", "koruma-collection/default" ]

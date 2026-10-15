@@ -20,7 +20,6 @@ when default features are disabled.
 
 | Feature | Default | Purpose |
 | --- | --- | --- |
-| `default` | Yes | Enables `fmt`. |
 | `credit-card` | No | Enables `format::CreditCardValidation` through `card-validate`. |
 | `email` | No | Enables `format::EmailValidation` through `email_address`. |
 | `fluent` | No | Enables localized messages, embedded Fluent resources, and `koruma/fluent` through `es-fluent`, `es-fluent-manager-embedded`, and `rust-embed`. |

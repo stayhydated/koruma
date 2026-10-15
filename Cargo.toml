@@ -23,52 +23,52 @@ rust-version = "1.99"
 version = "0.13.0"
 
 [workspace.dependencies]
-anyhow = "1.0"
+anyhow = "1.0.104"
 attribute-dsl = "0.2.2"
-bon = "3.10"
-card-validate = "2.4"
-clap = "4.6"
-dioxus = { default-features = false, version = "0.7" }
-dioxus-free-icons = { default-features = false, version = "0.10" }
+bon = "3.10.2"
+card-validate = "2.4.0"
+clap = "4.6.7"
+dioxus = { default-features = false, version = "0.7.10" }
+dioxus-free-icons = { default-features = false, version = "0.10.0" }
 dioxus-primitives = { default-features = false, git = "https://github.com/DioxusLabs/components", version = "0.0.1" }
-email_address = "0.2"
+email_address = "0.2.9"
 es-fluent = "0.21.0"
 es-fluent-build = "0.21.0"
 es-fluent-lang = "0.21.0"
 es-fluent-manager-dioxus = { default-features = false, version = "0.21.0" }
 es-fluent-manager-embedded = "0.21.0"
-fluent-syntax = "0.12"
-heck = "0.5"
-idna = "1.1"
-insta = "1.49"
-inventory = "0.3"
+fluent-syntax = "0.12.0"
+heck = "0.5.0"
+idna = "1.1.0"
+insta = "1.49.0"
+inventory = "0.3.25"
 koruma = { path = "crates/koruma", version = "0.13.0" }
 koruma-collection = { path = "crates/koruma-collection", version = "0.13.0" }
 koruma-core = { path = "crates/koruma-core", version = "0.13.0" }
 koruma-derive = { path = "crates/koruma-derive", version = "0.13.0" }
 koruma-derive-core = { path = "crates/koruma-derive-core", version = "0.13.0" }
-lsp-types = "0.97"
-paste = "1.0"
-phonenumber = "0.3"
-prettyplease = "0.3"
-proc-macro-crate = "3.5"
-proc-macro2 = "1.0"
-proptest = { default-features = false, features = [ "std" ], version = "1.11" }
-quote = "1.0"
-regex = "1.13"
-rust-embed = "8.12"
-rust_decimal = "1.43"
-serde_json = "1.0"
-smallvec = "1.16"
-stayhydated-dioxus = { git = "https://github.com/stayhydated/shared", rev = "d9c54bbb850b58b822458a6a15eb75ba64034a31" }
-stayhydated-site = { git = "https://github.com/stayhydated/shared", rev = "d9c54bbb850b58b822458a6a15eb75ba64034a31" }
-stayhydated-xtask = { git = "https://github.com/stayhydated/shared", rev = "d9c54bbb850b58b822458a6a15eb75ba64034a31" }
-strum = "0.28"
-syn = "3.0"
-tempfile = "3"
-trybuild = "1.0"
-unic-langid = "0.9"
-url = "2.5"
+lsp-types = "0.97.0"
+paste = "1.0.15"
+phonenumber = "0.3.10"
+prettyplease = "0.3.0"
+proc-macro-crate = "3.5.0"
+proc-macro2 = "1.0.107"
+proptest = { default-features = false, features = [ "std" ], version = "1.12.0" }
+quote = "1.0.47"
+regex = "1.13.1"
+rust-embed = "8.13.0"
+rust_decimal = "1.43.0"
+serde_json = "1.0.154"
+smallvec = "1.16.3"
+stayhydated-dioxus = { git = "https://github.com/stayhydated/shared", rev = "3136b369bb54312096ad83ba74735aab29109835" }
+stayhydated-site = { git = "https://github.com/stayhydated/shared", rev = "3136b369bb54312096ad83ba74735aab29109835" }
+stayhydated-xtask = { git = "https://github.com/stayhydated/shared", rev = "3136b369bb54312096ad83ba74735aab29109835" }
+strum = "0.28.0"
+syn = "3.0.9"
+tempfile = "3.27.0"
+trybuild = "1.0.122"
+unic-langid = "0.9.6"
+url = "2.5.8"
 web = { path = "web" }
 
 [profile.dev]

@@ -5,7 +5,7 @@ through generated, strongly typed error accessors. Use `koruma` for the derive m
 traits, and add `koruma-collection` when its built-in validators fit your rules.
 
 This book is for application developers who are comfortable defining Rust structs and adding Cargo
-dependencies. It covers the complete consumer workflow:
+dependencies. It covers the application workflow:
 
 - get a working validation result with built-in validators;
 - define domain-specific validators with `#[validator]`;
@@ -17,3 +17,7 @@ dependencies. It covers the complete consumer workflow:
 Start with [Get started](getting_started.md) for a runnable path. Use the later chapters as focused
 guides and references, and see [Troubleshooting](troubleshooting.md) when a derive or validator
 configuration does not compile.
+
+For handwritten runtime adapters or source-analysis tools, see
+[Build integrations and attribute tooling](integrations.md). That chapter explains
+when to use the public runtime and parser packages directly.

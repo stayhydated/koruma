@@ -11,9 +11,13 @@ This guide assumes the application already has an
 
 ```toml
 [dependencies]
-koruma = { version = "0.12", features = ["derive", "fluent"] }
-es-fluent = "0.19"
+koruma = { version = "0.13", features = ["derive", "fluent"] }
+es-fluent = "0.21"
 ```
+
+Koruma 0.13 uses es-fluent 0.21. Keep the application localizer and its es-fluent
+manager dependencies on that same version line so their `FluentMessage` traits
+match.
 
 For localized built-in validators, also add `koruma-collection` with `fluent`, or use
 `full-fluent` when the optional validators are needed.

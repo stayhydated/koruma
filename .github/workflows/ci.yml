@@ -121,7 +121,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Check FTL files
-        uses: stayhydated/es-fluent/crates/es-fluent-cli@es-fluent-cli-v0.21.0
+        uses: stayhydated/es-fluent/crates/es-fluent-cli@es-fluent-cli-v0.21.1
         with:
           toolchain: "stable"
           path: .

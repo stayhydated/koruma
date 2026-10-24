@@ -892,7 +892,7 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "koruma"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "koruma-core",
  "koruma-derive",
@@ -900,7 +900,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-collection"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "email_address",
  "es-fluent",
@@ -913,14 +913,14 @@ dependencies = [
 
 [[package]]
 name = "koruma-core"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "es-fluent",
 ]
 
 [[package]]
 name = "koruma-derive"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "heck",
  "koruma-derive-core",
@@ -932,7 +932,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive-core"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "attribute-dsl",
  "heck",

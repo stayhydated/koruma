@@ -2899,7 +2899,7 @@ checksum = "a4933f3f57a8e9d9da04db23fb153356ecaf00cbd14aee46279c33dc80925c37"
 
 [[package]]
 name = "koruma"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "inventory",
  "koruma-core",
@@ -2909,7 +2909,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-collection"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "card-validate",
@@ -2930,7 +2930,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-core"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "es-fluent",
@@ -2940,7 +2940,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "es-fluent",
  "heck",
@@ -2957,7 +2957,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive-core"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "attribute-dsl",
  "heck",
@@ -2969,7 +2969,7 @@ dependencies = [
 
 [[package]]
 name = "koruma-derive-fixtures"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "es-fluent",
  "koruma",
@@ -4175,7 +4175,7 @@ checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
 name = "readme"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "es-fluent",
  "es-fluent-build",
@@ -5645,7 +5645,7 @@ dependencies = [
 
 [[package]]
 name = "web"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "bon",
  "dioxus",
@@ -6157,7 +6157,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xtask"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "clap",

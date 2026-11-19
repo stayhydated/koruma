@@ -1,4 +1,6 @@
 #![doc = include_str!("../README.md")]
+// Embed all five validator catalogs for every supported locale.
+#![recursion_limit = "256"]
 
 mod validators;
 pub use validators::*;

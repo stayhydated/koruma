@@ -1,6 +1,6 @@
 ## NegativeValidation
 
-negative_validation = Doit être négatif.
+negative_validation = Doit être strictement négatif.
 
 ## NonNegativeValidation
 
@@ -12,7 +12,7 @@ non_positive_validation = Doit être nul ou négatif.
 
 ## PositiveValidation
 
-positive_validation = Doit être positif.
+positive_validation = Doit être strictement positif.
 
 ## RangeValidation
 

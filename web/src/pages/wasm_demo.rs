@@ -12,7 +12,9 @@ use stayhydated_dioxus::{
 };
 
 use crate::pages::DemoLanguageSwitcher;
-use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage, koruma_localizer_for};
+use crate::pages::i18n::{
+    DemoLanguage, DioxusShowcaseMessage, ShowcaseValidatorMessage, koruma_localizer_for,
+};
 use crate::site::{
     constants::{PROJECT, VERSION},
     routing::PageKind,
@@ -26,6 +28,8 @@ enum ValidatorState {
 }
 
 struct ValidatorRowMessages {
+    name: String,
+    description: String,
     validation_message: String,
     error_message: Option<String>,
     input_placeholder: String,
@@ -99,6 +103,8 @@ fn CollectionDioxusShowcase() -> Element {
         i18n.localize_message(&DioxusShowcaseMessage::ErrorPrefix),
     );
     let koruma_language = i18n.requested_language();
+    let koruma_localizer = koruma_localizer_for(&koruma_language);
+    let validation_passed = i18n.localize_message(&DioxusShowcaseMessage::ValidationPassed);
 
     let mut inputs = use_signal(HashMap::<&'static str, String>::new);
 
@@ -167,7 +173,8 @@ fn CollectionDioxusShowcase() -> Element {
                                                     Ok(v) => (
                                                         localized_validator_message(
                                                             v.as_ref(),
-                                                            &koruma_language,
+                                                            koruma_localizer,
+                                                            &validation_passed,
                                                         ),
                                                         None,
                                                     ),
@@ -181,9 +188,15 @@ fn CollectionDioxusShowcase() -> Element {
                                                 "validator-{module_key}-{}",
                                                 validator.name.to_lowercase().replace(' ', "-")
                                             );
+                                            let (name, description) = match showcase_messages(validator) {
+                                                Some((name, description)) => (
+                                                    i18n.localize_message(&name),
+                                                    i18n.localize_message(&description),
+                                                ),
+                                                None => (validator.name.to_string(), validator.description.to_string()),
+                                            };
                                             validator_row(
                                                 input_id,
-                                                validator,
                                                 input,
                                                 EventHandler::new({
                                                     move |event: Event<FormData>| {
@@ -194,6 +207,8 @@ fn CollectionDioxusShowcase() -> Element {
                                                 }),
                                                 current_state,
                                                 ValidatorRowMessages {
+                                                    name,
+                                                    description,
                                                     validation_message,
                                                     error_message: error_msg,
                                                     input_placeholder: validation_placeholder.clone(),
@@ -214,7 +229,6 @@ fn CollectionDioxusShowcase() -> Element {
 
 fn validator_row(
     input_id: String,
-    validator: &ValidatorShowcase,
     input: String,
     on_input: EventHandler<Event<FormData>>,
     state: ValidatorState,
@@ -226,11 +240,11 @@ fn validator_row(
             Label {
                 html_for: input_id.clone(),
                 class: "validator-row-label".to_string(),
-                "{validator.name}"
+                "{messages.name}"
             }
             span { class: "validator-status", "{state.status_emoji()}" }
         }
-        p { class: "validator-row-description", "{validator.description}" }
+        p { class: "validator-row-description", "{messages.description}" }
         input {
             id: input_id,
             class: "validator-input",
@@ -239,7 +253,7 @@ fn validator_row(
             placeholder: messages.input_placeholder,
             oninput: on_input,
         }
-            p { class: "validator-message-heading", "{messages.message_heading}:" }
+            p { class: "validator-message-heading", "{messages.message_heading}" }
             {
                 match messages.error_message {
                     Some(error) => rsx! {
@@ -256,10 +270,15 @@ fn validator_row(
 
 fn localized_validator_message(
     validator: &dyn DynValidator,
-    language: &unic_langid::LanguageIdentifier,
+    localizer: Option<&es_fluent_manager_embedded::EmbeddedI18n>,
+    validation_passed: &str,
 ) -> String {
+    if validator.is_valid() {
+        return validation_passed.to_string();
+    }
+
     let fallback = validator.display_string();
-    let Some(localizer) = koruma_localizer_for(language) else {
+    let Some(localizer) = localizer else {
         return fallback;
     };
 
@@ -299,5 +318,82 @@ fn module_name(module: ValidatorModule, i18n: &DioxusAssetI18nHandle) -> String 
             i18n.localize_message(&DioxusShowcaseMessage::ModuleCollection)
         },
         ValidatorModule::General => i18n.localize_message(&DioxusShowcaseMessage::ModuleGeneral),
+    }
+}
+
+// Match stable showcase metadata while keeping display copy in the web catalogs.
+fn showcase_messages(
+    validator: &ValidatorShowcase,
+) -> Option<(ShowcaseValidatorMessage, ShowcaseValidatorMessage)> {
+    use ShowcaseValidatorMessage::*;
+    Some(match validator.name {
+        "Alphanumeric" => (AlphanumericName, AlphanumericDescription),
+        "ASCII" => (AsciiName, AsciiDescription),
+        "Canonical Form" => (CanonicalFormName, CanonicalFormDescription),
+        "Contains 'test'" => (ContainsName, ContainsDescription),
+        "Matches Value" => (MatchesName, MatchesDescription),
+        "Regex Pattern" => (PatternName, PatternDescription),
+        "Prefix 'hello'" => (PrefixName, PrefixDescription),
+        "Suffix '.rs'" => (SuffixName, SuffixDescription),
+        "Credit Card" => (CreditCardName, CreditCardDescription),
+        "Email" => (EmailName, EmailDescription),
+        "IP Address" => (IpName, IpDescription),
+        "Phone Number" => (PhoneName, PhoneDescription),
+        "URL" => (UrlName, UrlDescription),
+        "Negative Number" => (NegativeName, NegativeDescription),
+        "Non-Negative Number" => (NonNegativeName, NonNegativeDescription),
+        "Non-Positive Number" => (NonPositiveName, NonPositiveDescription),
+        "Positive Number" => (PositiveName, PositiveDescription),
+        "Range [0, 100)" => (RangeName, RangeDescription),
+        "Length" => (LengthName, LengthDescription),
+        "NonEmpty" => (NonEmptyName, NonEmptyDescription),
+        _ => return None,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use unic_langid::langid;
+
+    #[test]
+    fn every_builtin_showcase_has_localizable_metadata() {
+        __link_showcase_validators();
+        let registered = validators();
+        assert!(!registered.is_empty());
+        for validator in registered {
+            assert!(
+                showcase_messages(validator).is_some(),
+                "{} needs localized metadata",
+                validator.name
+            );
+        }
+    }
+
+    #[test]
+    fn valid_showcase_inputs_show_success_instead_of_failure_text() {
+        __link_showcase_validators();
+        let matches = validators()
+            .into_iter()
+            .find(|validator| validator.name == "Matches Value")
+            .unwrap();
+        let valid = (matches.create_validator)("expected").unwrap();
+        let invalid = (matches.create_validator)("different").unwrap();
+        let localizer =
+            es_fluent_manager_embedded::EmbeddedI18n::try_new_with_language(langid!("en-US"))
+                .unwrap();
+        assert_eq!(
+            localized_validator_message(valid.as_ref(), Some(&localizer), "Validation passed."),
+            "Validation passed."
+        );
+        assert_eq!(
+            localized_validator_message(invalid.as_ref(), Some(&localizer), "Validation passed."),
+            "Does not match the expected value."
+        );
+        localizer.select_language(langid!("fr-FR")).unwrap();
+        assert_eq!(
+            localized_validator_message(invalid.as_ref(), Some(&localizer), "Validation réussie."),
+            "Ne correspond pas à la valeur attendue."
+        );
     }
 }

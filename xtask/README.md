@@ -3,7 +3,7 @@
 `xtask` is the repository's internal maintenance CLI for synchronizing validator
 messages and generating the public documentation and site.
 
-Requires Rust 1.99 or newer.
+Requires Rust 1.100 or newer.
 
 ## Commands
 

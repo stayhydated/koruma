@@ -7,7 +7,7 @@
 [Koruma project][project]. Application code normally enables the default `derive` feature on
 [`koruma`][koruma] instead of depending on this package directly.
 
-Requires Rust 1.99 or newer. These macros generate code using Koruma's runtime
+Requires Rust 1.100 or newer. These macros generate code using Koruma's runtime
 contracts; a direct macro dependency alone does not provide those contracts.
 
 ## Overview

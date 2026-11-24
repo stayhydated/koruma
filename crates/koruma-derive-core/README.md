@@ -7,7 +7,7 @@
 `#[koruma(...)]` syntax in the [Koruma project][project]. Application code normally uses
 [`koruma`][koruma] instead.
 
-Requires Rust 1.99 or newer. Direct consumers work with `syn` 3 syntax nodes.
+Requires Rust 1.100 or newer. Direct consumers work with `syn` 3 syntax nodes.
 
 ## Overview
 

@@ -164,6 +164,8 @@ note: required because it appears within the type `ParentKorumaValidationError`
 note: required by a bound in `koruma::ValidateExt::Error`
  --> $WORKSPACE/crates/koruma-core/src/lib.rs
   |
+  | pub trait ValidateExt {
+...
   |     type Error: ValidationError + Default;
   |                 ^^^^^^^^^^^^^^^ required by this bound in `ValidateExt::Error`
   = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
@@ -308,7 +310,6 @@ note: required by a bound in `default`
   |                          ^^^^^ required by this bound in `Default::default`
 ...
   |     fn default() -> Self;
-  |        ------- required by a bound in this associated function
   = note: this error originates in the derive macro `Default` which comes from the expansion of the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0599]: the method `inner` exists for struct `ParentChildKorumaValidationError`, but its trait bounds were not satisfied
@@ -360,7 +361,6 @@ note: required by a bound in `default`
   |                          ^^^^^ required by this bound in `Default::default`
 ...
   |     fn default() -> Self;
-  |        ------- required by a bound in this associated function
   = note: this error originates in the derive macro `Koruma` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error[E0277]: the trait bound `Child: NewtypeValidation` is not satisfied
@@ -378,7 +378,6 @@ note: required by a bound in `koruma::__private::assert_newtype_field_ready`
  --> $WORKSPACE/crates/koruma-core/src/lib.rs
   |
   |     pub fn assert_newtype_field_ready<T>()
-  |            -------------------------- required by a bound in this function
   |     where
   |         T: super::NewtypeValidation,
   |            ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_newtype_field_ready`

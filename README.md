@@ -10,7 +10,7 @@ Applications start with [`koruma`][koruma-readme] for derives and core traits, t
 [`koruma-collection`][koruma-collection-readme] for built-in string, format, numeric, collection,
 and presence rules.
 
-The five public packages below require Rust 1.99 or newer.
+The five public packages below require Rust 1.100 or newer.
 
 ## Crates
 

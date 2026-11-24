@@ -1,0 +1,2 @@
+# Bound cache startup on the documentation lane without bypassing it.
+server_startup_timeout_ms = 90000

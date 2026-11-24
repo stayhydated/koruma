@@ -34,7 +34,6 @@ note: required by a bound in `koruma::__private::assert_newtype_field_ready`
   --> $WORKSPACE/crates/koruma-core/src/lib.rs
    |
    |     pub fn assert_newtype_field_ready<T>()
-   |            -------------------------- required by a bound in this function
    |     where
    |         T: super::NewtypeValidation,
    |            ^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `assert_newtype_field_ready`

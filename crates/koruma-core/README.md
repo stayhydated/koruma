@@ -7,7 +7,7 @@
 authors in the [Koruma project][project]. Application code normally uses [`koruma`][koruma], which
 re-exports its application-facing API.
 
-Requires Rust 1.99 or newer.
+Requires Rust 1.100 or newer.
 
 ## Overview
 

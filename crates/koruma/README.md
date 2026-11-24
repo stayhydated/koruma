@@ -6,7 +6,7 @@
 [Koruma project][project]. It re-exports the core validation traits and, by default, the derives
 and `#[validator]` attribute.
 
-Requires Rust 1.99 or newer.
+Requires Rust 1.100 or newer.
 
 Add [`koruma-collection`][koruma-collection] when its built-in validators fit your rules.
 The [API reference][api] documents the re-exported runtime contracts and macros.

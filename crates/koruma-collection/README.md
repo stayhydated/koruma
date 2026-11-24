@@ -8,7 +8,7 @@
 for applications built with the [Koruma project][project]. Depend on it directly alongside
 [`koruma`][koruma] when using these rules; the facade does not re-export this collection.
 
-Requires Rust 1.99 or newer.
+Requires Rust 1.100 or newer.
 
 The [API reference][api] lists the validators and their configuration methods.
 

@@ -7,7 +7,7 @@ feature.
 
 ## Choose a package
 
-All five public packages require Rust 1.99 or newer.
+All five public packages require Rust 1.100 or newer.
 
 | Package | Direct-consumer use |
 | --- | --- |

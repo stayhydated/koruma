@@ -1,9 +1,9 @@
+use iso_types::IntoEnumIterator as _;
 use readme::i18n::Languages;
 use readme::{
     Account, AccountSettings, Address, Customer, Email, Item, LoginForm, Only67u8,
     OptionalSignupForm, SignupForm, SignupInput, User, Username, i18n,
 };
-use strum::IntoEnumIterator as _;
 
 pub fn main() -> Result<(), i18n::LocalizationError> {
     i18n::init();

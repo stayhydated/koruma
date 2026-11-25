@@ -371,6 +371,24 @@ mod tests {
     }
 
     #[test]
+    fn serbian_showcase_feedback_is_localized() {
+        let _locale_lock = crate::pages::i18n::KORUMA_LOCALE_TEST_LOCK.lock().unwrap();
+        __link_showcase_validators();
+        let validator = validators()
+            .into_iter()
+            .find(|validator| validator.name == "NonEmpty")
+            .expect("non-empty showcase validator");
+        let invalid = (validator.create_validator)("").unwrap();
+
+        for locale in [langid!("sr-RS"), langid!("sr-SP")] {
+            assert_eq!(
+                localized_validator_message(invalid.as_ref(), koruma_localizer_for(&locale), ""),
+                "Не сме бити празно."
+            );
+        }
+    }
+
+    #[test]
     fn valid_showcase_inputs_show_success_instead_of_failure_text() {
         __link_showcase_validators();
         let matches = validators()

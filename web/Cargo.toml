@@ -12,14 +12,13 @@ dioxus = { features = [ "router", "launch", "lib", "web" ], workspace = true }
 dioxus-free-icons = { features = [ "lucide" ], workspace = true }
 dioxus-primitives = { features = [ "router" ], workspace = true }
 es-fluent = { workspace = true }
-es-fluent-lang = { workspace = true }
 es-fluent-manager-dioxus = { features = [ "client" ], workspace = true }
 es-fluent-manager-embedded = { workspace = true }
+iso-types = { workspace = true }
 koruma = { features = [ "internal-showcase", "derive", "fluent" ], workspace = true }
 koruma-collection = { features = [ "internal-showcase" ], workspace = true }
 stayhydated-dioxus = { workspace = true }
 stayhydated-site = { workspace = true }
-strum = { features = [ "derive" ], workspace = true }
 unic-langid = { workspace = true }
 
 [build-dependencies]

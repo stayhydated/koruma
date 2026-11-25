@@ -22,7 +22,6 @@ koruma = { workspace = true }
 phonenumber = { optional = true, workspace = true }
 regex = { optional = true, workspace = true }
 rust_decimal = { optional = true, workspace = true }
-rust-embed = { optional = true, workspace = true }
 url = { optional = true, workspace = true }
 smallvec = { optional = true, workspace = true }
 
@@ -36,7 +35,7 @@ proptest = { workspace = true }
 default = [ "fmt" ]
 full = [ "url", "credit-card", "phone-number", "email", "regex", "smallvec", "rust_decimal" ]
 full-fluent = [ "full", "fluent" ]
-fluent = [ "koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded", "dep:rust-embed" ]
+fluent = [ "koruma/fluent", "dep:es-fluent", "dep:es-fluent-manager-embedded" ]
 internal-showcase = [
   "full-fluent",
   "koruma/internal-showcase",
@@ -68,9 +67,6 @@ features = [
   "regex",
   "url",
 ]
-
-[package.metadata.cargo-machete]
-ignored = [ "rust-embed" ]
 
 [lints]
 workspace = true

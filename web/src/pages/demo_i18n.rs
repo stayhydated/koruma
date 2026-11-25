@@ -1,8 +1,8 @@
-use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage};
+use crate::pages::i18n::{DemoLanguage, DioxusShowcaseMessage, normalize_demo_language};
 use dioxus::prelude::*;
 use es_fluent_manager_dioxus::use_i18n;
+use iso_types::IntoEnumIterator as _;
 use stayhydated_dioxus::select;
-use strum::IntoEnumIterator as _;
 
 #[component]
 pub(crate) fn DemoLanguageSwitcher() -> Element {
@@ -19,7 +19,7 @@ pub(crate) fn DemoLanguageSwitcher() -> Element {
     let search_placeholder =
         i18n.localize_message(&DioxusShowcaseMessage::SearchLanguagesPlaceholder);
     let empty_message = i18n.localize_message(&DioxusShowcaseMessage::NoMatchingLanguages);
-    let requested_language = i18n.requested_language();
+    let requested_language = normalize_demo_language(&i18n.requested_language());
     let selected = DemoLanguage::try_from(&requested_language).unwrap_or_default();
     let mut selected_value = use_signal(move || Some(selected));
     let selected_for_effect = selected;

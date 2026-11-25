@@ -1,21 +1,17 @@
-use es_fluent::EsFluent;
 use std::sync::OnceLock;
-use strum::EnumIter;
 
-use es_fluent_lang::es_fluent_language;
 use es_fluent_manager_embedded as embedded_i18n;
 
 es_fluent_manager_embedded::define_i18n_module!();
 
 pub type LocalizationError = embedded_i18n::LocalizationError;
 
-#[es_fluent_language]
-#[derive(Clone, Copy, Debug, EnumIter, Eq, EsFluent, PartialEq)]
+#[iso_types::iso_locale]
 pub enum Languages {}
 
 impl Languages {
     pub fn next(self) -> Self {
-        use strum::IntoEnumIterator as _;
+        use iso_types::IntoEnumIterator as _;
 
         let mut first = None;
         let mut return_next = false;

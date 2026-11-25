@@ -841,6 +841,18 @@ mod tests {
     use unic_langid::langid;
 
     #[test]
+    fn serbian_sales_feedback_is_localized_for_canonical_and_legacy_requests() {
+        let _locale_lock = crate::pages::i18n::KORUMA_LOCALE_TEST_LOCK.lock().unwrap();
+        let mut draft = SalesLeadDraft::valid_sample("Пошаљите документацију.");
+        draft.email = "invalid".to_owned();
+
+        for locale in [langid!("sr-RS"), langid!("sr-SP")] {
+            let feedback = validate_sales_draft(&draft, &locale);
+            assert_eq!(feedback.email, ["Неисправна адреса е-поште."]);
+        }
+    }
+
+    #[test]
     fn localized_valid_sample_keeps_stable_payload_values() {
         let sample = SalesLeadDraft::valid_sample("Envoyer le dossier d’achat avant vendredi.");
         assert_eq!(

@@ -127,10 +127,10 @@ jobs:
         with:
           persist-credentials: false
       - name: Check FTL files
-        uses: stayhydated/es-fluent/crates/es-fluent-cli@898b94ba52f60aae49369225aac44c1812b0d1af
+        uses: stayhydated/es-fluent/crates/es-fluent-cli@ffb90f5e25c54747d8fdbd7bb48cf5cfcb95509b
         with:
           toolchain: "1.100.0"
-          version: "=0.21.2"
+          version: "=0.22.0"
           path: .
           all_locales: true
           ignore: |

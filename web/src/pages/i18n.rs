@@ -1,14 +1,24 @@
 use std::sync::OnceLock;
 
 use es_fluent::EsFluent;
-use es_fluent_lang::es_fluent_language;
 use es_fluent_manager_embedded::EmbeddedI18n;
-use strum::EnumIter;
-use unic_langid::LanguageIdentifier;
+use unic_langid::{LanguageIdentifier, langid};
 
 es_fluent_manager_dioxus::define_i18n_module!();
 
 static KORUMA_LOCALIZER: OnceLock<Result<EmbeddedI18n, String>> = OnceLock::new();
+
+/// The former demo locale used SP for Serbia. Accept it only at the app boundary.
+pub(crate) fn normalize_demo_language(language: &LanguageIdentifier) -> LanguageIdentifier {
+    if *language == langid!("sr-SP") {
+        langid!("sr-RS")
+    } else {
+        language.clone()
+    }
+}
+
+#[cfg(test)]
+pub(crate) static KORUMA_LOCALE_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
 pub(crate) fn koruma_localizer_for(language: &LanguageIdentifier) -> Option<&'static EmbeddedI18n> {
     let localizer = KORUMA_LOCALIZER
@@ -16,12 +26,13 @@ pub(crate) fn koruma_localizer_for(language: &LanguageIdentifier) -> Option<&'st
         .as_ref()
         .ok()?;
 
-    localizer.select_language(language.clone()).ok()?;
+    localizer
+        .select_language(normalize_demo_language(language))
+        .ok()?;
     Some(localizer)
 }
 
-#[es_fluent_language]
-#[derive(Clone, Copy, Debug, EnumIter, Eq, EsFluent, PartialEq)]
+#[iso_types::iso_locale]
 pub(crate) enum DemoLanguage {}
 
 #[derive(Clone, Copy, Debug, EsFluent)]
@@ -151,10 +162,11 @@ mod tests {
     use koruma_collection::collection::NonEmptyValidation;
     use unic_langid::langid;
 
-    use super::koruma_localizer_for;
+    use super::{DemoLanguage, koruma_localizer_for, normalize_demo_language};
 
     #[test]
     fn koruma_localizer_tracks_demo_language() {
+        let _locale_lock = super::KORUMA_LOCALE_TEST_LOCK.lock().unwrap();
         let validator = NonEmptyValidation::<String>::with_value(String::new()).build();
 
         let en = koruma_localizer_for(&langid!("en-US")).expect("en-US should be supported");
@@ -174,5 +186,11 @@ mod tests {
             zh.try_localize_message(&validator).as_deref(),
             Some("\u{4e0d}\u{80fd}\u{4e3a}\u{7a7a}\u{3002}")
         );
+    }
+    #[test]
+    fn legacy_serbian_maps_to_a_supported_demo_locale() {
+        let language = normalize_demo_language(&langid!("sr-SP"));
+        assert_eq!(language, langid!("sr-RS"));
+        assert_eq!(DemoLanguage::try_from(&language).unwrap().code(), "sr-RS");
     }
 }

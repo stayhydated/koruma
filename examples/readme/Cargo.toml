@@ -8,18 +8,13 @@ publish = false
 
 [dependencies]
 es-fluent = { workspace = true }
-es-fluent-lang = { workspace = true }
 es-fluent-manager-embedded = { workspace = true }
+iso-types = { workspace = true }
 koruma = { features = [ "derive", "fluent" ], workspace = true }
-rust-embed = { workspace = true }
-strum = { features = [ "derive" ], workspace = true }
 koruma-collection = { features = [ "full" ], workspace = true }
 
 [build-dependencies]
 es-fluent-build = { workspace = true }
-
-[package.metadata.cargo-machete]
-ignored = [ "rust-embed" ]
 
 [lints]
 workspace = true

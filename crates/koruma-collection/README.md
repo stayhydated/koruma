@@ -22,7 +22,7 @@ when default features are disabled.
 | --- | --- | --- |
 | `credit-card` | No | Enables `format::CreditCardValidation` through `card-validate`. |
 | `email` | No | Enables `format::EmailValidation` through `email_address`. |
-| `fluent` | No | Enables localized messages, embedded Fluent resources, and `koruma/fluent` through `es-fluent`, `es-fluent-manager-embedded`, and `rust-embed`. |
+| `fluent` | No | Enables localized messages, embedded Fluent resources, and `koruma/fluent` through `es-fluent` and `es-fluent-manager-embedded`. |
 | `fmt` | Yes | Implements `Display` for validator errors. |
 | `full` | No | Enables `url`, `credit-card`, `phone-number`, `email`, `regex`, `smallvec`, and `rust_decimal`. |
 | `full-fluent` | No | Enables `full` and `fluent`. |

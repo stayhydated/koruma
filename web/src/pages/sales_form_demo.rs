@@ -775,10 +775,7 @@ fn validate_sales_draft(draft: &SalesLeadDraft, language: DemoLanguage) -> Sales
     }
 }
 
-fn format_errors<T>(
-    errors: impl IntoIterator<Item = T>,
-    language: DemoLanguage,
-) -> Vec<String>
+fn format_errors<T>(errors: impl IntoIterator<Item = T>, language: DemoLanguage) -> Vec<String>
 where
     T: Display + FluentMessage,
 {

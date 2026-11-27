@@ -102,8 +102,8 @@ fn CollectionDioxusShowcase() -> Element {
         i18n.localize_message(&DioxusShowcaseMessage::ValidationPlaceholder),
         i18n.localize_message(&DioxusShowcaseMessage::ErrorPrefix),
     );
-    let koruma_language = i18n.requested_language();
-    let koruma_localizer = koruma_localizer_for(&koruma_language);
+    let koruma_language = DemoLanguage::from_requested_language(&i18n.requested_language());
+    let koruma_localizer = koruma_localizer_for(koruma_language);
     let validation_passed = i18n.localize_message(&DioxusShowcaseMessage::ValidationPassed);
 
     let mut inputs = use_signal(HashMap::<&'static str, String>::new);
@@ -381,8 +381,9 @@ mod tests {
         let invalid = (validator.create_validator)("").unwrap();
 
         for locale in [langid!("sr-RS"), langid!("sr-SP")] {
+            let language = DemoLanguage::from_requested_language(&locale);
             assert_eq!(
-                localized_validator_message(invalid.as_ref(), koruma_localizer_for(&locale), ""),
+                localized_validator_message(invalid.as_ref(), koruma_localizer_for(language), ""),
                 "Не сме бити празно."
             );
         }

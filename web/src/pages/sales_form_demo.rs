@@ -12,7 +12,6 @@ use es_fluent_manager_dioxus::{DioxusAssetI18nProvider, use_i18n};
 use koruma::{Koruma, KorumaAllDisplay, KorumaAllFluent};
 use koruma_collection::{collection, format, general, numeric};
 use stayhydated_dioxus::{NavigationTarget, StayhydatedProjectPortalShell, surface_reveal_style};
-use unic_langid::LanguageIdentifier;
 
 use crate::pages::DemoLanguageSwitcher;
 use crate::pages::i18n::{DemoLanguage, SalesFormMessage, koruma_localizer_for};
@@ -290,8 +289,8 @@ fn SalesFormContent() -> Element {
         .iter()
         .map(|(value, message)| (*value, i18n.localize_message(message)))
         .collect();
-    let koruma_language = i18n.requested_language();
-    let feedback = validate_sales_draft(&current, &koruma_language);
+    let koruma_language = DemoLanguage::from_requested_language(&i18n.requested_language());
+    let feedback = validate_sales_draft(&current, koruma_language);
     let field_labels = SalesFieldLabels::builder()
         .company(i18n.localize_message(&SalesFormMessage::FieldCompany))
         .contact_name(i18n.localize_message(&SalesFormMessage::FieldContactName))
@@ -758,7 +757,7 @@ fn field_hint_and_errors(hint: Option<String>, errors: Vec<String>) -> Element {
     }
 }
 
-fn validate_sales_draft(draft: &SalesLeadDraft, language: &LanguageIdentifier) -> SalesFeedback {
+fn validate_sales_draft(draft: &SalesLeadDraft, language: DemoLanguage) -> SalesFeedback {
     let form = SalesLeadForm::from(draft);
 
     match form.validate() {
@@ -776,10 +775,7 @@ fn validate_sales_draft(draft: &SalesLeadDraft, language: &LanguageIdentifier) -
     }
 }
 
-fn format_errors<T>(
-    errors: impl IntoIterator<Item = T>,
-    language: &LanguageIdentifier,
-) -> Vec<String>
+fn format_errors<T>(errors: impl IntoIterator<Item = T>, language: DemoLanguage) -> Vec<String>
 where
     T: Display + FluentMessage,
 {
@@ -847,7 +843,8 @@ mod tests {
         draft.email = "invalid".to_owned();
 
         for locale in [langid!("sr-RS"), langid!("sr-SP")] {
-            let feedback = validate_sales_draft(&draft, &locale);
+            let language = DemoLanguage::from_requested_language(&locale);
+            let feedback = validate_sales_draft(&draft, language);
             assert_eq!(feedback.email, ["Неисправна адреса е-поште."]);
         }
     }
@@ -860,7 +857,7 @@ mod tests {
             "Envoyer le dossier d’achat avant vendredi."
         );
         assert_eq!(sample.stage, "Proposal");
-        assert!(validate_sales_draft(&sample, &langid!("fr-FR")).is_valid());
+        assert!(validate_sales_draft(&sample, DemoLanguage::FrFr).is_valid());
         assert_eq!(
             SALES_STAGES
                 .iter()
